@@ -111,7 +111,7 @@ const cacheGate = (step, context) => vm.runInNewContext(step.match(/if: ([^\n]+)
 });
 
 test("workflows pin setup-go to the retrievable Node 24 release", () => {
-  const expectedPin = "924ae3a1cded613372ab5595356fb5720e22ba16";
+  const expectedPin = "b7ad1dad31e06c5925ef5d2fc7ad053ef454303e";
   const workflowDirectory = new URL("../.github/workflows/", import.meta.url);
   const pins = readdirSync(workflowDirectory)
     .filter(name => name.endsWith(".yml"))
