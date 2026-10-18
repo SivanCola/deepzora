@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"testing"
@@ -136,6 +137,46 @@ func TestConcurrentRemoteProjectOpenReusesOneTab(t *testing.T) {
 	a.remoteTabMu.Unlock()
 	if count != 1 {
 		t.Fatalf("remote tab count = %d, want one", count)
+	}
+}
+
+// gatedEnsureKernel holds EnsureServer until release closes, keeping a
+// bootstrap in flight after OpenRemoteProjectTab has returned.
+type gatedEnsureKernel struct {
+	*fakeRemoteKernel
+	release chan struct{}
+}
+
+func (k *gatedEnsureKernel) EnsureServer(ctx context.Context, hostID, workspace string) (RemoteServerView, string, error) {
+	<-k.release
+	return k.fakeRemoteKernel.EnsureServer(ctx, hostID, workspace)
+}
+
+// TestRemoteTabCleanupStopsBootstrapStillInFlight pins the contract every
+// cleanupRemoteTabPumps caller relies on: retiring tabs before a bootstrap has
+// installed its pump must still stop that bootstrap. Otherwise the late pump
+// outlives cleanup and httptest's Close waits forever on its /events stream.
+func TestRemoteTabCleanupStopsBootstrapStillInFlight(t *testing.T) {
+	fs := newFakeServe(t, "s3cret", nil)
+	kernel := &gatedEnsureKernel{fakeRemoteKernel: &fakeRemoteKernel{
+		statuses:    []RemoteConnectionStatusView{{HostID: "box", State: "connected"}},
+		ensureView:  RemoteServerView{HostID: "box", State: "ready", LocalURL: fs.server.URL},
+		ensureToken: "s3cret",
+	}, release: make(chan struct{})}
+	seedBridgeTestHost(t, "box")
+	a := &App{remoteRuntime: kernel}
+	meta, err := a.OpenRemoteProjectTab("box", "~/app", RemoteTabOpenOptions{NewSession: true})
+	if err != nil {
+		close(kernel.release)
+		t.Fatal(err)
+	}
+	retireRemoteTabsForTest(a)
+	close(kernel.release)
+	if !waitRemoteTabTasks(t, a) {
+		// Close through the production path so the leaked pump cannot reattach
+		// and the failure reports instead of hanging in the server's Close.
+		_ = a.closeRemoteTabRegistration(meta.ID, true)
+		waitRemoteTabTasks(t, a)
 	}
 }
 
