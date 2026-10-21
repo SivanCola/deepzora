@@ -461,28 +461,47 @@ func waitForRemoteEventCount(t *testing.T, log *eventLog, prefix string, want in
 	}
 }
 
-// cleanupRemoteTabPumps cancels every open tab's SSE pump and waits for all
-// bridge tasks to return. Waiting matters on Windows: an async resume can
-// publish its final tab snapshot after the assertion succeeds, racing the
-// temporary user directory's cleanup.
+// cleanupRemoteTabPumps retires every open tab and waits for all bridge tasks
+// to return. Waiting matters on Windows: an async resume can publish its final
+// tab snapshot after the assertion succeeds, racing the temporary user
+// directory's cleanup.
 func cleanupRemoteTabPumps(t *testing.T, a *App) {
 	t.Helper()
 	t.Cleanup(func() {
-		a.remoteTabMu.Lock()
-		for _, tab := range a.remoteTabs {
-			if tab.cancel != nil {
-				tab.cancel()
-			}
-		}
-		a.remoteTabMu.Unlock()
-		done := make(chan struct{})
-		go func() { a.remoteTabTasks.Wait(); close(done) }()
-		select {
-		case <-done:
-		case <-time.After(5 * time.Second):
-			t.Error("remote tab tasks did not stop after pump cancellation")
-		}
+		retireRemoteTabsForTest(a)
+		waitRemoteTabTasks(t, a)
 	})
+}
+
+// retireRemoteTabsForTest removes every tab from the registry, as closing it
+// would, and cancels its pump. Cancelling alone is not enough:
+// OpenRemoteProjectTab returns before its background bootstrap installs a pump,
+// so a cancel-only snapshot can run first and leave the later pump uncancelled.
+// Both pump installers refuse a tab that has left the registry under
+// remoteTabMu, so removing each tab in the same critical section also stops
+// bootstraps that are still in flight.
+func retireRemoteTabsForTest(a *App) {
+	a.remoteTabMu.Lock()
+	defer a.remoteTabMu.Unlock()
+	for id, tab := range a.remoteTabs {
+		if tab.cancel != nil {
+			tab.cancel()
+		}
+		delete(a.remoteTabs, id)
+	}
+}
+
+func waitRemoteTabTasks(t *testing.T, a *App) bool {
+	t.Helper()
+	done := make(chan struct{})
+	go func() { a.remoteTabTasks.Wait(); close(done) }()
+	select {
+	case <-done:
+		return true
+	case <-time.After(5 * time.Second):
+		t.Error("remote tab tasks did not stop after pump cancellation")
+		return false
+	}
 }
 
 // openReadyRemoteTab opens a tab against the fake serve and waits for ready.
