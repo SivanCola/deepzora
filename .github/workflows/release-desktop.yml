@@ -919,7 +919,15 @@ jobs:
         app_dir="$RUNNER_TEMP/deepzora-universal-app/Deepzora.app"
         mkdir -p "$mount_dir" "$(dirname "$app_dir")"
         hdiutil attach -nobrowse -readonly -mountpoint "$mount_dir" "$RUNNER_TEMP/universal-bundle/files/$(node scripts/desktop-downloads.mjs name "${{ needs.resolve.outputs.version }}" Deepzora-darwin-universal.dmg)"
-        trap 'hdiutil detach "$mount_dir"' EXIT
+        cleanup() {
+          status=$?
+          trap - EXIT
+          node scripts/desktop-dmg.mjs detach "$mount_dir" "$app_dir" || status=1
+          exit "$status"
+        }
+        trap cleanup EXIT
+        trap 'exit 130' INT
+        trap 'exit 143' TERM
         ditto "$mount_dir/Deepzora.app" "$app_dir"
         codesign --verify --deep --strict "$app_dir"
         node desktop/packaging/verify.mjs "$app_dir" --kind darwin-app-dir
