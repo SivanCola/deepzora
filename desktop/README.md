@@ -167,6 +167,33 @@ it once per platform on a native runner.
 checkout). A bare `go build` without a prior `pnpm build` produces a service with
 no frontend assets.
 
+### macOS DMG cleanup
+
+After testing an application on a mounted DMG, detach it with the guarded
+cleanup command (add the copied `.app` path if testing a copy):
+
+```sh
+node scripts/desktop-dmg.mjs detach /Volumes/Deepzora /tmp/acceptance/Deepzora.app
+```
+
+This checks the exact bundle paths for the shell, helpers, and orphaned Go
+service, sends SIGTERM and waits up to 20 seconds, then uses SIGKILL only for
+remaining processes and verifies exit before detaching. Forced process cleanup
+fails validation even if the disk can then be safely detached. A busy disk or
+unconfirmed exit is an error: retain the image and diagnostics; never use
+`hdiutil detach -force`. Packaging applies the same guard inside `create-dmg`
+and preserves staging when cleanup cannot be confirmed. Normal smoke acceptance
+still requires both shell and service to exit through the application's quit
+lifecycle; emergency cleanup does not turn a failed smoke into a pass.
+
+Run the focused cleanup tests with
+`node --test scripts/desktop-dmg-lifecycle.test.mjs scripts/package-desktop-dmg.test.mjs`.
+On macOS, `DEEPZORA_TEST_NATIVE_DMG=1 node --test scripts/desktop-dmg-native.test.mjs`
+also exercises a real temporary DMG with disposable native processes, including
+a backend that ignores SIGTERM and an unrelated app that must remain alive.
+It requires `create-dmg` and the Xcode command-line compiler; only Finder's
+visual customization is skipped.
+
 ### macOS icon acceptance
 
 The macOS SVG, PNG and ICNS use the same inset rounded-square artwork under
