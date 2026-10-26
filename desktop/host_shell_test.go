@@ -54,7 +54,7 @@ func newHostShellBridgeForTest(t *testing.T, replies map[string]any) (*App, *hos
 	shell := &fakeShell{conn: shellConn, replies: replies}
 	for _, method := range []string{
 		"host/tray.ensure", "host/tray.destroy", "host/window.show", "host/window.maximise", "host/window.unminimise",
-		"host/remoteWindow.open", "host/remoteWindow.close", "host/app.relaunch", "host/app.quit",
+		"host/app.relaunch", "host/app.quit",
 	} {
 		shell.handle(method)
 	}

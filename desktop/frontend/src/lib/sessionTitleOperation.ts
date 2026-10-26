@@ -31,7 +31,7 @@ export function sessionTitleErrorKey(error: unknown): DictKey {
     target_not_found: "projectTree.sessionError.targetNotFound", no_messages: "projectTree.sessionError.noMessages",
     ambiguous_target: "projectTree.sessionError.ambiguousTarget",
     runtime_not_open: "projectTree.sessionError.runtimeNotOpen", runtime_not_ready: "projectTree.sessionError.runtimeNotReady",
-    remote_disconnected: "projectTree.sessionError.remoteDisconnected", title_conflict: "projectTree.sessionError.titleConflict",
+    title_conflict: "projectTree.sessionError.titleConflict",
     target_changed: "projectTree.sessionError.targetChanged", archived: "projectTree.sessionError.archived",
     operation_busy: "projectTree.sessionError.operationBusy", provider_unavailable: "projectTree.sessionError.providerUnavailable",
     stale_cursor: "projectTree.sessionError.staleCursor", unsupported: "projectTree.sessionError.unsupported",

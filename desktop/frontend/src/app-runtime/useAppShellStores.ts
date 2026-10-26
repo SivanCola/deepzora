@@ -2,14 +2,13 @@ import { selectRightDockMode, useActivityBarStore } from "../store/activityBar";
 import { useLayoutStore, useSidebarCollapsed } from "../store/layout";
 import { useOverlayStore } from "../store/overlays";
 import { useAppNavigationStore } from "../store/appNavigation";
-import { useRemoteStore } from "../store/remote";
 import { useWindowChromeStore } from "../store/windowChrome";
 import { useDesktopPreferences } from "./useDesktopPreferences";
 
 /**
  * Single subscription surface for the store-backed shell state AppRuntime
  * wires into regions: overlay visibility, navigation page, layout geometry
- * flags, remote catalogs, window chrome and desktop preferences. Controller
+ * flags, window chrome and desktop preferences. Controller
  * state never flows through here — this hook only reads stores.
  */
 export function useAppShellStores() {
@@ -23,8 +22,6 @@ export function useAppShellStores() {
   const setPaletteOpen = useOverlayStore((s) => s.setPaletteOpen);
   const shortcutsOpen = useOverlayStore((s) => s.shortcutsOpen);
   const setShortcutsOpen = useOverlayStore((s) => s.setShortcutsOpen);
-  const takeoverDialogTab = useOverlayStore((s) => s.takeoverDialogTab);
-  const reclaimBusyTab = useOverlayStore((s) => s.reclaimBusyTab);
   const transientOverlayDismissSignal = useOverlayStore((s) => s.transientOverlayDismissSignal);
   const setTransientOverlayDismissSignal = useOverlayStore((s) => s.setTransientOverlayDismissSignal);
   const sidebarSearchOpen = useOverlayStore((s) => s.sidebarSearchOpen);
@@ -57,10 +54,6 @@ export function useAppShellStores() {
   const rightDockMode = useActivityBarStore(selectRightDockMode);
   const terminalPanelOpen = useLayoutStore((s) => s.terminalPanelOpen);
 
-  const remoteHosts = useRemoteStore((s) => s.hosts);
-  const remoteStatuses = useRemoteStore((s) => s.statuses);
-  const requestRemoteExplorer = useRemoteStore((s) => s.openExplorer);
-
   const desktopPlatform = useWindowChromeStore((state) => state.platform);
   const mainWindowMaximised = useWindowChromeStore((state) => state.mainWindowMaximised);
 
@@ -75,7 +68,6 @@ export function useAppShellStores() {
     startupSplashVisible, setStartupSplashVisible,
     needsOnboarding, providerSetupNeeded, setProviderSetupNeeded,
     paletteOpen, setPaletteOpen, shortcutsOpen, setShortcutsOpen,
-    takeoverDialogTab, reclaimBusyTab,
     transientOverlayDismissSignal, setTransientOverlayDismissSignal,
     sidebarSearchOpen, setSidebarSearchOpen, sidebarSearchFocusSignal, setSidebarSearchFocusSignal,
     page, openPage, returnToWorkspace, enterConversation,
@@ -85,7 +77,6 @@ export function useAppShellStores() {
     workspacePanelOpen, rightDockTreeWidth, setRightDockTreeWidth, rightDockPreviewWidth,
     workspacePanelResizing, liveTerminalHeight, setLiveWorkspacePanelRenderWidth,
     workspacePanelMaximized, rightDockMode, terminalPanelOpen,
-    remoteHosts, remoteStatuses, requestRemoteExplorer,
     desktopPlatform, mainWindowMaximised,
     preferences,
     managementActive,

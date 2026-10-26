@@ -14,7 +14,7 @@ export function enqueueGuidanceForTarget(binding: AppBindings, target: PendingFo
 // cannot cause a second POST when the user retries guidance.
 export async function enqueueTrackedGuidance(binding: AppBindings, request: PendingFollowup, turnId?: string) {
   const { target } = request;
-  const pendingKey = followupSessionKey(target?.sessionPath, target?.hostId, target?.workspace);
+  const pendingKey = followupSessionKey(target?.sessionPath);
   const unresolved = pendingKey ? pendingFollowups.get(pendingKey) : undefined;
   if (unresolved) {
     const receipt = await confirmFollowup(binding, unresolved);

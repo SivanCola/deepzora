@@ -35,7 +35,7 @@ const paint = (active = "B") => act(async () => root.render(<LocaleProvider><Toa
 let revision = 0;
 function session(kind = "ask", turnId = "turn-A", requestId = "1"): RuntimeSession {
   return { tabId: "detached:A", scope: "project", workspaceRoot: "/fixture", topicId: "topic-A",
-    sessionId: "session-A", sessionPath: "", sessionGeneration: 1, open: false, remote: false, freshness: "synced",
+    sessionId: "session-A", sessionPath: "", sessionGeneration: 1, open: false, freshness: "synced",
     state: { schemaVersion: 1, runtimeEpoch: "runtime-A", activityRevision: 1, revision: 1, phase: "executing",
       running: true, turnId, turnStatus: "running", turnEventSeq: 1, pendingPrompt: true,
       pendingInteractions: [{ requestId, kind, turnId, runtimeEpoch: "runtime-A", }],
@@ -70,10 +70,10 @@ try {
   assert.equal(chimes, 2, "wire first, snapshot second: approval rings once");
   await publish([session("ask", "turn-new")]);
   assert.equal(chimes, 3, "a new turn may reuse a per-controller request id");
-  await publish([{ ...session("ask", "turn-remote"), remote: true, tabId: "B", hostId: "remote" }]);
-  assert.equal(chimes, 4, "remote background session sharing the visible tab still notifies");
+  await publish([{ ...session("ask", "turn-detached"), tabId: "B" }]);
+  assert.equal(chimes, 4, "a detached session sharing the visible tab still notifies");
   await publish([{ ...session("ask", "turn-unknown"), freshness: "unknown" }]);
-  assert.equal(chimes, 4, "untrusted stale remote state cannot create a new notification");
+  assert.equal(chimes, 4, "untrusted stale state cannot create a new notification");
   await publish([{ ...session("ask", "turn-unknown"), freshness: "synced" }]);
   assert.equal(chimes, 5, "reconnection can recover a previously unseen pending question");
   setAttentionPreference("off");
@@ -93,5 +93,5 @@ try {
   await act(async () => root.unmount());
   await publish([session("ask", "turn-disposed")]);
   assert.equal(chimes, 8, "unmount removes the global state subscription");
-  console.log("runtime attention: background Ask, approval, replay, navigation, remote, reconnect, mute and disposal passed");
+  console.log("runtime attention: background Ask, approval, replay, navigation, detached sessions, reconnect, mute and disposal passed");
 } finally { dom.window.close(); }

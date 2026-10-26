@@ -5,17 +5,15 @@ import assert from "node:assert/strict";
 import { useNavigationSurface } from "../lib/useNavigationSurface";
 import { projectNavigationSurfaceTarget } from "../app-runtime/conversationProjection";
 import { initialState } from "../lib/useController";
-import type { RemoteSessionApi } from "../lib/useRemoteSession";
 
 const dom = new JSDOM("<div id='root'></div>");
 Object.assign(globalThis, { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true });
 const root = createRoot(document.getElementById("root")!);
 let surface!: ReturnType<typeof useNavigationSurface>;
-function Probe({ tab, session, remote }: { tab: string; session: string;
-  remote?: Pick<RemoteSessionApi, "state" | "hydrated" | "surfaceGeneration" | "error"> }) {
+function Probe({ tab, session }: { tab: string; session: string }) {
   const next = useNavigationSurface(projectNavigationSurfaceTarget({ activeTabId: tab, sessionKey: session,
-    local: { ...initialState, meta: { ...initialState.meta, ready: !remote } as typeof initialState.meta,
-      backendActivationPending: Boolean(remote), hydrating: Boolean(remote) }, remote }));
+    local: { ...initialState, meta: { ...initialState.meta, ready: true } as typeof initialState.meta,
+      backendActivationPending: false, hydrating: false } }));
   useLayoutEffect(() => { surface = next; });
   return null;
 }
@@ -34,18 +32,6 @@ try {
   act(() => { receipt = surface.commitPaint(secondToken, "ready"); });
   assert.deepEqual(receipt, { token: secondToken, intent: 1, targetTabId: "a", targetSessionKey: "a:2" });
   act(() => { assert.equal(surface.commitPaint(secondToken, "ready"), null, "a receipt commits once"); });
-  const remote = { state: "ready", hydrated: true, surfaceGeneration: 1, error: "" } as const;
-  await act(async () => root.render(<Probe tab="remote" session="workspace" remote={remote} />));
-  act(() => { surface.begin(2); surface.maskTarget(2); });
-  const remoteToken = surface.surfaceCommitToken!;
-  assert.ok(remoteToken, "remote readiness is independent of the inactive local controller's pending hydration");
-  await act(async () => root.render(<Probe tab="remote" session="workspace" remote={{ ...remote, surfaceGeneration: 2 }} />));
-  act(() => { assert.equal(surface.commitPaint(remoteToken, "ready"), null, "a former Serve generation cannot acknowledge the new surface"); });
-  act(() => { assert.ok(surface.commitPaint(surface.surfaceCommitToken!, "ready")); });
-  assert.equal(surface.transitioning, false, "the same paint transaction releases remote Composer readiness");
-  await act(async () => root.render(<Probe tab="remote" session="workspace" remote={{ ...remote, state: "error", hydrated: false, error: "offline" }} />));
-  act(() => { surface.begin(3); surface.maskTarget(3); });
-  assert.equal(surface.transitioning, false, "remote hydration failure terminates the masked navigation, leaving recovery reachable");
   await act(async () => root.render(<Probe tab="" session="" />));
   act(() => { surface.begin(4); surface.cancel(3); });
   assert.equal(surface.transitioning, true, "an older picker cancellation cannot release a newer navigation");

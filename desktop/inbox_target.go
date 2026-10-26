@@ -13,12 +13,11 @@ import (
 const inboxTransientCode = "inbox_target_transient"
 
 // errInboxTargetChanged is the transient identity/route fence: the tab is
-// switching, reconnecting or re-aiming, and the same call succeeds once it
+// switching or re-aiming, and the same call succeeds once it
 // settles. Boundaries classify it as inbox_target_transient.
 var errInboxTargetChanged = errors.New("inbox target changed")
 
-// InboxTargetView fences follow-ups across both local replacement and remote
-// selection changes. It is process-local and never written to the inbox ledger.
+// InboxTargetView fences follow-ups across session replacement. It is process-local and never written to the inbox ledger.
 type InboxTargetView struct {
 	TabID       string `json:"tabId"`
 	SessionPath string `json:"sessionPath"`

@@ -28,14 +28,11 @@ export type TodoPanelCommandsInput = {
   } | undefined | null;
   activeTab: TabMeta | undefined;
   activeTabId: string | undefined;
-  remote: boolean;
-  remoteReady: boolean;
   controllerReady: boolean;
   sessionKey: string;
   operations: ReturnType<typeof useSessionOperations>;
   t: Translator;
   ports: {
-    remoteSend(text: string): Promise<void>;
     sendToTab(tabId: string, text: string): Promise<void>;
   };
 };
@@ -48,7 +45,7 @@ export type TodoPanelCommandsInput = {
  * for this mounted UI and cannot outlive a real turn boundary.
  */
 export function useTodoPanelCommands(input: TodoPanelCommandsInput) {
-  const { activeTab, activeTabId, remote, t, ports } = input;
+  const { activeTab, activeTabId, t, ports } = input;
   const metaTodos = input.meta?.canonicalTodos;
   const todos = useMemo(() => resolveTodoPanelTodos(metaTodos), [metaTodos]);
   // Dismissal is a view preference for this mounted UI only. Persisting a todo
@@ -65,8 +62,8 @@ export function useTodoPanelCommands(input: TodoPanelCommandsInput) {
   const todoKey = useMemo(() => todoDismissalKey(todos), [todos]);
   const todoBatch = useMemo(() => todoBatchKey(todos), [todos]);
   const todoScope = useMemo(
-    () => todoPanelScope({ activeTab, activeTabId, eventChannel: remote ? undefined : input.meta?.eventChannel }),
-    [activeTab, activeTabId, remote, input.meta?.eventChannel],
+    () => todoPanelScope({ activeTab, activeTabId, eventChannel: input.meta?.eventChannel }),
+    [activeTab, activeTabId, input.meta?.eventChannel],
   );
   const dismissedTodo = useMemo(
     () => dismissedTodoKeyForScope(todoScope, dismissedTodoKeys, todoKey),
@@ -86,17 +83,13 @@ export function useTodoPanelCommands(input: TodoPanelCommandsInput) {
   });
   const handleTodoContinue = useCommittedCommand(() => {
     const targetTabId = todoContinueTarget(activeTabId, activeTabId, {
-      ready: remote ? input.remoteReady : input.controllerReady,
+      ready: input.controllerReady,
       readOnly: Boolean(activeTab?.readOnly),
       running: input.running,
       pendingPrompt: input.pendingPrompt,
     });
     if (!targetTabId) return;
     const prompt = t("todo.continue");
-    if (remote) {
-      void ports.remoteSend(prompt);
-      return;
-    }
     void ports.sendToTab(targetTabId, prompt);
   });
 

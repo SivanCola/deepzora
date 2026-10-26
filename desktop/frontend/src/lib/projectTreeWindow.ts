@@ -176,8 +176,7 @@ export function projectTreeProjectsNeedingInitialLoad(
   folderKey: (project: ProjectNode) => string,
 ): ProjectNode[] {
   return projects.filter((project) => (
-    !project.remote
-    && (project.kind === "project" || project.kind === "global_folder")
+    (project.kind === "project" || project.kind === "global_folder")
     && expandedKeys.has(folderKey(project))
     && projectTreeListNeedsInitialization(pageStates[projectTreeListKey(project.key, "", query)])
   ));

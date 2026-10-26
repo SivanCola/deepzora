@@ -229,7 +229,7 @@ func catalogStateStatus(state event.RuntimeStateSnapshot, activity string) (stri
 }
 
 // GetRuntimeStateSnapshot reads committed controller snapshots after copying
-// bindings off App.mu. Controller and remote-tab sampling stay outside the
+// bindings off App.mu. Controller sampling stays outside the
 // projection mutex: archive and runtime-state callbacks also enter here, and
 // holding that mutex across a controller read deadlocks a running turn.
 func (a *App) GetRuntimeStateSnapshot() RuntimeStateProjection {

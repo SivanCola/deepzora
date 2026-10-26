@@ -25,19 +25,19 @@ const initial = (tab: string): TranscriptFollowResponse => ({
 });
 async function microtasks() { for (let i = 0; i < 60; i++) await Promise.resolve(); }
 
-for (const remote of [false, true]) for (const ordering of ["record-first", "event-first"] as const) {
-  test(`${remote ? "remote" : "local"} ${ordering} steer keeps one row and acknowledges the exact inbox item`, async () => {
-    const tab = `steer-${remote}-${ordering}`, path = `/session/${tab}`;
+for (const ordering of ["record-first", "event-first"] as const) {
+  test(`local ${ordering} steer keeps one row and acknowledges the exact inbox item`, async () => {
+    const tab = `steer-${ordering}`, path = `/session/${tab}`;
     let deliver!: (value: TranscriptFollowResponse) => void;
     const pending = new Promise<TranscriptFollowResponse>(resolve => { deliver = resolve; });
     let polls = 0;
     const response = initial(tab);
     const wireRow = row;
-    commands[remote ? "RemoteTranscriptFollowForTab" : "TranscriptFollowForTab"] = (_tab: string, request: FollowRequest) => request.close
+    commands["TranscriptFollowForTab"] = (_tab: string, request: FollowRequest) => request.close
       ? Promise.resolve({ protocolVersion: 2, subscription: tab, changes: [], resetRequired: false })
       : request.subscription ? polls++ === 0 ? pending : new Promise(() => {}) : Promise.resolve(response);
     let state = initialState;
-    const follower = new TranscriptSessionFollower(tab, path, remote, action => { state = reducer(state, action); });
+    const follower = new TranscriptSessionFollower(tab, path, action => { state = reducer(state, action); });
     const source = new ChatSource(tab);
     try {
       await follower.start();
@@ -137,20 +137,20 @@ test("unapplied queue warnings join canonical records in either order", async ()
   assert.ok(multilineItem.text.endsWith("First line\nSecond line"));
 });
 
-for (const remote of [false, true]) for (const ordering of ["record-first", "event-first"] as const) {
-  test(`${remote ? "remote" : "local"} ${ordering} unapplied warning survives follower reconnect as one row`, async () => {
-    const tab = `unapplied-${remote}-${ordering}`, path = `/session/${tab}`, id = "queued";
+for (const ordering of ["record-first", "event-first"] as const) {
+  test(`local ${ordering} unapplied warning survives follower reconnect as one row`, async () => {
+    const tab = `unapplied-${ordering}`, path = `/session/${tab}`, id = "queued";
     const warning = "Guidance was not applied because the turn ended before it could be processed. Send it again if it is still needed:\nSame guidance";
     const wireRow = { role: "notice", messageId: id, recordId: `m:${id}:notice:0`, code: "unapplied_steer", level: "warn", content: warning };
     let deliver!: (value: TranscriptFollowResponse) => void;
     const pending = new Promise<TranscriptFollowResponse>(resolve => { deliver = resolve; });
     let polls = 0;
     const response = initial(tab);
-    commands[remote ? "RemoteTranscriptFollowForTab" : "TranscriptFollowForTab"] = (_tab: string, request: FollowRequest) => request.close
+    commands["TranscriptFollowForTab"] = (_tab: string, request: FollowRequest) => request.close
       ? Promise.resolve({ protocolVersion: 2, subscription: tab, changes: [], resetRequired: false })
       : request.subscription ? polls++ === 0 ? pending : new Promise(() => {}) : Promise.resolve(response);
     let state = initialState;
-    const follower = new TranscriptSessionFollower(tab, path, remote, action => { state = reducer(state, action); });
+    const follower = new TranscriptSessionFollower(tab, path, action => { state = reducer(state, action); });
     try {
       await follower.start();
       const record: Change = { revision: 11, firstSeq: 5, commitSeq: 5, durableSeq: 5, index: 0, records: [wireRow] };

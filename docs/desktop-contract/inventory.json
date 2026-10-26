@@ -277,7 +277,7 @@
       "kind": "command",
       "name": "BackgroundRuntimes",
       "detail": "() []BackgroundRuntimeView",
-      "location": "desktop/background_runtime.go:117",
+      "location": "desktop/background_runtime.go:114",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -357,7 +357,7 @@
       "kind": "command",
       "name": "CancelJobsForTab",
       "detail": "(tabID string, jobIDs []string) (JobCancelBatchView, error)",
-      "location": "desktop/background_runtime.go:86",
+      "location": "desktop/background_runtime.go:83",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -445,7 +445,7 @@
       "kind": "command",
       "name": "CaptureInboxTarget",
       "detail": "(tabID string, expectedPath string) (InboxTargetView, error)",
-      "location": "desktop/inbox_target.go:38",
+      "location": "desktop/inbox_target.go:37",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -525,7 +525,7 @@
       "kind": "command",
       "name": "CloseTabWithPolicy",
       "detail": "(tabID string, policy string) error",
-      "location": "desktop/background_runtime.go:315",
+      "location": "desktop/background_runtime.go:312",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -533,7 +533,7 @@
       "kind": "command",
       "name": "CloseTerminalForTab",
       "detail": "(tabID string, sessionID string) error",
-      "location": "desktop/terminal.go:222",
+      "location": "desktop/terminal.go:217",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -677,7 +677,7 @@
       "kind": "command",
       "name": "CreateTerminalForTab",
       "detail": "(tabID string, rel string, shellID string) (TerminalSessionView, error)",
-      "location": "desktop/terminal.go:180",
+      "location": "desktop/terminal.go:175",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -805,7 +805,7 @@
       "kind": "command",
       "name": "EnqueueInboxFollowupForTarget",
       "detail": "(target InboxTargetView, display string, submit string, invocations []InvocationRequest, key string) (InboxReceiptView, error)",
-      "location": "desktop/inbox_target.go:60",
+      "location": "desktop/inbox_target.go:59",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -1429,7 +1429,7 @@
       "kind": "command",
       "name": "ListProjectTopics",
       "detail": "(req ProjectTopicPageRequest) (ProjectTopicPage, error)",
-      "location": "desktop/session_topic_list.go:6",
+      "location": "desktop/session_topic_list.go:4",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -1533,7 +1533,7 @@
       "kind": "command",
       "name": "LookupInboxFollowupForTarget",
       "detail": "(target InboxTargetView, key string) (InboxReceiptView, error)",
-      "location": "desktop/inbox_target.go:87",
+      "location": "desktop/inbox_target.go:86",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -1885,7 +1885,7 @@
       "kind": "command",
       "name": "PendingPromptIdentitiesForTab",
       "detail": "(tabID string) ([]PromptIdentityView, error)",
-      "location": "desktop/decision_runtime_api.go:42",
+      "location": "desktop/decision_runtime_api.go:40",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -2413,7 +2413,7 @@
       "kind": "command",
       "name": "RenameTerminalForTab",
       "detail": "(tabID string, sessionID string, title string) error",
-      "location": "desktop/terminal.go:233",
+      "location": "desktop/terminal.go:228",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -2501,7 +2501,7 @@
       "kind": "command",
       "name": "ResizeTerminalForTab",
       "detail": "(tabID string, sessionID string, cols int, rows int) error",
-      "location": "desktop/terminal.go:211",
+      "location": "desktop/terminal.go:206",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -2533,7 +2533,7 @@
       "kind": "command",
       "name": "ResolvePromptForSession",
       "detail": "(target InteractionTargetView, answer PromptAnswerView) error",
-      "location": "desktop/decision_runtime_api.go:85",
+      "location": "desktop/decision_runtime_api.go:83",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -2541,7 +2541,7 @@
       "kind": "command",
       "name": "ResolvePromptForTab",
       "detail": "(tabID string, promptID string, turnID string, runtimeEpoch string, kind string, answer PromptAnswerView) error",
-      "location": "desktop/decision_runtime_api.go:62",
+      "location": "desktop/decision_runtime_api.go:60",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -2677,7 +2677,7 @@
       "kind": "command",
       "name": "RevealBackgroundRuntime",
       "detail": "(tabID string) (TabMeta, error)",
-      "location": "desktop/background_runtime.go:174",
+      "location": "desktop/background_runtime.go:171",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -2717,7 +2717,7 @@
       "kind": "command",
       "name": "RevealWorkspaceWriterForTab",
       "detail": "(tabID string) (TabMeta, error)",
-      "location": "desktop/background_runtime.go:303",
+      "location": "desktop/background_runtime.go:300",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -3157,7 +3157,7 @@
       "kind": "command",
       "name": "SetActiveTab",
       "detail": "(tabID string) error",
-      "location": "desktop/tab_selection.go:37",
+      "location": "desktop/tab_selection.go:35",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -3837,7 +3837,7 @@
       "kind": "command",
       "name": "TerminalOutputForTab",
       "detail": "(tabID string, sessionID string) (string, error)",
-      "location": "desktop/terminal.go:166",
+      "location": "desktop/terminal.go:161",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -3845,7 +3845,7 @@
       "kind": "command",
       "name": "TerminalWorkspaceForTab",
       "detail": "(tabID string) (TerminalWorkspaceView, error)",
-      "location": "desktop/terminal.go:142",
+      "location": "desktop/terminal.go:141",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -4013,7 +4013,7 @@
       "kind": "command",
       "name": "WorkspaceConflictForTab",
       "detail": "(tabID string) WorkspaceConflictView",
-      "location": "desktop/background_runtime.go:225",
+      "location": "desktop/background_runtime.go:222",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -4189,13 +4189,6 @@
       "kind": "frontend-event",
       "name": "project-tree:runtime-changed",
       "location": "desktop/frontend/src/lib/projectTreeRuntime.ts:194",
-      "class": "keep-business",
-      "owner": "desktopHost().events.on, same payload"
-    },
-    {
-      "kind": "frontend-event",
-      "name": "remote-tab:updated",
-      "location": "desktop/frontend/src/lib/runtimeStateSync.ts:74",
       "class": "keep-business",
       "owner": "desktopHost().events.on, same payload"
     },

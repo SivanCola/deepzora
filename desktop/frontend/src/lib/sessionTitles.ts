@@ -9,7 +9,7 @@ export function defaultWorkspaceTitle(name?: string): string {
 export function tabWorkspaceTitle(tab?: TabMeta): string {
   if (!tab) return defaultWorkspaceTitle();
   if (tab.scope === "project") return tab.workspaceName || tab.workspaceRoot || "Project";
-  if (tab.scope === "global" && !tab.remote) return defaultWorkspaceTitle(tab.workspaceName);
+  if (tab.scope === "global") return defaultWorkspaceTitle(tab.workspaceName);
   return tab.workspaceName || tab.workspaceRoot || "Global";
 }
 

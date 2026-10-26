@@ -44,7 +44,6 @@ const bindings = {
   GetProjectTreeRuntimeSnapshot: async () => ({ revision: 0, topics: [] }),
   IsolatedWorktreeAvailability: async () => ({ available: true, reason: "" }),
   Platform: async () => "darwin",
-  RemoteConnectionStatuses: async () => [],
 };
 window.deepzoraDesktop = {
   kind: "electron", contract: { commands: Object.keys(bindings) }, platform: { os: "darwin" }, native: {},
@@ -160,8 +159,6 @@ try {
       "a failed first shell read must settle the loading state");
     assert.match(container.textContent ?? "", /Add new project|添加新项目|新增專案/,
       "the empty-state project action must remain available after a failed read");
-    assert.match(container.textContent ?? "", /Remote connection|远程连接|遠端連線/,
-      "the empty-state remote action must remain available after a failed read");
   } finally {
     await act(async () => failedRoot.unmount());
   }

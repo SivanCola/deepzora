@@ -87,14 +87,14 @@ export class TranscriptSessionFollowerRuntime {
   private readonly submissionCoverage = new Map<string, number>();
   metrics = { entries: 0, inlineBytes: 0 };
 
-  constructor(private readonly tabId: string, private readonly path: string, private readonly remote: boolean,
+  constructor(private readonly tabId: string, private readonly path: string,
     private readonly dispatch: (action: Action) => void,
     private readonly state: () => State | undefined = () => getTranscriptStore().states.get(tabId)) {
     this.client = new TranscriptFollowClient(request => {
-      const read = remote ? app.RemoteTranscriptFollowForTab : app.TranscriptFollowForTab;
+      const read = app.TranscriptFollowForTab;
       if (!read) return Promise.reject(new Error("Transcript v2 is required. Upgrade Desktop and Serve together."));
       return read(tabId, request);
-    }, { transport: remote ? "remote" : "local" });
+    }, { transport: "local" });
   }
 
   async start(): Promise<void> {
@@ -125,7 +125,7 @@ export class TranscriptSessionFollowerRuntime {
               confirmedUsers: canonicalUserConfirmations(entries.map(entry => ({ ...entry.message, kind: entry.message.role }))) });
             this.coverage = Math.max(this.coverage, change.commitSeq);
           }
-          if (change.event) this.dispatch({ type: "event", e: { ...change.event, tabId: this.tabId } as unknown as WireEvent, remote: this.remote });
+          if (change.event) this.dispatch({ type: "event", e: { ...change.event, tabId: this.tabId } as unknown as WireEvent });
           if (change.runtime) this.dispatch({ type: "transcript_runtime", runtime: change.runtime });
         }
         this.scheduleConfirmationRecovery();
@@ -160,7 +160,7 @@ export class TranscriptSessionFollowerRuntime {
         if (!local.messageId || this.coverage <= (this.submissionCoverage.get(local.submissionId) ?? this.coverage)) continue;
         const previous = this.confirmationReads.get(local.submissionId);
         if (previous?.pending || previous?.coverage === this.coverage) continue;
-        const read = this.remote ? app.RemoteSessionHistoryWindowForTab : app.SessionHistoryWindowForTab;
+        const read = app.SessionHistoryWindowForTab;
         if (!read) continue;
         const ticket = { coverage: this.coverage, pending: true };
         this.confirmationReads.set(local.submissionId, ticket);
@@ -222,7 +222,7 @@ export class TranscriptSessionFollowerRuntime {
     for (const record of records) {
       if (!record.message.messageId || !activeIds.has(record.message.messageId)) continue;
       for (const ref of record.refs) {
-        const read = this.remote ? app.RemoteTranscriptContentForTab : app.TranscriptContentForTab;
+        const read = app.TranscriptContentForTab;
         if (!read) throw new Error("Transcript v2 content is unavailable");
         let offset = 0, text = "";
         while (true) {
@@ -279,7 +279,7 @@ export class TranscriptSessionFollowerRuntime {
       records: all.map((entry, order) => ({ id: entry.entryId, order, message: entry.message, refs: [] })),
       activeRecords: [], totalRecords: all.length, totalTurns: this.turn,
     };
-    this.dispatch({ type: "transcript_v2_snapshot", snapshot: combined, projection: prepared.projection, remote: this.remote });
+    this.dispatch({ type: "transcript_v2_snapshot", snapshot: combined, projection: prepared.projection });
     prepared.commit();
     signalOutline(this.tabId);
     this.dispatch({ type: "transcript_runtime", runtime: snapshot.runtime });

@@ -71,7 +71,6 @@ export function useAppRuntimeAdapter() {
     },
     navigation: {
       switchTab: controller.switchTab,
-      switchRemoteTab: controller.switchRemoteTab,
       createIsolatedWorktree: controller.createIsolatedWorktree,
       closeTab: controller.closeTab,
       reorderTabs: controller.reorderTabs,

@@ -288,28 +288,12 @@ function topicMatchesActiveIdentity(node: ProjectNode, activeScope?: string, act
   return activeScope === "project" && activeTopicId === node.topicId && activeWorkspaceRoot === node.root;
 }
 
-type ActiveRemoteSessionIdentity = {
-  hostId: string;
-  workspace: string;
-  sessionId?: string;
-};
-
-function remoteTopicMatchesActiveSession(node: ProjectNode, activeRemote?: ActiveRemoteSessionIdentity): boolean {
-  const remote = node.remoteSession;
-  const active = activeRemote;
-  if (!remote || !active || remote.hostId !== active.hostId || remote.workspace !== active.workspace) return false;
-  const sessionID = active.sessionId?.trim();
-  if (!sessionID) return false;
-  return remote.sessionId.trim() === sessionID;
-}
-
 export function topicIsActive(
   node: ProjectNode,
   activeScope?: string,
   activeWorkspaceRoot?: string,
   activeTopicId?: string,
   activeSessionPath?: string,
-  activeRemote?: ActiveRemoteSessionIdentity,
 ): boolean {
   if (node.session?.sessionId) {
     return Boolean(activeSessionPath && (activeSessionPath === `session-id:${node.session.sessionId}` || activeSessionPath === node.sessionPath
@@ -320,14 +304,6 @@ export function topicIsActive(
   }
   if (!isTopicNode(node)) return false;
   if (activeSessionPath && asArray(node.children).some(isRuntimeSessionNode)) return false;
-  // Remote filesystem paths are not globally unique: two hosts can expose the
-  // same absolute session path. Their synthesized rows already carry a
-  // host-qualified topicId, so never let the generic path fallback mark a row
-  // from another host active.
-  if (node.remoteSession) {
-    if (remoteTopicMatchesActiveSession(node, activeRemote)) return true;
-    return topicMatchesActiveIdentity(node, activeScope, activeWorkspaceRoot, activeTopicId);
-  }
   if (node.sessionPath) return Boolean(activeSessionPath && activeSessionPath === node.sessionPath);
   if (topicMatchesActiveIdentity(node, activeScope, activeWorkspaceRoot, activeTopicId)) return true;
   return Boolean(node.sessionPath && activeSessionPath && activeSessionPath === node.sessionPath);
@@ -408,15 +384,13 @@ export function topicReadRevision(node: ProjectNode): number {
   return topicActivityAt(node);
 }
 
-// Read activity is shared without changing the remote node's action routing.
-// Missing sequence means an older Serve; zero is a valid supported baseline.
 export function topicUsesResultSequence(node: ProjectNode): boolean {
-  return Boolean(node.session || node.remoteSession && node.resultSequence !== undefined);
+  return Boolean(node.session);
 }
 
 export function projectTreeReadActivityKey(node: ProjectNode): string | null {
   if (node.session?.sessionId) return projectSessionIdentity(node);
-  if (node.sessionPath || node.remoteSession) return projectSessionIdentity(node);
+  if (node.sessionPath) return projectSessionIdentity(node);
   const request = projectTreeTopicOpenRequest(node);
   if (!request?.topicId) return null;
   return [request.scope, request.workspaceRoot, request.topicId].join("\u001f");
@@ -453,12 +427,10 @@ export function projectTreeTopicHasUnreadActivity(
   activeTopicId?: string,
   activeSessionPath?: string,
   baselineAt = 0,
-  activeRemote?: ActiveRemoteSessionIdentity,
 ): boolean {
   if (!isTopicNode(node) && !isRuntimeSessionNode(node)) return false;
-  if (topicIsActive(node, activeScope, activeWorkspaceRoot, activeTopicId, activeSessionPath, activeRemote)) return false;
+  if (topicIsActive(node, activeScope, activeWorkspaceRoot, activeTopicId, activeSessionPath)) return false;
   if (topicStatus(node) !== "") return false;
-  if (node.remoteSession && topicUsesResultSequence(node) && node.turnsState !== "ready") return false;
   const key = projectTreeReadActivityKey(node);
   const revision = topicReadRevision(node);
   if (!key || revision <= 0) return false;

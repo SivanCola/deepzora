@@ -47,7 +47,7 @@ const props = (mode: RightDockMode): WorkspaceDockRegionProps => ({
   visible: true, overlay: false, mode, showContext: true,
   t: ((key: string) => key) as Translator,
   onPickEntry: (entryId: string) => { picks.push(entryId); },
-  remote: {} as WorkspaceDockRegionProps["remote"], context: {} as WorkspaceDockRegionProps["context"],
+  context: {} as WorkspaceDockRegionProps["context"],
   workspace: { tabId: "A" } as WorkspaceDockRegionProps["workspace"], workspaceKey: "k",
 });
 const root = createRoot(document.getElementById("root")!);

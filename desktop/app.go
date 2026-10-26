@@ -154,8 +154,8 @@ type App struct {
 	activeTabID string
 	readyHook   func()
 	attachmentTargetState
-	// tabSelectionMu serializes cross-registry activation. A remote selection
-	// must not overtake the local-session snapshot that makes switching safe.
+	// tabSelectionMu serializes tab activation so a selection cannot overtake
+	// the local-session snapshot that makes switching safe.
 	tabSelectionMu sync.Mutex
 
 	// Ticketed topic activation bookkeeping (StartTopicActivation). Guarded by

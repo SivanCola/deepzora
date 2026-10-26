@@ -1,12 +1,9 @@
 import type { State } from "../lib/useController";
-import type { RemoteSessionApi } from "../lib/useRemoteSession";
 import type { BackgroundRuntimeView, TabMeta } from "../lib/types";
-import { projectSessionAvailability } from "../lib/sessionAvailability";
 
 type Input = {
   local: State;
-  remote?: Pick<RemoteSessionApi, "transcript" | "running" | "modelLabel" | "commands" | "composerProfile" | "goalView" | "goalRuntime" | "effort">;
-  tab?: Pick<TabMeta, "id" | "label" | "remote" | "workspaceName">;
+  tab?: Pick<TabMeta, "id" | "label" | "workspaceName">;
   activeTabId?: string;
   backgroundRuntimes: BackgroundRuntimeView[];
   connectingLabel: string;
@@ -16,39 +13,26 @@ type Input = {
 export function projectNavigationSurfaceTarget(input: {
   activeTabId?: string; sessionKey: string;
   local: Pick<State, "meta" | "backendActivationPending" | "hydrating" | "hydrateError">;
-  remote?: Pick<RemoteSessionApi, "state" | "hydrated" | "error" | "surfaceGeneration">;
 }) {
-  const { remote, local } = input;
-  const availability = projectSessionAvailability(input);
-  if (!remote) {
-    // Local history has its own controller-independent canonical read path.
-    // Navigation paint therefore waits for the readable history cut, not for
-    // provider/MCP/lease runtime readiness. Write actions remain fenced by
-    // controllerReady in the composer and command owners.
-    return {
-      activeTabId: input.activeTabId,
-      sessionKey: input.sessionKey,
-      ready: Boolean(input.activeTabId) && !local.hydrating && !local.hydrateError,
-      backendActivationPending: false,
-      hydrating: Boolean(local.hydrating),
-      hydrateError: local.hydrateError,
-    };
-  }
+  const { local } = input;
+  // Local history has its own controller-independent canonical read path.
+  // Navigation paint therefore waits for the readable history cut, not for
+  // provider/MCP/lease runtime readiness. Write actions remain fenced by
+  // controllerReady in the composer and command owners.
   return {
     activeTabId: input.activeTabId,
-    sessionKey: JSON.stringify([input.sessionKey, remote.surfaceGeneration]),
-    ready: availability.kind === "ready",
+    sessionKey: input.sessionKey,
+    ready: Boolean(input.activeTabId) && !local.hydrating && !local.hydrateError,
     backendActivationPending: false,
-    hydrating: availability.kind === "loading",
-    hydrateError: availability.kind === "error" ? availability.detail || availability.source : undefined,
+    hydrating: Boolean(local.hydrating),
+    hydrateError: local.hydrateError,
   };
 }
 
-/** Display-only projection. No local telemetry fallback is permitted on a remote surface. */
-export function projectConversation({ local, remote, tab, activeTabId, backgroundRuntimes, connectingLabel }: Input) {
-  const runtime = remote?.transcript ?? local;
-  const remoteActive = Boolean(remote);
-  const modelLabel = remote ? remote.modelLabel || tab?.label : local.meta?.label;
+/** Display-only projection of the active local conversation. */
+export function projectConversation({ local, activeTabId, backgroundRuntimes, connectingLabel }: Input) {
+  const runtime = local;
+  const modelLabel = local.meta?.label;
   const timing = {
     turnPhase: runtime.turnPhase, turnStartAt: runtime.turnStartAt,
     turnDoneAt: runtime.turnDoneAt, lastTurnOutputTokens: runtime.lastTurnOutputTokens,
@@ -65,23 +49,22 @@ export function projectConversation({ local, remote, tab, activeTabId, backgroun
   };
   return {
     runtime,
-    localToolsEnabled: !remoteActive,
+    localToolsEnabled: true,
     composer: {
       ...timing,
-      running: remote ? remote.running : local.running,
-      goalStatus: remote ? remote.composerProfile?.goalStatus : local.meta?.goalStatus,
-      goalView: remote ? remote.goalView : local.meta?.goalView,
-      goalRuntime: remote ? remote.goalRuntime : local.meta?.goalRuntime,
-      cwd: remote ? tab?.remote?.workspace : local.meta?.cwd,
+      running: local.running,
+      goalStatus: local.meta?.goalStatus,
+      goalView: local.meta?.goalView,
+      goalRuntime: local.meta?.goalRuntime,
+      cwd: local.meta?.cwd,
       modelLabel: modelLabel || connectingLabel,
-      commandCatalog: remote?.commands,
-      imageInputEnabled: !remoteActive && local.meta?.imageInputEnabled !== false,
-      imageUnderstandingEnabled: !remoteActive && local.meta?.visionFallbackEnabled === true,
-      attachmentInputEnabled: !remoteActive,
-      pinnedFiles: remote ? undefined : local.meta?.pinnedFiles,
-      turnId: remote ? undefined : local.activeTurnId,
-      effort: remote ? remote.effort : local.effort,
-      localDurableGuidance: !remoteActive,
+      imageInputEnabled: local.meta?.imageInputEnabled !== false,
+      imageUnderstandingEnabled: local.meta?.visionFallbackEnabled === true,
+      attachmentInputEnabled: true,
+      pinnedFiles: local.meta?.pinnedFiles,
+      turnId: local.activeTurnId,
+      effort: local.effort,
+      localDurableGuidance: true,
       context: runtime.context, turnCost: runtime.turnCost, turnRateBand: runtime.turnRateBand,
       currency: runtime.sessionCurrency, cacheHitTokens: runtime.usage?.cacheHitTokens,
       cacheMissTokens: runtime.usage?.cacheMissTokens, balance: runtime.balance,
@@ -97,15 +80,15 @@ export function projectConversation({ local, remote, tab, activeTabId, backgroun
     status: {
       context: runtime.context, usage: runtime.usage, balance: runtime.balance,
       running: runtime.running, jobs: runtime.jobs,
-      backgroundRuntimes: remote ? [] : backgroundRuntimes,
+      backgroundRuntimes,
       sessionTokens: runtime.sessionTokens, turnTokens: runtime.turnTotalTokens,
       lastTurnOutputTokens: runtime.lastTurnOutputTokens, lastTurnModelMs: runtime.lastTurnModelMs,
       lastTurnOutputEstimated: runtime.lastTurnOutputEstimated, lastRequestTps: runtime.lastRequestTps,
       turnCost: runtime.turnCost, turnRateBand: runtime.turnRateBand, cost: runtime.sessionCost,
       currency: runtime.sessionCurrency, modelLabel,
-      workspacePath: remote ? tab?.remote?.workspace : local.meta?.workspacePath || local.meta?.workspaceRoot || local.meta?.cwd,
-      workspaceName: remote ? tab?.workspaceName : local.meta?.workspaceName,
-      gitBranch: remote ? undefined : local.meta?.gitBranch,
+      workspacePath: local.meta?.workspacePath || local.meta?.workspaceRoot || local.meta?.cwd,
+      workspaceName: local.meta?.workspaceName,
+      gitBranch: local.meta?.gitBranch,
     },
   };
 }

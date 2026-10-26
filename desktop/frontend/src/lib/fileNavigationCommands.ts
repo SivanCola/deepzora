@@ -2,11 +2,9 @@ import { app } from "./bridge";
 import { useBrowserPanelStore, waitForBrowserHost } from "./browserPanelStore";
 import { useActivityBarStore } from "../store/activityBar";
 import { useLayoutStore } from "../store/layout";
-import { useRemoteStore } from "../store/remote";
 import {
   fileAccessContext,
   resolveFileResource,
-  resolveFileResourcePath,
   type FileResourceRef,
   type ResolvedFileResource,
 } from "./fileResource";
@@ -42,16 +40,8 @@ function previewOperationID(ref: FileResourceRef): string {
  * The dock opens before the navigation record is committed, so the panel that
  * mounts for it already has the record to read on its first render.
  */
-export function revealFileResourceDock(ref: FileResourceRef): string {
+export function revealFileResourceDock(_ref: FileResourceRef): string {
   const layout = useLayoutStore.getState();
-  if (ref.hostId !== "local") {
-    const remote = useRemoteStore.getState();
-    remote.openExplorer(ref.hostId);
-    remote.setExplorerTab("files");
-    const tabId = useActivityBarStore.getState().openEntry("remote", "Remote");
-    layout.setWorkspacePanelOpen(true);
-    return tabId;
-  }
   const tabId = useActivityBarStore.getState().openEntry("file", "Files");
   layout.setWorkspacePanelOpen(true);
   return tabId;
@@ -204,7 +194,6 @@ export async function performResourceAction(ref: FileResourceRef, action: FileAc
         else await app.OpenWorkspacePathForTab(ref.tabId, ref.path);
         return { status: "opened", resource: resourceOf(ref) };
       case "reveal-native":
-        if (ref.hostId !== "local") return { status: "failed", error: new Error("This remote host does not expose a desktop file manager") };
         if (ref.source === "reference") await app.RevealReferencePathForTab(ref.tabId, ref.path);
         else if (ref.source === "presented") await app.RevealPresentedPathForTab(ref.tabId, ref.toolCallId, ref.path);
         else await app.RevealWorkspacePathForTab(ref.tabId, ref.path);
@@ -212,11 +201,7 @@ export async function performResourceAction(ref: FileResourceRef, action: FileAc
       case "save-copy":
         // The dialog completes against the path captured here; a later navigation
         // only takes away the right to report this receipt, never the write.
-        if (ref.hostId !== "local") {
-          if (ref.source === "reference") return { status: "failed", error: new Error("This remote host does not expose a file transfer for an answer reference") };
-          if (ref.source === "presented") await app.SaveRemotePresentedFileAs(ref.tabId, ref.hostId, ref.toolCallId, ref.path);
-          else await app.SaveRemoteFileAs(ref.hostId, await resolveFileResourcePath(ref));
-        } else if (ref.source === "reference") await app.SaveReferencePathAsForTab(ref.tabId, ref.path);
+        if (ref.source === "reference") await app.SaveReferencePathAsForTab(ref.tabId, ref.path);
         else if (ref.source === "presented") await app.SavePresentedPathAsForTab(ref.tabId, ref.toolCallId, ref.path);
         else await app.SaveWorkspacePathAsForTab(ref.tabId, ref.path);
         return { status: "opened", resource: resourceOf(ref) };

@@ -19,7 +19,7 @@ const paths = new Map<string, ReturnType<typeof deferred<string>>>();
 const creations = new Map<string, ReturnType<typeof deferred<string>>>();
 const revoked: string[] = [];
 const stub = installDesktopHostStub({
-  ResolveRemoteWorkspacePathForTab: (_tab: string, _host: string, _tool: string, path: string) => {
+  ResolveWorkspacePathForTab: (_tab: string, path: string) => {
     const pending = deferred<string>(); paths.set(path, pending); return pending.promise;
   },
   CreatePresentedBrowserPreviewForTab: (_tab: string, _tool: string, path: string) => {
@@ -30,10 +30,11 @@ const stub = installDesktopHostStub({
 });
 const owner = createFileNavigationOwner();
 setFileNavigationOwner(owner);
-// A remote reference targets the remote dock; a local one targets the file dock.
-const dockTabId = useActivityBarStore.getState().openEntry("remote", "Remote");
-const fileDockTabId = useActivityBarStore.getState().openEntry("file", "Files");
-const ref = { hostId: "remote", tabId: "session", source: "workspace" as const, toolCallId: "tool" };
+// A workspace reference targets the file dock; retaining only the changes dock
+// closes it.
+const otherDockTabId = useActivityBarStore.getState().openEntry("changed", "Changes");
+const dockTabId = useActivityBarStore.getState().openEntry("file", "Files");
+const ref = { hostId: "local", tabId: "session", source: "workspace" as const, toolCallId: "tool" };
 const snapshot = (): FileNavigationSnapshot | null =>
   owner.getSnapshot(fileNavigationKey({ sessionTabId: "session", dockTabId }));
 
@@ -44,13 +45,13 @@ paths.get("second")!.resolve("/second"); await second;
 const current = snapshot();
 paths.get("first")!.resolve("/first"); await first;
 assert.equal(snapshot(), current, "a superseded resolution must not produce a new snapshot");
-assert.equal(current?.selected?.resource.path, "/second");
+assert.equal(current?.selected?.resource.identityPath, "/second");
 assert.equal(current?.selected?.source, true);
 
 // Closing the target dock ends the record: a late rejection is a cancellation,
 // not a failure reported back to the row that asked.
 const cancelled = performResourceAction({ ...ref, path: "cancelled" }, "preview");
-owner.retain([fileNavigationKey({ sessionTabId: "session", dockTabId: fileDockTabId })]);
+owner.retain([fileNavigationKey({ sessionTabId: "session", dockTabId: otherDockTabId })]);
 paths.get("cancelled")!.reject(new Error("obsolete failure"));
 assert.deepEqual(await cancelled, { status: "cancelled", reason: "superseded" });
 assert.equal(snapshot(), null, "a closed dock keeps no record to restore");
@@ -58,7 +59,7 @@ assert.equal(snapshot(), null, "a closed dock keeps no record to restore");
 // A resolution that lands after its dock was closed is a cancellation too: the
 // record it belonged to is gone, and nothing restores it.
 const switched = performResourceAction({ ...ref, path: "switched" }, "preview");
-owner.retain([fileNavigationKey({ sessionTabId: "session", dockTabId: fileDockTabId })]);
+owner.retain([fileNavigationKey({ sessionTabId: "session", dockTabId: otherDockTabId })]);
 paths.get("switched")!.resolve("/switched");
 assert.deepEqual(await switched, { status: "cancelled", reason: "superseded" });
 assert.equal(snapshot(), null, "a closed dock leaves no record behind");
@@ -145,7 +146,7 @@ const reference = { hostId: "local", tabId: "session", source: "reference" as co
 const referenceOpen = await performResourceAction(reference, "preview");
 assert.equal(referenceOpen.status, "opened");
 assert.equal(referenceOpen.status === "opened" ? referenceOpen.resource.identityPath : "", "/repo/answer.md");
-const referenceSnapshot = owner.getSnapshot(fileNavigationKey({ sessionTabId: "session", dockTabId: fileDockTabId }));
+const referenceSnapshot = owner.getSnapshot(fileNavigationKey({ sessionTabId: "session", dockTabId }));
 assert.equal(referenceSnapshot?.selected?.resource.access.source, "reference");
 for (const action of ["open-native", "reveal-native", "save-copy"] as const) {
   assert.equal((await performResourceAction(reference, action)).status, "opened");

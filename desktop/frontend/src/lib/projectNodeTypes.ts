@@ -1,7 +1,6 @@
 import type { CanonicalProjectNodeFields } from "./sessionLifecycleBindings";
-import type { RemoteProjectNodeFields } from "./remoteTypes";
 import type { ProjectTopicStatus } from "./types";
-export interface ProjectNode extends RemoteProjectNodeFields, CanonicalProjectNodeFields {
+export interface ProjectNode extends CanonicalProjectNodeFields {
   key: string;
   kind: "project" | "topic" | "session" | "global_folder" | "global_topic" | "global_session";
   label: string;

@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client";
 import { JSDOM } from "jsdom";
 import { useSessionOperations } from "../app-runtime/useSessionOperations";
 import { useComposerModeActions } from "../lib/useComposerModeActions";
-import { executeComposerMode, type ComposerModePorts } from "../app-runtime/composerModeOwner";
+import type { ComposerModePorts } from "../app-runtime/composerModeOwner";
 
 const dom = new JSDOM("<div id='root'></div>", { url: "http://localhost" });
 Object.assign(globalThis, { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true });
@@ -22,24 +22,22 @@ const ports: Omit<ComposerModePorts, "rememberPlan" | "rememberApproval"> = {
   setCollaboration: async id => { effects.push(`collaboration:${id}`); },
   setApproval: async id => { effects.push(`approval:${id}`); },
   clearGoal: async id => { effects.push(`clear:${id}`); await gate; },
-  setRemote: async id => { effects.push(`remote:${id}`); await gate; return ["approval-A"]; },
-  drainRemote: id => { effects.push(`drain:${id}`); },
   patch: id => { effects.push(`patch:${id}`); },
 };
 let commands!: ReturnType<typeof useComposerModeActions>;
 let operations!: ReturnType<typeof useSessionOperations>;
-function Probe({ id, remote = false, generation = "" }: { id: string; remote?: boolean; generation?: string }) {
+function Probe({ id, generation = "" }: { id: string; generation?: string }) {
   operations = useSessionOperations({ visible: { tabId: id, sessionKey: id + generation }, resources: ["A", "B"].map(tabId => ({ tabId, sessionKey: tabId + generation })) });
   commands = useComposerModeActions({
-    remote, collaborationMode: "plan", toolApprovalMode: "workspace-write", goal: "task",
+    collaborationMode: "plan", toolApprovalMode: "workspace-write", goal: "task",
     target: { tabId: id, sessionKey: id + generation }, operations, ports,
     planIntentsRef, yoloRestoreRef,
     showError: message => effects.push(`error:${message}`),
   });
   return null;
 }
-async function paint(id: string, remote = false, generation = "") {
-  await act(async () => root.render(<Probe id={id} remote={remote} generation={generation} />));
+async function paint(id: string, generation = "") {
+  await act(async () => root.render(<Probe id={id} generation={generation} />));
 }
 try {
   await paint("A");
@@ -50,19 +48,11 @@ try {
   await act(async () => { await pending; });
   assert.deepEqual(effects, ["clear:A", "collaboration:A", "patch:A"], "every continuation mutates the captured source, never B");
   assert.equal(planIntentsRef.current["A"], undefined, "normal mode records no plan intent for the source tab");
-  resetGate();
-  await paint("A", true);
-  const remote = commands.applyCollaborationMode("normal");
-  await paint("B", true);
-  await paint("A", true);
-  release();
-  await act(async () => { await remote; });
-  assert.deepEqual(effects, ["remote:A", "patch:A"], "A→B→A preserves source data but never revives approval-drain UI ownership");
 
   resetGate();
   await paint("A");
   const replaced = commands.applyCollaborationMode("normal");
-  await paint("A", false, ":new");
+  await paint("A", ":new");
   release();
   await act(async () => { await replaced; });
   assert.deepEqual(effects, ["clear:A"], "reused tab with a new session identity blocks every stale continuation");
@@ -99,22 +89,6 @@ try {
   await disposed;
   oldEntry.applyMode("normal");
   assert.deepEqual(effects, ["clear:A"], "unmount synchronously revokes commands and pending continuations");
-  const writes: unknown[][] = [];
-  const remotePorts: ComposerModePorts = { ...ports,
-    rememberPlan: id => { effects.push(`plan:${id}`); },
-    rememberApproval: id => { effects.push(`remember:${id}`); },
-    setRemote: async (...args) => { writes.push(args); return []; },
-    clearGoal: async () => { throw new Error("atomic remote transition cannot use local goal clearing"); },
-    setCollaboration: async () => { throw new Error("atomic remote transition cannot use local mode changes"); },
-    setMode: () => { throw new Error("remote mode cannot use local mode changes"); },
-    setApproval: () => { throw new Error("remote approval cannot use local mode changes"); },
-  };
-  for (const request of [{ kind: "collaboration", mode: "normal" }, { kind: "approval", mode: "danger-full-access" }] as const) {
-    await executeComposerMode({ target: { tabId: "A", sessionKey: "A" }, request,
-      remote: true, collaborationMode: "plan", toolApprovalMode: "workspace-write", goal: "task", ports: remotePorts,
-    }, { checkpoint() {}, ownsUI: () => true });
-  }
-  assert.deepEqual(writes, [["A", "normal", "workspace-write", ""], ["A", "goal", "danger-full-access", "task"]], "each remote change sends every axis in one atomic profile transaction");
   console.log("composer source operations: source isolation, ABA, identity replacement, lanes, finally and disposal passed");
 } finally {
   if (document.getElementById("root")?.hasChildNodes()) await act(async () => root.unmount());

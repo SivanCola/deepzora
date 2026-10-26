@@ -23,22 +23,20 @@ const ports: PromptPorts = {
   answerMCPForTab: target => { calls.push(`mcp:${target.tabId}`); },
   setCollaborationModeForTab: async tab => { calls.push(`mode:${tab}`); },
   clearGoalForTab: async tab => { calls.push(`clear:${tab}`); entered.resolve(); await gate.promise; },
-  setRemoteComposerProfile: async tab => { calls.push(`remote:${tab}`); entered.resolve(); await gate.promise; return [prompt]; },
   patchComposerProfile: tab => { calls.push(`patch:${tab}`); },
   notePlanMode: tab => { calls.push(`remember:${tab}`); },
-  drainRemoteApprovals: tab => { calls.push(`drain:${tab}`); },
   rememberRevision: tab => { calls.push(`revision:${tab}`); },
 };
 let commands!: ReturnType<typeof useSessionPromptCommands>;
-function Probe({ tab, generation = "1", remote = false }: { tab: string; generation?: string; remote?: boolean }) {
+function Probe({ tab, generation = "1" }: { tab: string; generation?: string }) {
   const target = { tabId: tab, sessionKey: tab + generation };
   const operations = useSessionOperations({ visible: target, resources: ["A", "B"].map(tabId => ({ tabId, sessionKey: tabId + generation })) });
   commands = useSessionPromptCommands({ target, session: { hostId: "local", sessionId: `session-${tab}` }, sessionGeneration: Number(generation), approval: { id: prompt, tool: "exit_plan_mode", subject: "plan", turnId: `turn-${tab}`, runtimeEpoch: `runtime-${tab}` },
-    remote, goal: "fixture", toolApprovalMode: "workspace-write", ports, operations, reportError: error => { throw error; } });
+    goal: "fixture", toolApprovalMode: "workspace-write", ports, operations, reportError: error => { throw error; } });
   return null;
 }
-async function paint(tab: string, generation = "1", remote = false) {
-  await act(async () => root.render(<Probe tab={tab} generation={generation} remote={remote} />));
+async function paint(tab: string, generation = "1") {
+  await act(async () => root.render(<Probe tab={tab} generation={generation} />));
 }
 function reset() { calls.length = 0; entered = deferred(); gate = deferred(); prompt = "approval-A"; }
 try {
@@ -60,11 +58,11 @@ try {
   await paint("A", "2"); gate.resolve(); await assert.rejects(pending, CommandCancelled);
   assert.deepEqual(calls, ["clear:A"], "same tab with a different session cannot resolve an old approval");
 
-  reset(); await paint("A", "1", true);
+  reset(); await paint("A");
   pending = commands.handleExitPlan(); await entered.promise;
-  await paint("B", "1", true); await paint("A", "1", true);
+  await paint("B"); await paint("A");
   gate.resolve(); await pending;
-  assert.deepEqual(calls, ["remote:A", "remember:A", "patch:A", "resolve:A:approval-A"], "ABA never drains the new surface's approvals");
+  assert.deepEqual(calls, ["clear:A", "mode:A", "remember:A", "patch:A", "resolve:A:approval-A"], "ABA keeps the captured source continuation");
 
   reset(); await paint("A");
   pending = commands.handleExitPlan(); await entered.promise;

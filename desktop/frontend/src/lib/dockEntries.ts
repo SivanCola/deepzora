@@ -4,9 +4,7 @@
 // composition layer can import it synchronously without pulling lucide into
 // the initial bundle — DockLauncher (lazy) attaches the icons.
 //
-// Remote (远程) is intentionally NOT listed: it stays reachable via the
-// sidebar/status-bar switcher, the command palette and settings. DockLauncher
-// further hides the changed (改动) entry for non-git projects, and the branch
+// DockLauncher hides the changed (改动) entry for non-git projects, and the branch
 // row only renders when the active workspace reports a git branch.
 
 import type { TabType } from "../store/activityBar";

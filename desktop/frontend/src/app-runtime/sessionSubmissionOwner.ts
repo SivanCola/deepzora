@@ -4,14 +4,14 @@ import type { SessionOperationAuthority, SessionResource } from "./useSessionOpe
 
 export type InitialGoal = { goal: string; collaborationMode: CollaborationMode; toolApprovalMode: ToolApprovalMode };
 export type SubmissionResource = {
-  target: SessionResource; remote: boolean; ready: boolean; unavailable: string; goalDraft: boolean;
+  target: SessionResource; ready: boolean; unavailable: string; goalDraft: boolean;
   collaboration: CollaborationMode; approval: ToolApprovalMode;
 };
 export type Submission = { display: string; submit?: string; structured?: StructuredInvocationSubmit; initialGoal?: InitialGoal; submissionId?: string };
 export type SubmissionPorts = {
   send(tab: string, display: string, submit?: string, structured?: StructuredInvocationSubmit, goal?: InitialGoal, submissionId?: string): Promise<void>;
   clearUndo(tab: string): void;
-  setGoal(tab: string, goal: string, remote: boolean): Promise<void>;
+  setGoal(tab: string, goal: string): Promise<void>;
   patchGoal(tab: string, goal: string): void;
   profile(tab: string, propagateError: boolean): Promise<boolean>;
 };
@@ -47,7 +47,7 @@ export function goalCommand(input: string) {
 
 async function applyGoal(input: SubmissionInput, goal: string, authority: SessionOperationAuthority) {
   authority.checkpoint();
-  await input.ports.setGoal(input.target.tabId, goal, input.read(input.target).remote);
+  await input.ports.setGoal(input.target.tabId, goal);
   authority.checkpoint();
   input.ports.patchGoal(input.target.tabId, goal);
 }

@@ -32,7 +32,7 @@ function state(phase: "idle" | "executing" | "finishing", revision: number): Run
 for (const phase of ["idle", "executing", "finishing"] as const) {
   const dom = installDom();
   let posts = 0, direct = 0, steers = 0, queries = 0;
-  const target: InboxTarget = { tabId: "tab-a", sessionPath: "session-a", generation: 7, selection: 3, remote: true };
+  const target: InboxTarget = { tabId: "tab-a", sessionPath: "session-a", generation: 7, selection: 3 };
   let key = "", confirmed = false;
   installBridgeApp({
     CaptureInboxTarget: async () => target,
@@ -91,7 +91,7 @@ console.log("PASS: uncertain follow-up stays bound across phases, selection, edi
   let posts = 0, direct = 0, reads = 0;
   let release!: () => void;
   installBridgeApp({
-    CaptureInboxTarget: async () => ({ tabId: "tab-a", sessionPath: "session-a", generation: 1, selection: 0, remote: false }),
+    CaptureInboxTarget: async () => ({ tabId: "tab-a", sessionPath: "session-a", generation: 1, selection: 0 }),
     EnqueueInboxFollowupForTarget: async () => { posts++; throw new Error("reply lost"); },
     LookupInboxFollowupForTarget: async (target: InboxTarget) => {
       reads++; assert.equal(target.sessionPath, "session-a");
@@ -128,5 +128,4 @@ console.log("PASS: uncertain follow-up stays bound across phases, selection, edi
   assert.equal(posts, 0, "unknown durable identity cannot fall back to a topic key");
   await act(async () => { view.root.unmount(); }); dom.window.close();
 }
-assert.notEqual(followupSessionKey("/same", "host", "/one"), followupSessionKey("/same", "host", "/two"));
 console.log("PASS: same-topic sessions, late receipts, and unbound paths preserve request ownership");

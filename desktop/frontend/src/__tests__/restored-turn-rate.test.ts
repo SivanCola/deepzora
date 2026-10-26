@@ -28,14 +28,13 @@ const usage = (completionTokens: number): WireEvent => ({ kind: "usage", usage: 
 } });
 
 try {
-  // Both local and remote followers use the same snapshot reducer. Exercise
-  // both protocol entry points, including the v2 projected history path.
-  for (const remote of [false, true]) for (const v2 of [false, true]) {
+  // Exercise both protocol entry points, including the v2 projected history path.
+  for (const v2 of [false, true]) {
     const install = (state: State, snap = snapshot()) => v2
-      ? reducer(state, { type: "transcript_v2_snapshot", snapshot: snap, remote,
+      ? reducer(state, { type: "transcript_v2_snapshot", snapshot: snap,
         projection: { items: historyMessagesToItems(snap.records.map(r => r.message), "snapshot:").items,
           startTurn: 0, endTurn: 1, totalTurns: 1, hasOlder: false, hasNewer: false, revision: 10, revisionKnown: true, digest: "" } })
-      : reducer(state, { type: "transcript_snapshot", snapshot: snap, remote });
+      : reducer(state, { type: "transcript_snapshot", snapshot: snap });
     now = 426_000;
     let s = install(initialState);
     assert.equal(metrics(s).tokens, 13_000, "restored output remains in the token total");
@@ -103,4 +102,4 @@ try {
 } finally {
   Date.now = originalNow;
 }
-console.log("restored turn rate: local/remote snapshots, reconnect, usage, tools and completion passed");
+console.log("restored turn rate: snapshots, reconnect, usage, tools and completion passed");

@@ -101,32 +101,6 @@ export function resolvedHistoryField(message: HistoryMessage, field: string): st
   }
 }
 
-// ── binding identity ────────────────────────────────────────────────────────
-// A tab's history comes from exactly one place: the host that owns its
-// binding. Crossing over on a failed call would let a transient local error
-// (busy, conflict, timeout) be answered by a different service holding
-// different data, so routing is decided by identity before the request, never
-// by the outcome of one.
-export type TranscriptBindingIdentity = "local" | "remote";
-
-let bindingIdentityFor: ((tabId: string) => TranscriptBindingIdentity) | undefined;
-
-/** Installed by the app layer, which is where tab metadata lives. */
-export function setTranscriptBindingIdentity(resolver: (tabId: string) => TranscriptBindingIdentity): void {
-  bindingIdentityFor = resolver;
-}
-
-// An unregistered identity is a tab with no remote binding, which is what a
-// local session is. This is a default, not a fallback: it never moves a
-// request to the other service because the first one answered badly.
-function identityFor(tabId: string): TranscriptBindingIdentity {
-  try {
-    return bindingIdentityFor?.(tabId) ?? "local";
-  } catch {
-    return "local";
-  }
-}
-
 export function entriesFor(messages: PersistentMessage[], snapshotSequence: number): HistoryEntry[] {
   return messages.map(persistent => {
     const entryId = `m:${persistent.messageId}`;
@@ -144,9 +118,8 @@ export function entriesFor(messages: PersistentMessage[], snapshotSequence: numb
 }
 
 export async function canonicalHistoryWindow(tabId: string, req: HistoryWindowRequestView): Promise<HistoryWindowPageView> {
-  const remote = identityFor(tabId) === "remote";
   const { readCanonicalHistoryWindow } = await import("./canonicalHistoryWindow");
-  return readCanonicalHistoryWindow(tabId, req, remote);
+  return readCanonicalHistoryWindow(tabId, req);
 }
 
 function staleSlice(): HistorySlice {
@@ -197,7 +170,7 @@ export async function canonicalHistorySlice(tabId: string, req: HistorySliceRequ
     const window = await canonicalHistoryWindow(tabId, { anchor: "message", messageId, snapshotSequence,
       generation: decodeURIComponent(generation), direction: req.newer ? "newer" : "older", limit });
     const ready = requireReadyWindow(window);
-    if (!ready) throw new Error("Transcript v2 requires an updated Desktop and Serve");
+    if (!ready) throw new Error("Transcript v2 requires an updated Desktop");
     return ready;
   }
   // A cursor names a position inside a fixed canonical history window.
@@ -210,21 +183,20 @@ export async function canonicalHistorySlice(tabId: string, req: HistorySliceRequ
     });
     const ready = requireReadyWindow(window);
     if (ready) return ready;
-    throw new Error("Transcript v2 requires an updated Desktop and Serve");
+    throw new Error("Transcript v2 requires an updated Desktop");
   }
   // The newest page carries the cursor for the same bidirectional window.
   const window = await canonicalHistoryWindow(tabId, { anchor: "newest", direction: "older", limit });
   const ready = requireReadyWindow(window);
   if (ready) return { ...ready, source: "recent" };
-  throw new Error("Transcript v2 requires an updated Desktop and Serve");
+  throw new Error("Transcript v2 requires an updated Desktop");
 }
 
 /** Deferred bodies are loaded only after a transcript requests their content. */
 export async function canonicalHistoryContent(tabID: string, ref: HistoryContentRef, chunkIndex: number): Promise<HistoryContentChunk> {
-  const remote = identityFor(tabID) === "remote";
   const recover = contentRecovery.get(tabID);
   const { readCanonicalHistoryContent } = await import("./canonicalHistoryContent");
-  return readCanonicalHistoryContent(tabID, ref, chunkIndex, remote, () => {
+  return readCanonicalHistoryContent(tabID, ref, chunkIndex, () => {
     if (contentRecovery.get(tabID) === recover) recover?.();
   });
 }

@@ -1,4 +1,3 @@
-import { app } from "../lib/bridge";
 import { composerProfileForOwner, composerProfileOwner, displayedComposerProfileCollaborationMode, type ComposerProfile } from "../lib/composerProfile";
 import type { TabMeta } from "../lib/types";
 import type { StructuredInvocationSubmit } from "../lib/invocationDisplay";
@@ -12,7 +11,7 @@ export function createSubmissionPorts(input: {
 }): SubmissionPorts {
   return { clearUndo: input.clearUndo, patchGoal: input.patchGoal, profile: input.profile,
     send: (tab, display, submit, structured, goal, submissionId) => submissionId ? input.send(tab, display, submit, undefined, structured, goal, submissionId) : input.send(tab, display, submit, undefined, structured, goal),
-    setGoal: (tab, goal, remote) => remote ? app.SetRemoteTabGoal(tab, goal) : goal ? input.setGoal(tab, goal) : input.clearGoal(tab),
+    setGoal: (tab, goal) => goal ? input.setGoal(tab, goal) : input.clearGoal(tab),
   };
 }
 
@@ -24,7 +23,7 @@ export function projectSubmissionResources(resources: readonly ControllerProfile
     const profile = resource.target.tabId === active.tabId ? active.profile : composerProfileForOwner(profiles[resource.target.tabId], composerProfileOwner(tab));
     const ready = Boolean(tab?.ready && (!tab.runtime || tab.runtime.phase === "ready") && !tab.startupErr)
       && (resource.target.tabId !== active.tabId || active.ready);
-    return { target: resource.target, remote: resource.remote,
+    return { target: resource.target,
       ready,
       unavailable: tab?.readOnly ? messages.readOnly : ready ? "" : tab?.runtime?.issue?.message || tab?.startupErr || messages.starting,
       goalDraft: Boolean(profile && displayedComposerProfileCollaborationMode(profile) === "goal" && !profile.goal.trim()),

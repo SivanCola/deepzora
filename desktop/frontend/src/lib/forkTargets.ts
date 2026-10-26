@@ -9,7 +9,7 @@ import { t, type DictKey } from "./i18n";
 
 export type { ForkTargetSetView, ForkTargetView };
 
-/** The create-only fork commands the host binds per surface: local tabs and remote ones. */
+/** The create-only fork commands the host binds per surface. */
 export interface ForkTargetsBindings {
   ForkTargetsForTab(tabID: string): Promise<ForkTargetSetView>;
   CreateForkForTab(tabID: string, anchor: ForkAnchorView): Promise<ForkCreationView>;

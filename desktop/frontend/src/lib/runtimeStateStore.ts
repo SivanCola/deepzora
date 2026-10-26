@@ -60,8 +60,6 @@ export interface RuntimeSession {
   sessionPath: string;
   sessionGeneration: number;
   open: boolean;
-  remote: boolean;
-  hostId?: string;
   freshness: "synced" | "unknown" | "syncing";
   state: RuntimeState;
 }
@@ -80,7 +78,7 @@ export function selectRuntimeSession(snapshot: RuntimeProjection | undefined, ta
   if (typeof identity !== "string" && target.sessionGeneration == null) return undefined;
   return snapshot?.sessions.find(session => session.open && session.tabId === tabId && sameSessionIdentity(target, {
     session: target.session?.sessionId && session.sessionId
-      ? { hostId: session.hostId || "local", sessionId: session.sessionId }
+      ? { hostId: "local", sessionId: session.sessionId }
       : undefined,
     sessionPath: session.sessionPath,
     sessionGeneration: session.sessionGeneration,

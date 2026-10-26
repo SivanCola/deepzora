@@ -33,7 +33,6 @@ export type ComposerRouterInput = {
     setPendingClose(value: { tabId: string; work: MockWorkView; stopping: boolean } | null): void;
     submitComposerTurn(tabId: string, display: string, submit?: string, structured?: StructuredInvocationSubmit, submissionId?: string): Promise<void>;
     steerForTab(tabId: string, text: string): Promise<void>;
-    isRemoteTab(tabId: string): boolean;
   };
 };
 
@@ -44,7 +43,7 @@ function isThemeMode(value: string): value is "auto" | "light" | "dark" {
 /**
  * Routes a composer submit to its desktop-native action: shell commands,
  * model/memory/clear/new commands, the browser decision-surface mock seeds,
- * Goal activation or ordinary submission, theme commands and remote steer.
+ * Goal activation or ordinary submission, theme commands and steer.
  * Only the routes that need a desktop-native UI action are reserved here.
  */
 export function useComposerRouter(input: ComposerRouterInput) {
@@ -174,10 +173,6 @@ export function useComposerRouter(input: ComposerRouterInput) {
   const handleSteer = useCommittedCommand(async (text: string, requestedTabId = activeTabId) => {
     const sourceTabId = requestedTabId || activeTabId;
     if (!sourceTabId) throw new Error(t("composer.workspaceStarting"));
-    if (ports.isRemoteTab(sourceTabId)) {
-      await app.SteerRemoteTab(sourceTabId, text.trim());
-      return;
-    }
     await ports.steerForTab(sourceTabId, text.trim());
   });
 

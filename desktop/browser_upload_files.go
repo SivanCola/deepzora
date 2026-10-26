@@ -15,8 +15,6 @@ const browserRelayMaxBytes = 32 << 20
 
 // Uploads use a private copy of an owned file. OpenRoot keeps a concurrent
 // symlink replacement from escaping the authorized workspace/scratch root.
-// Remote broker uploads are first downloaded into this executor's scratch
-// root, so they follow the same policy without trusting remote absolute paths.
 func (e *hostBrowserExecutor) prepareUploadFiles(files []string) ([]string, func(), error) {
 	if len(files) == 0 {
 		return nil, nil, fmt.Errorf("browser upload: files are required")

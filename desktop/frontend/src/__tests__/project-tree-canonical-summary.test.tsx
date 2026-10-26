@@ -21,7 +21,7 @@ const exclusions = () => excluded;
 function Probe({id}:{id?:string}) {
   const [nodes,setNodes]=useState<ProjectNode[]>([{key:"global",kind:"global_folder",label:"Global",children:[]}]);
   tree=nodes; update=setNodes;
-  useProjectTreeSessionSummary({tree:nodes,setTree:setNodes,scope:"global",session:id?{hostId:"local",sessionId:id}:undefined,remote:false,excluded:exclusions});
+  useProjectTreeSessionSummary({tree:nodes,setTree:setNodes,scope:"global",session:id?{hostId:"local",sessionId:id}:undefined,excluded:exclusions});
   return null;
 }
 try {

@@ -65,7 +65,6 @@ import {
 } from "./sessionDiagnostics";
 import { applyLiveSegments, coalesceStreamDeltas, completeLiveReasoning, type StreamDeltaEntry, type StreamSegment } from "./streamDeltaBatch";
 import { assistantHasContent, ensureActiveAssistant, ensureAssistant, removeEmptyAssistantItems } from "./assistantItems";
-import { setTranscriptBindingIdentity } from "./canonicalTranscriptBackend";
 import { getTranscriptStore } from "./transcriptStore";
 import { isIsolatedStreamDelta, releaseCachedHistory } from "./transcriptMemory";
 import { TranscriptFollowerLifecycle } from "./transcriptSessionFollower";
@@ -90,7 +89,6 @@ import { hydrateIdentityCurrent, sessionIdentityFields, sessionIdentityRoute, se
 import { loadHistoryWindow } from "./historyWindowController";
 import { useHistoryTurnNavigation } from "./useHistoryTurnNavigation";
 import { reduceHistoryWindowState } from "./historyWindowState";
-import { withRemoteProviderUnreachable, withRemoteTurnInterrupted } from "./remoteTurnState";
 import type { NavigationResult, SurfaceDataCommit, SurfaceDataOutcome } from "./navigationSurfaceTransition";
 import { sameTodoList } from "./todoVisibility";
 import type { InteractionKind, InteractionTarget } from "./interactionTarget";
@@ -98,7 +96,6 @@ import { interactionTargetFromState, promptInstanceKeyForState, stateOwnsInterac
 import { acceptsExtensionGeneration, applyExtensionForm, extensionSurfaceKey, type ExtensionFormState, type ExtensionNotificationEntry, type ExtensionStatusEntry } from "./extensionFormState";
 export { acceptsExtensionGeneration, type ExtensionFormState, type ExtensionStatusEntry } from "./extensionFormState";
 import { resolveSnapshotTurnStartedAt, resolveTurnStartedAt, snapshotPredatesTurnLifecycle } from "./turnTiming";
-import { useRemoteTabSwitch } from "./useRemoteTabSwitch";
 import { useNavigationIntentFence } from "./useNavigationIntentFence";
 import { useGoalControllerActions } from "./useGoalControllerActions";
 import type { SearchSource } from "./searchSources";
@@ -777,11 +774,11 @@ const STARTUP_READY_META_RECONCILE_ATTEMPTS = 60;
 export { isBatchedReadOnlyTool } from "./searchTranscript";
 export type Action =
   | { type: "transcript_connection"; status: "syncing" | "connected" | "disconnected"; error?: string }
-  | { type: "transcript_v2_snapshot"; snapshot: TranscriptSnapshot; projection: import("./transcriptStore").TranscriptProjection; remote?: boolean }
+  | { type: "transcript_v2_snapshot"; snapshot: TranscriptSnapshot; projection: import("./transcriptStore").TranscriptProjection }
   | { type: "transcript_records"; projection: import("./transcriptStore").AppendEntriesResult; confirmedUsers: readonly CanonicalUserConfirmation[] }
   | { type: "submission_verified"; submissionId: string; messageId: string }
   | { type: "transcript_runtime"; runtime: import("../generated/desktopContract.generated").Runtime }
-  | { type: "event"; e: WireEvent; remote?: boolean }
+  | { type: "event"; e: WireEvent }
   | { type: "stream_batch"; segments: StreamSegment[] }
   | { type: "user"; text: string; submitText?: string; seq: number; submissionId: string;  }
   | { type: "unsend" }
@@ -793,7 +790,6 @@ export type Action =
   | { type: "turn_submit_unknown"; submissionId: string; error: string }
   | { type: "send_failed"; submissionId: string; error: string }
   | { type: "send_queued"; submissionId: string }
-  | { type: "turn_interrupted" }
   | { type: "backend_status"; running: boolean; turnStartedAt?: number; pendingPrompt?: boolean; backgroundJobs?: number; cancelRequested?: boolean; cancellable?: boolean; turnId?: string; turnStatus?: string; snapshotAt?: number; runtimeEpoch?: string; turnEventSeq?: number }
   | { type: "cancel_requested" }
   | { type: "meta"; meta: Meta }
@@ -812,8 +808,8 @@ export type Action =
   | { type: "backend_activation_done" }
   | { type: "message_action_start"; action: MessageActionState }
   | { type: "message_action_done" }
-  | { type: "history"; messages: HistoryMessage[]; remote?: boolean }
-  | { type: "transcript_snapshot"; snapshot: TranscriptSnapshot; remote?: boolean }
+  | { type: "history"; messages: HistoryMessage[] }
+  | { type: "transcript_snapshot"; snapshot: TranscriptSnapshot }
   | { type: "transcript_page"; snapshot: TranscriptSnapshot }
   | { type: "history_page"; page: HistoryPage; mode: "replace" | "prepend" }
   // TranscriptStore-driven history actions (windowed readHistorySlice flow).
@@ -1272,10 +1268,6 @@ function applyEvent(s: State, e: WireEvent, preserveToolPayloads = false): State
       cancellable: true,
       turnStartAt: s.turnStartAt || Date.now(),
     };
-  }
-  if (e.kind === "provider_unreachable") {
-    const detail = typeof e.text === "string" ? e.text : "";
-    return withRemoteProviderUnreachable(s, detail);
   }
   if (e.kind === "stream_attempt") {
     if (e.streamAttempt?.action === "begin" && e.messageId) {
@@ -1848,13 +1840,13 @@ function reduceState(s: State, a: Action): State {
             toolCount: runtime.samplingCount || runtime.toolCount ? runtime.toolCount : item.toolCount } : item) };
     }
     case "transcript_v2_snapshot": {
-      const next = transcriptSnapshotState(s, a.snapshot, historyMessagesToItems, (state, event) => applyEvent(state, event, a.remote), promptEventClock(), a.projection.items);
+      const next = transcriptSnapshotState(s, a.snapshot, historyMessagesToItems, (state, event) => applyEvent(state, event), promptEventClock(), a.projection.items);
       return { ...next, transcriptProtocol: 2, transcriptProjectedIds: a.projection.items.map(item => item.id), historyStartTurn: a.projection.startTurn,
         historyEndTurn: a.projection.endTurn, historyTotalTurns: a.projection.totalTurns, historyHasOlder: a.projection.hasOlder, historyHasNewer: a.projection.hasNewer,
         historyRevision: a.projection.revision, historyDigest: a.projection.digest };
     }
     case "transcript_records": return installTranscriptRecords(s, a);
-    case "transcript_snapshot": return transcriptSnapshotState(s, a.snapshot, historyMessagesToItems, (state, event) => applyEvent(state, event, a.remote), promptEventClock());
+    case "transcript_snapshot": return transcriptSnapshotState(s, a.snapshot, historyMessagesToItems, (state, event) => applyEvent(state, event), promptEventClock());
     case "transcript_page": return transcriptPageState(s, a.snapshot, historyMessagesToItems);
     case "user": return startLocalSubmission(s, a, promptEventClock());
     case "unsend": {
@@ -1904,9 +1896,6 @@ function reduceState(s: State, a: Action): State {
     case "send_failed": return reduceSubmitFailure(s, a.submissionId, a.error, a.type === "turn_submit_rejected", promptEventClock());
     case "send_queued": return reduceSubmitQueued(s, a.submissionId, promptEventClock());
     case "turn_submit_unknown": return reduceSubmitUnknown(s, a.submissionId, a.error);
-    case "turn_interrupted": {
-      return withRemoteTurnInterrupted(s);
-    }
     case "backend_status": {
       if (s.transcriptProtocol) {
         if (a.runtimeEpoch && s.runtimeStatusEpoch && a.runtimeEpoch !== s.runtimeStatusEpoch) return s;
@@ -2062,8 +2051,7 @@ function reduceState(s: State, a: Action): State {
     case "history": {
       const { items, seq } = historyMessagesToItems(a.messages, "h", s.seq);
       const reconciled = reconcileSessionOperationItems(items, s.items);
-      // Remote cards have no local ToolResultForTab fallback; retain expansion data.
-      return { ...s, items: a.remote ? reconciled : compactArchivedToolItems(reconciled), historyPrefixCount: reconciled.length, pendingSubmissionId: undefined, seq, hydrateHistoryLoaded: true, hydratePlaceholderItems: undefined, historyStartTurn: 0, historyEndTurn: 0, historyTotalTurns: 0, historyHasOlder: false, historyHasNewer: false, historyOlderLoading: false, historyOlderError: undefined, historyNewerLoading: false, historyNewerError: undefined, historyRevision: undefined, historyDigest: undefined, historyMutation: { seq: s.historyMutation.seq + 1, kind: "replace" } };
+      return { ...s, items: compactArchivedToolItems(reconciled), historyPrefixCount: reconciled.length, pendingSubmissionId: undefined, seq, hydrateHistoryLoaded: true, hydratePlaceholderItems: undefined, historyStartTurn: 0, historyEndTurn: 0, historyTotalTurns: 0, historyHasOlder: false, historyHasNewer: false, historyOlderLoading: false, historyOlderError: undefined, historyNewerLoading: false, historyNewerError: undefined, historyRevision: undefined, historyDigest: undefined, historyMutation: { seq: s.historyMutation.seq + 1, kind: "replace" } };
     }
     case "history_page": {
       if (historyRevisionIsOlder(s.historyRevision, a.page.revision)) return s;
@@ -2230,7 +2218,7 @@ function reduceState(s: State, a: Action): State {
         const next = reducer({ ...s, historyHasNewer: false, items: s.offscreenItems ?? [] }, a);
         return settleLocalSubmissions({ ...next, items: s.items, visibleSubmissionHandoffs: s.visibleSubmissionHandoffs, historyHasNewer: true, offscreenItems: next.items.slice(-96) }, s.items);
       }
-      let next = stampArrivingTurnId(applyEvent(s, a.e, a.remote), s.items, a.e.turnId, a.e.messageId);
+      let next = stampArrivingTurnId(applyEvent(s, a.e), s.items, a.e.turnId, a.e.messageId);
       if (a.e.messageId && a.e.tool?.id && next.items !== s.items) {
         const toolId = a.e.tool.id;
         const prior = s.items.find((item) => item.kind === "tool" && item.id === toolId);
@@ -3427,13 +3415,6 @@ export function useController() {
     previousStoreActiveTabRef.current = activeTabId;
   }, [activeTabId, startTranscriptFollow]);
 
-  // History reads route by binding identity: a remote tab's session lives on
-  // its serve host, so answering it locally would mix two sessions.
-  useEffect(() => {
-    setTranscriptBindingIdentity((tabId) => (statesRef.current.get(tabId)?.meta?.remote ? "remote" : "local"));
-    return () => setTranscriptBindingIdentity(() => "local");
-  }, []);
-
   // Keep shared all-source telemetry live between turn boundaries. Delivery
   // mode can complete dozens of provider requests inside one UI turn, while
   // the status bar reads state.context and would otherwise stay pinned to the
@@ -3460,13 +3441,10 @@ export function useController() {
 
   // If the startup ready event is missed, keep the composer lock in sync with
   // the active tab's backend metadata without kicking off tab activation work.
-  // Remote tabs are exempt: their readiness flows through remote-tab state
-  // events, and MetaForTab reports ready:false for them forever — reconciling
-  // would just burn every attempt on a surface that never uses it.
   useEffect(() => {
     const tabId = activeTabId;
     const meta = activeState.meta;
-    if (!tabId || !meta || meta.remote || meta.ready || meta.startupErr || activeState.backendActivationPending) {
+    if (!tabId || !meta || meta.ready || meta.startupErr || activeState.backendActivationPending) {
       readyMetaReconcileSeq.current += 1;
       readyMetaReconcileActive.current = undefined;
       return;
@@ -4332,40 +4310,6 @@ export function useController() {
     if (optimisticTab) {
       dispatchTo(tabId, { type: "optimistic_meta", meta: metaFromTab(optimisticTab, statesRef.current.get(tabId)?.meta) });
     }
-    // Remote tabs have no local controller/history slice. Their transcript is
-    // hydrated by useRemoteSession via RemoteTabSnapshot after ready. Running
-    // readHistorySlice here fails with "session path unavailable" and the
-    // hydrateError path would bounce the user back to the previous local tab.
-    if (optimisticTab?.remote) {
-      if (!preserveTargetSurface) dispatchTo(tabId, { type: "reset" });
-      dispatchTo(tabId, { type: "hydrate_done" });
-      const backendActivation = app.SetActiveTab(tabId)
-        .then(async () => {
-          if (!isNavigationIntentCurrent(navigationSeq) || activeTabIdRef.current !== tabId) {
-            noteActivationSettled(switchRequestId, "cancelled");
-            await reassertVisibleTabAfterStaleNavigation("tab.switch", tabId);
-            return false;
-          }
-          confirmBackendActiveTab(tabId);
-          noteActivationSettled(switchRequestId, "ready");
-          return true;
-        })
-        .catch((err) => {
-          noteActivationSettled(switchRequestId, "failed", errorMessage(err));
-          if (!isNavigationIntentCurrent(navigationSeq)) return false;
-          dispatchTo(tabId, { type: "backend_activation_done" });
-          if (previousTabId && activeTabIdRef.current === tabId) {
-            setActiveTabId(previousTabId);
-            activeTabIdRef.current = previousTabId;
-          }
-          return false;
-        });
-      trackBackendActivation(tabId, backendActivation);
-      return backendActivation.then(async (activated) => {
-        if (!activated || !isNavigationIntentCurrent(navigationSeq)) return undefined;
-        return reconcileTabRuntime(tabId, RUNTIME_STATUS_ONLY);
-      });
-    }
     if (!preserveTargetSurface) dispatchTo(tabId, { type: "reset" });
     if (optimisticStatus?.running) dispatchTo(tabId, optimisticStatus);
     dispatchTo(tabId, { type: "hydrate_start", reason: "switch-tab", placeholderItems });
@@ -4466,15 +4410,6 @@ export function useController() {
       });
     return backendSwitch;
   }, [beginActiveNavigation, confirmBackendActiveTab, dispatchTo, isNavigationIntentCurrent, loadSessionDataForTab, navigationCompletionCurrent, primeReadableHistoryForTab, reassertVisibleTabAfterStaleNavigation, reconcileTabRuntime, requireRegisteredNavigationIntent, restoreNavigationSource, snapshotNavigationSourceTab, trackBackendActivation]);
-
-  const switchRemoteTab = useRemoteTabSwitch({
-    activeTabIdRef, setActiveTabId, beginNavigation: beginActiveNavigation,
-    requireRegisteredNavigation: requireRegisteredNavigationIntent,
-    navigationCanComplete: navigationCompletionCurrent,
-    navigationIsCurrent: isNavigationIntentCurrent,
-    confirmBackendActiveTab,
-    reassertVisibleTab: reassertVisibleTabAfterStaleNavigation,
-  });
 
   const openProjectTab = useCallback(async (workspaceRoot: string, topicId: string, navigationIntentSeq?: number): Promise<TabMeta> => {
     const navigationSeq = navigationIntentSeq ?? beginActiveNavigation();
@@ -4697,7 +4632,7 @@ export function useController() {
     requestHistoryFullContent,
     refreshMeta, pickWorkspace, switchWorkspace, compact, rewind, rewindForTab, rewindForTabDetailed, undoRewindForTab, forkTurnForTab, setModel, setModelForTab, setEffort, setEffortForTab, cancelJob,
     fetchMemory, remember, forget, saveDoc,
-    switchTab, switchRemoteTab, openProjectTab, activateTopic, ensureBlankSurface, createIsolatedWorktree, commitSingleSurfaceNavigation, closeTab, reorderTabs,
+    switchTab, openProjectTab, activateTopic, ensureBlankSurface, createIsolatedWorktree, commitSingleSurfaceNavigation, closeTab, reorderTabs,
     // The App queue advances this at enqueue time, before an older activation
     // can finish and prune the surface selected by the newer click.
     noteNavigationIntent: beginActiveNavigation,

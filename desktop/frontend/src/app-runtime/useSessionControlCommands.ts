@@ -12,7 +12,6 @@ export type SessionControlCommandsInput = {
     cancel(queuedItemIDs: string[]): Promise<CancelOutcome>;
     cancelForTab(tabId: string, queuedItemIDs: string[]): Promise<CancelOutcome>;
     acceptDelivery(tabId: string): Promise<unknown>;
-    disconnectRemote(hostId: string): Promise<unknown>;
     cancelJobForTab(tabId: string, jobId: string): Promise<boolean>;
     refreshBackgroundRuntimes(): Promise<void>;
   };
@@ -21,7 +20,7 @@ export type SessionControlCommandsInput = {
 /**
  * Owns the session control commands: active-turn cancel (capturing the
  * committed source tab at the event boundary so presentation never reads the
- * active-tab mirror mid-flight), delivery accept, remote host disconnect,
+ * active-tab mirror mid-flight), delivery accept,
  * workspace-conflict cancel and per-job runtime cancel through the session
  * operations authority.
  */
@@ -64,12 +63,6 @@ export function useSessionControlCommands(input: SessionControlCommandsInput) {
     });
   });
 
-  const handleDisconnectRemote = useCommittedCommand((hostId: string) => {
-    void ports.disconnectRemote(hostId).catch((error) => {
-      console.warn("Failed to disconnect remote host", error);
-    });
-  });
-
   const cancelWorkspaceConflict = useCommittedCommand(() => {
     void handleCancelActive();
     input.clearWorkspaceConflict();
@@ -80,7 +73,6 @@ export function useSessionControlCommands(input: SessionControlCommandsInput) {
     handleCancelActive,
     handleStopActive,
     handleAcceptDelivery,
-    handleDisconnectRemote,
     cancelWorkspaceConflict,
   };
 }

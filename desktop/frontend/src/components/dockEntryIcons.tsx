@@ -9,6 +9,5 @@ export const DOCK_ENTRY_ICONS: Record<TabType, ComponentType<{ size?: number | s
   file: FileText,
   changed: FileDiff,
   context: Activity,
-  remote: FileText,
   browser: FileText,
 };

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { app, onRemoteTabUpdated, onTabMeta } from "./bridge";
+import { app, onTabMeta } from "./bridge";
 import { AGENT_PRESETS_CHANGED, agentPresetError, type AgentPresetsView } from "./agentPresets";
 
 export function useAgentPresets(tabId: string, refreshKey = "") {
@@ -23,13 +23,11 @@ export function useAgentPresets(tabId: string, refreshKey = "") {
     void reload();
     const refresh = () => { void reload(); };
     const offMeta = onTabMeta(event => { if (!tabId || event.tabId === tabId) refresh(); });
-    const offRemote = onRemoteTabUpdated(tab => { if (!tabId || tab.id === tabId) refresh(); });
     window.addEventListener(AGENT_PRESETS_CHANGED, refresh);
     window.addEventListener("focus", refresh);
     return () => {
       request.current += 1;
       offMeta();
-      offRemote();
       window.removeEventListener(AGENT_PRESETS_CHANGED, refresh);
       window.removeEventListener("focus", refresh);
     };

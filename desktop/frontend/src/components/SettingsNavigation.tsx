@@ -16,7 +16,6 @@ import {
   Palette,
   Plug,
   Search,
-  Server,
   Settings2,
   ShieldCheck,
   Sparkles,
@@ -28,14 +27,14 @@ import { useT, type DictKey } from "../lib/i18n";
 import type { SettingsTab } from "../lib/types";
 
 export const SETTINGS_NAV_TABS: SettingsTab[] = [
-  "general", "models", "providers", "model-stats", "mcp", "remote", "skills", "agent-presets", "subagents", "plugins", "memory",
+  "general", "models", "providers", "model-stats", "mcp", "skills", "agent-presets", "subagents", "plugins", "memory",
   "hooks", "diagnostics", "shortcuts", "permissions", "sandbox", "network", "browser", "appearance", "storage", "updates",
 ];
 
 const SETTINGS_TAB_GROUPS: { labelKey: DictKey; tabs: SettingsTab[] }[] = [
   { labelKey: "settings.navGroup.preferences", tabs: ["general"] },
   { labelKey: "settings.tab.models", tabs: ["models", "providers", "model-stats"] },
-  { labelKey: "settings.navGroup.connections", tabs: ["mcp", "remote"] },
+  { labelKey: "settings.navGroup.connections", tabs: ["mcp"] },
   { labelKey: "settings.navGroup.capabilities", tabs: ["agent-presets", "skills", "subagents", "plugins"] },
   { labelKey: "settings.navGroup.context", tabs: ["memory"] },
   { labelKey: "settings.navGroup.automation", tabs: ["hooks", "diagnostics"] },
@@ -135,7 +134,6 @@ function settingsTabIcon(id: SettingsTab): ReactNode {
     case "model-stats": return <ChartNoAxesColumn {...props} />;
     case "providers": return <Cable {...props} />;
     case "mcp": return <Plug {...props} />;
-    case "remote": return <Server {...props} />;
     case "skills": return <Sparkles {...props} />;
     case "agent-presets": return <Bot {...props} />;
     case "subagents": return <Users {...props} />;

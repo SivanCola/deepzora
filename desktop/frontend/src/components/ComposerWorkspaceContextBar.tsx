@@ -1,7 +1,7 @@
 import { ErrorMessage } from "./ErrorMessage";
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, Cloud, Folder, FolderOpen, GitBranch, GitGraph, MessageCircle, Plus, RefreshCw, Search, X } from "lucide-react";
+import { Check, ChevronDown, Folder, FolderOpen, GitBranch, GitGraph, MessageCircle, Plus, RefreshCw, Search, X } from "lucide-react";
 import { asArray } from "../lib/array";
 import { app, onProjectTreeChanged } from "../lib/bridge";
 import { useT } from "../lib/i18n";
@@ -20,7 +20,6 @@ export type ComposerWorkspaceContext = {
   gitBranch?: string;
   tabId?: string;
   scopeKey: string;
-  remote?: boolean;
   onSwitchWorkspace: (path?: string) => Promise<unknown>;
   onWorkWithoutProject: () => Promise<unknown>;
   onRefreshProjects: () => Promise<unknown>;
@@ -34,7 +33,7 @@ function projectTitle(project: ProjectNode): string {
 }
 
 function currentWorkspaceTitle(context: ComposerWorkspaceContext, noProject: string): string {
-  if (context.scope === "global" && !context.remote) return defaultWorkspaceTitle(context.defaultWorkspaceName);
+  if (context.scope === "global") return defaultWorkspaceTitle(context.defaultWorkspaceName);
   const explicit = (context.workspaceName ?? "").trim();
   if (explicit) return explicit;
   const root = context.workspaceRoot.replace(/[\\/]+$/, "");
@@ -188,7 +187,7 @@ export function ComposerWorkspaceContextBar({ context }: { context: ComposerWork
     tabId: context.tabId ?? "",
     scopeKey: context.scopeKey,
     workspaceRoot: context.workspaceRoot,
-    gitBranch: context.remote ? undefined : context.gitBranch,
+    gitBranch: context.gitBranch,
     rootRef,
     onBranchChanged: () => {},
   });
@@ -200,7 +199,7 @@ export function ComposerWorkspaceContextBar({ context }: { context: ComposerWork
     try {
       const snapshot = await app.GetProjectTreeSnapshot();
       if (projectRequest.current !== request) return;
-      setProjects(asArray(snapshot.projects).filter((project) => project.kind === "project" && Boolean(project.root) && !project.remote));
+      setProjects(asArray(snapshot.projects).filter((project) => project.kind === "project" && Boolean(project.root)));
     } catch (reason) {
       if (projectRequest.current === request) setProjectsError(reason instanceof Error ? reason.message : String(reason));
     } finally {
@@ -239,7 +238,7 @@ export function ComposerWorkspaceContextBar({ context }: { context: ComposerWork
     setProjectMenuOpen(false);
     setProjectQuery("");
     setSwitchingProject("");
-  }, [context.scope, context.workspaceRoot, context.remote]);
+  }, [context.scope, context.workspaceRoot]);
 
   const filteredProjects = useMemo(() => {
     const query = projectQuery.trim().toLowerCase();
@@ -281,9 +280,9 @@ export function ComposerWorkspaceContextBar({ context }: { context: ComposerWork
   };
 
   const workspaceTitle = currentWorkspaceTitle(context, t("workspace.defaultName"));
-  const projectSelected = context.scope === "project" || context.remote;
+  const projectSelected = context.scope === "project";
   const workspaceTitleAttribute = projectSelected ? context.workspaceRoot || workspaceTitle : t("workspace.defaultHint");
-  const branchAvailable = Boolean(context.tabId && context.workspaceRoot && branch.activeBranch && !context.remote);
+  const branchAvailable = Boolean(context.tabId && context.workspaceRoot && branch.activeBranch);
 
   return (
     <>
@@ -303,7 +302,7 @@ export function ComposerWorkspaceContextBar({ context }: { context: ComposerWork
             title={workspaceTitleAttribute}
             onClick={openProjectMenu}
           >
-            {context.remote ? <Cloud size={15} /> : <Folder size={15} />}
+            <Folder size={15} />
             <span>{workspaceTitle}</span>
             <ChevronDown size={14} />
           </button>
@@ -328,7 +327,7 @@ export function ComposerWorkspaceContextBar({ context }: { context: ComposerWork
                 {!projectsLoading && !projectsError && filteredProjects.length === 0 ? <div className="composer-workspace-menu__note">{t("palette.empty")}</div> : null}
                 {filteredProjects.map((project) => {
                   const path = project.root ?? "";
-                  const active = context.scope === "project" && !context.remote && path === context.workspaceRoot;
+                  const active = context.scope === "project" && path === context.workspaceRoot;
                   return (
                     <button key={project.key || path} type="button" role="menuitem" className={`composer-workspace-menu__item${active ? " composer-workspace-menu__item--active" : ""}`} disabled={Boolean(switchingProject)} title={path} onClick={() => {
                       if (active) setProjectMenuOpen(false);
@@ -343,7 +342,6 @@ export function ComposerWorkspaceContextBar({ context }: { context: ComposerWork
               </div>
               <div className="composer-workspace-menu__actions">
                 <button type="button" role="menuitem" disabled={creation.addingProject} onClick={() => { setProjectMenuOpen(false); void creation.handleAddProject(); }}><FolderOpen size={16} /><span>{t("composer.workspace.openFolder")}</span></button>
-                <button type="button" role="menuitem" onClick={() => { setProjectMenuOpen(false); creation.openRemoteConnectFlow(); }}><Cloud size={16} /><span>{t("projectTree.remoteConnection")}</span></button>
                 <button type="button" role="menuitem" onClick={() => void workWithoutProject()}><MessageCircle size={16} /><span>{t("composer.workspace.workWithoutProject")}</span>{!projectSelected ? <Check size={15} /> : null}</button>
               </div>
             </div>
@@ -423,7 +421,6 @@ export function ComposerWorkspaceContextBar({ context }: { context: ComposerWork
           </div>
         ) : null}
       </div>
-      {creation.remoteConnectFlow}
       {gitGraphOpen && context.tabId ? (
         <ComposerGitGraphDialog
           tabId={context.tabId}

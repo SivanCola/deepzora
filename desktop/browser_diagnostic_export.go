@@ -27,7 +27,7 @@ func (a *App) browserDiagnosticExport(job *sessionExportJob) map[string]any {
 	out := map[string]any{
 		"schemaVersion": 1, "capturedAt": time.Now().UTC(), "source": "desktop",
 		"toolEvidence": "Browser tool calls, results and errors are in the session commits; their prefix cutoff can precede this runtime capture.",
-		"coverage":     "Host/page events are a bounded in-memory window, lost on shell restart. This is not a complete browsing history. Remote sessions include only the browser hosted by this desktop; remote CDP/browser logs are not collected. Legacy unattributed records are omitted.",
+		"coverage":     "Host/page events are a bounded in-memory window, lost on shell restart. This is not a complete browsing history. Legacy unattributed records are omitted.",
 	}
 	if job.browserScope == "" {
 		out["unavailable"] = "No fixed browser diagnostic identity for this session."

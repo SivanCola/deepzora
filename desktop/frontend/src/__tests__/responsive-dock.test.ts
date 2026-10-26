@@ -13,7 +13,7 @@ setViewportSize(1600, 900);
 layout().setWorkspacePanelOpen(true);
 assert.equal(layout().rightDockTreeWidth, 480, "Overview first opening uses 30 percent of the current viewport, not startup width");
 assert.equal(loadOptionalLayoutSize("rightDockTreeWidth"), null, "automatic sizing does not persist a manual preference");
-for (const mode of ["files", "changed", "browser", "remote"] as const) {
+for (const mode of ["files", "changed", "browser"] as const) {
   useLayoutStore.setState({ workspacePanelOpen: false, dockWidthReady: false });
   useActivityBarStore.getState().openEntry(mode === "files" ? "file" : mode, mode);
   layout().setWorkspacePanelOpen(true);

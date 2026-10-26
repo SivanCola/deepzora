@@ -15,7 +15,6 @@ import { useDockViewRequests } from "./useDockViewRequests";
 const TabContainer = lazy(() => import("../components/TabContainer/TabContainer").then((module) => ({ default: module.TabContainer })));
 
 const ContextPanel = lazy(() => import("../components/ContextPanel").then((module) => ({ default: module.ContextPanel })));
-const RemotePanel = lazy(() => import("../components/RemotePanel").then((module) => ({ default: module.RemotePanel })));
 const BrowserSurface = lazy(() => import("../components/BrowserPanelEntry"));
 const WorkspacePanel = lazy(async () => {
   const [module] = await Promise.all([
@@ -36,7 +35,6 @@ export type WorkspaceDockRegionProps = {
   t: Translator;
   /** Opens (or activates) the dock view a tab-picker entry stands for. */
   onPickEntry: (entryId: string) => void;
-  remote: ComponentProps<typeof RemotePanel>;
   context: ComponentProps<typeof ContextPanel>;
   workspace: ComponentProps<typeof WorkspacePanel>;
   workspaceKey: string;
@@ -75,8 +73,6 @@ export function WorkspaceDockRegion(props: WorkspaceDockRegionProps) {
         return <WorkspacePanel key={`${props.workspaceKey}::${tab.id}`} {...props.workspace} {...requests}
           dockTabId={tab.id} fileNavigation={fileNavigation}
           workspaceMemoryKey={workspaceViewMemoryKey(props.workspaceKey, tab.id)} workspaceMemoryVisitId={0} />;
-      case "remote":
-        return <RemotePanel key={`${props.workspaceKey}::${props.workspace.tabId}::${tab.id}`} {...props.remote} tabId={props.workspace.tabId} dockTabId={tab.id} fileNavigation={fileNavigation} navigationSignal={requests.navigationSignal} />;
       case "browser":
         return <BrowserSurface surface="panel" taskId={props.workspace.tabId} />;
       default:

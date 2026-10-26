@@ -7,10 +7,9 @@ import type * as Controller from "../lib/useController";
 import type * as Follower from "../lib/transcriptSessionFollower";
 import type * as Navigation from "../lib/historyTurnNavigation";
 
-for (const remote of [false, true]) {
+{
   const harness = await createTranscriptHarness({ deterministic: true, viewportHeight: 300, rowHeight: 80 });
-  const tab = remote ? "remote-outline" : "local-outline";
-  const prefix = remote ? "Remote" : "";
+  const tab = "local-outline";
   const outlineRequests: HistoryOutlineRequest[] = [];
   const windows: HistoryWindowRequest[] = [];
   let block: ((request: HistoryWindowRequest) => Promise<void>) | undefined;
@@ -25,15 +24,15 @@ for (const remote of [false, true]) {
       hasOlder: true, hasNewer: false, olderCursor: "older", messages: [message(6)] },
   };
   const stub = installDesktopHostStub({
-    [`${prefix}TranscriptFollowForTab`]: (_tab: string, request: FollowRequest) => request.close
+    TranscriptFollowForTab: (_tab: string, request: FollowRequest) => request.close
       ? Promise.resolve({ protocolVersion: 2, changes: [], resetRequired: false, subscription: tab })
       : request.subscription ? new Promise(() => {}) : Promise.resolve(baseline),
-    [`${prefix}SessionHistoryOutlineForTab`]: async (_tab: string, request: HistoryOutlineRequest) => {
+    SessionHistoryOutlineForTab: async (_tab: string, request: HistoryOutlineRequest) => {
       outlineRequests.push(request);
       return { status: "ready", generation: "durable", snapshotSequence: 6, coverageSequence: 6, totalTurns: 6, done: true, nextTurn: 7,
         entries: Array.from({ length: 6 }, (_, i) => ({ messageId: `u${i + 1}`, turn: i + 1, position: i + 1, prompt: `question ${i + 1}`, answer: `answer ${i + 1}` })) };
     },
-    [`${prefix}SessionHistoryWindowForTab`]: async (_tab: string, request: HistoryWindowRequest) => {
+    SessionHistoryWindowForTab: async (_tab: string, request: HistoryWindowRequest) => {
       windows.push(request);
       await block?.(request);
       const turn = request.messageId ? Number(request.messageId.slice(1)) : 5;
@@ -44,12 +43,10 @@ for (const remote of [false, true]) {
   const controller = await harness.loadModule<typeof Controller>("/src/lib/useController.ts");
   const { TranscriptSessionFollower } = await harness.loadModule<typeof Follower>("/src/lib/transcriptSessionFollower.ts");
   const { navigateHistoryTurn } = await harness.loadModule<typeof Navigation>("/src/lib/historyTurnNavigation.ts");
-  const backend = await harness.loadModule<typeof import("../lib/canonicalTranscriptBackend")>("/src/lib/canonicalTranscriptBackend.ts");
-  backend.setTranscriptBindingIdentity(() => remote ? "remote" : "local");
   let state = { ...controller.initialState, meta: { sessionPath: tab } } as Controller.State;
   const dispatch = (action: Controller.Action) => { state = controller.reducer(state, action); };
-  const follower = new TranscriptSessionFollower(tab, tab, remote, dispatch, () => state);
-  const render = () => harness.render(state.items, { tabId: tab, hostId: remote ? "host" : "local", geometrySessionKey: tab,
+  const follower = new TranscriptSessionFollower(tab, tab, dispatch, () => state);
+  const render = () => harness.render(state.items, { tabId: tab, hostId: "local", geometrySessionKey: tab,
     totalTurns: state.historyTotalTurns, historyStartTurn: state.historyStartTurn, hasOlderHistory: state.historyHasOlder, hasNewerHistory: state.historyHasNewer,
     onNavigateToTurn: (target: Navigation.TurnNavigationTarget, current: () => boolean) => navigateHistoryTurn(tab, state, () => state, dispatch, target, current) });
   try {
@@ -111,4 +108,4 @@ for (const remote of [false, true]) {
     assert.equal(state.historyNewerError, "", "intent cancellation is not a network failure");
   } finally { follower.stop(); await harness.close(); stub.uninstall(); }
 }
-console.log("production Follow v2: local and remote full directory, one-turn tail and direct jumps passed");
+console.log("production Follow v2: local full directory, one-turn tail and direct jumps passed");

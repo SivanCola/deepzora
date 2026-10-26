@@ -194,15 +194,13 @@ eq(controllerSource.includes('e.kind === "mcp_surface_ready"'), true, "reducer h
     answerMCPForTab: () => undefined,
     setCollaborationModeForTab: async (tabId, mode) => { calls.push(`mode:${tabId}:${mode}`); },
     clearGoalForTab: async (tabId) => { calls.push(`goal-clear:${tabId}`); },
-    setRemoteComposerProfile: async () => [],
     patchComposerProfile: (tabId, mode) => calls.push(`profile:${tabId}:${mode}`),
     notePlanMode: (tabId, enabled) => calls.push(`plan:${tabId}:${enabled}`),
-    drainRemoteApprovals: () => undefined,
   };
   const target = { tabId: "tab-source", sessionKey: "session-source:1", hostId: "local", sessionId: "session-source", sessionGeneration: 1,
     promptId: "approval-7", kind: "plan" as const, instanceKey: "plan-source:approval-7" };
   await submitPlanDecision(target, {
-    action: "start_execution", leavePlanMode: true, remote: false, goal: "", toolApprovalMode: "workspace-write",
+    action: "start_execution", leavePlanMode: true, goal: "", toolApprovalMode: "workspace-write",
   }, ports, { checkpoint() {}, ownsUI: () => true });
   eq(
     calls.join("|"),
@@ -212,13 +210,13 @@ eq(controllerSource.includes('e.kind === "mcp_surface_ready"'), true, "reducer h
 
   calls.length = 0;
   await submitPlanDecision(target, {
-    action: "exit_plan", leavePlanMode: true, remote: false, goal: "", toolApprovalMode: "workspace-write",
+    action: "exit_plan", leavePlanMode: true, goal: "", toolApprovalMode: "workspace-write",
   }, ports, { checkpoint() {}, ownsUI: () => true });
   eq(calls[calls.length - 1], "resolve:tab-source:approval-7:exit_plan", "exit-without-executing records the explicit source-bound plan exit last");
 
   calls.length = 0;
   await submitPlanDecision(target, {
-    action: "revise_plan", leavePlanMode: false, remote: false, goal: "", toolApprovalMode: "workspace-write",
+    action: "revise_plan", leavePlanMode: false, goal: "", toolApprovalMode: "workspace-write",
   }, ports, { checkpoint() {}, ownsUI: () => true });
   eq(calls.join("|"), "resolve:tab-source:approval-7:revise_plan", "plan revision records only the source-bound revise decision");
 }

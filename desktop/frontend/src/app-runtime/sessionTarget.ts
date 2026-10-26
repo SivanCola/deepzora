@@ -3,10 +3,9 @@ import { sessionIdentityBaseKey, sessionIdentityStableKey, type SessionIdentityR
 export type SessionIdentityInput = {
   tabId?: string;
   session?: SessionIdentityRef | null;
-  /** TabMeta compatibility identity: remote tab metas publish the canonical
-   *  session id here and never carry a SessionRef (desktop/remote_projects.go). */
+  /** TabMeta compatibility identity for metas that publish only the canonical
+   *  session id and no SessionRef. */
   sessionId?: string;
-  remote?: { hostId: string } | null;
   sessionPath?: string;
   sessionGeneration?: number;
   scope?: string;
@@ -18,12 +17,9 @@ export type SessionIdentityInput = {
 export function sessionIdentityKey(input: SessionIdentityInput): string {
   const canonical = sessionIdentityStableKey(input);
   if (canonical) return canonical;
-  // One remote tab rotates through many canonical sessions, so the id must
-  // fence them apart even when the tab, topic and path are reused. The
-  // generation is deliberately excluded here: a remote tab's generation is
-  // its event-pump reconnect counter, not a session identity.
+  // The id fences sessions apart even when the tab, topic and path are reused.
   const sessionId = input.sessionId?.trim();
-  if (sessionId) return sessionIdentityBaseKey({ session: { hostId: input.remote?.hostId || "local", sessionId } });
+  if (sessionId) return sessionIdentityBaseKey({ session: { hostId: "local", sessionId } });
   return [
     "topic",
     input.scope ?? "",

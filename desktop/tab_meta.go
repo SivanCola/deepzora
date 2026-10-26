@@ -19,8 +19,8 @@ type TabMeta struct {
 	GitBranch        string `json:"gitBranch,omitempty"`
 	IsolatedWorktree bool   `json:"isolatedWorktree,omitempty"`
 	// ForkTargetsSupported reports whether this tab can fork a turn into an
-	// independent child session. False for a local tab and for a remote serve
-	// before its handshake; always emitted, so absence never means "unsupported".
+	// independent child session. Always emitted, so absence never means
+	// "unsupported".
 	ForkTargetsSupported           bool                         `json:"forkTargetsSupported"`
 	InteractionTargetSupported     bool                         `json:"interactionTargetSupported"`
 	ExtensionFormInstanceSupported bool                         `json:"extensionFormInstanceSupported"`

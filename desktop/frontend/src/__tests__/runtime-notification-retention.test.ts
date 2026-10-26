@@ -8,7 +8,7 @@ let revision = 0;
 const owner = createRuntimeNotifications(() => ({ activeTabId: "B", t, showToast() { alerts++; } }));
 function session(index: number): RuntimeSession {
   return { tabId: `detached:${index}`, scope: "global", workspaceRoot: "", topicId: "", sessionPath: "",
-    sessionGeneration: 1, open: false, remote: false, freshness: "synced",
+    sessionGeneration: 1, open: false, freshness: "synced",
     state: { schemaVersion: 1, runtimeEpoch: `runtime:${index}`, activityRevision: 1, revision: 1,
       phase: "executing", running: true, turnId: `turn:${index}`, turnStatus: "in_progress", turnEventSeq: 1,
       pendingPrompt: true, pendingInteractions: [{ requestId: "1", kind: "ask", turnId: `turn:${index}`,

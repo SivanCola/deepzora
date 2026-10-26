@@ -6,16 +6,14 @@ import { clearThemePack } from "../lib/themePack";
 import { paletteSessionDisplayTitle, paletteSessionHint, paletteSessionKeywords, sessionActivityTime } from "../lib/session";
 import { useOverlayStore } from "../store/overlays";
 import { useAppNavigationStore } from "../store/appNavigation";
-import { useRemoteStore } from "../store/remote";
 import { activeTabMirror } from "./activeTabMirror";
-import type { RemoteHostView, SessionMeta } from "../lib/types";
+import type { SessionMeta } from "../lib/types";
 import type { Translator } from "../lib/i18n";
 import type { PaletteItem } from "../components/CommandPalette";
 
 export type PaletteCommandsInput = {
   managementActive: boolean;
   activeTabId: string | undefined;
-  remoteSurfaceActive: boolean;
   t: Translator;
   notice(message: string, kind?: "info" | "warn" | "error"): void;
   showToast(message: string, level: "info" | "warn" | "error", options?: { durationMs?: number }): void;
@@ -24,8 +22,6 @@ export type PaletteCommandsInput = {
     listSessions(): Promise<SessionMeta[]>;
     openTrash(): void;
     onResumeSession(session: SessionMeta): Promise<void>;
-    openRemoteWorkspaceFromStatus(host: RemoteHostView): void;
-    connectAndOpenRemoteWorkspace(host: RemoteHostView): void;
     toggleTerminalPanel(): void;
     setTasksOpen(open: false | "session" | "all"): void;
     handleTabClose(id: string): void;
@@ -38,10 +34,10 @@ export type PaletteCommandsInput = {
  * Owns the command palette: its open action (snapshotting sessions and
  * extension actions), its items and the global command shortcuts that open it
  * or the new-session/settings/tab-close/shortcuts/sidebar surfaces. Session,
- * extension, remote-host and navigation targets come from their stores.
+ * extension and navigation targets come from their stores.
  */
 export function usePaletteCommands(input: PaletteCommandsInput) {
-  const { managementActive, activeTabId, remoteSurfaceActive, t, notice, showToast, ports } = input;
+  const { managementActive, activeTabId, t, notice, showToast, ports } = input;
   const setPaletteOpen = useOverlayStore((state) => state.setPaletteOpen);
   const paletteSessions = useOverlayStore((state) => state.paletteSessions);
   const setPaletteSessions = useOverlayStore((state) => state.setPaletteSessions);
@@ -49,8 +45,6 @@ export function usePaletteCommands(input: PaletteCommandsInput) {
   const setPaletteExtensionActions = useOverlayStore((state) => state.setPaletteExtensionActions);
   const setShortcutsOpen = useOverlayStore((state) => state.setShortcutsOpen);
   const setTransientOverlayDismissSignal = useOverlayStore((state) => state.setTransientOverlayDismissSignal);
-  const remoteHosts = useRemoteStore((state) => state.hosts);
-  const remoteStatuses = useRemoteStore((state) => state.statuses);
 
   const closeTransientOverlays = useCommittedCommand(() => {
     setTransientOverlayDismissSignal((signal) => signal + 1);
@@ -156,25 +150,6 @@ export function usePaletteCommands(input: PaletteCommandsInput) {
       badge: t(s.turns === 1 ? "history.turnOne" : "history.turnOther", { n: s.turns }),
       run: () => void ports.onResumeSession(s),
     }));
-    const remoteItems: PaletteItem[] = remoteHosts.map((host) => {
-      const status = remoteStatuses[host.id];
-      const connected = status?.state === "connected" || status?.state === "degraded";
-      const target = `${host.user ? `${host.user}@` : ""}${host.host}${host.port && host.port !== 22 ? `:${host.port}` : ""}`;
-      return {
-        id: `remote-${host.id}`,
-        group: t("palette.group.remote"),
-        title: connected
-          ? t("palette.remote.open", { host: host.label })
-          : t("palette.remote.connect", { host: host.label }),
-        hint: host.defaultWorkspace || target,
-        icon: "remote",
-        keywords: ["ssh", "remote", "远程", "连接", host.label, host.host],
-        run: () => {
-          if (connected) ports.openRemoteWorkspaceFromStatus(host);
-          else ports.connectAndOpenRemoteWorkspace(host);
-        },
-      };
-    });
     const extensionItems: PaletteItem[] = paletteExtensionActions.map((action) => ({
       id: `ext-${action.slash}`,
       group: t("palette.group.extensions"),
@@ -194,8 +169,8 @@ export function usePaletteCommands(input: PaletteCommandsInput) {
           .catch((err) => showToast(err instanceof Error ? err.message : String(err), "error"));
       },
     }));
-    return [...(remoteSurfaceActive ? cmds.filter((item) => item.id !== "cmd-terminal" && item.id !== "cmd-reload-runtime") : cmds), ...extensionItems, ...remoteItems, ...sessionItems];
-  }, [t, paletteSessions, paletteExtensionActions, remoteHosts, remoteStatuses, activeTabId, remoteSurfaceActive, ports, showToast, notice]);
+    return [...cmds, ...extensionItems, ...sessionItems];
+  }, [t, paletteSessions, paletteExtensionActions, activeTabId, ports, showToast, notice]);
 
   return { openPalette, paletteItems };
 }

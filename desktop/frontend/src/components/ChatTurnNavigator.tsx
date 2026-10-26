@@ -2,15 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "r
 import type { ChatSource } from "../lib/chatViewSource";
 import type { ChatScrollController } from "../lib/chatScrollController";
 import type { ChatMountedOrder } from "../lib/chatMountedOrder";
-import { getTranscriptOutlineStore, localOutlineRead, remoteOutlineRead } from "../lib/transcriptOutlineStore";
+import { getTranscriptOutlineStore, localOutlineRead } from "../lib/transcriptOutlineStore";
 import type { TurnJumpReason } from "../lib/chatTurnJump";
 import { useT } from "../lib/i18n";
 import { TurnNavigator, type TurnRailItem } from "./harness-chat/TurnNavigator";
 import css from "./harness-chat/TurnNavigator.styles";
 import "./harness-chat/TurnNavigator.css";
 
-export default function ChatTurnNavigator({ source, scroll, mounts, tabId, hostId, onNavigate, onRetryJump, onCancelJump, busyTurn, failedTurn, failedReason, knownTurns = 0 }: {
-  source: ChatSource; scroll: ChatScrollController; mounts: ChatMountedOrder; tabId?: string; hostId?: string;
+export default function ChatTurnNavigator({ source, scroll, mounts, tabId, onNavigate, onRetryJump, onCancelJump, busyTurn, failedTurn, failedReason, knownTurns = 0 }: {
+  source: ChatSource; scroll: ChatScrollController; mounts: ChatMountedOrder; tabId?: string;
   onNavigate: (item: TurnRailItem) => void; onRetryJump?: () => void; onCancelJump?: () => void;
   busyTurn?: string | null; failedTurn?: string | null; failedReason?: TurnJumpReason; knownTurns?: number;
 }) {
@@ -31,8 +31,8 @@ export default function ChatTurnNavigator({ source, scroll, mounts, tabId, hostI
   const identities = useSyncExternalStore(subscribeIdentities, readIdentities, readIdentities);
   const position = useSyncExternalStore(scroll.subscribe, scroll.getSnapshot, scroll.getSnapshot);
   const initialTurns = useRef(knownTurns).current;
-  useEffect(() => tabId ? store.activate(tabId, source.sessionKey, hostId && hostId !== "local" ? remoteOutlineRead : localOutlineRead, initialTurns) : undefined,
-    [store, tabId, source, hostId, initialTurns]);
+  useEffect(() => tabId ? store.activate(tabId, source.sessionKey, localOutlineRead, initialTurns) : undefined,
+    [store, tabId, source, initialTurns]);
   const loaded = useMemo(() => {
     const identityRows = new Map(JSON.parse(identities).map((row: [string, string?, number?, number?]) => [row[0], row]));
     const result: TurnRailItem[] = [];

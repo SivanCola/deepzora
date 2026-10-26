@@ -725,14 +725,6 @@
 }
 :root .settings-center .settings-page[data-layout="form"] { max-width: 960px; }
 :root .settings-center .settings-page[data-layout="tool"] { max-width: 1200px; }
-:root .settings-center .settings-page[data-layout] > :is(.settings-section, .mem-section, .cap-mcp-settings, .appearance-overview, .remote-hosts, .diag-page) {
-  margin: 0 0 var(--settings-space);
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  background: transparent;
-}
 :root .settings-center .settings-page[data-layout] .settings-section__head {
   align-items: center;
   gap: 16px;
@@ -816,7 +808,6 @@
 :root .settings-center .settings-page--plugins .cap-plugin-section { margin-top: 0; }
 :root .settings-center .settings-page--plugins .cap-plugin-section .cap-server-section__title { display: none; }
 :root .settings-center .settings-page--appearance .appearance-overview__current { margin-top: 0; }
-:root .settings-center .settings-page--remote .remote-host-row { box-shadow: none; }
 :root .settings-center .settings-page--hooks .hooks-json-panel { border: 1px solid var(--border); box-shadow: none; }
 :root .settings-center .settings-page--hooks .hooks-json-panel__textarea { min-height: 320px; resize: vertical; }
 :root .settings-center .settings-page--storage .settings-field__control input[readonly] { background: transparent; border-color: transparent; font-family: var(--font-mono, monospace); }

@@ -11,7 +11,6 @@ const fixture = createInboxQueuePreviewBindings();
 const calls: InboxQueueRequest[] = [];
 let enqueues = 0;
 let cancelled: string[] | undefined;
-let otherHost = false;
 let failSave = false;
 let departOnSave = false;
 let finishImageStaging!: () => void;
@@ -25,7 +24,7 @@ installBridgeApp({
     finishImageStaging();
     return "data:image/png;base64,iVBORw0KGgo=";
   },
-  InboxSnapshot: async () => otherHost ? { revision: 1, sessionPath: "session-a", mutationsSupported: true, items: [{ id: "other-host", preview: "other host queue", state: "queued" }] } : fixture.InboxSnapshot("tab-a"),
+  InboxSnapshot: async () => fixture.InboxSnapshot("tab-a"),
   ListTabs: async () => [{ id: "tab-a", turnId: "live-turn" }],
   InboxQueueForTarget: async (target: InboxTarget, request: InboxQueueRequest) => {
     calls.push(request);
@@ -134,11 +133,6 @@ await act(async () => {
 });
 await act(async () => { (document.querySelector(".composer__btn--stop") as HTMLButtonElement).click(); await flush(); });
 assert.deepEqual(cancelled, [], "stop leaves the durable queue intact");
-otherHost = true;
-await view.rerender({ inboxHostId: "second-host", inboxWorkspace: "/repo" });
-await act(async () => { await flush(); });
-assert.ok(document.querySelector('.inbox-queue__row[data-item-id="other-host"]'), "a different host may start at a lower revision for the same session path");
-assert.equal(document.querySelector('.inbox-queue__row[data-item-id="queue-save"]'), null, "the previous host's queue cannot leak into the new host");
 await act(async () => { view.root.unmount(); });
 dom.window.close();
 console.log("PASS composer queue: default follow-up, explicit guide, in-place editing, draft preservation, stop");

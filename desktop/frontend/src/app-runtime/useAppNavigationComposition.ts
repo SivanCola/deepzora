@@ -35,7 +35,6 @@ export type AppNavigationCompositionInput = {
   activeTab: TabMeta | undefined;
   activeTabId: string | undefined;
   activeSessionIdentity: string;
-  remoteSurfaceActive: boolean;
   surface: Pick<ReturnType<typeof useNavigationSurface>, "begin" | "maskTarget" | "cancel">;
   local: {
     setHistView: React.Dispatch<React.SetStateAction<HistoryViewState | null>>;
@@ -53,7 +52,6 @@ export type AppNavigationCompositionInput = {
  */
 export function useAppNavigationComposition(input: AppNavigationCompositionInput) {
   const { runtime, t, notice, showToast, shell, state, activeTab, activeTabId, activeSessionIdentity, session } = input;
-  const { remoteSurfaceActive } = input;
   const { begin: beginNavigationSurface, maskTarget: settleNavigationSurface, cancel: cancelNavigationSurface } = input.surface;
   const {
     setHistView, setProjectRevision,
@@ -73,14 +71,13 @@ export function useAppNavigationComposition(input: AppNavigationCompositionInput
   const { reload: reloadDesktopPreferences } = shell.preferences;
   const {
     closeTransientOverlays, refreshProviderSetupState,
-    tabBarCommands, terminalPanelCommands, remoteWorkspaceCommands, runtimeEventCommands,
+    tabBarCommands, terminalPanelCommands, runtimeEventCommands,
     desktopNavigation: desktopNavigationBag,
   } = session;
   const { refreshTabMetas, seedActiveTabMeta } = runtimeEventCommands;
   const { handleTabClose } = tabBarCommands;
   const { toggleTerminalPanel } = terminalPanelCommands;
-  const { openRemoteWorkspaceFromStatus, connectAndOpenRemoteWorkspace } = remoteWorkspaceCommands;
-  const { enqueueNavigation, enqueueNavigationWithIntent, openRemoteProject } = desktopNavigationBag;
+  const { enqueueNavigation, enqueueNavigationWithIntent } = desktopNavigationBag;
   const { toggleSidebar } = session.shellGeometry;
   useBrowserFirstOpen(activeTabId, state.activeTurnId, () => session.workspacePanelCommands.openRightDockMode("browser"), state.meta?.sessionPath);
 
@@ -104,7 +101,7 @@ export function useAppNavigationComposition(input: AppNavigationCompositionInput
     prepareBlankWorkspace: (workspaceRoot) => {
       session.workspacePanelCommands.prepareBlankWorkspace(workspaceRoot);
     },
-    navigation: { enqueueNavigation, enqueueNavigationWithIntent, openRemoteProject },
+    navigation: { enqueueNavigation, enqueueNavigationWithIntent },
     noteNavigationIntent,
     beginNavigationSurface,
     settleNavigationSurface,
@@ -129,7 +126,6 @@ export function useAppNavigationComposition(input: AppNavigationCompositionInput
   const { openPalette, paletteItems } = usePaletteCommands({
     managementActive,
     activeTabId,
-    remoteSurfaceActive,
     t,
     notice,
     showToast,
@@ -138,8 +134,6 @@ export function useAppNavigationComposition(input: AppNavigationCompositionInput
       listSessions,
       openTrash: () => void openTrash(),
       onResumeSession: (session) => onResumeSession(session),
-      openRemoteWorkspaceFromStatus: (host) => openRemoteWorkspaceFromStatus(host),
-      connectAndOpenRemoteWorkspace: (host) => connectAndOpenRemoteWorkspace(host),
       toggleTerminalPanel,
       setTasksOpen: (open) => setTasksOpen(open),
       handleTabClose: (id) => void handleTabClose(id),
@@ -160,10 +154,7 @@ export function useAppNavigationComposition(input: AppNavigationCompositionInput
   // transcript and refreshes meta on a pick. A cancel is a no-op.
   const projectTopicCommands = useProjectTopicCommands({
     visible: { tabId: activeTabId ?? "", sessionKey: activeSessionIdentity },
-    topic: activeTab?.remote ? {
-      id: activeTab.id, title: activeTab.topicTitle || "",
-      target: { kind: "remote", ...activeTab.remote, sessionId: activeTab.session?.sessionId || activeTab.sessionId || "" },
-    } : activeTab?.topicId ? {
+    topic: activeTab?.topicId ? {
       id: activeTab.topicId, title: activeTab.topicTitle || "", target: { kind: "local", topicId: activeTab.topicId,
         selector: { ref: activeTab.session ?? undefined, sessionPath: activeTab.sessionPath, topicId: activeTab.topicId } },
     } : undefined,

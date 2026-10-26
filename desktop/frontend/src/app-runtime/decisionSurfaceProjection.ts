@@ -19,15 +19,9 @@ export function projectDecisionSurface(input: {
   workspaceConflict: WorkspaceConflictView | null;
   pendingClose: PendingClose;
   clearContextPending: boolean;
-  remote?: boolean;
 }): AppDecisionSurfaceKind | null {
-  // A remote session's prompts and forms are answered by RemoteSessionSurface,
-  // the one owner of the serve's exact prompt route; a footer copy would be a
-  // second card whose answer has no local session to reach.
-  if (!input.remote) {
-    const prompt = projectPromptSurface(input);
-    if (prompt) return prompt;
-  }
+  const prompt = projectPromptSurface(input);
+  if (prompt) return prompt;
   if (input.workspaceConflict) return "workspace_conflict";
   if (input.pendingClose) return "close_active";
   if (input.clearContextPending) return "clear_context";

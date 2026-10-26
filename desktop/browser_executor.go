@@ -43,8 +43,7 @@ type hostBrowserExecutor struct {
 	host    hostRequester
 	tabID   string
 	grantID string
-	// sessionKey overrides the grant's session binding when set; remote
-	// broker executors use it because their tabs are not workspace tabs.
+	// sessionKey is the session binding the grant was issued for.
 	sessionKey      string
 	diagnosticScope string // Opaque export identity; never used to authorize operations.
 	granted         atomic.Bool

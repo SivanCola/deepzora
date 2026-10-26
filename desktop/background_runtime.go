@@ -75,9 +75,6 @@ func (v ActiveWorkView) active() bool {
 // ActiveWorkForTab returns the precise blocker state for one tab. It is a
 // preflight aid only; rebuild paths still re-check active work atomically.
 func (a *App) ActiveWorkForTab(tabID string) ActiveWorkView {
-	// A remote tab whose status cannot be observed must fail closed: the
-	// caller must not silently detach potentially mutating work.
-
 	return activeWorkForController(a.ctrlForRuntimeTabID(tabID))
 }
 

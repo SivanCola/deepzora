@@ -1,10 +1,10 @@
 import { JSDOM } from "jsdom";
 
-// installRemoteSurfaceDom publishes a jsdom window as the process globals the
-// remote surface suite renders against. The transcript measures through the
+// installSurfaceDom publishes a jsdom window as the process globals the
+// surface suites render against. The transcript measures through the
 // element prototype and calls the global rAF, which jsdom exposes only on a
 // visual window, so both are stubbed here rather than per test.
-export function installRemoteSurfaceDom(): JSDOM {
+export function installSurfaceDom(): JSDOM {
   const dom = new JSDOM("<!doctype html><html><body><div id=\"root\"></div></body></html>", {
     pretendToBeVisual: true,
     url: "http://localhost/",

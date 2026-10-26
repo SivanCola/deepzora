@@ -5,7 +5,7 @@ import { followupNotSubmitted, type PendingFollowup } from "../lib/pendingFollow
 import type { AppBindings } from "../lib/bridge";
 import type { InboxQueueResult } from "../lib/inboxQueueCommands";
 
-const target = { tabId: "tab", sessionPath: "session-id:original", generation: 1, selection: 0, remote: false };
+const target = { tabId: "tab", sessionPath: "session-id:original", generation: 1, selection: 0 };
 const request: PendingFollowup = { target, tabId: "tab", key: "one-request", display: "guide", submit: "guide", draft: "guide" };
 const receipt = { itemId: "item", disposition: "queued_followup", position: 1, paused: false };
 let reads = 0;

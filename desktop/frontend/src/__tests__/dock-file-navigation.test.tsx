@@ -7,7 +7,6 @@ import { performResourceAction } from "../lib/presentedFileNavigation";
 import { fileNavigationOwner } from "../lib/fileNavigationCommands";
 import { fileNavigationKey } from "../lib/fileNavigationOwner";
 import { useActivityBarStore } from "../store/activityBar";
-import { useRemoteStore } from "../store/remote";
 
 const reads: string[] = [];
 const preview = (path: string, mode: string) => {
@@ -17,17 +16,14 @@ const preview = (path: string, mode: string) => {
 const { dom, root } = await renderFilesWorkspace({
   ReadPresentedFileForTab: async (_tab, _tool, path) => preview(path, "preview"),
   ReadPresentedFileSourceForTab: async (_tab, _tool, path) => preview(path, "source"),
-  ListRemoteDir: async () => [],
-  ReadRemoteFile: async (_host, path) => ({ ...preview(path, "remote"), mtimeUnix: 1 }),
-  ResolveRemoteWorkspacePathForTab: async (_tab, _host, _tool, path) => {
+  ResolveWorkspacePathForTab: async (_tab, path) => {
     if (path === "denied.txt") throw new Error("permission denied");
-    return path;
+    return path.startsWith("/") ? path : `/repo/${path}`;
   },
-  ResolveRemotePresentedPathForTab: async (_tab, _host, _tool, path) => path,
 });
 const props: WorkspaceDockRegionProps = {
   visible: false, overlay: false, mode: "files", showContext: false,
-  t: key => key, onPickEntry: () => {}, remote: { onClose: () => {} }, context: {} as WorkspaceDockRegionProps["context"],
+  t: key => key, onPickEntry: () => {}, context: {} as WorkspaceDockRegionProps["context"],
   workspace: { open: true, tabId: "navigation-session", cwd: "/repo", maximized: false, onClose: () => {}, onToggleMaximized: () => {} },
   workspaceKey: "navigation-test", workspaceRoot: "/repo",
 };
@@ -38,8 +34,8 @@ const committed = (dockTabId: string | null | undefined) => dockTabId
   : null;
 await act(async () => { useActivityBarStore.setState({ workspaceRoot: "/repo", tabs: [], activeTabId: null }); });
 await paint(false);
-for (const hostId of ["local", "remote-test"]) {
-  await act(async () => useRemoteStore.setState({ statuses: { "remote-test": { state: "connected" } } }));
+{
+  const hostId = "local";
   for (const action of ["preview", "source", "reveal-tree"] as const) {
     const path = `${hostId}-${action}.txt`;
     await act(async () => performResourceAction({ hostId, tabId: "navigation-session", path, source: "presented", toolCallId: "call" }, action));
@@ -53,7 +49,7 @@ for (const hostId of ["local", "remote-test"]) {
     assert(document.body.textContent?.includes(`content ${path}`));
     console.log("PASS real dock", hostId, action);
   }
-  if (hostId === "local") {
+  {
     const original = useActivityBarStore.getState().activeTabId!;
     await act(async () => useActivityBarStore.getState().addTab("file", "Other files"));
     await act(async () => useActivityBarStore.getState().activateTab(original));
@@ -66,10 +62,10 @@ for (const hostId of ["local", "remote-test"]) {
       "canonical identity deduplicates relative and absolute spellings through the real command path");
   }
 }
-// A remote workspace path the host refuses reports its failure to the row that
+// A workspace path the host refuses reports its failure to the row that
 // asked, and commits nothing the dock could render.
 await paint(false);
-const denied = await performResourceAction({ hostId: "remote-test", tabId: "navigation-session", path: "denied.txt", source: "workspace", toolCallId: "call" }, "preview");
+const denied = await performResourceAction({ hostId: "local", tabId: "navigation-session", path: "denied.txt", source: "workspace", toolCallId: "call" }, "preview");
 assert.equal(denied.status, "failed");
 assert.match((denied as { error: Error }).error.message, /permission denied/);
 assert(!committed(useActivityBarStore.getState().activeTabId)?.entries.some(entry => entry.resource.path === "denied.txt"),
@@ -77,4 +73,4 @@ assert(!committed(useActivityBarStore.getState().activeTabId)?.entries.some(entr
 
 await act(async () => root.unmount());
 dom.window.close();
-assert(reads.length >= 6);
+assert(reads.length >= 3);
