@@ -21,7 +21,7 @@ func (a *App) configLoadWarningsHandler() func([]string) bool {
 
 // emitConfigLoadWarnings transfers ownership of resilient-loader diagnostics
 // to the persistent desktop banner. Returning false keeps boot's diagnostic
-// notice when no Wails event context is available.
+// notice when no frontend event context is available.
 func (a *App) emitConfigLoadWarnings(revision uint64, warnings []string) bool {
 	if a == nil || a.ctx == nil || len(warnings) == 0 {
 		return false

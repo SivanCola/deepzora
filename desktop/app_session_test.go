@@ -182,10 +182,10 @@ func TestSearchFileRefsFindsNestedBasename(t *testing.T) {
 	defer os.Chdir(orig)
 
 	dir := robustTempDir(t)
-	if err := os.MkdirAll(filepath.Join(dir, "frontend", "wailsjs", "runtime"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(dir, "frontend", "generated", "runtime"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "frontend", "wailsjs", "runtime", "runtime.js"), []byte("x"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "frontend", "generated", "runtime", "runtime.js"), []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "frontend", "Thumbs.db"), []byte("noise"), 0o644); err != nil {
@@ -208,12 +208,6 @@ func TestSearchFileRefsFindsNestedBasename(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := os.MkdirAll(filepath.Join(dir, "desktop", "frontend", "wailsjs"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(dir, "desktop", "frontend", "wailsjs", "runtime.js"), []byte("generated"), 0o644); err != nil {
-		t.Fatal(err)
-	}
 	if err := os.MkdirAll(filepath.Join(dir, "product", "bin"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -231,10 +225,6 @@ func TestSearchFileRefsFindsNestedBasename(t *testing.T) {
 			t.Fatalf("ListDir shows %q = %v, want %v (only @-search skips generic names); got %+v", name, !shown, shown, listed)
 		}
 	}
-	desktopFrontend := app.ListDir("desktop/frontend")
-	if !hasDirEntry(desktopFrontend, "wailsjs") {
-		t.Fatalf("ListDir should show desktop/frontend/wailsjs, got %+v", desktopFrontend)
-	}
 	frontendEntries := app.ListDir("frontend")
 	for _, hidden := range []string{".DS_Store", "Thumbs.db"} {
 		if hasDirEntry(frontendEntries, hidden) {
@@ -243,7 +233,7 @@ func TestSearchFileRefsFindsNestedBasename(t *testing.T) {
 	}
 
 	got := app.SearchFileRefs("runtime.js")
-	if !hasDirEntry(got, "frontend/wailsjs/runtime/runtime.js") {
+	if !hasDirEntry(got, "frontend/generated/runtime/runtime.js") {
 		t.Fatalf("SearchFileRefs(runtime.js) should find nested workspace file, got %+v", got)
 	}
 	if !hasDirEntry(got, "product/bin/runtime.js") {
@@ -257,7 +247,6 @@ func TestSearchFileRefsFindsNestedBasename(t *testing.T) {
 		".npm/runtime.js",
 		".pnpm-store/runtime.js",
 		"bin/runtime.js",
-		"desktop/frontend/wailsjs/runtime.js",
 		"dist/runtime.js",
 		"stage/runtime.js",
 		"tmp/runtime.js",
@@ -283,10 +272,10 @@ func TestFileRefsUseActiveTabWorkspaceRoot(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(launchRoot, "launch-only.txt"), []byte("wrong"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(filepath.Join(projectRoot, "frontend", "wailsjs", "runtime"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(projectRoot, "frontend", "generated", "runtime"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	projectFile := filepath.Join(projectRoot, "frontend", "wailsjs", "runtime", "runtime.js")
+	projectFile := filepath.Join(projectRoot, "frontend", "generated", "runtime", "runtime.js")
 	if err := os.WriteFile(projectFile, []byte("right workspace"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -308,10 +297,10 @@ func TestFileRefsUseActiveTabWorkspaceRoot(t *testing.T) {
 	}
 
 	found := app.SearchFileRefs("runtime.js")
-	if !hasDirEntry(found, "frontend/wailsjs/runtime/runtime.js") {
+	if !hasDirEntry(found, "frontend/generated/runtime/runtime.js") {
 		t.Fatalf("SearchFileRefs should search active project root, got %+v", found)
 	}
-	preview := app.ReadFile("frontend/wailsjs/runtime/runtime.js")
+	preview := app.ReadFile("frontend/generated/runtime/runtime.js")
 	if preview.Err != "" || preview.Body != "right workspace" {
 		t.Fatalf("ReadFile active project preview = %+v, want project file", preview)
 	}

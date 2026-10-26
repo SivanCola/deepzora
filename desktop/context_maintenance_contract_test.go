@@ -8,7 +8,7 @@ import (
 	"deepzora/internal/agent"
 )
 
-func TestContextMaintenanceInfoUsesOptionalCamelCaseWailsFields(t *testing.T) {
+func TestContextMaintenanceInfoUsesOptionalCamelCaseFields(t *testing.T) {
 	b, err := json.Marshal(ContextInfo{Maintenance: contextMaintenanceInfo(agent.ContextMaintenanceSnapshot{
 		CanonicalTokens: 800_000, ProjectedTokens: 160_000,
 		TriggerTokens: 850_000, CheckpointState: "applied",
@@ -32,6 +32,6 @@ func TestContextMaintenanceInfoUsesOptionalCamelCaseWailsFields(t *testing.T) {
 		}
 	}
 	if strings.Contains(got, "operation_id") || strings.Contains(got, "saved_tokens") {
-		t.Fatalf("ContextInfo leaked sidecar snake_case into Wails JSON: %s", got)
+		t.Fatalf("ContextInfo leaked sidecar snake_case into frontend JSON: %s", got)
 	}
 }

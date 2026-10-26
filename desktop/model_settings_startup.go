@@ -45,7 +45,7 @@ func clearTabStartupError(tab *WorkspaceTab) {
 	tab.modelApplication.startupRetry = false
 }
 
-func (a *App) recordTabStartupFailure(tab *WorkspaceTab, buildGeneration uint64, wailsCtx context.Context, err error) {
+func (a *App) recordTabStartupFailure(tab *WorkspaceTab, buildGeneration uint64, ctx context.Context, err error) {
 	a.mu.Lock()
 	if a.tabBuildSupersededLocked(tab, buildGeneration) {
 		a.mu.Unlock()
@@ -65,7 +65,7 @@ func (a *App) recordTabStartupFailure(tab *WorkspaceTab, buildGeneration uint64,
 		alreadyBlocked := rt != nil && rt.Phase == sessionRuntimeLeaseBlocked && rt.Issue != nil && rt.Issue.Code == "session_lease_held"
 		a.mu.RUnlock()
 		if alreadyBlocked {
-			a.emitReady(wailsCtx, tab.ID)
+			a.emitReady(ctx, tab.ID)
 			return
 		}
 		// Failed startup emits no agent events. Publish the lease-blocked meta
@@ -77,7 +77,7 @@ func (a *App) recordTabStartupFailure(tab *WorkspaceTab, buildGeneration uint64,
 			a.emitRuntimeEvent(tabMetaRefreshEventChannel, TabMetaRefreshEvent{TabID: tabID, Meta: a.MetaForTab(tabID)})
 		})
 	}
-	a.emitReady(wailsCtx, tab.ID)
+	a.emitReady(ctx, tab.ID)
 }
 
 func (a *App) rejectStaleStartupModelSettings(tab *WorkspaceTab, ctrl control.SessionAPI, generation uint64, ctx context.Context, abandon func()) bool {
@@ -96,7 +96,7 @@ func (a *App) rejectStaleStartupModelSettings(tab *WorkspaceTab, ctrl control.Se
 	return true
 }
 
-func (a *App) finishStartupPublication(tab *WorkspaceTab, ctrl control.SessionAPI, wailsCtx context.Context) {
+func (a *App) finishStartupPublication(tab *WorkspaceTab, ctrl control.SessionAPI, ctx context.Context) {
 	// A directly-opened session announces itself to a resident serve so the
 	// remote side can watch it read-only and reclaim it (see
 	// adoptSessionFromLocalServe). First-open path of the takeover flow.
@@ -104,7 +104,7 @@ func (a *App) finishStartupPublication(tab *WorkspaceTab, ctrl control.SessionAP
 		a.attachTakeoverMirror(tab.ID, path)
 		go a.adoptSessionFromLocalServe(tab.ID, path)
 	}
-	a.emitReady(wailsCtx, tab.ID)
+	a.emitReady(ctx, tab.ID)
 	if inbox, ok := ctrl.(interface{ NotifyInboxRuntimeReady() }); ok {
 		go inbox.NotifyInboxRuntimeReady()
 	}

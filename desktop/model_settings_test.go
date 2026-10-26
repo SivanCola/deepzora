@@ -396,7 +396,7 @@ func TestModelSettingsRequestRejectsStaleEdit(t *testing.T) {
 		t.Fatal(err)
 	}
 	fingerprint := app.Settings().ModelSettingsFingerprint
-	// Wails crosses JSON in both directions. Binary HMAC strings would be
+	// The host bridge crosses JSON in both directions. Binary HMAC strings would be
 	// replaced with U+FFFD, causing every real browser submission to conflict.
 	wire, err := json.Marshal(fingerprint)
 	if err != nil {

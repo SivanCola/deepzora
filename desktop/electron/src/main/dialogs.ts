@@ -7,7 +7,7 @@ export interface DialogFilter {
   extensions: string[];
 }
 
-// Wails filters carry `*.png;*.jpg` patterns; Electron wants bare extensions.
+// The Go service sends `*.png;*.jpg` patterns; Electron wants bare extensions.
 export function fileFiltersFromPatterns(value: unknown): DialogFilter[] {
   if (!Array.isArray(value)) return [];
   const filters: DialogFilter[] = [];

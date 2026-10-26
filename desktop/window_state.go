@@ -21,8 +21,8 @@ type DesktopWindowState struct {
 }
 
 const (
-	// Minimum geometry accepted from the frontend (mirrors Wails MinWidth/MinHeight
-	// floor with a slightly looser lower bound so older saved states still restore).
+	// Minimum geometry accepted from the frontend, slightly looser than the
+	// shell's window floor so older saved states still restore.
 	minWindowWidth  = 400
 	minWindowHeight = 300
 	// maxWindowDimension rejects corrupt or absurd sizes without relying on live
@@ -61,8 +61,7 @@ func loadWindowState() (DesktopWindowState, bool) {
 		return DesktopWindowState{}, false
 	}
 	// Seed the process-local last-known-good so background-hide and shutdown
-	// can persist without querying the native window (which can panic when DPI
-	// reports 0 during Wails teardown).
+	// can persist without asking the shell for live geometry.
 	rememberWindowState(state)
 	return state, true
 }
@@ -146,10 +145,9 @@ func writeWindowState(state DesktopWindowState) error {
 	return fileutil.AtomicWriteFile(path, data, 0o644)
 }
 
-// saveWindowStateSync re-persists the last frontend-reported geometry. It must
-// never call WindowGetSize / WindowGetPosition / WindowIsMaximised: during
-// Wails shutdown those paths can hit ScaleToDefaultDPI with DPI=0 and panic.
-// If no frontend report has landed yet, this is a no-op (first-launch quit).
+// saveWindowStateSync re-persists the last frontend-reported geometry; the
+// service owns no native window to query during shutdown. If no frontend
+// report has landed yet, this is a no-op (first-launch quit).
 func (a *App) saveWindowStateSync() {
 	windowStatePersistMu.Lock()
 	defer windowStatePersistMu.Unlock()

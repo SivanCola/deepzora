@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-// PromptAnswerView is the Wails-safe union for all interactive cards.
+// PromptAnswerView is the JSON-safe union for all interactive cards.
 type PromptAnswerView struct {
 	Questions          []QuestionAnswer `json:"questions,omitempty"`
 	Allow              bool             `json:"allow,omitempty"`

@@ -1026,7 +1026,7 @@ func (m *desktopRemoteManager) ScanSSHConfig() ([]RemoteHostInput, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Non-nil so Wails encodes an empty result as [] (not null), which the React
+	// Non-nil so the host bridge encodes an empty result as [] (not null), which the React
 	// import page iterates safely.
 	out := []RemoteHostInput{}
 	for _, cand := range src.Aliases() {
@@ -1749,7 +1749,7 @@ func preserveRemoteHostImportSettings(entry *config.RemoteHostEntry, existing co
 	entry.CredentialMode = existing.CredentialMode
 }
 
-// applyRemoteCredentialInput maps plaintext received from the one-shot Wails
+// applyRemoteCredentialInput maps plaintext received from the one-shot host
 // call into Deepzora-owned credential slots. Blank fields preserve the current
 // reference; explicit clear flags remove only slots that this desktop created.
 func applyRemoteCredentialInput(entry *config.RemoteHostEntry, in RemoteHostInput) (changes []config.CredentialChange, removalCandidates []string) {

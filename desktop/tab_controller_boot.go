@@ -146,7 +146,7 @@ func (a *App) handleTabControllerBootError(
 	registration *sharedHostMCPRegistration,
 	rootKey string,
 	buildGeneration uint64,
-	wailsCtx context.Context,
+	ctx context.Context,
 	err error,
 ) bool {
 	if err == nil {
@@ -174,6 +174,6 @@ func (a *App) handleTabControllerBootError(
 	if leaseHeld {
 		a.scheduleDeferredStartupBuild(tab.ID)
 	}
-	a.emitReady(wailsCtx, tab.ID)
+	a.emitReady(ctx, tab.ID)
 	return true
 }

@@ -10,7 +10,7 @@ import (
 // 20s, then re-locks the tab it captured earlier. The tab can close in the
 // window between the command-target read and that capture, so the capture must
 // prove the binding exists: dereferencing a missing entry panics inside a
-// Wails binding and takes the window down instead of failing the button.
+// host binding and takes the window down instead of failing the button.
 func TestReclaimObservationRejectsMissingOrReplacedBinding(t *testing.T) {
 	client := &http.Client{}
 	a := &App{remoteTabs: map[string]*remoteTab{}}

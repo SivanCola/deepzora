@@ -68,7 +68,7 @@ func sessionTempFromController(ctrl control.SessionAPI) *sessiontemp.Manager {
 	return c.SessionTemp()
 }
 
-// eventChannel is the Wails runtime event name the frontend subscribes to for the
+// eventChannel is the host event name the frontend subscribes to for the
 // agent's typed event stream. One channel carries every event kind; the payload's
 // `kind` field discriminates — the desktop analogue of the serve transport's SSE
 // `data:` frames.
@@ -87,7 +87,7 @@ type PromptHistoryEntry struct {
 	Turn        int    `json:"turn"`
 }
 
-// PromptHistoryResult is returned as one Wails value. It carries one loaded tape
+// PromptHistoryResult is returned as one host value. It carries one loaded tape
 // segment plus the cursor needed to keep walking toward older prompts.
 type PromptHistoryResult struct {
 	Entries     []PromptHistoryEntry `json:"entries"`
@@ -96,12 +96,12 @@ type PromptHistoryResult struct {
 	HasOlder    bool                 `json:"hasOlder"`
 }
 
-// App is the Wails-bound application object: the desktop frontend's command
-// surface. Its exported methods (Submit/Cancel/ResolvePromptForSession/…) are generated into JS
+// App is the desktop frontend's command surface. Its exported methods
+// (Submit/Cancel/ResolvePromptForSession/…) are registered as host RPC
 // bindings. The app manages multiple WorkspaceTabs — each with its own controller
 // scoped to a project workspace — and routes commands to the active tab. Events
 // flow the other way: each tab's controller emits to a tabEventSink that
-// forwards events tagged with tabId to the webview via runtime.EventsEmit.
+// forwards events tagged with tabId to the frontend as host events.
 type App struct {
 	sessionExportMu sync.Mutex
 	sessionExports  map[string]*sessionExportJob
@@ -136,7 +136,7 @@ type App struct {
 	shuttingDown                             atomic.Bool
 	shutdownMu                               sync.Mutex
 	shutdownCoordinator                      *desktopShutdownCoordinator
-	// catalogRebuildJoinHook is test-only: it proves concurrent Wails callers
+	// catalogRebuildJoinHook is test-only: it proves concurrent frontend callers
 	// joined the published rebuild flight before its completion was released.
 	catalogRebuildJoinHook func()
 	// projectTreeCatalogRefreshHook is test-only: it proves runtime-only
@@ -217,7 +217,7 @@ type App struct {
 	singleSurfaceMu sync.Mutex
 	// worktreeMergeMu serializes the inspect-confirm-merge/finalize mutation
 	// boundary. Git identities are still revalidated after workspace leases are
-	// acquired; this mutex only prevents duplicate in-process Wails calls.
+	// acquired; this mutex only prevents duplicate in-process host calls.
 	worktreeMergeMu sync.Mutex
 	// Worktree runtime reservations are ordered before App.mu. Runtime owners
 	// hold this gate through final publication; callers must never acquire it
@@ -381,13 +381,13 @@ type App struct {
 
 	heartbeat *HeartbeatEngine // scheduled heartbeat tasks; nil until startup
 	lifecycle desktopLifecycleRuntime
-	// diagnosticsOwner is acquired before Wails starts so Linux's OnStartup
+	// diagnosticsOwner is acquired before the shell connects so startup
 	// ordering cannot let a second-instance handoff create lifecycle evidence.
 	diagnosticsOwner        bool
 	diagnosticsOwnerRelease func()
 	diagnosticsConfigLoaded bool
 	diagnosticsTelemetry    bool
-	// Healthy-update identity is captured before Wails starts. A process may
+	// Healthy-update identity is captured before the shell connects. A process may
 	// commit only the complete probationary transaction it actually booted from,
 	// never a rewritten or later same-version retry.
 	healthyUpdateCreatedAt     string
@@ -485,7 +485,6 @@ func (a *App) startup(ctx context.Context) {
 	initializeLifecycleDiagnostics(a)
 	a.desktopShell.coordinator.start(ctx)
 	a.lifecycle.tracker.markAsync("ready")
-	a.startNativeShellSupport()
 	a.enableDeferredRebuildRetry()
 	// Historical bodies are prepared only when a reader requests them.
 	a.mu.Lock()
@@ -523,9 +522,8 @@ func (a *App) beforeClose(ctx context.Context) bool {
 		if !a.backgroundCloseHasRestorePath() {
 			return false
 		}
-		// Never query native maximise state here: during close the Win32 DPI
-		// path can report 0 and panic inside Wails ScaleToDefaultDPI. Use the
-		// last frontend-reported geometry instead.
+		// The service owns no native window; use the last frontend-reported
+		// geometry.
 		a.backgroundMaximised.Store(a.lastKnownMaximised())
 		a.saveWindowStateSync()
 		a.snapshotAllTabs()
@@ -953,7 +951,7 @@ func (a *App) RunShellForTab(tabID, command string) error {
 	return nil
 }
 
-// InvocationRequest is the Wails-bound form of a composer invocation entity.
+// InvocationRequest is the frontend-bound form of a composer invocation entity.
 type InvocationRequest struct {
 	Name   string `json:"name"`
 	Kind   string `json:"kind"`
@@ -1113,7 +1111,7 @@ func (a *App) activeTabAndCtrl() (*WorkspaceTab, control.SessionAPI) {
 	return tab, tab.Ctrl
 }
 
-// activeMCPRuntime snapshots the complete target of a Wails MCP action in one
+// activeMCPRuntime snapshots the complete target of a frontend MCP action in one
 // critical section. MCP operations may outlive a frontend tab switch; carrying
 // the invoking workspace root prevents config/authorization reads from drifting to the
 // newly active tab while controller calls still target the original runtime.
@@ -2237,7 +2235,7 @@ type promptHistoryTape struct {
 }
 
 // ScanPromptHistory returns the next prompt-history tape segment. The request is
-// a JSON string so the Wails binding stays one-argument while the protocol can
+// a JSON string so the binding stays one-argument while the protocol can
 // carry a cursor and page limit.
 func (a *App) ScanPromptHistory(rawRequest string) (PromptHistoryResult, error) {
 	var req promptHistoryRequest
@@ -8033,7 +8031,7 @@ func (a *App) taskStore() taskmonitor.WriteStore {
 // taskControl returns the process-wide ControlService backing the task
 // monitor panel. A single instance keeps control operations serialized within
 // this process (across processes the FileStore's per-task lock still
-// arbitrates), and avoids re-creating the service on every Wails call.
+// arbitrates), and avoids re-creating the service on every host call.
 func (a *App) taskControl() *taskmonitor.ControlService {
 	a.taskCtrlOnce.Do(func() {
 		a.taskCtrl = taskmonitor.NewControlService(a.taskStore())
@@ -8053,7 +8051,7 @@ type taskMonitorTabTarget struct {
 }
 
 // taskMonitorTargetForTab snapshots the workspace and session identity owned by
-// tabID. Wails dispatches bound calls concurrently, so resolving the active tab
+// tabID. The host dispatches bound calls concurrently, so resolving the active tab
 // inside a task operation would allow a later tab switch to retarget it.
 func (a *App) taskMonitorTargetForTab(tabID string) (taskMonitorTabTarget, error) {
 	tabID = strings.TrimSpace(tabID)

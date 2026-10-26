@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { DialogHost, fileFiltersFromPatterns, type DialogApi } from "./dialogs.js";
 
-test("Wails filter patterns become Electron extension lists", () => {
+test("service filter patterns become Electron extension lists", () => {
   assert.deepEqual(fileFiltersFromPatterns([
     { displayName: "Images", pattern: "*.png;*.jpg; *.JPEG" },
     { displayName: "", pattern: "*.tar.gz" },

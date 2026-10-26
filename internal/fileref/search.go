@@ -53,12 +53,11 @@ func SkipBrowseEntry(name string, isDir bool) bool {
 // names ("tmp", "bin") are hand-edited directories elsewhere, so only search
 // may skip them.
 var skipDirPaths = map[string]bool{
-	"bin":                      true,
-	"desktop/frontend/wailsjs": true, // retired Wails-generated bindings (stale dirs on old checkouts)
-	"npm/.stage":               true,
-	"site/.astro":              true,
-	"stage":                    true,
-	"tmp":                      true,
+	"bin":         true,
+	"npm/.stage":  true,
+	"site/.astro": true,
+	"stage":       true,
+	"tmp":         true,
 }
 
 const (

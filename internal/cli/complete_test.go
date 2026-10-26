@@ -304,7 +304,7 @@ func TestFileItemsSearchesBasenameAtTopLevel(t *testing.T) {
 	defer os.Chdir(orig)
 
 	dir := t.TempDir()
-	writeAt(t, dir, "frontend/wailsjs/runtime/runtime.js", "x")
+	writeAt(t, dir, "frontend/generated/runtime/runtime.js", "x")
 	writeAt(t, dir, "node_modules/pkg/runtime.js", "noise")
 	if err := os.Chdir(dir); err != nil {
 		t.Fatal(err)
@@ -313,7 +313,7 @@ func TestFileItemsSearchesBasenameAtTopLevel(t *testing.T) {
 	m := newTestChatTUI()
 	items := m.fileItems("runtime.js")
 
-	if !hasLabel(items, "frontend/wailsjs/runtime/runtime.js") {
+	if !hasLabel(items, "frontend/generated/runtime/runtime.js") {
 		t.Fatalf("top-level @runtime.js should offer nested file path, got %v", labels(items))
 	}
 	if hasLabel(items, "node_modules/pkg/runtime.js") {

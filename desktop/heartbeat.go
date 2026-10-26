@@ -3,7 +3,7 @@
 // Each task is a prompt submitted to a dedicated topic on a schedule.
 // The config file under the Deepzora user state directory is human- and
 // AI-editable; the engine runs the schedule in a background goroutine and
-// exposes Wails bindings on App for the frontend panel.
+// exposes bindings on App for the frontend panel.
 //
 // Design goal: minimal upstream intrusion — one file, zero changes to existing
 // Go code (App field + startup line + bindings are the only touch points).
@@ -90,7 +90,7 @@ type heartbeatConfigSnapshot struct {
 	exists bool
 }
 
-// HeartbeatConfigView is the revisioned Wails contract used by current
+// HeartbeatConfigView is the revisioned frontend contract used by current
 // frontends. ETag detects external editors that do not increment Revision.
 type HeartbeatConfigView struct {
 	Revision uint64          `json:"revision"`
@@ -597,7 +597,7 @@ func (e *HeartbeatEngine) TriggerNow(id string) {
 	}
 }
 
-// ── Wails bindings on App ───────────────────────────────────────────────────
+// ── Frontend bindings on App ────────────────────────────────────────────────
 
 // HeartbeatListTasks returns all heartbeat tasks.
 func (a *App) HeartbeatListTasks() []HeartbeatTask {

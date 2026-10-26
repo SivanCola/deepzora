@@ -266,7 +266,7 @@ func (a *App) recordSettingsMetricsSnapshot(c *config.Config) {
 }
 
 // recordDiagnosticMetric persists one bounded operational signal even when the
-// native event arrives before Wails OnStartup installs the session aggregator.
+// native event arrives before startup installs the session aggregator.
 func (a *App) recordDiagnosticMetric(signal, bucket string) {
 	a.recordDiagnosticMetricCount(signal, bucket, 1)
 }
