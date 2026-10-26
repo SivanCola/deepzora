@@ -72,17 +72,6 @@ func (a *App) SetDesktopCurrency(currency string) error {
 	return nil
 }
 
-func (a *App) desktopEffectivePricingCurrency(cfg *config.Config) string {
-	// Display currency only — never the provider list-price region.
-	if cfg == nil {
-		return ""
-	}
-	if pref := cfg.DisplayCurrencyPref(); pref != "" {
-		return pref
-	}
-	return cfg.ExplicitDisplayCurrency()
-}
-
 // SetTrayLocale mirrors the resolved desktop UI language into the native tray
 // menu. It is runtime-only; the persisted preference remains [desktop].language.
 func (a *App) SetTrayLocale(locale string) error {

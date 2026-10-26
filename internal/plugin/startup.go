@@ -14,10 +14,6 @@ import (
 // in the background without holding an interactive turn open.
 const defaultStartupTimeout = 30 * time.Second
 
-// DefaultStartupTimeout is the default background handshake safety cap used by
-// config and host adapters when no explicit server override is present.
-func DefaultStartupTimeout() time.Duration { return defaultStartupTimeout }
-
 // DefaultStartupWaitBudget is the maximum time one interactive tool call waits
 // for a shared background handshake before asking the model to retry later.
 func DefaultStartupWaitBudget() time.Duration { return defaultStartTimeout }

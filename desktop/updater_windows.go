@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"runtime"
 	"sync"
 	"syscall"
@@ -33,18 +32,6 @@ func resolveWindowsUpdateHelperSource(installDir string) string {
 }
 
 var claimWindowsUpdateHelperExecutionFn = claimVerifiedWindowsUpdateHelperExecution
-
-// installerCommand runs the NSIS updater in its visible, progress-only staging
-// mode, forcing $INSTDIR to dir via /D= so the signed payload is extracted away
-// from the live install. NSIS requires /D= to be the final, unquoted token taken
-// verbatim to the end of the line, so the raw command line is set directly —
-// exec.Command would quote a path containing spaces (e.g. C:\Users\Jane Doe\...)
-// and NSIS would then mis-parse the target directory.
-func installerCommand(name, dir string) *exec.Cmd {
-	cmd := proc.VisibleCommand(name)
-	cmd.SysProcAttr = &syscall.SysProcAttr{CmdLine: installerCommandLine(name, dir)}
-	return cmd
-}
 
 func startWindowsVersionedUpdateHandoff(installerPath, installerSHA256, installDir, relaunchPath, targetVersion string) error {
 	if installDir == "" {

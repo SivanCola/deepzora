@@ -1,18 +1,10 @@
 package config
 
 import (
-	"slices"
 	"strings"
 
 	"deepzora/internal/provider/openai"
 )
-
-var mimoVisionModels = map[string]bool{
-	"mimo-v2.6-pro":   true,
-	"mimo-v2.6-flash": true,
-	"mimo-v2.5":       true,
-	"mimo-v2-omni":    true,
-}
 
 // VisionCapability is the model-level image-input fact used by settings and
 // turn preparation. Unknown is deliberately distinct from unsupported: an
@@ -25,52 +17,6 @@ const (
 	VisionCapabilitySupported   VisionCapability = "supported"
 	VisionCapabilityUnsupported VisionCapability = "unsupported"
 )
-
-// InferVisionModels returns model IDs that look like chat models with image-input
-// support. It is intentionally conservative and meant for Settings hints; an
-// explicit capability declaration remains the runtime source of truth.
-func InferVisionModels(models []string) []string {
-	out := make([]string, 0, len(models))
-	seen := map[string]bool{}
-	for _, model := range models {
-		model = strings.TrimSpace(model)
-		if model == "" || seen[model] || !IsLikelyChatModel(model) || !IsLikelyVisionModel(model) {
-			continue
-		}
-		seen[model] = true
-		out = append(out, model)
-	}
-	return out
-}
-
-func IsLikelyVisionModel(model string) bool {
-	model = strings.TrimSpace(model)
-	if model == "" {
-		return false
-	}
-	lower := strings.ToLower(model)
-	if mimoVisionModels[lower] {
-		return true
-	}
-	tokens := strings.FieldsFunc(lower, modelTokenSeparator)
-	if slices.Contains(tokens, "audio") {
-		return false
-	}
-	if strings.HasPrefix(lower, "gpt-4o") {
-		return true
-	}
-	for _, token := range tokens {
-		switch token {
-		case "vl", "vision", "visual", "multimodal", "omni":
-			return true
-		}
-	}
-	return false
-}
-
-func modelTokenSeparator(r rune) bool {
-	return r == '-' || r == '_' || r == '.' || r == '/' || r == ':'
-}
 
 // CanConfigureVision is retained for the desktop payload contract. Capability
 // choices are now derived from model metadata; the wire layer still refuses

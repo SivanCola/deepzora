@@ -335,8 +335,7 @@ New resource types:
 
 The `runtime` block declares a code extension — a sidecar process Deepzora
 launches and talks to over the Extension Protocol (JSON-RPC 2.0 over stdio;
-see `docs/EXTENSION_PROTOCOL.generated.md` for the method index and
-`sdk/go/README.md` for the Go SDK):
+see `docs/EXTENSION_PROTOCOL.generated.md` for the method index):
 
 - `command`/`args`/`env` are **exec form only** — the command is the
   executable (never shell-interpreted); `${DEEPZORA_PLUGIN_ROOT}` expands to

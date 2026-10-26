@@ -206,7 +206,6 @@ stalled_warning_seconds = 900   # heads-up once per background job after this ma
 
 [serve]
 # Authentication for the HTTP serve frontend (deepzora serve).
-# auth_mode = "none"      # none | token | password (none: changes still need the launch token)
+# auth_mode = "none"      # none | token (none: changes still need the launch token)
 # token      = ""          # pre-shared token for auth_mode = "token" (auto-generated if empty)
-# password_hash = ""       # bcrypt hash for auth_mode = "password". Generate with: deepzora serve --hash-password <password>
 # behind_proxy = false      # set true when behind a trusted reverse proxy (nginx, Caddy, etc.) that sets X-Forwarded-* headers

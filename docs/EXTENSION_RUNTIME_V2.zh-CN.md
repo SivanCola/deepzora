@@ -109,4 +109,4 @@ receipt。淘汰时也会释放关联的文件 prior 字节，并将该代证据
 - **兼容性**：v2 是首个受支持的扩展 Runtime Manifest；install/doctor/boot
   不双读 v1，也不自动迁移。
 - **性能**：见 [EXTENSION_RUNTIME_V2_PERF.zh-CN.md](./EXTENSION_RUNTIME_V2_PERF.zh-CN.md)。
-- **README / SDK**：示例 manifest 在 `sdk/go/examples/*`；wire 类型以 protocol gen 为准。
+- **README**：wire 类型以 protocol gen 为准。

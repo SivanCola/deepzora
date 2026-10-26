@@ -491,12 +491,6 @@ func (c *Config) DesktopCheckUpdates() bool {
 	return *c.Desktop.CheckUpdates
 }
 
-// NormalizeCLIUpdateChannel returns the only public native CLI update channel.
-// The input remains accepted so older preview configurations keep loading.
-func NormalizeCLIUpdateChannel(_ string) string {
-	return "stable"
-}
-
 // CLIUpdateChannel returns the user-global native CLI update channel.
 func (c *Config) CLIUpdateChannel() string {
 	if c == nil {
@@ -634,18 +628,14 @@ type ServeConfig struct {
 	// AuthMode selects the authentication mode for the HTTP serve frontend.
 	// "none" (default): no authentication.
 	// "token": a pre-shared token in the URL query string.
-	// "password": a login page with bcrypt password verification.
 	AuthMode string `toml:"auth_mode"`
 	// Token is a pre-shared token for auth_mode = "token". When empty, a
 	// cryptographically random token is generated at startup and printed.
 	Token string `toml:"token"`
-	// PasswordHash is a bcrypt hash of the password for auth_mode = "password".
-	// Generate one with: deepzora serve --hash-password --password '...'
-	PasswordHash string `toml:"password_hash"`
 	// BehindProxy indicates the server sits behind a trusted reverse proxy
 	// (nginx, Caddy, Cloudflare, etc.) that sets X-Forwarded-For and
 	// X-Forwarded-Proto headers. When true, those headers are used for
-	// rate-limiting and Secure-cookie decisions. When false (default), they
+	// Secure-cookie and host-guard decisions. When false (default), they
 	// are ignored — an attacker can otherwise forge them.
 	BehindProxy bool `toml:"behind_proxy"`
 }

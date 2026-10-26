@@ -266,21 +266,6 @@ func CLIBinaryNameFor(goos string) string {
 	return "deepzora-cli"
 }
 
-// FlatCLIBinaryName is the CLI executable base name in a flat install root
-// before migration. Unix archives ship it as "deepzora" beside the desktop
-// binary; only Windows uses the versioned name there.
-func FlatCLIBinaryName() string {
-	return FlatCLIBinaryNameFor(runtime.GOOS)
-}
-
-// FlatCLIBinaryNameFor returns the flat-root CLI name for an explicit target OS.
-func FlatCLIBinaryNameFor(goos string) string {
-	if goos == "windows" {
-		return "deepzora-cli.exe"
-	}
-	return "deepzora"
-}
-
 // UpdateHelperBinaryName is the platform-specific update helper name.
 func UpdateHelperBinaryName() string {
 	if runtime.GOOS == "windows" {

@@ -44,7 +44,7 @@ type cliTakeoverGrant struct {
 
 // cliServeProcessAlive is the PID probe used to prune serve state files
 // whose process is gone. Variable so tests can model dead and live records.
-var cliServeProcessAlive = webInstanceProcessAlive
+var cliServeProcessAlive = serveProcessAlive
 
 // discoverCLIServes enumerates resident serve processes recorded under
 // <Deepzora home>/remote. This machine is the SSH target in the takeover

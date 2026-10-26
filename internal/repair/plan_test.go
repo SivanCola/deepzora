@@ -30,41 +30,6 @@ func TestCanonicalRepairPathUsesFilesystemCaseSemantics(t *testing.T) {
 	}
 }
 
-func TestDecodeRepairPlanRejectsUnknownFieldsAndActions(t *testing.T) {
-	tests := []string{
-		`{"schemaVersion":1,"summary":"x","actions":[{"type":"run_shell","reason":"x"}]}`,
-		`{"schemaVersion":1,"summary":"x","actions":[{"type":"rollback_update","reason":"x","command":"rm"}]}`,
-		`{"schemaVersion":1,"summary":"x","actions":[{"type":"rebuild_derived_state","target":"sessions","reason":"x"}]}`,
-		`{"schemaVersion":1,"summary":"\u001b[2J","actions":[]}`,
-	}
-	for _, raw := range tests {
-		if _, err := DecodeRepairPlan([]byte(raw)); err == nil {
-			t.Fatalf("unsafe plan accepted: %s", raw)
-		}
-	}
-}
-
-func TestDecodeRepairPlanAcceptsFencedWhitelistPlan(t *testing.T) {
-	raw := "```json\n" + `{"schemaVersion":1,"summary":"repair tabs","actions":[{"type":"rebuild_derived_state","target":"tabs","reason":"malformed"}]}` + "\n```"
-	plan, err := DecodeRepairPlan([]byte(raw))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(plan.Actions) != 1 || plan.Actions[0].Target != "tabs" {
-		t.Fatalf("plan = %+v", plan)
-	}
-}
-
-func TestDecodeRepairPlanAllowsNoOpPlan(t *testing.T) {
-	plan, err := DecodeRepairPlan([]byte(`{"schemaVersion":1,"summary":"no safe repair","actions":[]}`))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(plan.Actions) != 0 {
-		t.Fatalf("actions = %+v", plan.Actions)
-	}
-}
-
 func TestRepairPlanIDsBindPlanAndPreviewContent(t *testing.T) {
 	plan := RepairPlan{SchemaVersion: 1, Summary: "repair tabs", Actions: []RepairPlanAction{{Type: "rebuild_derived_state", Target: "tabs", Reason: "malformed"}}}
 	preview := []RepairPlanPreview{{Index: 1, Type: "rebuild_derived_state", Description: "Quarantine and rebuild derived desktop state: tabs"}}

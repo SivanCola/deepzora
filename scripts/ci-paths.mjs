@@ -9,7 +9,7 @@ const ZERO_SHA = /^0{40}$/;
 const ROOT_DOC = /^[^/]+\.md$/;
 const DESKTOP_DOC = /^(?:desktop\/(?:AGENTS|README)\.md|desktop\/electron\/README\.md)$/;
 const ROOT_UNRELATED = /^(?:docs\/|release-notes\/|desktop\/|workers\/)/;
-const KNOWN_INDEPENDENT = /^(?:docs\/|release-notes\/|workers\/|benchmarks\/|npm\/|sdk\/|tools\/)/;
+const KNOWN_INDEPENDENT = /^(?:docs\/|release-notes\/|workers\/|npm\/|tools\/)/;
 const ROOT_TOOLING = /^(?:Makefile|\.golangci[^/]*)$/;
 const FRONTEND = /^desktop\/frontend\//;
 const DESKTOP_MANIFEST = /^(?:desktop\/(?:package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc)|desktop\/frontend\/(?:package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc|\.node-version|vite\.config\.[cm]?[jt]s|tsconfig[^/]*\.json))$/;
@@ -17,7 +17,7 @@ const ELECTRON = /^(?:desktop\/electron\/|desktop\/(?:package\.json|pnpm-lock\.y
 const PACKAGING = /^(?:desktop\/(?:packaging\/|build\/|internal\/upgradefixture\/|cmd\/windows-upgrade-fixture\/)|scripts\/(?:desktop-build|package-windows-desktop|install-nsis|check-windows-uninstaller|finalize-windows-signed-candidate|test-windows-(?:installer-startup|startup-recovery|upgrade-startup)|windows-(?:upgrade-ui-evidence|acceptance-environment))\b)/;
 const RELEASE_CONTROL = /^(?:\.github\/workflows\/release[^/]*\.yml|scripts\/(?:release|resolve-release-candidate|validate-release-candidate|build-release-cli-candidate|publish-homebrew-cask|desktop-release-artifacts|finalize-windows-signed-candidate|verify-release-artifact-archive|verify-release-tag-identity|verify-stable-release-artifacts)[^/]*|npm\/publish(?:-candidate)?(?:\.test)?\.mjs)$/;
 const DESKTOP_GO = /^(?:desktop\/(?:[^/]+\.go|go\.(?:mod|sum)|cmd\/|internal\/)|internal\/|cmd\/|go\.(?:mod|sum)$)/;
-const SDK = /^(?:sdk\/|internal\/extension\/)/;
+const SDK = /^internal\/extension\//;
 const WINDOWS_BUILTIN = /^(?:internal\/(?:tool\/builtin\/|tool\/tool\.go$|sandbox\/|permission\/|permissionpreset\/)|scripts\/windows-pr-contract-tests(?:\.test)?\.mjs$)/;
 const CI_CONTROL = /^(?:\.github\/workflows\/ci(?:-[^/]*)?\.yml|\.github\/actions\/|scripts\/(?:ci-[^/]+|desktop-test-[^/]+)\.(?:mjs|py)|\.node-version$|\.go-version$)/;
 const HOST_BRIDGE = /^desktop\/frontend\/src\/(?:generated\/|(?:.*\/)?(?:bridge[^/]*|hostEvents|hostRecoverySteer)\.ts$|.*\.bridge\.ts$)/;
@@ -62,14 +62,15 @@ export function classifyPaths(input, { full = false } = {}) {
     }
     if (SDK.test(path)) {
       flags.sdk = true;
-      setReason(reasons, "sdk", path, "SDK or generated protocol source");
+      setReason(reasons, "sdk", path, "generated extension protocol source");
     }
     if (WINDOWS_BUILTIN.test(path)) {
       flags.windows_builtin = true;
       setReason(reasons, "windows_builtin", path, "Windows shell, workspace or sandbox contract");
     }
     // A routing change must exercise every affected surface, including the
-    // SDK, whose required context otherwise accepts an intentional no-op.
+    // protocol contracts, whose required context otherwise accepts an
+    // intentional no-op.
     if (CI_CONTROL.test(path)) {
       for (const flag of FLAG_NAMES.filter(name => !["notes_only", "memory", "memory_full"].includes(name))) {
         flags[flag] = true;

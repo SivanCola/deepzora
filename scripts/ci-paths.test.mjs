@@ -232,7 +232,7 @@ test("host bridges and CI execution infrastructure require native validation", (
   assert.deepEqual(plan, { schemaVersion: 1, build: true, tests: true, browser: true, native: false });
 });
 
-// Routing changes must exercise the SDK instead of accepting its no-op context.
+// Routing changes must exercise the protocol contracts instead of accepting its no-op context.
 test("CI routing changes exercise their owning workflow surfaces", () => {
   for (const path of [".github/workflows/ci.yml", "scripts/ci-paths.mjs"]) {
     const flags = classifyPaths([path]).flags;

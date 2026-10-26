@@ -152,16 +152,6 @@ func TestAptInstallArgvFixed(t *testing.T) {
 	}
 }
 
-func TestParsePhaseLine(t *testing.T) {
-	phase, ok := parsePhaseLine(phasePrefix + "installing")
-	if !ok || phase != "installing" {
-		t.Fatalf("got %q %v", phase, ok)
-	}
-	if _, ok := parsePhaseLine("noise"); ok {
-		t.Fatal("noise should not parse")
-	}
-}
-
 func TestCopyOwnedRegularFileRejectsSymlinkFailClosed(t *testing.T) {
 	dir := t.TempDir()
 	target := filepath.Join(dir, "real.deb")

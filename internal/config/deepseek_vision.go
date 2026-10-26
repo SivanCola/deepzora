@@ -1,21 +1,9 @@
 package config
 
 import (
-	"slices"
-
 	"deepzora/internal/provider"
 	"deepzora/internal/provider/openai"
 )
-
-// OfficialDeepSeekPinnedVisionModels returns the official vision SKU when it is
-// in the enabled model list. Settings can still mark other models for image
-// input; this helper is only the stock default.
-func OfficialDeepSeekPinnedVisionModels(models []string) []string {
-	if !slices.ContainsFunc(models, openai.IsOfficialDeepSeekVisionModel) {
-		return nil
-	}
-	return []string{openai.OfficialDeepSeekVisionModel}
-}
 
 func backfillOfficialDeepSeekVisionPrice(p *ProviderEntry) {
 	sku := openai.OfficialDeepSeekVisionModel

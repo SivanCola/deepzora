@@ -347,7 +347,6 @@ var English = Messages{
 	CmdMouse:            "toggle in-app mouse capture (off = native terminal selection/right-click)",
 	CmdReasonLang:       "set visible reasoning language",
 	CmdHelp:             "list commands",
-	CmdWeb:              "continue this session in the Web UI",
 	CmdTodo:             "dismiss the task list",
 	CmdQuit:             "exit the session",
 	CmdCopy:             "pick a response to copy to clipboard",
@@ -636,8 +635,7 @@ Usage:
   deepzora run [--model NAME] [--preset ID] [--max-steps N] [-c|--continue] [--resume PATH] [--copy] [--output-format FORMAT] <task>
   deepzora run --events-jsonl [--model NAME] <task>      emit redacted structured events as JSONL
   deepzora review [--base BRANCH] [--commit SHA] [--model NAME]  AI-powered code review on local diffs
-  deepzora web [--model NAME] [--preset ID] [--addr HOST:PORT] [--no-open]  start the local Web UI and open it in the default browser
-  deepzora serve [--model NAME] [--preset ID] [--addr HOST:PORT] [--auth none|token|password] [--token STR] [--password STR] [--hash-password]  serve over HTTP+SSE (with optional auth)
+  deepzora serve [--model NAME] [--preset ID] [--addr HOST:PORT] [--auth none|token] [--token STR]  serve over HTTP+SSE (backend for remote workspaces)
   deepzora acp [--model NAME]                           serve Agent Client Protocol over stdio (also: deepzora --acp)
   deepzora setup [path]                                 interactive config wizard; writes deepzora.toml (+ .env)
   deepzora config reasoning-language [auto|zh|en]        configure visible reasoning language
@@ -656,7 +654,6 @@ Usage:
   deepzora trust [--dir PATH] [--yes|--revoke]          review and approve programs this project runs
   deepzora task list|show|status|events|stop|cancel|monitor|tmux --json [--dir PATH]
                                                          inspect or control redacted tasks
-  deepzora bot start|doctor|weixin-login                multi-channel IM bot gateway
   deepzora upgrade [--check] [--force]                   update to the latest official release (also: deepzora update)
   deepzora completion bash|zsh|fish                     print a shell completion script to stdout
   deepzora version [--verbose|--json]                   print version (single line) or build metadata
@@ -667,7 +664,6 @@ Examples:
   deepzora
   deepzora --continue
   deepzora --resume provider-config
-  deepzora web
   deepzora run "implement the TODOs in main.go"
   deepzora run --model mimo-pro "add unit tests for this function"
   deepzora -p "summarize this repository" --output-format json

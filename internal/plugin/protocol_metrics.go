@@ -64,7 +64,6 @@ func countListedTools(res json.RawMessage) (n, schemaBytes int) {
 }
 
 func ToolsListCount() int64            { return hostProtocol.toolsList.Load() }
-func ToolsCallCount() int64            { return hostProtocol.toolsCall.Load() }
 func OutputSchemaMismatchCount() int64 { return hostProtocol.outputSchemaMismatch.Load() }
 
 // SnapshotToolsListStats returns process-local tools/list counters.

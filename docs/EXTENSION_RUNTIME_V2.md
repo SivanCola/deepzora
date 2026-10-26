@@ -117,4 +117,4 @@ Live resources for one generation are tracked on `RuntimeSet` / `EffectScope`:
 - **Compatibility**: v2 is the first supported extension runtime manifest;
   install/doctor/boot do not dual-read v1 and do not auto-migrate it.
 - **Performance**: see [EXTENSION_RUNTIME_V2_PERF.md](./EXTENSION_RUNTIME_V2_PERF.md).
-- **README / SDK**: v2 manifest examples under `sdk/go/examples/*`; protocol gen remains the source of truth for wire types.
+- **README**: protocol gen remains the source of truth for wire types.

@@ -14,33 +14,6 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-func TestInstallerCommandShowsUpdateProgressAndPassesUnquotedDFlagLast(t *testing.T) {
-	cmd := installerCommand(`C:\Temp\deepzora-update-1.exe`, `D:\Tools\Deepzora App`)
-	if cmd.SysProcAttr == nil {
-		t.Fatal("expected a raw command line forcing the install dir")
-	}
-	got := cmd.SysProcAttr.CmdLine
-	want := `"C:\Temp\deepzora-update-1.exe" /DEEPZORAUPDATE=1 /DEEPZORASTAGE=1 /D=D:\Tools\Deepzora App`
-	if got != want {
-		t.Fatalf("CmdLine = %q, want %q", got, want)
-	}
-	if cmd.SysProcAttr.HideWindow {
-		t.Fatal("NSIS update progress window must remain visible")
-	}
-}
-
-func TestInstallerCommandWithoutDirSkipsDFlag(t *testing.T) {
-	cmd := installerCommand(`C:\Temp\deepzora-update-1.exe`, "")
-	if cmd.SysProcAttr == nil {
-		t.Fatal("expected a raw command line for visible updater installs")
-	}
-	got := cmd.SysProcAttr.CmdLine
-	want := `"C:\Temp\deepzora-update-1.exe" /DEEPZORAUPDATE=1 /DEEPZORASTAGE=1`
-	if got != want {
-		t.Fatalf("CmdLine = %q, want %q", got, want)
-	}
-}
-
 func TestWindowsHelperStartRetriesTransientSecurityScan(t *testing.T) {
 	originalBackoff := windowsHelperStartBackoff
 	windowsHelperStartBackoff = func(int) time.Duration { return 0 }

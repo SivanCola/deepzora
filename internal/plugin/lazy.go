@@ -26,11 +26,6 @@ import (
 	"deepzora/internal/tool"
 )
 
-// DefaultStartupBudget is the per-plugin latency budget used by boot when
-// deciding whether to auto-demote (see Recommend). Kept here rather than in
-// stats.go because it's the value boot.go pairs with each Recommend call.
-func DefaultStartupBudget() time.Duration { return defaultStartTimeout }
-
 // spawnState is the lazy-spawn state machine. Transitions are:
 //
 //	idle → inFlight → ready

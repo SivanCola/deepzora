@@ -279,8 +279,8 @@ func TestCLICompletionRunServeResumeRequiresValue(t *testing.T) {
 	if want := []string{"beta-session"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("run --resume b = %v, want %v", got, want)
 	}
-	// Serve and Web resolve immutable session IDs through the same catalog.
-	for _, command := range []string{"serve", "web"} {
+	// Serve resolves immutable session IDs through the same catalog.
+	for _, command := range []string{"serve"} {
 		got = cliCompletionCandidatesWithValues(root, 3, []string{"deepzora", command, "--resume", "a"}, values)
 		if want := []string{"alpha-session"}; !reflect.DeepEqual(got, want) {
 			t.Fatalf("%s --resume a = %v, want %v", command, got, want)

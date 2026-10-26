@@ -1,7 +1,6 @@
 package runtimepolicy
 
 import (
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -72,39 +71,6 @@ func StripQuotedConstraints(raw string) string {
 	s = stripQuoted(s, '“', '”')
 	s = stripQuoted(s, '「', '」')
 	return strings.TrimSpace(s)
-}
-
-// rebuildPathPattern extracts candidate file tokens from one instruction clause.
-var rebuildPathPattern = regexp.MustCompile("`[^`]+`|\"[^\"]+\"|'[^']+'|[A-Za-z0-9_./\\\\:-]+")
-
-// ParseRebuildPaths resolves the files an instruction names in a clause that
-// itself grants AllowRebuild. Callers record the result once per turn and
-// authorize a rebuild by membership, so model-authored text can never grant the
-// waiver at write time.
-func ParseRebuildPaths(instruction, baseDir string) []string {
-	var paths []string
-	for _, clause := range strings.FieldsFunc(instruction, func(r rune) bool {
-		return strings.ContainsRune("\n;；。!?！？", r)
-	}) {
-		if !ParseConstraints(clause).AllowRebuild {
-			continue
-		}
-		lower := strings.ToLower(clause)
-		if matchesAny(lower, []string{"不要", "别", "not ", "don't", "禁止"}) {
-			continue
-		}
-		for _, token := range rebuildPathPattern.FindAllString(clause, -1) {
-			token = strings.Trim(token, "`\"'")
-			if token == "" {
-				continue
-			}
-			if !filepath.IsAbs(token) {
-				token = filepath.Join(baseDir, token)
-			}
-			paths = append(paths, filepath.Clean(token))
-		}
-	}
-	return paths
 }
 
 func (c Constraints) AllowsMutation() bool {

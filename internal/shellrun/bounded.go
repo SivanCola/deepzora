@@ -25,9 +25,6 @@ func NewBoundedOutput() *BoundedOutput {
 	return &BoundedOutput{buf: c.combined}
 }
 
-// Write appends p, evicting middle output once the cap is crossed.
-func (o *BoundedOutput) Write(p []byte) (int, error) { return o.buf.Write(p) }
-
 // WriteString appends s.
 func (o *BoundedOutput) WriteString(s string) {
 	if s == "" {
@@ -39,13 +36,6 @@ func (o *BoundedOutput) WriteString(s string) {
 // String returns the collected output, including the truncation notice when the
 // cap was crossed.
 func (o *BoundedOutput) String() string { return o.buf.String() }
-
-// Truncated reports whether output was evicted.
-func (o *BoundedOutput) Truncated() bool {
-	o.buf.mu.Lock()
-	defer o.buf.mu.Unlock()
-	return o.buf.truncated
-}
 
 // ProgressWriter buffers partial UTF-8 characters until its owner ends the stream.
 type ProgressWriter interface {

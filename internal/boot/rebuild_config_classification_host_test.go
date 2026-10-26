@@ -17,7 +17,7 @@ func runtimeConfigHostClassification() []configTypeClassification {
 		classifyConfigType[config.TelemetryConfig](configFieldClasses{excluded: "CLIMetrics"}),
 		classifyConfigType[config.NotificationsConfig](configFieldClasses{excluded: "Enabled TurnDone ApprovalRequest AskRequest"}),
 		classifyConfigType[config.StatuslineConfig](configFieldClasses{excluded: "Command"}),
-		classifyConfigType[config.ServeConfig](configFieldClasses{excluded: "AuthMode Token PasswordHash BehindProxy"}),
+		classifyConfigType[config.ServeConfig](configFieldClasses{excluded: "AuthMode Token BehindProxy"}),
 		classifyConfigType[config.RemoteConfig](configFieldClasses{runtime: "Hosts", excluded: "ImportSSHConfig Projects"}),
 		classifyConfigType[config.RemoteHostEntry](configFieldClasses{
 			runtime:  "PassphraseEnv PasswordEnv",

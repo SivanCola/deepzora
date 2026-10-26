@@ -85,9 +85,6 @@ func (s *Server) runtimeStatesSnapshot() runtimeStatesView {
 	return result
 }
 
-func (b *Broadcaster) RuntimeStateChanged(snapshot event.RuntimeStateSnapshot) {
-	b.publishRuntimeState(b.CurrentSession(), snapshot)
-}
 func (b *Broadcaster) publishRuntimeState(path string, snapshot event.RuntimeStateSnapshot) {
 	// Runtime frames need the same identity route as content frames and GET.
 	// Canonical sessions have no legacy transcript path.

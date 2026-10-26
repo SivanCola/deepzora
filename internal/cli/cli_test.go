@@ -21,7 +21,6 @@ import (
 	"deepzora/internal/i18n"
 	"deepzora/internal/netclient"
 	"deepzora/internal/notify"
-	"deepzora/internal/provider"
 	"deepzora/internal/telemetry"
 )
 
@@ -83,21 +82,8 @@ func TestServeRejectsUnknownAuthMode(t *testing.T) {
 			t.Fatalf("serve --auth tokne rc = %d, want 1", rc)
 		}
 	})
-	if !strings.Contains(errOut, "auth mode must be none, token, or password") {
+	if !strings.Contains(errOut, "auth mode must be none or token") {
 		t.Fatalf("serve --auth tokne stderr = %q, want auth mode validation", errOut)
-	}
-}
-
-func TestServePasswordAuthRequiresPasswordMaterial(t *testing.T) {
-	isolateCLIConfigHome(t)
-
-	errOut := captureStderr(t, func() {
-		if rc := runServe([]string{"--auth", "password", "--addr", "127.0.0.1:0"}); rc != 1 {
-			t.Fatalf("serve --auth password without password rc = %d, want 1", rc)
-		}
-	})
-	if !strings.Contains(errOut, "auth mode password requires --password or serve.password_hash") {
-		t.Fatalf("serve --auth password stderr = %q, want password material validation", errOut)
 	}
 }
 
@@ -734,53 +720,6 @@ func TestConfigCurrencyRejectsProjectScope(t *testing.T) {
 	}
 }
 
-func TestProvidersWithMissingKeysOnlyChecksActiveDefaultModel(t *testing.T) {
-	cfg := config.Default()
-	t.Setenv("DEEPSEEK_API_KEY", "")
-	t.Setenv("MIMO_API_KEY", "")
-
-	missing := providersWithMissingKeys(cfg)
-	if len(missing) != 1 {
-		t.Fatalf("missing providers = %+v, want only active default model provider", missing)
-	}
-	if missing[0].APIKeyEnv != "DEEPSEEK_API_KEY" {
-		t.Fatalf("missing key env = %q, want DEEPSEEK_API_KEY", missing[0].APIKeyEnv)
-	}
-}
-
-func TestProvidersWithMissingKeysIgnoresUnusedBuiltInPresets(t *testing.T) {
-	cfg := config.Default()
-	t.Setenv("DEEPSEEK_API_KEY", "test-key")
-	t.Setenv("MIMO_API_KEY", "")
-
-	if missing := providersWithMissingKeys(cfg); len(missing) != 0 {
-		t.Fatalf("missing providers = %+v, want none when only the configured default is keyed", missing)
-	}
-}
-
-func TestProvidersWithMissingKeysIncludesReferencedSecondaryModels(t *testing.T) {
-	cfg := config.Default()
-	cfg.Providers = append(cfg.Providers,
-		config.ProviderEntry{Name: "mimo-pro", Kind: "openai", BaseURL: "https://token-plan-cn.xiaomimimo.com/v1", Model: "mimo-v2.5-pro", APIKeyEnv: "MIMO_API_KEY"},
-		config.ProviderEntry{Name: "mimo-flash", Kind: "openai", BaseURL: "https://token-plan-cn.xiaomimimo.com/v1", Model: "mimo-v2.5", APIKeyEnv: "MIMO_API_KEY"},
-	)
-	cfg.Agent.PlannerModel = "mimo-pro"
-	cfg.Agent.SubagentModel = "mimo-flash"
-	cfg.Agent.SubagentModels = map[string]string{
-		"review": "mimo-pro/mimo-v2.5-pro",
-	}
-	t.Setenv("DEEPSEEK_API_KEY", "test-key")
-	t.Setenv("MIMO_API_KEY", "")
-
-	missing := providersWithMissingKeys(cfg)
-	if len(missing) != 1 {
-		t.Fatalf("missing providers = %+v, want MiMo once", missing)
-	}
-	if missing[0].APIKeyEnv != "MIMO_API_KEY" {
-		t.Fatalf("missing key env = %q, want MIMO_API_KEY", missing[0].APIKeyEnv)
-	}
-}
-
 type cliRecordSink struct {
 	events []event.Kind
 }
@@ -1220,59 +1159,6 @@ func TestConfigureKeysAllSetDefaultsToReusingInput(t *testing.T) {
 	}
 }
 
-// TestAppendEnvUpsertReplacesExistingKey covers the bug where re-running the
-// wizard with a corrected key would append a second line for the same env
-// var. Without dedupe, different dotenv readers can disagree on which
-// assignment wins, leaving stale keys hard to diagnose.
-func TestAppendEnvUpsertReplacesExistingKey(t *testing.T) {
-	t.Setenv("DEEPSEEK_API_KEY", "") // also covers the os.Setenv pin path
-	p := filepath.Join(t.TempDir(), ".env")
-	os.WriteFile(p, []byte("# initial\nDEEPSEEK_API_KEY=stale\nMIMO_API_KEY=keepme\n"), 0o600)
-
-	if err := appendEnv(p, []string{"DEEPSEEK_API_KEY=fresh"}); err != nil {
-		t.Fatalf("appendEnv: %v", err)
-	}
-	got, _ := os.ReadFile(p)
-	want := "# initial\nMIMO_API_KEY=keepme\nDEEPSEEK_API_KEY=fresh\n"
-	if string(got) != want {
-		t.Errorf("after upsert =\n%s\nwant =\n%s", got, want)
-	}
-	if got := os.Getenv("DEEPSEEK_API_KEY"); got != "fresh" {
-		t.Errorf("process env DEEPSEEK_API_KEY = %q, want %q (upsert should pin in-process)", got, "fresh")
-	}
-}
-
-// TestAppendEnvUpsertHandlesExportPrefix proves `export FOO=...` style lines
-// also get replaced, since users might hand-edit .env in shell-friendly form.
-func TestAppendEnvUpsertHandlesExportPrefix(t *testing.T) {
-	t.Setenv("FOO", "")
-	p := filepath.Join(t.TempDir(), ".env")
-	os.WriteFile(p, []byte("export FOO=old\nKEEP=yes\n"), 0o600)
-	if err := appendEnv(p, []string{"FOO=new"}); err != nil {
-		t.Fatalf("appendEnv: %v", err)
-	}
-	got, _ := os.ReadFile(p)
-	if !strings.Contains(string(got), "FOO=new") || strings.Contains(string(got), "FOO=old") {
-		t.Errorf("export-prefixed line not replaced:\n%s", got)
-	}
-}
-
-// TestGroupByFamily verifies the wizard groups the default preset into
-// "deepseek" (flash + pro), preserving the order each family first appears in.
-func TestGroupByFamily(t *testing.T) {
-	order, members, info := groupByFamily(config.Default().Providers)
-
-	if got := order; !reflect.DeepEqual(got, []string{"deepseek"}) {
-		t.Fatalf("family order = %v, want [deepseek]", got)
-	}
-	if got := members["deepseek"]; !reflect.DeepEqual(got, []int{0, 1}) {
-		t.Errorf("deepseek members = %v, want [0 1]", got)
-	}
-	if info["deepseek"].name != "DeepSeek" {
-		t.Errorf("display name = %q", info["deepseek"].name)
-	}
-}
-
 // TestFetchOrFallbackLiveReturns covers the happy path: a live /models call
 // succeeds and its result wins over the preset's static list. We can't run
 // the real probe (no key) so the FetchModels call is expected to 401 and the
@@ -1425,118 +1311,6 @@ func TestFetchOrFallbackUsesConfiguredProxy(t *testing.T) {
 	if got := fetchOrFallback(&probe, "Test", spec); !reflect.DeepEqual(got, []string{"live-model"}) {
 		t.Fatalf("models = %v, want live proxy result", got)
 	}
-}
-
-// TestFamilyStaticModels proves the offline fallback unions every member of a
-// family (the flash + pro SKUs), not just the first — the regression that left
-// users with only flash when the live /models probe failed.
-func TestFamilyStaticModels(t *testing.T) {
-	providers := []config.ProviderEntry{
-		{Name: "deepseek-flash", Model: "deepseek-v4-flash"},
-		{Name: "deepseek-pro", Model: "deepseek-v4-pro"},
-		{Name: "mimo-flash", Model: "mimo-v2.5"},
-	}
-	got := familyStaticModels(providers, []int{0, 1})
-	want := []string{"deepseek-v4-flash", "deepseek-v4-pro"}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
-	}
-}
-
-func TestFamilyStaticModelsDedupes(t *testing.T) {
-	providers := []config.ProviderEntry{
-		{Name: "a", Models: []string{"x", "y"}},
-		{Name: "b", Models: []string{"y", "z"}},
-	}
-	got := familyStaticModels(providers, []int{0, 1})
-	if !reflect.DeepEqual(got, []string{"x", "y", "z"}) {
-		t.Errorf("got %v, want x/y/z deduped", got)
-	}
-}
-
-// TestBuildFamilyEntriesSplitsPricing proves flash and pro land in separate
-// entries carrying their own price, rather than collapsing into one entry that
-// would bill pro at flash's rate.
-func TestBuildFamilyEntriesSplitsPricing(t *testing.T) {
-	flash := config.ProviderEntry{Name: "deepseek-flash", BaseURL: "https://api.deepseek.com", Model: "deepseek-v4-flash", Price: &provider.Pricing{Input: 1, Output: 2}}
-	pro := config.ProviderEntry{Name: "deepseek-pro", BaseURL: "https://api.deepseek.com", Model: "deepseek-v4-pro", Price: &provider.Pricing{Input: 3, Output: 6}}
-	got := buildFamilyEntries(flash, []config.ProviderEntry{flash, pro}, []string{"deepseek-v4-flash", "deepseek-v4-pro"})
-	if len(got) != 2 {
-		t.Fatalf("got %d entries, want 2", len(got))
-	}
-	byName := map[string]config.ProviderEntry{}
-	for _, e := range got {
-		byName[e.Name] = e
-	}
-	if e := byName["deepseek-flash"]; e.Model != "deepseek-v4-flash" || e.Price == nil || e.Price.Output != 2 {
-		t.Errorf("flash entry wrong: %+v (price %+v)", e, e.Price)
-	}
-	if e := byName["deepseek-pro"]; e.Model != "deepseek-v4-pro" || e.Price == nil || e.Price.Output != 6 {
-		t.Errorf("pro entry wrong: %+v (price %+v)", e, e.Price)
-	}
-}
-
-// TestBuildFamilyEntriesUnknownModelUsesProbe puts a live-only SKU (no matching
-// preset) under the probe entry rather than dropping it.
-func TestBuildFamilyEntriesUnknownModelUsesProbe(t *testing.T) {
-	flash := config.ProviderEntry{Name: "deepseek-flash", Model: "deepseek-v4-flash", Price: &provider.Pricing{Input: 1}}
-	got := buildFamilyEntries(flash, []config.ProviderEntry{flash}, []string{"deepseek-v4-flash", "deepseek-v9-experimental"})
-	if len(got) != 1 || got[0].Name != "deepseek-flash" {
-		t.Fatalf("got %+v, want one deepseek-flash entry", got)
-	}
-	if !reflect.DeepEqual(got[0].Models, []string{"deepseek-v4-flash", "deepseek-v9-experimental"}) {
-		t.Errorf("Models = %v, want both under the probe entry", got[0].Models)
-	}
-}
-
-// TestBuildFamilyEntry covers the three observable behaviors:
-//   - The selected models land in the entry's Models field, with Model
-//     pointed at the first one so legacy single-model lookups still work.
-//   - A preset Default that points to a model the user didn't pick is
-//     reset to the first selected model (otherwise resolve-by-default
-//     would silently break).
-//   - A preset Default that IS in the selection is preserved.
-func TestBuildFamilyEntry(t *testing.T) {
-	t.Run("default reset when not in selection", func(t *testing.T) {
-		probe := config.ProviderEntry{
-			Name: "deepseek", Kind: "openai",
-			BaseURL: "https://api.deepseek.com",
-			Models:  []string{"deepseek-v4-flash", "deepseek-v4-pro"},
-			Default: "deepseek-v4-pro",
-		}
-		got := buildFamilyEntry(probe, []string{"deepseek-v4-flash"})
-		if got.Model != "deepseek-v4-flash" {
-			t.Errorf("Model = %q, want deepseek-v4-flash", got.Model)
-		}
-		if got.Default != "deepseek-v4-flash" {
-			t.Errorf("Default = %q, want reset to first selected", got.Default)
-		}
-		if !reflect.DeepEqual(got.Models, []string{"deepseek-v4-flash"}) {
-			t.Errorf("Models = %v", got.Models)
-		}
-		if got.BaseURL != "https://api.deepseek.com" {
-			t.Errorf("BaseURL lost: %q", got.BaseURL)
-		}
-	})
-
-	t.Run("default preserved when in selection", func(t *testing.T) {
-		probe := config.ProviderEntry{
-			Name: "deepseek", Default: "deepseek-v4-pro",
-			BaseURL: "https://api.deepseek.com",
-		}
-		got := buildFamilyEntry(probe, []string{"deepseek-v4-flash", "deepseek-v4-pro"})
-		if got.Default != "deepseek-v4-pro" {
-			t.Errorf("Default = %q, want preserved", got.Default)
-		}
-	})
-
-	t.Run("empty default filled from first selected", func(t *testing.T) {
-		probe := config.ProviderEntry{Name: "x", BaseURL: "u"}
-		got := buildFamilyEntry(probe, []string{"alpha", "beta"})
-		if got.Default != "alpha" {
-			t.Errorf("Default = %q, want alpha", got.Default)
-		}
-	})
 }
 
 // TestProviderSlug covers the host-derivation rules and the sha1 fallback
@@ -1760,96 +1534,6 @@ func TestRepairInvalidProviderKeyEnvs(t *testing.T) {
 	}
 }
 
-func TestWithBuiltinFamiliesDoesNotAddMissingMimo(t *testing.T) {
-	// The user's case: a deepzora.toml that defines only deepseek providers.
-	cfg := []config.ProviderEntry{
-		{Name: "deepseek-flash", Kind: "openai", BaseURL: "https://api.deepseek.com"},
-		{Name: "deepseek-pro", Kind: "openai", BaseURL: "https://api.deepseek.com"},
-	}
-	order, _, info := groupByFamily(withBuiltinFamilies(cfg))
-	seen := map[string]bool{}
-	for _, k := range order {
-		seen[info[k].name] = true
-	}
-	if !seen["DeepSeek"] {
-		t.Fatalf("wizard families = %v, want DeepSeek", order)
-	}
-	if seen["MiMo (Xiaomi)"] {
-		t.Fatalf("wizard families = %v, should not inject MiMo", order)
-	}
-	// A user's customized deepseek must not be duplicated.
-	if n := len(groupByFamilyKeys(withBuiltinFamilies(cfg), "deepseek")); n != 2 {
-		t.Fatalf("deepseek members = %d, want the user's 2 (no injected duplicate)", n)
-	}
-}
-
-func TestWithBuiltinFamiliesForLanguageUsesDeepSeekPricing(t *testing.T) {
-	// Language no longer rewrites list prices; defaults stay on the frozen USD table.
-	providers := withBuiltinFamiliesForLanguage(nil, "zh")
-	var flash *config.ProviderEntry
-	for i := range providers {
-		if providers[i].Name == "deepseek-flash" {
-			flash = &providers[i]
-			break
-		}
-	}
-	if flash == nil {
-		t.Fatal("deepseek-flash provider missing")
-	}
-	if flash.Price == nil || flash.Price.Output != 1.2 || flash.Price.Currency != "$" {
-		t.Fatalf("flash price = %+v, want frozen USD official table", flash.Price)
-	}
-}
-
-// TestWithBuiltinFamiliesRestoresSiblingEntries covers the re-run scenario:
-// a user previously selected only deepseek-v4-flash (saved as deepseek-flash
-// with a single model). Re-running `deepzora setup` must still surface the
-// sibling deepseek-pro entry so the user can pick deepseek-v4-pro too,
-// rather than only showing the previously selected model.
-func TestWithBuiltinFamiliesRestoresSiblingEntries(t *testing.T) {
-	cfg := []config.ProviderEntry{
-		{Name: "deepseek-flash", Kind: "openai", BaseURL: "https://api.deepseek.com", Model: "deepseek-v4-flash", Models: []string{"deepseek-v4-flash"}, APIKeyEnv: "DEEPSEEK_API_KEY"},
-	}
-	got := withBuiltinFamilies(cfg)
-
-	// deepseek-pro must be restored even though deepseek family already exists.
-	var found bool
-	for _, p := range got {
-		if p.Name == "deepseek-pro" {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Fatalf("withBuiltinFamilies(%+v) = %v, want deepseek-pro sibling restored", cfg, namesOf(got))
-	}
-
-	// The static model list for the deepseek family must include both SKUs.
-	_, members, _ := groupByFamily(got)
-	deepseekIdxs := members["deepseek"]
-	models := familyStaticModels(got, deepseekIdxs)
-	wantModels := map[string]bool{"deepseek-v4-flash": true, "deepseek-v4-pro": true}
-	for _, m := range models {
-		delete(wantModels, m)
-	}
-	if len(wantModels) > 0 {
-		t.Errorf("familyStaticModels = %v, missing %v", models, wantModels)
-	}
-}
-
-func namesOf(ps []config.ProviderEntry) []string {
-	out := make([]string, len(ps))
-	for i, p := range ps {
-		out[i] = p.Name
-	}
-	return out
-}
-
-func groupByFamilyKeys(ps []config.ProviderEntry, key string) []int {
-	_, members, _ := groupByFamily(ps)
-	return members[key]
-}
-
 func captureStderr(t *testing.T, fn func()) string {
 	t.Helper()
 	old := os.Stderr
@@ -1877,37 +1561,6 @@ func captureCLIOutput(t *testing.T, fn func()) (stdout, stderr string) {
 		stdout = captureStdout(t, fn)
 	})
 	return stdout, stderr
-}
-
-func TestProvidersWithMissingKeysOnlyReferenced(t *testing.T) {
-	t.Setenv("DEEPSEEK_API_KEY", "")
-	t.Setenv("MIMO_API_KEY", "")
-	cfg := config.Default()
-
-	got := providersWithMissingKeys(cfg)
-	envs := map[string]bool{}
-	for _, p := range got {
-		envs[p.APIKeyEnv] = true
-	}
-	if !envs["DEEPSEEK_API_KEY"] {
-		t.Errorf("the default model's missing key must be prompted, got %v", got)
-	}
-	if envs["MIMO_API_KEY"] {
-		t.Errorf("unreferenced preset keys must not be prompted, got %v", got)
-	}
-}
-
-func TestProvidersWithMissingKeysIncludesPlannerModel(t *testing.T) {
-	t.Setenv("DEEPSEEK_API_KEY", "set")
-	t.Setenv("MIMO_API_KEY", "")
-	cfg := config.Default()
-	cfg.Providers = append(cfg.Providers, config.ProviderEntry{Name: "mimo-pro", Kind: "openai", BaseURL: "https://token-plan-cn.xiaomimimo.com/v1", Model: "mimo-v2.5-pro", APIKeyEnv: "MIMO_API_KEY"})
-	cfg.Agent.PlannerModel = "mimo-pro"
-
-	got := providersWithMissingKeys(cfg)
-	if len(got) != 1 || got[0].APIKeyEnv != "MIMO_API_KEY" {
-		t.Errorf("planner model's missing key must be prompted, got %+v", got)
-	}
 }
 
 func TestChatRejectsHistoricalPermissionFlags(t *testing.T) {

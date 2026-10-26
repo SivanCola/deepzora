@@ -244,12 +244,6 @@ func imageReferenceFailure(path string, err error) ImageReferenceFailure {
 	return ImageReferenceFailure{Code: code, Name: filepath.Base(filepath.FromSlash(path)), Cause: err}
 }
 
-// ImageReferenceFailureForPath converts a local read failure into the safe,
-// display-name-only error shape used at submission boundaries.
-func ImageReferenceFailureForPath(path string, err error) ImageReferenceFailure {
-	return imageReferenceFailure(path, err)
-}
-
 func (c *Controller) resolveUnscopedRefsForTurn(ctx context.Context, line string) resolvedReferences {
 	return c.resolveRefsForTurn(ctx, line, false)
 }

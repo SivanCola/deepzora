@@ -164,20 +164,6 @@ func (c *Coordinator) backgroundSlice(ctx context.Context, foregroundAllowed, yi
 	}
 }
 
-// Pause includes both the per-slice yield and the byte-rate allowance. Waiting
-// is cancellable; tests may inject a clock through a caller's slice runner.
-func Pause(ctx context.Context, bytes int64) error {
-	delay := max(PauseDuration, time.Duration(bytes)*time.Second/BytesPerSecond)
-	timer := time.NewTimer(delay)
-	defer timer.Stop()
-	select {
-	case <-timer.C:
-		return ctx.Err()
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-}
-
 // Reader checks cancellation before each bounded source read, including reads
 // performed inside a JSON decoder rather than only between decoded records.
 type Reader struct {

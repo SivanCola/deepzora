@@ -215,10 +215,6 @@ type Options struct {
 	deferPublish bool
 }
 
-func recoveryHeadlessMode(opts Options) bool {
-	return strings.TrimSpace(opts.HeadlessApprovalMode) != ""
-}
-
 // build is the assembly body behind BuildRuntime (and the Build compat
 // wrapper): it loads config, resolves the model(s), wires the full runtime,
 // and freezes the extension kernel snapshot from the objects it just
@@ -2343,13 +2339,6 @@ func addBuiltins(reg *tool.Registry, enabled, writeRoots []string, writeRootSet 
 	registerShellBuiltin(reg, bashTool, writeRootSet)
 }
 
-// PluginSpecs maps configured plugin entries to plugin.Spec, expanding ${VAR}
-// references. Exported so custom assemblers can connect the config's plugins
-// alongside their own (e.g. ACP's per-session MCP servers).
-func PluginSpecs(entries []config.PluginEntry) []plugin.Spec {
-	return PluginSpecsForRoot(entries, "")
-}
-
 // PluginSpecsForRoot maps configured plugin entries to plugin.Spec and applies
 // workspace-aware compatibility overrides for known cwd-sensitive servers.
 func PluginSpecsForRoot(entries []config.PluginEntry, workspaceRoot string) []plugin.Spec {
@@ -2535,35 +2524,6 @@ func applyDefaultMCPStartupTimeout(specs []plugin.Spec, timeout time.Duration) [
 		}
 	}
 	return out
-}
-
-// MCPStartupNotice formats the warning shown when configured MCP servers failed
-// to connect, naming the first few; ok is false when none failed.
-func MCPStartupNotice(failures []plugin.Failure) (text, detail string, ok bool) {
-	if len(failures) == 0 {
-		return "", "", false
-	}
-	names := make([]string, 0, min(len(failures), 3))
-	details := make([]string, 0, len(failures))
-	for i, f := range failures {
-		if i >= 3 {
-			continue
-		}
-		names = append(names, f.Name)
-	}
-	for _, f := range failures {
-		line := f.Name
-		if strings.TrimSpace(f.Error) != "" {
-			line += ": " + strings.TrimSpace(f.Error)
-		}
-		details = append(details, line)
-	}
-	more := ""
-	if len(failures) > len(names) {
-		more = fmt.Sprintf(" (+%d more)", len(failures)-len(names))
-	}
-	return "Some MCP servers failed to start; run /mcp for details.", fmt.Sprintf("%d MCP server(s) failed to start: %s%s\n%s",
-		len(failures), strings.Join(names, ", "), more, strings.Join(details, "\n")), true
 }
 
 func providerNames(cfg *config.Config) string {

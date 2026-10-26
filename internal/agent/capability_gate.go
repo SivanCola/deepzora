@@ -137,13 +137,5 @@ func (a *Agent) ReviewWarnings() []string {
 	return append([]string(nil), a.turn.reviewWarnings...)
 }
 
-// FormatReviewWarningsForSummary builds a short appendix for the final answer.
-func FormatReviewWarningsForSummary(warnings []string) string {
-	if len(warnings) == 0 {
-		return ""
-	}
-	return "Review warnings:\n- " + strings.Join(warnings, "\n- ")
-}
-
 // ensure string used
 var _ = fmt.Sprintf

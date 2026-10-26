@@ -163,23 +163,6 @@ func (s *SSHConfigSource) EffectiveWithError(alias string) (EffectiveSSHConfig, 
 	return cloneEffectiveSSHConfig(effective), resolveErr
 }
 
-// HasAlias reports whether alias was declared as a concrete Host entry. It is
-// intentionally stricter than `ssh -G`: OpenSSH returns defaults for arbitrary
-// host names, which must not make a user-facing label override an older saved
-// Host lookup key.
-func (s *SSHConfigSource) HasAlias(alias string) bool {
-	alias = strings.TrimSpace(alias)
-	if s == nil || alias == "" {
-		return false
-	}
-	for _, candidate := range s.aliases {
-		if candidate == alias && !strings.ContainsAny(candidate, "*?!") {
-			return true
-		}
-	}
-	return false
-}
-
 func runOpenSSHEffectiveConfig(ctx context.Context, path, alias string) ([]byte, error) {
 	args := []string{"-G"}
 	if strings.TrimSpace(path) != "" {
@@ -301,28 +284,7 @@ func (s *SSHConfigSource) Port(alias string) int {
 	return p
 }
 
-// IdentityFile returns the first non-default identity file, ~-expanded.
-func (s *SSHConfigSource) IdentityFile(alias string) string {
-	identities := s.IdentityFiles(alias)
-	if len(identities) == 0 {
-		return ""
-	}
-	return identities[0]
-}
-
-func (s *SSHConfigSource) IdentityFiles(alias string) []string {
-	return append([]string(nil), s.Effective(alias).IdentityFiles...)
-}
-
-func (s *SSHConfigSource) IdentityFileNone(alias string) bool {
-	return s.Effective(alias).IdentityFileNone
-}
-
 func (s *SSHConfigSource) ProxyJump(alias string) string { return s.Effective(alias).ProxyJump }
-
-func (s *SSHConfigSource) IdentitiesOnly(alias string) bool {
-	return s.Effective(alias).IdentitiesOnly
-}
 
 // ImportedHost is one concrete Host alias surfaced by `remote import`.
 type ImportedHost struct {

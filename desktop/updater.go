@@ -1,9 +1,7 @@
 package main
 
 import (
-	"archive/tar"
 	"bytes"
-	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -955,29 +953,6 @@ func checkSHA256(data []byte, want string) error {
 		return fmt.Errorf("update: sha256 mismatch: got %s want %s", got, want)
 	}
 	return nil
-}
-
-// extractBinary pulls a single named regular file out of a .tar.gz blob.
-func extractBinary(targz []byte, name string) ([]byte, error) {
-	gz, err := gzip.NewReader(bytes.NewReader(targz))
-	if err != nil {
-		return nil, err
-	}
-	defer gz.Close()
-	tr := tar.NewReader(gz)
-	for {
-		h, err := tr.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-		if h.Typeflag == tar.TypeReg && (h.Name == name || strings.HasSuffix(h.Name, "/"+name)) {
-			return io.ReadAll(tr)
-		}
-	}
-	return nil, fmt.Errorf("update: %q not found in archive", name)
 }
 
 // applyLinuxVersioned publishes the current release and swaps current.json last.

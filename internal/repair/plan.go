@@ -1,12 +1,10 @@
 package repair
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -255,34 +253,6 @@ type ApplyPlanOptions struct {
 
 type ApplyPlanResult struct {
 	Applied []string `json:"applied"`
-}
-
-func DecodeRepairPlan(data []byte) (RepairPlan, error) {
-	data = bytes.TrimSpace(data)
-	if bytes.HasPrefix(data, []byte("```")) {
-		if start := bytes.IndexByte(data, '{'); start >= 0 {
-			if end := bytes.LastIndexByte(data, '}'); end >= start {
-				data = data[start : end+1]
-			}
-		}
-	}
-	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.DisallowUnknownFields()
-	var plan RepairPlan
-	if err := dec.Decode(&plan); err != nil {
-		return RepairPlan{}, fmt.Errorf("decode repair plan: %w", err)
-	}
-	var trailing any
-	if err := dec.Decode(&trailing); err != io.EOF {
-		if err == nil {
-			return RepairPlan{}, fmt.Errorf("decode repair plan: trailing JSON")
-		}
-		return RepairPlan{}, fmt.Errorf("decode repair plan: %w", err)
-	}
-	if err := ValidateRepairPlan(plan); err != nil {
-		return RepairPlan{}, err
-	}
-	return plan, nil
 }
 
 func ValidateRepairPlan(plan RepairPlan) error {

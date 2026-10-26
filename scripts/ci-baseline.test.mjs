@@ -38,25 +38,19 @@ test("required contexts retain real checks on each platform", () => {
   assert.match(job("lint"), /golangci-lint-action/);
 });
 
-test("Windows native validation and benchmarks use the same runner temporary volume", () => {
+test("Windows native validation configures the runner temporary volume first", () => {
   for (const name of ["windows-root", "desktop-go"]) {
     const body = job(name);
     const storage = body.indexOf("uses: ./.github/actions/windows-test-temp");
     const execution = body.indexOf(name === "windows-root" ? "name: Build and test every assigned root package" : "name: Vet desktop module");
     assert.ok(storage >= 0 && storage < execution, `${name} must configure temporary storage before native validation`);
   }
-  for (const workflow of ["ci-root-benchmark.yml", "ci-windows-benchmark.yml"]) {
-    const body = readFileSync(new URL(`../.github/workflows/${workflow}`, import.meta.url), "utf8");
-    assert.match(body, /uses: \.\/\.github\/actions\/windows-test-temp\n\s+- name:/);
-  }
 });
 
-test("Windows root CI and benchmarks select and verify the same native shell tools", () => {
-  const benchmark = readFileSync(new URL("../.github/workflows/ci-root-benchmark.yml", import.meta.url), "utf8");
-  for (const body of [job("windows-root"), benchmark]) {
-    const tools = body.indexOf("uses: ./.github/actions/windows-root-tools");
-    assert.ok(tools >= 0 && tools < body.indexOf("node scripts/ci-root-shard.mjs"));
-  }
+test("Windows root CI selects and verifies its native shell tools", () => {
+  const body = job("windows-root");
+  const tools = body.indexOf("uses: ./.github/actions/windows-root-tools");
+  assert.ok(tools >= 0 && tools < body.indexOf("node scripts/ci-root-shard.mjs"));
   const action = readFileSync(new URL("../.github/actions/windows-root-tools/action.yml", import.meta.url), "utf8");
   assert.match(action, /GITHUB_PATH/);
   assert.match(action, /Get-Command git/);

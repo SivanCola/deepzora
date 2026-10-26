@@ -101,23 +101,6 @@ func (i *WorkspaceIndex) Resolve(root string) (string, bool, error) {
 	return id, id != "", nil
 }
 
-// FindWorkspace admits the read-only path only for an unambiguous physical
-// owner. Missing or duplicate roots go through the registration transaction.
-func FindWorkspace(state State, root string) (string, bool) {
-	if strings.TrimSpace(root) == "" {
-		return "", false
-	}
-	identity, err := pathidentity.Resolve(root, pathidentity.Options{FollowLeaf: true})
-	if err != nil {
-		return "", false
-	}
-	matches := matchingWorkspaceIDs(state, identity)
-	if len(matches) != 1 {
-		return "", false
-	}
-	return matches[0], true
-}
-
 // Clone preserves unknown fields while isolating every mutable organization
 // field. Read-side import planning must never edit a published snapshot.
 func (o Organization) Clone() Organization {

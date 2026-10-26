@@ -224,7 +224,7 @@ jobs:
           retention-days: 14
           if-no-files-found: error
 
-  # The nested SDK and release-control contracts are platform-independent.
+  # The extension-protocol and release-control contracts are platform-independent.
   root:
     needs: changes
     if: ${{ !cancelled() }}
@@ -241,7 +241,7 @@ jobs:
           go-version-file: go.mod
           cache: false
       # The root namespace belongs to the test matrix; this job resolves only
-      # the SDK and actionlint, so it restores and saves its own namespace
+      # actionlint, so it restores and saves its own namespace
       # rather than freezing a small cache under the one test depends on.
       - if: env.RUN_STEPS == 'true'
         uses: ./.github/actions/go-build-cache
@@ -252,13 +252,6 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .node-version
-      - name: Verify SDK
-        if: env.RUN_STEPS == 'true'
-        working-directory: sdk/go
-        run: |
-          test "$(go list -m all)" = github.com/SivanCola/deepzora/sdk/go
-          go vet ./...
-          go test -race ./...
       - name: Validate workflows
         if: env.RUN_STEPS == 'true'
         run: |

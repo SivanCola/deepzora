@@ -18,7 +18,7 @@ Provider model capability metadata is documented in
 - [Billing and display currency](./BILLING.md)
 - [CLI reference](./CLI.md)
 - [Environment variables](#environment-variables)
-- [Web frontend](#web-frontend)
+- [Serve](#serve)
 - [Configuration paths](./CONFIG_PATHS.md)
 - [Reasoning language](./REASONING_LANGUAGE.md)
 - [Task contracts and pause policy](./TASK_CONTRACT.md)
@@ -113,9 +113,8 @@ allow = ["Bash(go test:*)"]                  # never prompted
 # forbid_read    = ["${HOME}/.ssh"]   # paths the agent must not read or list
 
 [serve]
-auth_mode = "none"             # none|token|password; use auth before binding beyond localhost
+auth_mode = "none"             # none|token; use token auth before binding beyond localhost
 # token = ""                   # optional fixed token; empty token mode generates one at startup
-# password_hash = ""           # bcrypt hash generated with deepzora serve --hash-password --password '...'
 # behind_proxy = false         # true only behind a trusted reverse proxy
 
 [[plugins]]
@@ -210,38 +209,14 @@ these separately reviewed reports. Runtime fatal throws, operating-system kills,
 and panics in unwrapped background goroutines cannot be recovered by Go and do
 not produce this local report.
 
-## Web frontend
+## Serve
 
-For local use, `deepzora web` starts the browser UI and opens it in your default
-browser. Inside an interactive CLI session, `/web` snapshots the current session,
-restores the terminal, and opens an explicit `/sessions/<id>#token=...` deep link.
-Even a never-used session keeps its reserved ID without forcing an empty
-transcript onto disk, so the first Web turn continues the same session identity.
-
-```bash
-cd your-project
-deepzora web
-```
-
-Use `deepzora web --no-open` when you want to start the foreground Web server
-and print its URL without opening a browser tab. The lower-level
-`deepzora serve` command starts the same engine without opening a browser by
-default. It remains the right entry point for remote development boxes,
-supervisors, tunnels, reverse proxies, and shareable authenticated sessions.
-
-`deepzora web` starts at `127.0.0.1:8787`, automatically tries 8788, 8789, and
-so on when a port is busy (up to 100 retries), and defaults to a newly generated
-token even when `[serve].auth_mode` is `none`. Each live process registers a
-single-writer heartbeat file under `<Deepzora home>/server/instances/`; clean
-shutdown removes its own file, while later instances lazily remove records whose
-owner process is confirmed dead. Multiple Web instances can therefore share one
-Deepzora home without overwriting registry state. The process stays attached to
-the terminal; stop it with Ctrl-C.
-
-An explicit `deepzora web --auth none` disables the default token and should be
-used only when the listener is intentionally trusted. `deepzora serve` keeps its
-config-driven `auth_mode = "none"` default on
-`127.0.0.1:8787`.
+`deepzora serve` runs the engine behind an HTTP+SSE API. Its main job is the
+backend for desktop remote workspaces: the desktop bootstraps
+`deepzora serve --auth token --token-file ...` on the SSH host and opens a
+window on the forwarded loopback port. It does not open a browser. It listens on
+`127.0.0.1:8787` by default and stays attached to the terminal; stop it with
+Ctrl-C.
 
 Without authentication (`auth_mode = "none"`, the `serve` default) reads stay
 open on the listener, but every state-changing request, approvals included,
@@ -264,43 +239,28 @@ needs the launch token:
   cannot set it.
 
 If you bind Serve outside loopback, expose it through a tunnel, or put it behind
-a reverse proxy, enable authentication before sharing the URL:
+a reverse proxy, enable token authentication before sharing the URL:
 
 ```bash
 deepzora serve --auth token
 deepzora serve --addr 0.0.0.0:8787 --auth token
-deepzora serve --auth password --password 'temporary-password'
 ```
 
-Token mode prints a share URL with `#token=...`; the Web page exchanges the
+Token mode prints a share URL with `#token=...`; the page exchanges the
 fragment for an HttpOnly cookie before starting API or SSE requests, keeping the
-token out of request URLs, browser history, referrers, and access logs. Pass `--token` or set
-`[serve].token` to reuse a stable token. Password mode requires either
-`--password` at startup or a stored bcrypt hash:
+token out of request URLs, browser history, referrers, and access logs. Pass
+`--token-file`, `--token`, or set `[serve].token` to reuse a stable token. Set
+`behind_proxy = true` only behind a trusted reverse proxy.
 
-```bash
-deepzora serve --hash-password --password 'strong-password'
-
-# <Deepzora home>/config.toml
-[serve]
-auth_mode = "password" # none|token|password
-password_hash = "$2a$12$..."
-behind_proxy = true    # only behind a trusted reverse proxy
-```
-
-The web UI exposes chat, tool approvals, session history, rewind/fork/summarize,
-model and reasoning-effort controls, Goal, a live todo panel fed by the
-`todo_write` tool, extension status/card/form/notification surfaces, and
-provider balance when configured. Extension-hosted providers appear in the
-model picker. Serve can keep several sessions active at once: creating or
-resuming another session detaches a busy turn instead of cancelling it, and the
-session list continues to report that background activity. Run `/reload` while
-idle to fail-atomically reload extension sidecars and the runtime generation
-without restarting Serve. Use `--model`, `--max-steps`, or `--resume` for
-one-off launches; otherwise `serve` uses the user-global `default_model`.
+Serve can keep several sessions active at once: creating or resuming another
+session detaches a busy turn instead of cancelling it, and the session list
+continues to report that background activity. Run `/reload` while idle to
+fail-atomically reload extension sidecars and the runtime generation without
+restarting Serve. Use `--model`, `--max-steps`, or `--resume` for one-off
+launches; otherwise `serve` uses the user-global `default_model`.
 
 If the selected Provider has no saved API key, a loopback-bound Serve still
-starts and shows a Provider setup page instead of failing before the browser can
+starts and shows a Provider setup page instead of failing before the window can
 connect. After authentication, enter the key there; Deepzora writes it to this
 host's global credential file with restricted permissions, rebuilds the active
 controller in the same process, and opens the normal UI. The credential-writing

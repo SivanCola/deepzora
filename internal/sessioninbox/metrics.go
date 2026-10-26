@@ -29,21 +29,6 @@ type MetricsSnapshot struct {
 	TxFail         int64 `json:"txFail"`
 }
 
-// Metrics returns current process-local inbox counters.
-func Metrics() MetricsSnapshot {
-	return MetricsSnapshot{
-		Enqueue:        metricEnqueue.Load(),
-		EnqueueBytes:   metricEnqueueBytes.Load(),
-		Recovered:      metricRecovered.Load(),
-		Paused:         metricPaused.Load(),
-		SteerAccepted:  metricSteerAccepted.Load(),
-		SteerRejected:  metricSteerRejected.Load(),
-		CapacityReject: metricCapacityRej.Load(),
-		Uncertain:      metricUncertain.Load(),
-		TxFail:         metricTxFail.Load(),
-	}
-}
-
 // NoteEnqueue increments durable-enqueue counters (body length only, no text).
 func NoteEnqueue(bytes int64) {
 	metricEnqueue.Add(1)

@@ -34,10 +34,6 @@ type expectedWriteSourceKey struct{}
 func WithExpectedWriteSource(ctx context.Context, source EvidenceTargetInfo) context.Context {
 	return context.WithValue(ctx, expectedWriteSourceKey{}, source)
 }
-func ExpectedWriteSource(ctx context.Context) (EvidenceTargetInfo, bool) {
-	info, ok := ctx.Value(expectedWriteSourceKey{}).(EvidenceTargetInfo)
-	return info, ok
-}
 
 // EvidenceDeclarer is an optional writer capability. The host asks the real
 // writer what evidence it needs instead of trusting a model-reported write

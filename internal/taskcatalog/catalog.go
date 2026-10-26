@@ -305,17 +305,6 @@ func (c *Catalog) RegisterProject(ctx context.Context, root, label string) (Proj
 	return project, err
 }
 
-// RequestReconcileProject forces a background authority scan even when the
-// project was already registered by an earlier page request.
-func (c *Catalog) RequestReconcileProject(ctx context.Context, root, label string) error {
-	project, err := c.RegisterProject(ctx, root, label)
-	if err != nil {
-		return err
-	}
-	c.scheduleReconcile(project)
-	return nil
-}
-
 func (c *Catalog) scheduleReconcile(project Project) {
 	c.reconcileMu.Lock()
 	if c.reconcileDone || c.reconciling[project.Key] {

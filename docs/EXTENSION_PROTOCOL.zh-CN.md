@@ -9,7 +9,6 @@ Extension Protocol 是 Deepzora（**宿主**）与以独立进程运行的代码
 - 机器可读 Schema：`internal/extension/protocol/schema.generated.json`
 - 方法/事件/限额/错误索引：`docs/EXTENSION_PROTOCOL.generated.md`
   （生成产物，CI 防漂移校验）
-- Go SDK（已实现下文全部内容）：`sdk/go`
 
 本文档是生成索引的文字说明。两者不一致时，以生成 Schema 为准。
 

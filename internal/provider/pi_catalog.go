@@ -128,20 +128,6 @@ func PiCatalogOpenCodeGoReasoning(route, id string) (ReasoningCapability, bool) 
 	return ReasoningCapability{}, false
 }
 
-// PiCatalogOpenCodeGoVisionModelIDs returns the route's catalog models that
-// explicitly accept image input.
-func PiCatalogOpenCodeGoVisionModelIDs(route string) []string {
-	models := piCatalogOpenCodeGoModels(route)
-	ids := make([]string, 0, len(models))
-	for _, model := range models {
-		if modelInfoFromPi(model).SupportsInput(ModalityImage) {
-			ids = append(ids, model.ID)
-		}
-	}
-	sort.Strings(ids)
-	return ids
-}
-
 // piOpenCodeGoRouteCorrections pins models whose Pi route annotation disagrees
 // with both the opencode.ai/docs/go Endpoints table and models.dev.
 var piOpenCodeGoRouteCorrections = map[string]string{

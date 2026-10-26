@@ -18,9 +18,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -33,7 +31,6 @@ import (
 	"deepzora/internal/control"
 	"deepzora/internal/event"
 	"deepzora/internal/extension/providerext"
-	fileencoding "deepzora/internal/fileutil/encoding"
 	"deepzora/internal/i18n"
 	"deepzora/internal/netclient"
 	"deepzora/internal/notify"
@@ -50,8 +47,6 @@ import (
 var (
 	runInteractiveSession = chatREPL
 	cliIsInteractive      = isInteractive
-	runWebCommand         = runWeb
-	openBrowserURL        = openInBrowser
 )
 
 // Run is the CLI entry point; it returns a process exit code.
@@ -122,8 +117,6 @@ func RunWithBuildInfo(args []string, info BuildInfo) int {
 		return runInteractiveSession(rest, version)
 	case "serve":
 		return runServe(rest)
-	case "web":
-		return runWebCommand(rest)
 	case "setup":
 		configureCLIThemeFromConfigForTTYOutput()
 		return setupConfig(rest)
@@ -656,79 +649,29 @@ func runAgent(args []string, version string) int {
 	return completion.exitCode
 }
 
-func runServeWithOptions(args []string, opts serveRunOptions) int {
-	if opts.command == "" {
-		opts.command = "serve"
-	}
-	fs := flag.NewFlagSet(opts.command, flag.ContinueOnError)
+func runServe(args []string) int {
+	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
 	model := fs.String("model", "", "provider name (default: config default_model)")
 	preset := fs.String("preset", "", "agent persona/tool preset id (default: default; resumed sessions keep their preset)")
 	maxSteps := fs.Int("max-steps", 0, "one-off max tool-call rounds (0 = automatic)")
 	addr := fs.String("addr", "127.0.0.1:8787", "listen address")
 	resume := fs.String("resume", "", "resume by session ID or query")
-	sessionIDValue := ""
-	sessionID := &sessionIDValue
-	if opts.command == "web" {
-		sessionID = fs.String("session-id", "", "bind a fresh Web session with the specified ID")
-	}
-	authHelp := "auth mode: none, token, or password (default: config/none; none still requires the launch token for changes)"
-	if opts.command == "web" {
-		authHelp = "auth mode: none, token, or password (default: generated token)"
-	}
-	auth := fs.String("auth", "", authHelp)
+	auth := fs.String("auth", "", "auth mode: none or token (default: config/none; none still requires the launch token for changes)")
 	token := fs.String("token", "", "pre-shared token for auth=token (auto-generated if empty)")
-	password := fs.String("password", "", "password for auth=password (use --hash-password to store a hash instead)")
-	hashPassword := fs.Bool("hash-password", false, "print a bcrypt hash of --password and exit")
-	behindProxy := fs.Bool("behind-proxy", false, "trust X-Forwarded-For / X-Forwarded-Proto headers from a reverse proxy")
+	behindProxy := fs.Bool("behind-proxy", false, "trust X-Forwarded-Proto headers from a reverse proxy")
 	portFile := fs.String("port-file", "", "write the actual bound listen address (host:port) to this file after binding")
 	tokenFile := fs.String("token-file", "", "read the auth=token pre-shared token from this file (overrides --token; keeps the secret out of argv)")
 	pidFile := fs.String("pid-file", "", "write the server process id to this file")
 	registerServeCapabilityFlags(fs)
-	openBrowser := fs.Bool("open", opts.openBrowser, "open the Web UI in the default browser")
-	noOpen := fs.Bool("no-open", false, "do not open the Web UI in the default browser")
 	if code, ok := parseCommandFlags(fs, args); !ok {
 		return code
-	}
-	authExplicit := false
-	fs.Visit(func(f *flag.Flag) {
-		if f.Name == "auth" {
-			authExplicit = true
-		}
-	})
-	if *resume != "" && *sessionID != "" {
-		fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, "--resume and --session-id cannot be used together")
-		return 2
-	}
-	if *sessionID != "" {
-		if err := validateWebSessionID(*sessionID); err != nil {
-			fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, err)
-			return 2
-		}
-	}
-
-	// --hash-password: generate a bcrypt hash and exit.
-	if *hashPassword {
-		if *password == "" {
-			fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, "--hash-password requires --password")
-			return 1
-		}
-		h, err := serve.HashPassword(*password)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, err)
-			return 1
-		}
-		fmt.Println(h)
-		return 0
 	}
 
 	ctx := context.Background()
 	bc, sessionTag, cfg := newServeBootstrap()
 
 	// Build serve config, merging CLI flags over config file.
-	serveCfg := serveConfigWithCommandDefaults(opts.command, authExplicit, cfg.Serve)
-	// `deepzora web` is a local browser entry point and defaults to a freshly
-	// generated token. `deepzora serve` keeps its existing config-driven default,
-	// and an explicit --auth always wins for both commands.
+	serveCfg := cfg.Serve
 	if *auth != "" {
 		serveCfg.AuthMode = *auth
 	}
@@ -753,20 +696,6 @@ func runServeWithOptions(args []string, opts serveRunOptions) int {
 		return 1
 	}
 	serveCfg.AuthMode = mode
-	if *password != "" && serveCfg.AuthMode == "password" {
-		// Hash the password at startup so the config never stores plaintext.
-		// If a PasswordHash is already set in config, the CLI password overrides it.
-		h, err := serve.HashPassword(*password)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, "failed to hash password:", err)
-			return 1
-		}
-		serveCfg.PasswordHash = h
-	}
-	if serveCfg.AuthMode == "password" && strings.TrimSpace(serveCfg.PasswordHash) == "" {
-		fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, "auth mode password requires --password or serve.password_hash")
-		return 1
-	}
 
 	// Own the active session file for the server's lifetime; the serve
 	// handlers that rebind sessions (/resume, /new, /fork) move the lease
@@ -782,7 +711,7 @@ func runServeWithOptions(args []string, opts serveRunOptions) int {
 	// ignoring project-level default_model overrides. Explicit flags and
 	// resumable session models remain strict and are preserved verbatim.
 	*model = resolveServeModel(*model)
-	// Keep the browser reachable when the selected provider has no saved key.
+	// Keep the window reachable when the selected provider has no saved key.
 	// The loopback-only provider setup surface stores the missing credential and
 	// rebuilds this controller in place before the normal web UI is exposed.
 	ctrl, serveBuildOpts, err := setupCLIMultiSessionProfile(ctx, *model, *maxSteps, sessionTag, cliBuildOverrides{
@@ -796,7 +725,7 @@ func runServeWithOptions(args []string, opts serveRunOptions) int {
 	SetTaskJobKiller(ctrlKillerAdapter{ctrl})
 
 	// Keep the resumed identity, or create a current session before serving.
-	if err := prepareServeSession(ctrl, resumeTarget, *sessionID); err != nil {
+	if err := prepareServeSession(ctrl, resumeTarget); err != nil {
 		return cliFailure(err)
 	}
 	if _, err := ctrl.EnsureSession(ctx, session.CreateOptions{}); err != nil {
@@ -806,10 +735,8 @@ func runServeWithOptions(args []string, opts serveRunOptions) int {
 	srv := newCLIMultiSessionServer(ctrl, bc, sessionTag, serveCfg, serveBuildOpts)
 	defer srv.Close()
 	return runServeFrontend(ctrl, srv, serveCfg, serveFrontendOptions{
-		command: opts.command, address: *addr,
+		address:  *addr,
 		portFile: *portFile, tokenFile: *tokenFile, pidFile: *pidFile,
-		openBrowser: *openBrowser && !*noOpen,
-		hasSession:  *resume != "" || *sessionID != "",
 	})
 }
 
@@ -1063,19 +990,13 @@ func chatREPL(args []string, version string) int {
 	// because Controller.Close() runs SessionEnd hooks and kills plugin
 	// subprocesses — operations that corrupt bubbletea's terminal raw mode
 	// when executed while the TUI is alive.
-	var launchWeb bool
-	var launchWebSessionID, launchWebModelRef string
 	if fm, ok := final.(chatTUI); ok {
 		reportShutdownFailure(fm.shutdownErr)
-		launchWeb = fm.launchWebOnExit
 		for _, oc := range fm.oldControllers {
 
 			oc.Close()
 		}
 		if fm.ctrl != nil {
-			launchWebSessionID = fm.launchWebSessionID
-			launchWebModelRef = fm.launchWebModelRef
-
 			fm.ctrl.Close()
 		} else {
 			ctrl.Close()
@@ -1086,10 +1007,6 @@ func chatREPL(args []string, version string) int {
 	if runErr != nil {
 		fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, runErr)
 		return 1
-	}
-	if launchWeb {
-		// The closed TUI controller has released its canonical client binding.
-		return runWebCommand(webHandoffArgs(launchWebSessionID, launchWebModelRef))
 	}
 	return 0
 }
@@ -1323,24 +1240,6 @@ func selectLanguage() (string, error) {
 	return tags[idx], nil
 }
 
-// familyStaticModels unions the preset model lists of every entry in the family,
-// preserving order and dropping duplicates. It is the fallback offered when the
-// live /models probe fails, so a family with separate flash/pro preset entries
-// still surfaces both rather than only the first member's model.
-func familyStaticModels(providers []config.ProviderEntry, idxs []int) []string {
-	var out []string
-	seen := map[string]bool{}
-	for _, i := range idxs {
-		for _, m := range providers[i].ModelList() {
-			if m != "" && !seen[m] {
-				seen[m] = true
-				out = append(out, m)
-			}
-		}
-	}
-	return out
-}
-
 // fetchOrFallback tries the OpenAI-compatible GET /models endpoint
 // (honoring the entry's ModelsURL when set) and returns the live model IDs.
 // On any failure — no base URL, no key set yet (the key is collected in a
@@ -1400,57 +1299,6 @@ func fetchModelListCompat(ctx context.Context, baseURL, apiKey string, proxy net
 		slog.Debug("model-list probe: all candidates missed", "base_url", baseURL, "err", lastErr)
 	}
 	return nil, nil
-}
-
-// buildFamilyEntry returns a single ProviderEntry exposing the user's
-// selected models under one entry. It preserves the preset's API key env,
-// base URL, kind, context window, pricing, and effort — the things that
-// vary per vendor but not per model. The Default pointer is reset to the
-// first selected model if it would otherwise reference a model the user
-// didn't pick (or was empty).
-// buildFamilyEntries splits the user's selection back across the family's preset
-// members so each model keeps its own entry — and therefore its own pricing,
-// context window, and balance URL. A family like DeepSeek ships flash and pro as
-// separate presets with different prices; collapsing them into one entry would
-// bill pro at flash's rate. Models the live /models list returned that match no
-// preset (a new SKU) fall under the probe entry. Member order is preserved;
-// within a member, selection order is preserved.
-func buildFamilyEntries(probe config.ProviderEntry, members []config.ProviderEntry, selected []string) []config.ProviderEntry {
-	tmpl := map[string]config.ProviderEntry{probe.Name: probe}
-	ownerName := map[string]string{}
-	for _, m := range members {
-		tmpl[m.Name] = m
-		for _, id := range m.ModelList() {
-			ownerName[id] = m.Name
-		}
-	}
-	var order []string
-	groups := map[string][]string{}
-	for _, sm := range selected {
-		name, ok := ownerName[sm]
-		if !ok {
-			name = probe.Name
-		}
-		if _, seen := groups[name]; !seen {
-			order = append(order, name)
-		}
-		groups[name] = append(groups[name], sm)
-	}
-	out := make([]config.ProviderEntry, 0, len(order))
-	for _, name := range order {
-		out = append(out, buildFamilyEntry(tmpl[name], groups[name]))
-	}
-	return out
-}
-
-func buildFamilyEntry(probe config.ProviderEntry, selected []string) config.ProviderEntry {
-	entry := probe
-	entry.Models = selected
-	entry.Model = selected[0]
-	if entry.Default == "" || !containsString(selected, entry.Default) {
-		entry.Default = selected[0]
-	}
-	return entry
 }
 
 func containsString(xs []string, v string) bool {
@@ -1561,24 +1409,6 @@ func fnv1a32Hex(s string) string {
 		hash *= 0x01000193
 	}
 	return fmt.Sprintf("%08x", hash)
-}
-
-// providerFamily is a wizard-only grouping of provider SKUs by vendor; it does
-// not exist in config because users editing deepzora.toml deal with SKU names
-// directly.
-type providerFamily struct {
-	key  string
-	name string
-	desc string
-}
-
-func familyOf(name string) providerFamily {
-	switch {
-	case strings.HasPrefix(name, "deepseek"):
-		return providerFamily{key: "deepseek", name: "DeepSeek", desc: "fast & cheap, plus a stronger Pro SKU"}
-	default:
-		return providerFamily{key: name, name: name}
-	}
 }
 
 type providerPromptResult struct {
@@ -1805,89 +1635,6 @@ func promptAnthropicProviderFromURL(proxy netclient.ProxySpec) (providerPromptRe
 	return newProviderPromptResult([]config.ProviderEntry{entry}, keyEnv, apiKey, keyEnvTyped, "ANTHROPIC_API_KEY"), nil
 }
 
-func groupByFamily(providers []config.ProviderEntry) ([]string, map[string][]int, map[string]providerFamily) {
-	var order []string
-	members := map[string][]int{}
-	info := map[string]providerFamily{}
-	for i, p := range providers {
-		f := familyOf(p.Name)
-		if _, seen := members[f.key]; !seen {
-			order = append(order, f.key)
-			info[f.key] = f
-		}
-		members[f.key] = append(members[f.key], i)
-	}
-	return order, members, info
-}
-
-// withBuiltinFamilies guarantees the wizard always offers the built-in DeepSeek
-// family even when the loaded config replaced the defaults.
-// Built-in entries whose exact name already exists in the user's config are
-// kept as-is (preserving customizations); missing built-in entries within an
-// existing family are appended so the model picker always shows the full
-// catalogue rather than only the previously selected subset.
-func withBuiltinFamilies(providers []config.ProviderEntry) []config.ProviderEntry {
-	return withBuiltinFamiliesForLanguage(providers, "")
-}
-
-func withBuiltinFamiliesForLanguage(providers []config.ProviderEntry, pricingLanguage string) []config.ProviderEntry {
-	haveName := map[string]bool{}
-	for _, p := range providers {
-		haveName[p.Name] = true
-	}
-	defaults := config.Default()
-	defaults.Language = pricingLanguage
-	defaults.ApplyDeepSeekOfficialDefaultPricing()
-	for _, bp := range defaults.Providers {
-		if !haveName[bp.Name] {
-			providers = append(providers, bp)
-		}
-	}
-	return providers
-}
-
-// providersWithMissingKeys returns the providers the active configuration
-// actually references (default/planner/subagent models) whose api_key_env is
-// declared but not set. Merely-available providers stay silent; the chat banner
-// still warns if users later switch to a model whose key is missing.
-// configureKeys dedupes shared envs, so duplicates are fine to leave in.
-func providersWithMissingKeys(cfg *config.Config) []config.ProviderEntry {
-	if cfg == nil {
-		return nil
-	}
-	refs := []string{
-		cfg.DefaultModel,
-		cfg.Agent.PlannerModel,
-		cfg.Agent.SubagentModel,
-	}
-	if len(cfg.Agent.SubagentModels) > 0 {
-		keys := make([]string, 0, len(cfg.Agent.SubagentModels))
-		for key := range cfg.Agent.SubagentModels {
-			keys = append(keys, key)
-		}
-		sort.Strings(keys)
-		for _, key := range keys {
-			refs = append(refs, cfg.Agent.SubagentModels[key])
-		}
-	}
-
-	var out []config.ProviderEntry
-	seen := map[string]bool{}
-	for _, ref := range refs {
-		ref = strings.TrimSpace(ref)
-		if ref == "" {
-			continue
-		}
-		p, ok := cfg.ResolveModel(ref)
-		if !ok || p.APIKeyEnv == "" || os.Getenv(p.APIKeyEnv) != "" || seen[p.APIKeyEnv] {
-			continue
-		}
-		seen[p.APIKeyEnv] = true
-		out = append(out, *p)
-	}
-	return out
-}
-
 // configureKeys reconciles each enabled provider's API key with the
 // environment. For every distinct api_key_env: if the variable is already set,
 // setup asks whether to re-enter it; Enter keeps and re-pins the existing value.
@@ -1952,59 +1699,6 @@ func isInteractive() bool {
 
 func isTTY(f *os.File) bool {
 	return term.IsTerminal(int(f.Fd()))
-}
-
-// appendEnv merges KEY=value lines into a .env file. Existing assignments of
-// any key that's about to be written are dropped first, then the new values
-// are appended — so re-running `deepzora setup` with a corrected key replaces the
-// stale one instead of stacking duplicates. The new values are also
-// pinned into the current process env so a chat session started right after
-// init picks up the fresh keys without a restart.
-func appendEnv(path string, lines []string) error {
-	target := map[string]bool{}
-	for _, l := range lines {
-		if k, _, ok := strings.Cut(l, "="); ok {
-			target[strings.TrimSpace(k)] = true
-		}
-	}
-
-	var kept []string
-	if data, err := fileencoding.ReadFileUTF8(path); err == nil {
-		for raw := range strings.SplitSeq(string(data), "\n") {
-			trimmed := strings.TrimSpace(raw)
-			check := strings.TrimPrefix(trimmed, "export ")
-			if k, _, ok := strings.Cut(check, "="); ok && target[strings.TrimSpace(k)] {
-				continue
-			}
-			kept = append(kept, raw)
-		}
-		// strings.Split on a string ending with \n leaves a trailing empty
-		// element; trim it so we don't grow a blank line on every rewrite.
-		if n := len(kept); n > 0 && kept[n-1] == "" {
-			kept = kept[:n-1]
-		}
-	} else if !os.IsNotExist(err) {
-		return err
-	}
-
-	var b strings.Builder
-	for _, l := range kept {
-		b.WriteString(l)
-		b.WriteByte('\n')
-	}
-	for _, l := range lines {
-		b.WriteString(l)
-		b.WriteByte('\n')
-		if k, v, ok := strings.Cut(l, "="); ok {
-			os.Setenv(strings.TrimSpace(k), v)
-		}
-	}
-	if dir := filepath.Dir(path); dir != "" && dir != "." {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return err
-		}
-	}
-	return os.WriteFile(path, []byte(b.String()), 0o600)
 }
 
 // readStdin reads piped input if present; an interactive terminal yields "".

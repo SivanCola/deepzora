@@ -35,12 +35,3 @@ func WithEscapeApprover(ctx context.Context, approver EscapeApprover) context.Co
 	}
 	return context.WithValue(ctx, escapeApproverContextKey{}, approver)
 }
-
-// EscapeApproverFrom returns the sandbox-escape approver carried by ctx.
-func EscapeApproverFrom(ctx context.Context) (EscapeApprover, bool) {
-	if ctx == nil {
-		return nil, false
-	}
-	approver, ok := ctx.Value(escapeApproverContextKey{}).(EscapeApprover)
-	return approver, ok && approver != nil
-}

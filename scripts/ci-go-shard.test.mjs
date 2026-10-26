@@ -5,7 +5,6 @@ import path from "node:path";
 import test from "node:test";
 import { digest, inventoryFromList, assignedTests, batches, completedTests, verifyShards } from "./ci-go-shard-model.mjs";
 import { execute, runShard } from "./ci-go-shard.mjs";
-import { compareBenchmark } from "./ci-go-benchmark.mjs";
 
 const pkg = "example.test/shard";
 const inventory = ["ExampleHello", "FuzzSeed", "TestAlpha", "TestBeta", "TestHelper", "TestNew"].sort();
@@ -81,36 +80,6 @@ test("process runner preserves failures, enforces a deadline and accepts spaced 
   const cancellation = setTimeout(() => process.emit("SIGTERM"), 100);
   await assert.rejects(pending, /cancelled/);
   clearTimeout(cancellation);
-});
-
-test("benchmark requires three identical candidates and records medians and cost", () => {
-  const samples = [];
-  for (const sample of ["1", "2", "3"]) {
-    const pair = reports().map(report => ({ ...report, sample, timings: { compileMs: 10, testMs: 50, cleanupMs: 1 } }));
-    samples.push(...pair, { ...pair[0], index: 1, count: 1, assigned: inventory,
-      completed: inventory.map(name => ({ name, result: "pass", seconds: 1 })), timings: { compileMs: 10, testMs: 100, cleanupMs: 1 } });
-  }
-  const result = compareBenchmark(samples);
-  assert.equal(result.reduction, 0.5);
-  assert.equal(result.performanceTargetMet, true);
-  assert.equal(result.full.min, 100);
-  assert.throws(() => compareBenchmark(samples.slice(1)));
-  const changed = structuredClone(samples); changed[0].sourceSHA = "b".repeat(40);
-  assert.throws(() => compareBenchmark(changed), /sourceSHA/);
-  const mixedCache = structuredClone(samples); mixedCache[0].cacheMode = "cold";
-  assert.throws(() => compareBenchmark(mixedCache), /cacheMode/);
-  const mixedSnapshot = structuredClone(samples); mixedSnapshot[0].cacheSnapshot = "123-1";
-  assert.throws(() => compareBenchmark(mixedSnapshot), /cacheSnapshot/);
-  for (const mutate of [
-    full => { full.inventory = [...full.inventory, "TestUnverified"]; },
-    full => { full.assigned = full.assigned.slice(1); },
-    full => { full.timings.testMs = null; },
-    full => { full.otherPackages = []; },
-  ]) {
-    const altered = structuredClone(samples);
-    mutate(altered.find(report => report.count === 1));
-    assert.throws(() => compareBenchmark(altered));
-  }
 });
 
 test("real Go fixture preserves examples, fuzz seeds, helper re-exec and other packages", { timeout: 120_000 }, async t => {

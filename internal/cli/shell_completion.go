@@ -121,7 +121,6 @@ func cliCompletionRootSpec() cliCompletionSpec {
 		completionSpec("run", runFlags),
 		completionSpecWithAliases("chat", []string{"code"}, interactiveFlags),
 		completionSpec("serve", serveFlags),
-		completionSpec("web", serveFlags),
 		completionSpec("setup", []cliCompletionFlag{completionFlag("--local -l", cliCompletionNoValue), help}),
 		completionSpec("config", []cliCompletionFlag{help},
 			completionSpec("reasoning-language", []cliCompletionFlag{completionFlag("--local", cliCompletionNoValue), help}),
@@ -300,9 +299,9 @@ func cliServeCompletionFlags(model, help cliCompletionFlag) []cliCompletionFlag 
 		completionFlag("--preset", cliCompletionStaticValue, "default"),
 		completionFlag("--max-steps --addr", cliCompletionStaticValue),
 		completionFlag("--resume", cliCompletionSessionValue),
-		completionFlag("--auth", cliCompletionStaticValue, "none", "token", "password"),
-		completionFlag("--token --password --port-file --token-file --pid-file", cliCompletionStaticValue),
-		completionFlag("--hash-password --behind-proxy --open --no-open", cliCompletionNoValue), help,
+		completionFlag("--auth", cliCompletionStaticValue, "none", "token"),
+		completionFlag("--token --port-file --token-file --pid-file", cliCompletionStaticValue),
+		completionFlag("--behind-proxy", cliCompletionNoValue), help,
 	}
 }
 

@@ -118,15 +118,6 @@ func (r *DiagnosticReport) add(severity, code, scope, message, remediation strin
 	r.Findings = append(r.Findings, DiagnosticFinding{Severity: severity, Code: code, Scope: scope, Message: message, Remediation: remediation})
 }
 
-func (r DiagnosticReport) HasErrors() bool {
-	for _, finding := range r.Findings {
-		if finding.Severity == "error" {
-			return true
-		}
-	}
-	return false
-}
-
 func validateProviders(report *DiagnosticReport, cfg *config.Config) {
 	seen := map[string]bool{}
 	for i := range cfg.Providers {

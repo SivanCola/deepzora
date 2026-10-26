@@ -9,7 +9,7 @@ GOEXE := $(shell go env GOEXE)
 # One pin for the Makefile and the CI lint job; see .github/workflows/ci.yml.
 GOLANGCI_VERSION := $(shell cat .golangci-version)
 
-.PHONY: build vet fmt lint lint-go lint-install lint-cross lint-update testdup test desktop-test desktop-test-short desktop-test-times sdk-test sdk-test-race hooks cross clean
+.PHONY: build vet fmt lint lint-go lint-install lint-cross lint-update testdup test desktop-test desktop-test-short desktop-test-times hooks cross clean
 
 build:
 	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o bin/deepzora$(GOEXE) ./cmd/deepzora
@@ -68,12 +68,6 @@ desktop-test-short:
 
 desktop-test-times:
 	cd desktop && go test -count=1 -timeout=25m -json . | python3 ../scripts/desktop-test-times.py
-
-sdk-test:
-	cd sdk/go && go test ./...
-
-sdk-test-race:
-	cd sdk/go && go test -race ./...
 
 hooks:
 	@git config core.hooksPath .githooks

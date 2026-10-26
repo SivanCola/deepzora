@@ -305,24 +305,11 @@ func TestPresetCrossCatalogResumeUsesSourceAndRetainsCreationService(t *testing.
 
 func TestPresetFlagsRegisteredOnEveryEntry(t *testing.T) {
 	isolateCLIConfigHome(t)
-	for _, command := range []string{"chat", "run", "serve", "web"} {
+	for _, command := range []string{"chat", "run", "serve"} {
 		var rc int
 		out := captureStdout(t, func() { rc = Run([]string{command, "--preset", "review", "--help"}, "test") })
 		if rc != 0 || !strings.Contains(out, "preset") {
 			t.Errorf("%s preset help exit=%d output=%q", command, rc, out)
 		}
-	}
-}
-
-func TestPresetCanonicalWebHandoffUsesSessionIdentity(t *testing.T) {
-	_, ctrl := presetRuntimeFixture(t)
-	m := newTestChatTUI()
-	m.ctrl, m.modelRef = ctrl, ctrl.ModelRef()
-	if cmd := m.runWebSlash(); cmd == nil {
-		t.Fatal("canonical /web handoff did not schedule shutdown")
-	}
-	ref, _ := ctrl.SessionRef()
-	if m.launchWebSessionID != ref.SessionID {
-		t.Fatalf("handoff state = %+v", m.webHandoffState)
 	}
 }

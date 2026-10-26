@@ -130,17 +130,6 @@ func TestThemePackV2IndependentSceneImagesRoundTrip(t *testing.T) {
 	}
 }
 
-func TestThemeTokenAndRecipeCSSVars(t *testing.T) {
-	vars := themePackCSSVars(map[string]string{"fg": "#ffffff", "bg": "#000000", "accent": "#ff0000"})
-	if vars["--fg"] != "#ffffff" || vars["--text"] != "#ffffff" {
-		t.Fatalf("fg aliases: %+v", vars)
-	}
-	r := recipeCSSVars(ThemePackRecipes{Density: "compact", Corners: "square"})
-	if r["--r"] != "2px" || r["--theme-row-h"] != "28px" {
-		t.Fatalf("recipe vars: %+v", r)
-	}
-}
-
 func TestOpacityClamped(t *testing.T) {
 	bg, err := normalizeThemeBackground(&ThemePackBackground{
 		Image: "bg.png", FocusX: 2, FocusY: -1, SafeArea: "left",

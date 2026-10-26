@@ -2,7 +2,6 @@ package tool
 
 import (
 	"context"
-	"encoding/json"
 )
 
 // FileWriteIntent is local evidence about an actual prepared write. Unknown
@@ -44,12 +43,6 @@ func RecordWriteIntent(ctx context.Context, intent FileWriteIntent) error {
 	}
 	return nil
 }
-func DecodeWriteIntent(raw json.RawMessage) (FileWriteIntent, bool) {
-	var intent FileWriteIntent
-	err := json.Unmarshal(raw, &intent)
-	return intent, err == nil && intent.Version == 1 && intent.Path != "" && intent.Host != "" && intent.After != ""
-}
-
 func HasWriteIntentHook(ctx context.Context) bool {
 	_, ok := ctx.Value(writeIntentHookKey{}).(WriteIntentHook)
 	return ok

@@ -443,21 +443,6 @@ func cloneStringPtr(p *string) *string {
 	return &cp
 }
 
-func acpTaskProfileDefaults(cfg *config.Config) (string, string) {
-	if cfg == nil {
-		return "", ""
-	}
-	model := strings.TrimSpace(cfg.Agent.SubagentModels["task"])
-	if model == "" {
-		model = strings.TrimSpace(cfg.Agent.SubagentModel)
-	}
-	effort := strings.TrimSpace(cfg.Agent.SubagentEfforts["task"])
-	if effort == "" {
-		effort = strings.TrimSpace(cfg.Agent.SubagentEffort)
-	}
-	return model, effort
-}
-
 func newACPSubagentProviderResolver(cfg *config.Config, parent *config.ProviderEntry, proxySpec netclient.ProxySpec) func(string, string) (provider.Provider, *provider.Pricing, int, error) {
 	return func(modelRef, effort string) (provider.Provider, *provider.Pricing, int, error) {
 		modelRef = strings.TrimSpace(modelRef)

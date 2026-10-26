@@ -22,11 +22,6 @@ type EffectVerifier interface {
 
 type recoveryKey struct{}
 
-// RecoveryIdempotencyKey is stable across explicit retries of one action.
-func RecoveryIdempotencyKey(ctx context.Context) string {
-	v, _ := ctx.Value(recoveryKey{}).(string)
-	return v
-}
 func WithRecoveryIdempotencyKey(ctx context.Context, key string) context.Context {
 	return context.WithValue(ctx, recoveryKey{}, key)
 }

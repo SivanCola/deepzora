@@ -13,9 +13,6 @@
     "test-file-size": 64102
   },
   "files": {
-    "cmd/e2ebench/main.go": {
-      "essay": 1
-    },
     "cmd/deepzora-plugin-example/main.go": {
       "essay": 19
     },
@@ -929,9 +926,6 @@
     "internal/extension/protocol/validate.go": {
       "complexity": 3
     },
-    "internal/extension/protocolgen/sdkgo.go": {
-      "essay": 2
-    },
     "internal/extension/providerconv/providerconv.go": {
       "narrative": 2
     },
@@ -1374,19 +1368,6 @@
       "complexity": 4,
       "file-size": 381,
       "function-size": 1
-    },
-    "sdk/go/examples/fullsidecar/main.go": {
-      "essay": 25
-    },
-    "sdk/go/sdk.go": {
-      "essay": 18,
-      "file-size": 367
-    },
-    "sdk/go/types_ext.go": {
-      "essay": 7
-    },
-    "sdk/go/wire.go": {
-      "essay": 1
     },
     "tools/sessioncapacity/main.go": {
       "function-size": 9

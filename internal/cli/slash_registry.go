@@ -59,7 +59,6 @@ func builtinSlashSpecs() []builtinSlashSpec {
 		{name: "/currency", insert: "/currency ", hint: i18n.M.CmdCurrency, descend: true, showInHelp: true},
 		{name: "/setup", aliases: []string{"/auth"}, insert: "/setup", hint: "Configure model connections", showInHelp: true},
 		{name: "/help", aliases: []string{"/?"}, insert: "/help", hint: i18n.M.CmdHelp, showInHelp: true},
-		{name: "/web", insert: "/web", hint: i18n.M.CmdWeb, showInHelp: true},
 		{name: "/docs", aliases: []string{"/deepzora:docs"}, insert: "/docs ", hint: i18n.M.CmdDocs, showInHelp: true},
 		{name: "/memory", insert: "/memory ", hint: i18n.M.CmdMemory, showInHelp: true},
 		{name: "/goal", insert: "/goal ", hint: i18n.M.CmdGoal, descend: true},

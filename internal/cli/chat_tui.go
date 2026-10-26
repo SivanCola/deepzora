@@ -50,7 +50,6 @@ type chatTUI struct {
 	shutdownErr        error // final save's failure; reported after terminal release
 	label              string
 	missing            string // missing-key warning surfaced once in the banner, "" when ready
-	webHandoffState
 	// diagnostics is the process-owned TUI log/watchdog started before terminal
 	// takeover. Nil in unit tests that construct chatTUI without chatREPL.
 	diagnostics      *tuiDiagnostics
@@ -4180,8 +4179,10 @@ func (m *chatTUI) runSlashCommand(input string) tea.Cmd {
 	case "/currency":
 		m.echoLocalCommand(input)
 		return m.runCurrencySubcommand(input)
-	case "/help", "/web":
-		return m.runHelpOrWebSlash(input, typedCmd)
+	case "/help":
+		m.echoLocalCommand(input)
+		m.showHelp()
+		return nil
 	case "/memory":
 		m.echoLocalCommand(input)
 		m.showMemory(input)
@@ -4396,17 +4397,6 @@ func (m *chatTUI) echoLocalCommand(input string) {
 		return
 	}
 	m.commitLine(dim("  › " + input))
-}
-
-// commandNames renders the custom command list for /help, "" when there are none.
-func (m *chatTUI) commandNames() string {
-	names := make([]string, 0, len(m.commands))
-	for _, c := range m.commands {
-		{
-			names = append(names, "/"+c.Name)
-		}
-	}
-	return strings.Join(names, " · ")
 }
 
 // showSandboxStatus displays the current sandbox configuration and whether

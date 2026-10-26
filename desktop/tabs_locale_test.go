@@ -199,36 +199,6 @@ func TestSetTrayLocaleKeepsExplicitCurrencyRuntime(t *testing.T) {
 	}
 }
 
-func TestDesktopEffectivePricingCurrencyUsesLocaleOnlyForAuto(t *testing.T) {
-	app := NewApp()
-	app.setDesktopLocale("zh-CN")
-
-	cfg := config.Default()
-	if got := app.desktopEffectivePricingCurrency(cfg); got != "" {
-		t.Fatalf("auto pricing currency = %q, want unresolved auto", got)
-	}
-
-	cfg.Desktop.Language = "en"
-	cfg.ApplyDeepSeekOfficialDefaultPricing()
-	if got := app.desktopEffectivePricingCurrency(cfg); got != "" {
-		t.Fatalf("desktop language changed pricing currency = %q", got)
-	}
-
-	cfg.Desktop.Language = ""
-	cfg.Language = "en"
-	cfg.ApplyDeepSeekOfficialDefaultPricing()
-	if got := app.desktopEffectivePricingCurrency(cfg); got != "" {
-		t.Fatalf("CLI language changed pricing currency = %q", got)
-	}
-
-	cfg.Language = ""
-	cfg.Billing.DisplayCurrency = "USD"
-	cfg.ApplyDeepSeekOfficialDefaultPricing()
-	if got := app.desktopEffectivePricingCurrency(cfg); got != "USD" {
-		t.Fatalf("explicit currency pricing currency = %q, want USD", got)
-	}
-}
-
 func TestCatalogManualDefaultTitleIsNotLocalized(t *testing.T) {
 	isolateDesktopUserDirs(t)
 	app := NewApp()
