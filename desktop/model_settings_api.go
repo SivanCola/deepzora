@@ -380,7 +380,7 @@ func applyModelProviderRemoval(c *config.Config, change ModelSettingsChange) err
 		}
 	}
 	fallback := providerAccessFallbackRef(c, names)
-	retargetProviderReferences(c, names, fallback)
+	c.RetargetProviderRefs(names, fallback)
 	if removeEntries {
 		for _, name := range names {
 			p, _ := c.Provider(name)

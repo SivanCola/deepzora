@@ -17,6 +17,7 @@ import (
 	"deepzora/internal/config"
 	"deepzora/internal/jobs"
 	"deepzora/internal/remote"
+	"deepzora/internal/servecontract"
 )
 
 func TestReloadServeProvidersCancelsBusyTurn(t *testing.T) {
@@ -29,7 +30,7 @@ func TestReloadServeProvidersCancelsBusyTurn(t *testing.T) {
 	reloadCalls := 0
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /auth/token", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set(serveCapabilitiesHeader, "deepzora-baseline-v1")
+		w.Header().Set(servecontract.CapabilitiesHeader, "deepzora-baseline-v1")
 		w.WriteHeader(http.StatusNoContent)
 	})
 	mux.HandleFunc("POST /cancel", func(w http.ResponseWriter, _ *http.Request) {
@@ -106,7 +107,7 @@ func TestReloadServeProvidersRejectsReplacedHostGeneration(t *testing.T) {
 	var reloadCalls int
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /auth/token", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set(serveCapabilitiesHeader, "deepzora-baseline-v1")
+		w.Header().Set(servecontract.CapabilitiesHeader, "deepzora-baseline-v1")
 		w.WriteHeader(http.StatusNoContent)
 	})
 	mux.HandleFunc("POST /providers/reload", func(w http.ResponseWriter, _ *http.Request) { reloadCalls++; w.WriteHeader(http.StatusNoContent) })

@@ -22,8 +22,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -34,7 +32,6 @@ import (
 	"deepzora/internal/event"
 	"deepzora/internal/eventwire"
 	"deepzora/internal/remote/bootstrap"
-	"deepzora/internal/store"
 )
 
 // SessionTakeoverView is what the confirmation dialog is built from.
@@ -75,57 +72,13 @@ type takeoverServeRecord struct {
 	token string
 }
 
-// discoverLocalTakeoverServes enumerates the serve state files under
-// <Deepzora home>/remote. The bootstrap wrote them over SFTP; the takeover
-// reads them locally because this machine is now where the user sits.
+// discoverLocalTakeoverServes enumerates the live resident serves recorded
+// under <Deepzora home>/remote; the takeover reads them locally because this
+// machine is now where the user sits.
 func discoverLocalTakeoverServes() []takeoverServeRecord {
-	dir := config.RemoteStateDir()
-	if dir == "" {
-		return nil
-	}
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil
-	}
 	var out []takeoverServeRecord
-	for _, entry := range entries {
-		name := entry.Name()
-		if entry.IsDir() || !strings.HasPrefix(name, "serve-") || !strings.HasSuffix(name, ".json") {
-			continue
-		}
-		data, err := os.ReadFile(filepath.Join(dir, name))
-		if err != nil {
-			continue
-		}
-		state, err := bootstrap.UnmarshalState(data)
-		if err != nil || state.PID <= 0 {
-			continue
-		}
-		if !takeoverProcessAlive(state.PID) {
-			// Stale state from a long-dead serve. Probing its dead port only
-			// burns handshakes (and can trip client/proxy rate limits).
-			continue
-		}
-		slug := strings.TrimSuffix(strings.TrimPrefix(name, "serve-"), ".json")
-		record := takeoverServeRecord{slug: slug, state: state}
-		// The port file carries the bound address of the current Serve process.
-		addr := ""
-		if port, err := os.ReadFile(filepath.Join(dir, store.RemoteServePortName(slug))); err == nil {
-			if trimmed := strings.TrimSpace(string(port)); trimmed != "" {
-				addr = trimmed
-			}
-		}
-		if addr == "" {
-			continue
-		}
-		record.base = "http://" + addr
-		if token, err := os.ReadFile(filepath.Join(dir, store.RemoteServeTokenName(slug))); err == nil {
-			record.token = strings.TrimSpace(string(token))
-		}
-		if record.token == "" {
-			continue
-		}
-		out = append(out, record)
+	for _, serve := range bootstrap.DiscoverLocalServes(config.RemoteStateDir(), takeoverProcessAlive) {
+		out = append(out, takeoverServeRecord{slug: serve.Slug, state: serve.State, base: serve.Base, token: serve.Token})
 	}
 	return out
 }

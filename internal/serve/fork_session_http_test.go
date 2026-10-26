@@ -15,6 +15,7 @@ import (
 	"deepzora/internal/config"
 	"deepzora/internal/control"
 	"deepzora/internal/provider"
+	"deepzora/internal/servecontract"
 	"deepzora/internal/session"
 )
 
@@ -307,7 +308,7 @@ func TestServerAdvertisesSessionForkTargetsOnlyForExclusiveSessions(t *testing.T
 	if resp.StatusCode != http.StatusNoContent {
 		t.Fatalf("handshake status = %d", resp.StatusCode)
 	}
-	advertised := strings.Split(resp.Header.Get(capabilitiesHeader), ",")
+	advertised := strings.Split(resp.Header.Get(servecontract.CapabilitiesHeader), ",")
 	if !slices.Contains(advertised, capabilityForkTargetsV1) {
 		t.Fatalf("capabilities header = %v", advertised)
 	}

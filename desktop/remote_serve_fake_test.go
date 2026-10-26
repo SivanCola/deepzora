@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"deepzora/internal/config"
+	"deepzora/internal/servecontract"
 )
 
 // fakeServe is a minimal Serve stand-in for bridge tests: token handshake,
@@ -103,7 +104,7 @@ func newFakeServe(t *testing.T, token string, sessions []serveSessionEntry) *fak
 			return
 		}
 		http.SetCookie(w, &http.Cookie{Name: "deepzora_token", Value: fs.token, Path: "/", HttpOnly: true})
-		w.Header().Set(serveCapabilitiesHeader, "deepzora-baseline-v1,permission-presets-v1,present-files-v1,execution-v2,session-history-v1,session-identity-v1,session-ownership-v1")
+		w.Header().Set(servecontract.CapabilitiesHeader, "deepzora-baseline-v1,permission-presets-v1,present-files-v1,execution-v2,session-history-v1,session-identity-v1,session-ownership-v1")
 		w.WriteHeader(http.StatusNoContent)
 	})
 	mux.HandleFunc("POST /new", func(w http.ResponseWriter, r *http.Request) {

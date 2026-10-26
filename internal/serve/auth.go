@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"deepzora/internal/config"
+	"deepzora/internal/servecontract"
 )
 
 // authMode represents the authentication mode for the serve frontend.
@@ -185,7 +186,7 @@ func (ag *authGate) handleTokenBootstrap(w http.ResponseWriter, r *http.Request)
 	})
 	if ag.capabilities != nil {
 		if caps := ag.capabilities(); len(caps) > 0 {
-			w.Header().Set(capabilitiesHeader, strings.Join(caps, ","))
+			w.Header().Set(servecontract.CapabilitiesHeader, strings.Join(caps, ","))
 		}
 	}
 	w.Header().Set("Cache-Control", "no-store")

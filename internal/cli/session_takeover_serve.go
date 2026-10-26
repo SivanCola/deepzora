@@ -8,20 +8,21 @@ import (
 	"bytes"
 	"context"
 	"deepzora/internal/processidentity"
+	"deepzora/internal/servecontract"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"deepzora/internal/config"
 	"deepzora/internal/control"
 	"deepzora/internal/remote/bootstrap"
-	"deepzora/internal/store"
 )
 
 // cliTakeoverTimeout bounds the drain window of a wait-mode takeover.
@@ -46,53 +47,12 @@ type cliTakeoverGrant struct {
 // whose process is gone. Variable so tests can model dead and live records.
 var cliServeProcessAlive = serveProcessAlive
 
-// discoverCLIServes enumerates resident serve processes recorded under
-// <Deepzora home>/remote. This machine is the SSH target in the takeover
-// scenario, so the bootstrap's SFTP-written state files are local files here.
-// Records whose PID no longer exists are skipped: a restarted desktop
-// respawns the serve on a new port, and dialing the stale address only
-// produces connection-refused noise that can shadow a live record's result.
+// discoverCLIServes enumerates the live resident serves recorded under
+// <Deepzora home>/remote.
 func discoverCLIServes() []cliServeRecord {
-	dir := config.RemoteStateDir()
-	if dir == "" {
-		return nil
-	}
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil
-	}
 	var out []cliServeRecord
-	for _, entry := range entries {
-		name := entry.Name()
-		if entry.IsDir() || !strings.HasPrefix(name, "serve-") || !strings.HasSuffix(name, ".json") {
-			continue
-		}
-		data, err := os.ReadFile(filepath.Join(dir, name))
-		if err != nil {
-			continue
-		}
-		state, err := bootstrap.UnmarshalState(data)
-		if err != nil || state.PID <= 0 || !cliServeProcessAlive(state.PID) {
-			continue
-		}
-		slug := strings.TrimSuffix(strings.TrimPrefix(name, "serve-"), ".json")
-		addr := state.Addr
-		if port, err := os.ReadFile(filepath.Join(dir, store.RemoteServePortName(slug))); err == nil {
-			if trimmed := strings.TrimSpace(string(port)); trimmed != "" {
-				addr = trimmed
-			}
-		}
-		if addr == "" {
-			continue
-		}
-		token := ""
-		if data, err := os.ReadFile(filepath.Join(dir, store.RemoteServeTokenName(slug))); err == nil {
-			token = strings.TrimSpace(string(data))
-		}
-		if token == "" {
-			continue
-		}
-		out = append(out, cliServeRecord{pid: state.PID, base: "http://" + addr, token: token})
+	for _, serve := range bootstrap.DiscoverLocalServes(config.RemoteStateDir(), cliServeProcessAlive) {
+		out = append(out, cliServeRecord{pid: serve.State.PID, base: serve.Base, token: serve.Token})
 	}
 	return out
 }
@@ -105,20 +65,12 @@ func cliServeClient(ctx context.Context, record cliServeRecord) (*http.Client, e
 		return nil, err
 	}
 	client := &http.Client{Jar: jar}
-	auth, _ := json.Marshal(map[string]string{"token": record.token})
-	authReq, err := http.NewRequestWithContext(ctx, http.MethodPost, record.base+"/auth/token", bytes.NewReader(auth))
-	if err != nil {
+	if _, err := servecontract.Handshake(ctx, client, record.base, record.token); err != nil {
+		var transport *url.Error
+		if errors.As(err, &transport) {
+			return nil, &cliServeUnreachableError{err: err}
+		}
 		return nil, err
-	}
-	authReq.Header.Set("Content-Type", "application/json")
-	authResp, err := client.Do(authReq)
-	if err != nil {
-		return nil, &cliServeUnreachableError{err: err}
-	}
-	_, _ = io.Copy(io.Discard, authResp.Body)
-	authResp.Body.Close()
-	if authResp.StatusCode != http.StatusNoContent {
-		return nil, fmt.Errorf("serve auth: status %d", authResp.StatusCode)
 	}
 	return client, nil
 }

@@ -234,9 +234,6 @@ func serveDoForSession(ctx context.Context, client *http.Client, method, url str
 	return client.Do(req)
 }
 
-// serveCapabilitiesHeader carries the comma-joined capability tokens a serve
-// advertises on a successful token handshake (e.g. "browser").
-const serveCapabilitiesHeader = "X-Deepzora-Serve-Capabilities"
 const serveCapabilityExecutionV2 = "execution-v2"
 const serveCapabilitySessions = "session-history-v1"
 const serveCapabilitySessionContentV1 = "session-content-v1"
@@ -251,27 +248,12 @@ const serveCapabilityGoalLifecycleV2 = servecontract.GoalLifecycleV2
 const serveCapabilitySessionForkTargetsV1 = servecontract.SessionForkTargetsV1
 
 // serveHandshakeCapabilities exchanges the pre-shared token for the session
-// cookie and returns the serve's advertised capabilities; older serves omit
-// the header and yield nil, which callers must read as "no capabilities".
+// cookie and returns the serve's advertised capabilities, refusing a serve
+// that does not speak the current baseline.
 func serveHandshakeCapabilities(ctx context.Context, client *http.Client, base, token string) ([]string, error) {
-	body, err := json.Marshal(map[string]string{"token": token})
+	caps, err := servecontract.Handshake(ctx, client, base, token)
 	if err != nil {
 		return nil, err
-	}
-	resp, err := serveDo(ctx, client, http.MethodPost, serveURL(base, "/auth/token"), body)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	_, _ = io.Copy(io.Discard, resp.Body)
-	if resp.StatusCode != http.StatusNoContent {
-		return nil, fmt.Errorf("serve auth handshake: status %d", resp.StatusCode)
-	}
-	var caps []string
-	for cap := range strings.SplitSeq(resp.Header.Get(serveCapabilitiesHeader), ",") {
-		if cap = strings.TrimSpace(cap); cap != "" {
-			caps = append(caps, cap)
-		}
 	}
 	if !slices.Contains(caps, servecontract.BaselineV1) {
 		return nil, fmt.Errorf("remote service does not support the current Deepzora baseline; install a matching Deepzora service")

@@ -321,6 +321,38 @@ func TestRemoveProviderClearsOptionalRefsWithoutFallback(t *testing.T) {
 	}
 }
 
+// guardian_model is resolved strictly at boot, so leaving it on a removed
+// provider would stop every later launch.
+func TestRemoveProviderRetargetsGuardianModel(t *testing.T) {
+	c := testModelFallbackConfig(t)
+	c.DefaultModel = "prov-b"
+	c.Agent.GuardianModel = "prov-a/model-a1"
+
+	if err := c.RemoveProvider("prov-a"); err != nil {
+		t.Fatalf("RemoveProvider: %v", err)
+	}
+	if c.Agent.GuardianModel != "prov-b" {
+		t.Fatalf("guardian_model = %q, want prov-b", c.Agent.GuardianModel)
+	}
+}
+
+func TestRemovePluginModelRefsRetargetsGuardianAndClearsVision(t *testing.T) {
+	c := testModelFallbackConfig(t)
+	c.DefaultModel = "prov-b/model-b1"
+	c.Agent.GuardianModel = "plugin/commandcode/commandcode/deepseek-v4-pro"
+	c.Agent.VisionModel = "plugin/commandcode/commandcode/deepseek-v4-flash"
+
+	if !c.RemovePluginModelRefs("commandcode") {
+		t.Fatal("RemovePluginModelRefs should report a change")
+	}
+	if c.Agent.GuardianModel != "prov-a" {
+		t.Fatalf("guardian_model = %q, want prov-a", c.Agent.GuardianModel)
+	}
+	if c.Agent.VisionModel != "" {
+		t.Fatalf("vision_model = %q, want cleared", c.Agent.VisionModel)
+	}
+}
+
 func TestRemovePluginModelRefsMigratesRefs(t *testing.T) {
 	c := testModelFallbackConfig(t)
 	c.DefaultModel = "plugin/commandcode/commandcode/deepseek-v4-flash"

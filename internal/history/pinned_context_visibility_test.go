@@ -2,6 +2,7 @@ package history
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 
@@ -34,5 +35,23 @@ func TestHistorySurfacesExcludePinnedContextRevisions(t *testing.T) {
 	}
 	if _, ok := candidateText([]provider.Message{revision}, historycatalog.Candidate{MessageIndex: 0, Kind: string(KindUserText)}); ok {
 		t.Fatal("candidateText accepted a stale pinned-revision index entry")
+	}
+}
+
+func TestContextIndicesBoundsWindowAndSkipsPinnedRevisions(t *testing.T) {
+	messages := []provider.Message{
+		{Role: provider.RoleUser, Content: "first"},
+		{Role: provider.RoleUser, Origin: provider.MessageOriginHost, Content: "<pinned_context_revision>pinned</pinned_context_revision>"},
+		{Role: provider.RoleAssistant, Content: "hit"},
+		{Role: provider.RoleUser, Content: "after"},
+	}
+	if got, want := ContextIndices(messages, 2, 5, 5), []int{0, 2, 3}; !slices.Equal(got, want) {
+		t.Fatalf("ContextIndices = %v, want %v", got, want)
+	}
+	if got, want := ContextIndices(messages, 2, 0, -1), []int{2}; !slices.Equal(got, want) {
+		t.Fatalf("zero/negative window = %v, want %v", got, want)
+	}
+	if got := ContextIndices(messages, 4, 1, 1); len(got) != 0 {
+		t.Fatalf("out-of-range index = %v, want empty", got)
 	}
 }

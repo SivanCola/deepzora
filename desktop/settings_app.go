@@ -428,16 +428,6 @@ func providerModelOverridesForSave(overrides []ProviderModelOverrideView, models
 	return out
 }
 
-func desktopModelRefsProvider(c *config.Config, ref, name string) bool {
-	if config.ModelRefsProvider(ref, name) {
-		return true
-	}
-	if e, ok := c.ResolveModel(ref); ok {
-		return e.Name == name
-	}
-	return false
-}
-
 func officialProviderHost(baseURL string) string {
 	u, err := url.Parse(strings.TrimSpace(baseURL))
 	if err != nil {

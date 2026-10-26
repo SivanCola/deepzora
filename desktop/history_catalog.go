@@ -179,13 +179,15 @@ func (a *App) GetHistorySearchContext(req HistorySearchContextRequest) []History
 	if fence.validate() != nil {
 		return out
 	}
-	start := max(0, req.MessageIndex-min(max(req.Before, 0), 20))
-	end := req.MessageIndex + min(min(max(req.After, 0), 20), len(messages)-req.MessageIndex-1) + 1
-	for i := start; i < end; i++ {
+	for _, i := range history.ContextIndices(messages, req.MessageIndex, min(req.Before, historyContextMaxLines), min(req.After, historyContextMaxLines)) {
 		out = append(out, HistorySearchContextLine{Index: i, Role: string(messages[i].Role), Text: messages[i].Content})
 	}
 	return out
 }
+
+// historyContextMaxLines caps each side of the search-result context the
+// desktop shows; the agent's history tool uses its own, smaller cap.
+const historyContextMaxLines = 20
 
 func (a *App) RebuildHistoryIndex() error {
 	if a == nil || a.shuttingDown.Load() {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"deepzora/internal/servecontract"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -63,7 +64,7 @@ func newForkServe(t *testing.T, forkCapable bool) *forkServe {
 			return
 		}
 		http.SetCookie(w, &http.Cookie{Name: "deepzora_token", Value: fs.token, Path: "/", HttpOnly: true})
-		w.Header().Set(serveCapabilitiesHeader, fs.caps)
+		w.Header().Set(servecontract.CapabilitiesHeader, fs.caps)
 		w.WriteHeader(http.StatusNoContent)
 	})
 	mux.HandleFunc("POST /new", func(w http.ResponseWriter, _ *http.Request) {

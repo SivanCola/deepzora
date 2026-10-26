@@ -241,7 +241,7 @@ func TestHandshakeAdvertisesBrowserCapability(t *testing.T) {
 		if resp.StatusCode != http.StatusNoContent {
 			t.Fatalf("handshake status = %d, want 204", resp.StatusCode)
 		}
-		got := resp.Header.Get(capabilitiesHeader)
+		got := resp.Header.Get(servecontract.CapabilitiesHeader)
 		if withBroker && got != servecontract.BaselineV1+","+capabilityPermissionPresets+","+capabilityPresentFiles+","+capabilityExecutionV2+","+capabilitySessionHistory+","+capabilityMaintenanceV1+","+servecontract.AgentPresetV1+","+servecontract.AgentPresetCompleteV1+","+modelApplicationCapability+","+capabilityExtensionFormInstanceV1+","+capabilityInteractionTargetV1+","+capabilityBrowser {
 			t.Fatalf("capabilities header = %q, want permission, present-files, preset and browser capabilities", got)
 		}
