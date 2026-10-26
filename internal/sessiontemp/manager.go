@@ -289,10 +289,6 @@ func (m *Manager) createGenerationLocked() (*generation, error) {
 	}, nil
 }
 
-// Prefix is the directory name prefix used for session temporary directories.
-// Exported for tests and diagnostics.
-func Prefix() string { return dirPrefix }
-
 func (m *Manager) retireLocked(gen *generation) {
 	if gen == nil {
 		return

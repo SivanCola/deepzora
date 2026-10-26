@@ -654,7 +654,6 @@ Usage:
   deepzora trust [--dir PATH] [--yes|--revoke]          review and approve programs this project runs
   deepzora task list|show|status|events|stop|cancel|monitor|tmux --json [--dir PATH]
                                                          inspect or control redacted tasks
-  deepzora bot start|doctor|weixin-login                multi-channel IM bot gateway
   deepzora upgrade [--check] [--force]                   update to the latest official release (also: deepzora update)
   deepzora completion bash|zsh|fish                     print a shell completion script to stdout
   deepzora version [--verbose|--json]                   print version (single line) or build metadata

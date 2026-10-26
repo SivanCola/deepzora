@@ -16,8 +16,6 @@ type ToolSearch struct {
 // Responses and Anthropic may enable it later after the preview experiment.
 var nativeToolSearchPreview atomic.Bool
 
-func NativeToolSearchPreviewEnabled() bool { return nativeToolSearchPreview.Load() }
-
 func SetNativeToolSearchPreviewForTest(enabled bool) func() {
 	prev := nativeToolSearchPreview.Swap(enabled)
 	return func() { nativeToolSearchPreview.Store(prev) }

@@ -1476,23 +1476,6 @@ func markUpdateHealthyMatching(runningVersion, expectedCreatedAt, expectedTransa
 	return nil
 }
 
-// CancelPendingUpdate removes a transaction that failed before control was
-// handed to the replacement build. A version mismatch is intentionally inert.
-func CancelPendingUpdate(toVersion string) error {
-	return cancelPendingUpdateInvocation(toVersion, "", "")
-}
-
-// CancelPendingUpdateMatching removes only the exact transaction prepared by
-// the caller. It is used by updater failure paths where a same-version retry can
-// replace pending-update.json before cleanup runs.
-func CancelPendingUpdateMatching(toVersion, expectedCreatedAt string) error {
-	expectedCreatedAt = strings.TrimSpace(expectedCreatedAt)
-	if expectedCreatedAt == "" {
-		return nil
-	}
-	return cancelPendingUpdateInvocation(toVersion, expectedCreatedAt, "")
-}
-
 // CancelPendingUpdateExact removes only the complete transaction returned by
 // prepare. This is the updater failure path: copied creation timestamps are not
 // sufficient authorization if pending-update.json itself was rewritten.
@@ -1644,18 +1627,6 @@ func removeUpdateNodeMatching(path string, verify func(string) error, directory 
 
 func RollbackPendingUpdate() (UpdateRollbackResult, error) {
 	return rollbackPendingUpdateInvocation("", "", "")
-}
-
-// RollbackPendingUpdateMatching rolls back only the exact transaction prepared
-// by the caller. This is used when an apply attempt fails after another process
-// may already have replaced pending-update.json with a same-version retry.
-func RollbackPendingUpdateMatching(expectedToVersion, expectedCreatedAt string) (UpdateRollbackResult, error) {
-	expectedToVersion = strings.TrimSpace(expectedToVersion)
-	expectedCreatedAt = strings.TrimSpace(expectedCreatedAt)
-	if expectedToVersion == "" || expectedCreatedAt == "" {
-		return UpdateRollbackResult{}, fmt.Errorf("rollback update: transaction identity is incomplete")
-	}
-	return rollbackPendingUpdateInvocation(expectedToVersion, expectedCreatedAt, "")
 }
 
 func rollbackPendingUpdateState(expectedStateID string, expectedStates map[string]string) (UpdateRollbackResult, error) {

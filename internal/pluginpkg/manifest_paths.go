@@ -12,7 +12,3 @@ func ManifestPath(kind string) string {
 		return NativeManifest
 	}
 }
-
-func ManifestPaths() []string {
-	return []string{NativeManifest, CodexManifest, ClaudeManifest}
-}

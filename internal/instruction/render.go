@@ -70,14 +70,3 @@ func providerDirectoryPath(dir, workspaceRoot string) string {
 	}
 	return "workspace"
 }
-
-func Compose(base string, documents []Document) string {
-	block := Block(documents)
-	if block == "" {
-		return base
-	}
-	if strings.TrimSpace(base) == "" {
-		return block
-	}
-	return strings.TrimRight(base, "\n") + "\n\n" + block
-}

@@ -91,9 +91,6 @@ func LoadSessionExtensions(sessionPath string) (*SessionExtensions, error) {
 	return store, nil
 }
 
-// Path returns the store's file path.
-func (s *SessionExtensions) Path() string { return s.path }
-
 // Get returns the stored blob for pluginID.
 func (s *SessionExtensions) Get(pluginID string) (json.RawMessage, bool) {
 	blob, ok := s.plugins[pluginID]

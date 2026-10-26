@@ -655,7 +655,6 @@ var Chinese = Messages{
   deepzora trust [--dir PATH] [--yes|--revoke]          审阅并批准本项目要运行的程序
   deepzora task list|show|status|events|stop|cancel|monitor|tmux --json [--dir PATH]
                                                          查看或控制脱敏 Task
-  deepzora bot start|doctor|weixin-login                多渠道 IM bot 网关
   deepzora upgrade [--check] [--force]                   更新到最新正式版（别名：deepzora update）
   deepzora completion bash|zsh|fish                     打印 shell 补全脚本到 stdout
   deepzora version [--verbose|--json]                   打印版本（单行）或构建元信息

@@ -50,7 +50,6 @@ import (
 var (
 	runInteractiveSession = chatREPL
 	cliIsInteractive      = isInteractive
-	openBrowserURL        = openInBrowser
 )
 
 // Run is the CLI entry point; it returns a process exit code.

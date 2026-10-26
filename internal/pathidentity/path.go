@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 	"syscall"
@@ -160,42 +159,4 @@ func classify(stage, path string, err error) error {
 		kind = ErrorUnavailable
 	}
 	return &Error{Kind: kind, Stage: stage, Path: path, Err: err}
-}
-
-// Canonical is the frozen v1 compatibility key used by historical locks.
-// New identity-sensitive code must use Resolve so errors are not discarded.
-func Canonical(path string) string {
-	key := filepath.Clean(strings.TrimSpace(path))
-	if abs, err := filepath.Abs(key); err == nil {
-		key = abs
-	}
-	key = legacyResolvePathThroughExistingAncestor(key)
-	if runtime.GOOS == "windows" {
-		if strings.HasPrefix(strings.ToUpper(key), `\\?\UNC\`) {
-			key = `\\` + key[len(`\\?\UNC\`):]
-		} else {
-			key = strings.TrimPrefix(key, `\\?\`)
-		}
-		key = strings.ToLower(key)
-	}
-	return key
-}
-
-func legacyResolvePathThroughExistingAncestor(path string) string {
-	current := filepath.Clean(path)
-	missing := make([]string, 0, 4)
-	for {
-		if resolved, err := filepath.EvalSymlinks(current); err == nil {
-			for _, part := range slices.Backward(missing) {
-				resolved = filepath.Join(resolved, part)
-			}
-			return resolved
-		}
-		parent := filepath.Dir(current)
-		if parent == current {
-			return path
-		}
-		missing = append(missing, filepath.Base(current))
-		current = parent
-	}
 }

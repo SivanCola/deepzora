@@ -83,18 +83,3 @@ func UnavailableRemediation() string {
 		return "Restricted permission presets are unavailable on this platform; explicitly select Full access only when unconfined execution is intended."
 	}
 }
-
-// BackendUnavailableReason is safe diagnostic copy for subsystems such as MCP
-// that intentionally continue unconfined when the OS backend is missing.
-func BackendUnavailableReason() string {
-	switch runtime.GOOS {
-	case "linux":
-		return "bubblewrap (bwrap) is unavailable on PATH"
-	case "darwin":
-		return "sandbox-exec is missing from PATH or unusable (sandbox_apply is restricted)"
-	case "windows":
-		return "Deepzora does not ship an OS-level sandbox on Windows"
-	default:
-		return "this platform has no supported Deepzora sandbox backend"
-	}
-}

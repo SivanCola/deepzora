@@ -63,25 +63,6 @@ func MarkUpdateApplyFailed(toVersion, reason string) error {
 	return markUpdateApplyFailed(toVersion, "", "", reason)
 }
 
-// MarkUpdateApplyFailedMatching binds the marker to the exact transaction held
-// by an updater claim. The additive creation identity keeps a same-version
-// marker from authorizing rollback of a later retry.
-func MarkUpdateApplyFailedMatching(toVersion, updateCreatedAt, reason string) error {
-	updateCreatedAt = strings.TrimSpace(updateCreatedAt)
-	if updateCreatedAt == "" {
-		return fmt.Errorf("update apply failure: transaction identity is incomplete")
-	}
-	tx, err := ReadPendingUpdate()
-	if err != nil {
-		return fmt.Errorf("update apply failure: read pending transaction: %w", err)
-	}
-	if strings.TrimSpace(tx.ToVersion) != strings.TrimSpace(toVersion) ||
-		strings.TrimSpace(tx.CreatedAt) != updateCreatedAt {
-		return fmt.Errorf("update apply failure: pending transaction does not match")
-	}
-	return markUpdateApplyFailedInvocation(tx, reason)
-}
-
 func markUpdateApplyFailedInvocation(invocation *UpdateTransaction, reason string) error {
 	if invocation == nil {
 		return fmt.Errorf("update apply failure: transaction identity is incomplete")
@@ -108,20 +89,6 @@ func markUpdateApplyFailedInvocation(invocation *UpdateTransaction, reason strin
 		invocationID,
 		reason,
 	)
-}
-
-// MarkUpdateApplyFailedExact records a failure for the complete transaction
-// held by an updater claim. The caller must keep that claim's pending lock
-// until this write returns; taking it again here would deadlock the updater.
-func MarkUpdateApplyFailedExact(tx *UpdateTransaction, reason string) error {
-	if tx == nil || strings.TrimSpace(tx.CreatedAt) == "" {
-		return fmt.Errorf("update apply failure: transaction identity is incomplete")
-	}
-	transactionID := UpdateTransactionID(tx)
-	if transactionID == "" {
-		return fmt.Errorf("update apply failure: transaction identity is incomplete")
-	}
-	return markUpdateApplyFailed(tx.ToVersion, tx.CreatedAt, transactionID, reason)
 }
 
 func markUpdateApplyFailed(toVersion, updateCreatedAt, updateTransactionID, reason string) error {
@@ -159,36 +126,6 @@ func ReadUpdateApplyFailure() (*UpdateApplyFailure, bool) {
 		return nil, false
 	}
 	return &failure, true
-}
-
-// ClearUpdateApplyFailure removes the marker; a missing marker is not an error.
-func ClearUpdateApplyFailure() error {
-	failure, ok := ReadUpdateApplyFailure()
-	if !ok {
-		return nil
-	}
-	return clearUpdateApplyFailureExact(failure)
-}
-
-// ClearUpdateApplyFailureExact removes only the marker created for tx. Platform
-// updaters call this after the installed release-unit state is durable; a marker
-// concurrently replaced by another transaction is retained.
-func ClearUpdateApplyFailureExact(tx *UpdateTransaction) error {
-	if tx == nil {
-		return fmt.Errorf("clear update apply failure: transaction identity is incomplete")
-	}
-	expectedID := UpdateTransactionID(tx)
-	if expectedID == "" {
-		return fmt.Errorf("clear update apply failure: transaction identity is incomplete")
-	}
-	failure, ok := ReadUpdateApplyFailure()
-	if !ok {
-		return nil
-	}
-	if strings.TrimSpace(failure.UpdateTransactionID) != expectedID {
-		return fmt.Errorf("clear update apply failure: marker does not match transaction")
-	}
-	return clearUpdateApplyFailureExact(failure)
 }
 
 func clearUpdateApplyFailureExact(expected *UpdateApplyFailure) error {

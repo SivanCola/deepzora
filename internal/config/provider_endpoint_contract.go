@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"sort"
 	"strings"
-	"sync"
 )
 
 // ProviderEndpointMismatch describes a high-confidence conflict between a
@@ -25,11 +24,6 @@ type ProviderEndpointRepair struct {
 	FromProtocol string
 	ToProtocol   string
 }
-
-var providerEndpointRepairReceipts = struct {
-	sync.Mutex
-	byPath map[string][]ProviderEndpointRepair
-}{byPath: make(map[string][]ProviderEndpointRepair)}
 
 func (e *ProviderEndpointMismatch) Error() string {
 	if e == nil {
@@ -209,21 +203,6 @@ func repairProviderEndpointContracts(c *Config) []ProviderEndpointRepair {
 			repairs = append(repairs, *repair)
 		}
 	}
-	return repairs
-}
-
-// TakeProviderEndpointRepairReceipts returns startup repairs that occurred
-// before the active runtime had an event sink, then clears the process-local
-// receipt so concurrent tab builds do not repeat the notice.
-func TakeProviderEndpointRepairReceipts(path string) []ProviderEndpointRepair {
-	path = strings.TrimSpace(path)
-	if path == "" {
-		return nil
-	}
-	providerEndpointRepairReceipts.Lock()
-	defer providerEndpointRepairReceipts.Unlock()
-	repairs := append([]ProviderEndpointRepair(nil), providerEndpointRepairReceipts.byPath[path]...)
-	delete(providerEndpointRepairReceipts.byPath, path)
 	return repairs
 }
 

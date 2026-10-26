@@ -52,9 +52,6 @@ func NewAmountFromString(s string) (Amount, error) {
 	return amountFromRat(r), nil
 }
 
-// ParseAmount is an alias for NewAmountFromString.
-func ParseAmount(s string) (Amount, error) { return NewAmountFromString(s) }
-
 func amountFromRat(r *big.Rat) Amount {
 	if r == nil {
 		return Zero
@@ -134,16 +131,6 @@ func (a Amount) MulRate(rate float64) Amount {
 // MoneyOf builds a Money value.
 func MoneyOf(amount Amount, currency string) Money {
 	return Money{Amount: amount.String(), Currency: NormalizeCurrency(currency)}
-}
-
-// ParseMoney parses amount+currency into fixed-point Money.
-func ParseMoney(amount, currency string) (Money, Amount, error) {
-	a, err := NewAmountFromString(amount)
-	if err != nil {
-		return Money{}, Zero, err
-	}
-	cur := NormalizeCurrency(currency)
-	return MoneyOf(a, cur), a, nil
 }
 
 // AmountValue returns the fixed-point amount, or zero on parse error.

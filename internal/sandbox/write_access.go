@@ -23,13 +23,3 @@ type WriteAccessGrant struct {
 	Scope       ApprovalScope
 	Directories []string
 }
-
-// ParseApprovalScope maps a wire/API string to a scope. Unknown values are once.
-func ParseApprovalScope(s string) ApprovalScope {
-	switch ApprovalScope(s) {
-	case ApprovalScopeSession, ApprovalScopeProject, ApprovalScopeOnce:
-		return ApprovalScope(s)
-	default:
-		return ApprovalScopeOnce
-	}
-}

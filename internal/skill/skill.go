@@ -439,19 +439,6 @@ func AllowedInProfile(sk Skill, profile string) bool {
 	return false
 }
 
-// FilterForProfile returns skills that declare eligibility for profile.
-// Host boot no longer uses this to hide skills from the model; doctor and
-// inventory tooling may still call it for recommended-profile diagnostics.
-func FilterForProfile(skills []Skill, profile string) []Skill {
-	out := make([]Skill, 0, len(skills))
-	for _, sk := range skills {
-		if AllowedInProfile(sk, profile) {
-			out = append(out, sk)
-		}
-	}
-	return out
-}
-
 func normalizeRuntimeProfile(profile string) string {
 	switch strings.ToLower(strings.TrimSpace(profile)) {
 	case "economy":

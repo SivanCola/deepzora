@@ -81,14 +81,6 @@ var attachmentPathSeq atomic.Uint64
 var attachmentNow = time.Now
 var safeAttachmentExt = regexp.MustCompile(`^\.[a-z0-9]{1,12}$`)
 
-// SaveAttachmentDataURL stores a non-image file (dropped/pasted in the desktop
-// app, where the browser exposes bytes but not a real path) under
-// .deepzora/attachments and returns its repo-relative path for @referencing.
-// origName supplies only the extension; the stored name is generated.
-func SaveAttachmentDataURL(origName, dataURL string) (string, error) {
-	return SaveAttachmentDataURLInRoot(".", origName, dataURL)
-}
-
 func SaveAttachmentDataURLInRoot(root, origName, dataURL string, commit ...AttachmentCommit) (string, error) {
 	const marker = ";base64,"
 	_, after, ok := strings.Cut(dataURL, marker)
@@ -103,10 +95,6 @@ func SaveAttachmentDataURLInRoot(root, origName, dataURL string, commit ...Attac
 		return "", fmt.Errorf("decode pasted file: %w", err)
 	}
 	return SaveAttachmentBytesInRoot(root, origName, raw, commit...)
-}
-
-func SaveAttachmentBytes(origName string, raw []byte) (string, error) {
-	return SaveAttachmentBytesInRoot(".", origName, raw)
 }
 
 func SaveAttachmentBytesInRoot(root, origName string, raw []byte, commit ...AttachmentCommit) (string, error) {

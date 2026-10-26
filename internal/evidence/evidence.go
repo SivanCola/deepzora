@@ -14,7 +14,6 @@ import (
 
 	"mvdan.cc/sh/v3/syntax"
 
-	"deepzora/internal/provider"
 	"deepzora/internal/shellparse"
 	"deepzora/internal/shellsafe"
 )
@@ -656,7 +655,6 @@ func (l *Ledger) hasSuccessfulPaths(paths []string, accept func(Receipt) bool) b
 }
 
 type contextKey struct{}
-type closedLoopKey struct{}
 
 func WithLedger(ctx context.Context, ledger *Ledger) context.Context {
 	if ledger == nil {
@@ -668,64 +666,6 @@ func WithLedger(ctx context.Context, ledger *Ledger) context.Context {
 func FromContext(ctx context.Context) (*Ledger, bool) {
 	ledger, ok := ctx.Value(contextKey{}).(*Ledger)
 	return ledger, ok && ledger != nil
-}
-
-// WithClosedLoopExecution marks a tool call for closed-loop evidence checks.
-func WithClosedLoopExecution(ctx context.Context) context.Context {
-	return context.WithValue(ctx, closedLoopKey{}, true)
-}
-
-// ClosedLoopExecutionFromContext reports whether closed-loop evidence is required.
-func ClosedLoopExecutionFromContext(ctx context.Context) bool {
-	enabled, _ := ctx.Value(closedLoopKey{}).(bool)
-	return enabled
-}
-
-// PathsProvenInSession reports whether every path is covered by a successful
-// (non-errored) tool call somewhere in msgs — the cross-turn fallback for diff
-// and files evidence, mirroring verifyCommandFromSession for the per-turn
-// ledger's path receipts (which reset each turn). wantWrite restricts to writer
-// tools (diff); false accepts a reader or writer (files).
-func PathsProvenInSession(msgs []provider.Message, paths []string, wantWrite bool) bool {
-	wanted := pathSet(normalizePaths(paths))
-	if len(wanted) == 0 {
-		return false
-	}
-	failed := failedSessionCallIDs(msgs)
-	found := map[string]bool{}
-	for _, msg := range msgs {
-		for _, tc := range msg.ToolCalls {
-			if failed[tc.ID] {
-				continue
-			}
-			r := ReceiptFromToolCall(tc.Name, json.RawMessage(tc.Arguments), true, false)
-			if wantWrite && !r.Write {
-				continue
-			}
-			if !wantWrite && !r.Read && !r.Write {
-				continue
-			}
-			for _, p := range normalizePaths(r.Paths) {
-				if _, ok := wanted[p]; ok {
-					found[p] = true
-				}
-			}
-		}
-	}
-	return len(found) == len(wanted)
-}
-
-func failedSessionCallIDs(msgs []provider.Message) map[string]bool {
-	failed := map[string]bool{}
-	for _, msg := range msgs {
-		if msg.Role != provider.RoleTool || msg.ToolCallID == "" {
-			continue
-		}
-		if strings.HasPrefix(msg.Content, "error:") || strings.HasPrefix(msg.Content, "blocked:") {
-			failed[msg.ToolCallID] = true
-		}
-	}
-	return failed
 }
 
 func ReceiptFromToolCall(toolName string, args json.RawMessage, success bool, readOnly bool) Receipt {

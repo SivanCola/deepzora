@@ -28,10 +28,6 @@ func (e *QuotaError) Unwrap() error {
 	return &APIError{Provider: e.Provider, ProviderDisplayName: e.ProviderDisplayName, Protocol: e.Protocol, Status: e.Status}
 }
 
-func QuotaErrorFromResponse(name string, status int, body string) *QuotaError {
-	return quotaErrorFromResponse(name, "", "", status, body)
-}
-
 func QuotaErrorFromResponseWithIdentity(name, displayName, protocol string, status int, body string) *QuotaError {
 	return quotaErrorFromResponse(name, displayName, protocol, status, body)
 }

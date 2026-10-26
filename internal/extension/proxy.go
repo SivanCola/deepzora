@@ -98,36 +98,6 @@ func (p *StableProxy) Replace(ctx context.Context, next Backend, generation uint
 	return nil
 }
 
-// Close drains the active and any remaining backends after cancelling in-flight calls.
-func (p *StableProxy) Close(ctx context.Context) error {
-	if p == nil {
-		return nil
-	}
-	if !p.closed.CompareAndSwap(false, true) {
-		return nil
-	}
-	p.mu.Lock()
-	active := p.active
-	p.active = nil
-	draining := append([]Backend(nil), p.draining...)
-	p.draining = nil
-	cancels := p.takeInFlightLocked()
-	p.mu.Unlock()
-	for _, c := range cancels {
-		c()
-	}
-	var first error
-	if active != nil {
-		first = active.Close(ctx)
-	}
-	for _, b := range draining {
-		if err := b.Close(ctx); err != nil && first == nil {
-			first = err
-		}
-	}
-	return first
-}
-
 // Call invokes fn with the active backend. If no backend is registered the
 // call fails fast so consumers do not hang across a crash/replace window.
 func (p *StableProxy) Call(fn func(Backend) error) error {
@@ -164,19 +134,6 @@ func (p *StableProxy) CallCtx(ctx context.Context, fn func(context.Context, Back
 		return fmt.Errorf("extension: no active backend")
 	}
 	return fn(ctx, b)
-}
-
-// CancelInFlight aborts every outstanding CallCtx. Used by generation drain.
-func (p *StableProxy) CancelInFlight() {
-	if p == nil {
-		return
-	}
-	p.mu.Lock()
-	cancels := p.takeInFlightLocked()
-	p.mu.Unlock()
-	for _, c := range cancels {
-		c()
-	}
 }
 
 func (p *StableProxy) takeInFlightLocked() []context.CancelFunc {

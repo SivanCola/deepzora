@@ -491,12 +491,6 @@ func (c *Config) DesktopCheckUpdates() bool {
 	return *c.Desktop.CheckUpdates
 }
 
-// NormalizeCLIUpdateChannel returns the only public native CLI update channel.
-// The input remains accepted so older preview configurations keep loading.
-func NormalizeCLIUpdateChannel(_ string) string {
-	return "stable"
-}
-
 // CLIUpdateChannel returns the user-global native CLI update channel.
 func (c *Config) CLIUpdateChannel() string {
 	if c == nil {
