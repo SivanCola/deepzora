@@ -244,6 +244,7 @@ func serveRemoteMarkdownImage(
 
 	// The production transport resolves every initial and redirected target to
 	// public IPs and pins direct/proxied dials to those vetted addresses.
+	// codeql[go/request-forgery] The URL passed validateRemoteMarkdownImageURL, redirects are re-validated, and dials are pinned to vetted public IPs.
 	resp, err := client.Do(req)
 	if err != nil {
 		http.Error(w, "remote image fetch failed", http.StatusBadGateway)
