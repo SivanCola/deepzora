@@ -18,9 +18,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -33,7 +31,6 @@ import (
 	"deepzora/internal/control"
 	"deepzora/internal/event"
 	"deepzora/internal/extension/providerext"
-	fileencoding "deepzora/internal/fileutil/encoding"
 	"deepzora/internal/i18n"
 	"deepzora/internal/netclient"
 	"deepzora/internal/notify"
@@ -1243,24 +1240,6 @@ func selectLanguage() (string, error) {
 	return tags[idx], nil
 }
 
-// familyStaticModels unions the preset model lists of every entry in the family,
-// preserving order and dropping duplicates. It is the fallback offered when the
-// live /models probe fails, so a family with separate flash/pro preset entries
-// still surfaces both rather than only the first member's model.
-func familyStaticModels(providers []config.ProviderEntry, idxs []int) []string {
-	var out []string
-	seen := map[string]bool{}
-	for _, i := range idxs {
-		for _, m := range providers[i].ModelList() {
-			if m != "" && !seen[m] {
-				seen[m] = true
-				out = append(out, m)
-			}
-		}
-	}
-	return out
-}
-
 // fetchOrFallback tries the OpenAI-compatible GET /models endpoint
 // (honoring the entry's ModelsURL when set) and returns the live model IDs.
 // On any failure — no base URL, no key set yet (the key is collected in a
@@ -1320,57 +1299,6 @@ func fetchModelListCompat(ctx context.Context, baseURL, apiKey string, proxy net
 		slog.Debug("model-list probe: all candidates missed", "base_url", baseURL, "err", lastErr)
 	}
 	return nil, nil
-}
-
-// buildFamilyEntry returns a single ProviderEntry exposing the user's
-// selected models under one entry. It preserves the preset's API key env,
-// base URL, kind, context window, pricing, and effort — the things that
-// vary per vendor but not per model. The Default pointer is reset to the
-// first selected model if it would otherwise reference a model the user
-// didn't pick (or was empty).
-// buildFamilyEntries splits the user's selection back across the family's preset
-// members so each model keeps its own entry — and therefore its own pricing,
-// context window, and balance URL. A family like DeepSeek ships flash and pro as
-// separate presets with different prices; collapsing them into one entry would
-// bill pro at flash's rate. Models the live /models list returned that match no
-// preset (a new SKU) fall under the probe entry. Member order is preserved;
-// within a member, selection order is preserved.
-func buildFamilyEntries(probe config.ProviderEntry, members []config.ProviderEntry, selected []string) []config.ProviderEntry {
-	tmpl := map[string]config.ProviderEntry{probe.Name: probe}
-	ownerName := map[string]string{}
-	for _, m := range members {
-		tmpl[m.Name] = m
-		for _, id := range m.ModelList() {
-			ownerName[id] = m.Name
-		}
-	}
-	var order []string
-	groups := map[string][]string{}
-	for _, sm := range selected {
-		name, ok := ownerName[sm]
-		if !ok {
-			name = probe.Name
-		}
-		if _, seen := groups[name]; !seen {
-			order = append(order, name)
-		}
-		groups[name] = append(groups[name], sm)
-	}
-	out := make([]config.ProviderEntry, 0, len(order))
-	for _, name := range order {
-		out = append(out, buildFamilyEntry(tmpl[name], groups[name]))
-	}
-	return out
-}
-
-func buildFamilyEntry(probe config.ProviderEntry, selected []string) config.ProviderEntry {
-	entry := probe
-	entry.Models = selected
-	entry.Model = selected[0]
-	if entry.Default == "" || !containsString(selected, entry.Default) {
-		entry.Default = selected[0]
-	}
-	return entry
 }
 
 func containsString(xs []string, v string) bool {
@@ -1481,24 +1409,6 @@ func fnv1a32Hex(s string) string {
 		hash *= 0x01000193
 	}
 	return fmt.Sprintf("%08x", hash)
-}
-
-// providerFamily is a wizard-only grouping of provider SKUs by vendor; it does
-// not exist in config because users editing deepzora.toml deal with SKU names
-// directly.
-type providerFamily struct {
-	key  string
-	name string
-	desc string
-}
-
-func familyOf(name string) providerFamily {
-	switch {
-	case strings.HasPrefix(name, "deepseek"):
-		return providerFamily{key: "deepseek", name: "DeepSeek", desc: "fast & cheap, plus a stronger Pro SKU"}
-	default:
-		return providerFamily{key: name, name: name}
-	}
 }
 
 type providerPromptResult struct {
@@ -1725,89 +1635,6 @@ func promptAnthropicProviderFromURL(proxy netclient.ProxySpec) (providerPromptRe
 	return newProviderPromptResult([]config.ProviderEntry{entry}, keyEnv, apiKey, keyEnvTyped, "ANTHROPIC_API_KEY"), nil
 }
 
-func groupByFamily(providers []config.ProviderEntry) ([]string, map[string][]int, map[string]providerFamily) {
-	var order []string
-	members := map[string][]int{}
-	info := map[string]providerFamily{}
-	for i, p := range providers {
-		f := familyOf(p.Name)
-		if _, seen := members[f.key]; !seen {
-			order = append(order, f.key)
-			info[f.key] = f
-		}
-		members[f.key] = append(members[f.key], i)
-	}
-	return order, members, info
-}
-
-// withBuiltinFamilies guarantees the wizard always offers the built-in DeepSeek
-// family even when the loaded config replaced the defaults.
-// Built-in entries whose exact name already exists in the user's config are
-// kept as-is (preserving customizations); missing built-in entries within an
-// existing family are appended so the model picker always shows the full
-// catalogue rather than only the previously selected subset.
-func withBuiltinFamilies(providers []config.ProviderEntry) []config.ProviderEntry {
-	return withBuiltinFamiliesForLanguage(providers, "")
-}
-
-func withBuiltinFamiliesForLanguage(providers []config.ProviderEntry, pricingLanguage string) []config.ProviderEntry {
-	haveName := map[string]bool{}
-	for _, p := range providers {
-		haveName[p.Name] = true
-	}
-	defaults := config.Default()
-	defaults.Language = pricingLanguage
-	defaults.ApplyDeepSeekOfficialDefaultPricing()
-	for _, bp := range defaults.Providers {
-		if !haveName[bp.Name] {
-			providers = append(providers, bp)
-		}
-	}
-	return providers
-}
-
-// providersWithMissingKeys returns the providers the active configuration
-// actually references (default/planner/subagent models) whose api_key_env is
-// declared but not set. Merely-available providers stay silent; the chat banner
-// still warns if users later switch to a model whose key is missing.
-// configureKeys dedupes shared envs, so duplicates are fine to leave in.
-func providersWithMissingKeys(cfg *config.Config) []config.ProviderEntry {
-	if cfg == nil {
-		return nil
-	}
-	refs := []string{
-		cfg.DefaultModel,
-		cfg.Agent.PlannerModel,
-		cfg.Agent.SubagentModel,
-	}
-	if len(cfg.Agent.SubagentModels) > 0 {
-		keys := make([]string, 0, len(cfg.Agent.SubagentModels))
-		for key := range cfg.Agent.SubagentModels {
-			keys = append(keys, key)
-		}
-		sort.Strings(keys)
-		for _, key := range keys {
-			refs = append(refs, cfg.Agent.SubagentModels[key])
-		}
-	}
-
-	var out []config.ProviderEntry
-	seen := map[string]bool{}
-	for _, ref := range refs {
-		ref = strings.TrimSpace(ref)
-		if ref == "" {
-			continue
-		}
-		p, ok := cfg.ResolveModel(ref)
-		if !ok || p.APIKeyEnv == "" || os.Getenv(p.APIKeyEnv) != "" || seen[p.APIKeyEnv] {
-			continue
-		}
-		seen[p.APIKeyEnv] = true
-		out = append(out, *p)
-	}
-	return out
-}
-
 // configureKeys reconciles each enabled provider's API key with the
 // environment. For every distinct api_key_env: if the variable is already set,
 // setup asks whether to re-enter it; Enter keeps and re-pins the existing value.
@@ -1872,59 +1699,6 @@ func isInteractive() bool {
 
 func isTTY(f *os.File) bool {
 	return term.IsTerminal(int(f.Fd()))
-}
-
-// appendEnv merges KEY=value lines into a .env file. Existing assignments of
-// any key that's about to be written are dropped first, then the new values
-// are appended — so re-running `deepzora setup` with a corrected key replaces the
-// stale one instead of stacking duplicates. The new values are also
-// pinned into the current process env so a chat session started right after
-// init picks up the fresh keys without a restart.
-func appendEnv(path string, lines []string) error {
-	target := map[string]bool{}
-	for _, l := range lines {
-		if k, _, ok := strings.Cut(l, "="); ok {
-			target[strings.TrimSpace(k)] = true
-		}
-	}
-
-	var kept []string
-	if data, err := fileencoding.ReadFileUTF8(path); err == nil {
-		for raw := range strings.SplitSeq(string(data), "\n") {
-			trimmed := strings.TrimSpace(raw)
-			check := strings.TrimPrefix(trimmed, "export ")
-			if k, _, ok := strings.Cut(check, "="); ok && target[strings.TrimSpace(k)] {
-				continue
-			}
-			kept = append(kept, raw)
-		}
-		// strings.Split on a string ending with \n leaves a trailing empty
-		// element; trim it so we don't grow a blank line on every rewrite.
-		if n := len(kept); n > 0 && kept[n-1] == "" {
-			kept = kept[:n-1]
-		}
-	} else if !os.IsNotExist(err) {
-		return err
-	}
-
-	var b strings.Builder
-	for _, l := range kept {
-		b.WriteString(l)
-		b.WriteByte('\n')
-	}
-	for _, l := range lines {
-		b.WriteString(l)
-		b.WriteByte('\n')
-		if k, v, ok := strings.Cut(l, "="); ok {
-			os.Setenv(strings.TrimSpace(k), v)
-		}
-	}
-	if dir := filepath.Dir(path); dir != "" && dir != "." {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return err
-		}
-	}
-	return os.WriteFile(path, []byte(b.String()), 0o600)
 }
 
 // readStdin reads piped input if present; an interactive terminal yields "".

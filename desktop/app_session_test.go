@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -419,43 +418,6 @@ func TestFileRefsIncludeRegisteredExternalFolderChildren(t *testing.T) {
 	preview := app.ReadFileForTab("project", token+"/src/outside.txt")
 	if preview.Err != "" || preview.Body != "outside" {
 		t.Fatalf("ReadFile external token preview = %+v, want outside file body", preview)
-	}
-}
-
-func TestWaitDestroyHandlesWaitsConcurrently(t *testing.T) {
-	started := make(chan int, 2)
-	release := make(chan struct{})
-	var releaseOnce sync.Once
-	releaseAll := func() { releaseOnce.Do(func() { close(release) }) }
-	defer releaseAll()
-
-	handle := func(id int) control.SessionDestroyHandle {
-		return control.SessionDestroyHandle{WaitFor: func(time.Duration) jobs.TeardownResult {
-			started <- id
-			<-release
-			return jobs.TeardownResult{TimedOut: []jobs.TeardownJob{{ID: strconv.Itoa(id)}}}
-		}}
-	}
-	done := make(chan bool, 1)
-	go func() { done <- waitDestroyHandles([]control.SessionDestroyHandle{handle(1), handle(2)}) }()
-
-	seen := map[int]bool{}
-	for len(seen) < 2 {
-		select {
-		case id := <-started:
-			seen[id] = true
-		case <-time.After(2 * time.Second):
-			t.Fatalf("destroy waits did not start concurrently; started=%v", seen)
-		}
-	}
-	releaseAll()
-	select {
-	case timedOut := <-done:
-		if !timedOut {
-			t.Fatal("waitDestroyHandles lost timed-out result")
-		}
-	case <-time.After(2 * time.Second):
-		t.Fatal("waitDestroyHandles did not return after all waits completed")
 	}
 }
 

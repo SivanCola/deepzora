@@ -4399,17 +4399,6 @@ func (m *chatTUI) echoLocalCommand(input string) {
 	m.commitLine(dim("  › " + input))
 }
 
-// commandNames renders the custom command list for /help, "" when there are none.
-func (m *chatTUI) commandNames() string {
-	names := make([]string, 0, len(m.commands))
-	for _, c := range m.commands {
-		{
-			names = append(names, "/"+c.Name)
-		}
-	}
-	return strings.Join(names, " · ")
-}
-
 // showSandboxStatus displays the current sandbox configuration and whether
 // the OS sandbox backend is available. It reads from the stored config so
 // the user can inspect sandbox state without leaving the TUI (closes #3316).

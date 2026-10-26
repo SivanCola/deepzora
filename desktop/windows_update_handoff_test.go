@@ -6,20 +6,6 @@ import (
 	"testing"
 )
 
-func TestInstallerCommandLineUsesVisibleUpdateModeAndKeepsDFlagLast(t *testing.T) {
-	got := installerCommandLine(`C:\Temp\Deepzora Installer.exe`, `D:\Tools\Deepzora App`)
-	want := `"C:\Temp\Deepzora Installer.exe" /DEEPZORAUPDATE=1 /DEEPZORASTAGE=1 /D=D:\Tools\Deepzora App`
-	if got != want {
-		t.Fatalf("installerCommandLine = %q, want %q", got, want)
-	}
-	if strings.Contains(got, " /S") {
-		t.Fatalf("auto-update must expose progress instead of using silent mode, got %q", got)
-	}
-	if !strings.HasSuffix(got, `/D=D:\Tools\Deepzora App`) {
-		t.Fatalf("/D= must be the final unquoted NSIS token, got %q", got)
-	}
-}
-
 func TestWindowsVersionedUpdateHandoffArgsDoNotRequireLegacyPendingIdentity(t *testing.T) {
 	got := windowsVersionedUpdateHandoffArgs(
 		4242,

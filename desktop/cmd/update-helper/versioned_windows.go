@@ -6,7 +6,6 @@ import (
 	"deepzora/internal/config"
 	"deepzora/internal/desktopinstance"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -101,21 +100,4 @@ func activateVersionedWindowsFromStaging(claimed *repair.UpdateTransaction, stag
 	// Best-effort retention GC of older version trees.
 	_ = installlayout.CleanupStaleStaging(installRoot, 0)
 	return nil
-}
-
-// preferVersionedWindowsActivation reports whether the staged payload is
-// complete enough for versioned-v1 activation.
-func preferVersionedWindowsActivation(stagingDir string) bool {
-	for _, name := range []string{
-		"deepzora-desktop.exe",
-		"deepzora-cli.exe",
-		"deepzora-update-helper.exe",
-		"deepzora-launcher.exe",
-	} {
-		info, err := os.Lstat(filepath.Join(stagingDir, name))
-		if err != nil || !info.Mode().IsRegular() {
-			return false
-		}
-	}
-	return true
 }

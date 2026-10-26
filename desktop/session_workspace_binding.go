@@ -120,15 +120,6 @@ func applyCanonicalWorkspaceLocked(tab *WorkspaceTab, workspace workspacestate.W
 	tab.SessionWorkspace.ID = workspace.ID
 }
 
-func canonicalSessionTopicIdentity(state workspacestate.State, sessionID string) (string, string) {
-	presentation := state.Presentation[sessionID]
-	topicID := strings.TrimSpace(presentation.TopicID)
-	if topicID == "" {
-		topicID = "canonical-" + sessionID
-	}
-	return topicID, presentation.Title
-}
-
 func (a *App) commitCanonicalSessionBinding(tab *WorkspaceTab, ctrl control.SessionAPI, ref session.SessionRef, workspace workspacestate.Workspace, navigation uint64) error {
 	snapshot, err := a.workspaceRegistry().VerifySnapshot(a.bootContext())
 	if err != nil {

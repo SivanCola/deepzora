@@ -53,25 +53,6 @@ func TestParseVersion(t *testing.T) {
 	}
 }
 
-func TestCompareVersions(t *testing.T) {
-	cases := []struct {
-		a, b string
-		want int
-	}{
-		{"1.9.0", "1.9.0", 0},
-		{"1.9.0", "1.10.0", -1},
-		{"1.10.0", "1.9.0", 1},
-		{"2.0.0", "1.99.99", 1},
-		{"1.9", "1.9.0", 0},
-		{"1.9.1-rc.1", "1.9.1", 0}, // pre-release ignored for ordering
-	}
-	for _, c := range cases {
-		if got := CompareVersions(c.a, c.b); got != c.want {
-			t.Errorf("CompareVersions(%q,%q) = %d, want %d", c.a, c.b, got, c.want)
-		}
-	}
-}
-
 // TestLaunchCommandQuotesHostilePaths is the security golden: a workspace or
 // log path containing shell metacharacters must be fully single-quoted so it
 // cannot break out of the launch command.

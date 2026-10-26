@@ -477,13 +477,3 @@ func writeResultJSON(r helperResult) {
 	enc := json.NewEncoder(os.Stdout)
 	_ = enc.Encode(r)
 }
-
-// parsePhaseLine extracts a progress phase from a helper stderr line.
-func parsePhaseLine(line string) (phase string, ok bool) {
-	line = strings.TrimSpace(line)
-	if !strings.HasPrefix(line, phasePrefix) {
-		return "", false
-	}
-	phase = strings.TrimSpace(strings.TrimPrefix(line, phasePrefix))
-	return phase, phase != ""
-}

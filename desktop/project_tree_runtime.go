@@ -275,33 +275,6 @@ func (a *App) reapStaleTopicActivityStatus(now time.Time) {
 	a.emitProjectTreeRuntimeChanged()
 }
 
-// reconcileTabActivityStatus clears a live spinner status the session's
-// controller does not corroborate — a TurnDone missed while the session was
-// detached would otherwise spin forever after reopen. The controller query
-// takes the controller's own lock, so it runs outside App.mu (the same lock
-// order rule as catalogRuntimeSnapshots).
-func (a *App) reconcileTabActivityStatus(tab *WorkspaceTab) bool {
-	if a == nil || tab == nil {
-		return false
-	}
-	a.mu.RLock()
-	status := tab.ActivityStatus
-	ctrl := tab.Ctrl
-	a.mu.RUnlock()
-	if ctrl == nil || !liveTopicActivityStatus(status) || ctrl.Running() {
-		return false
-	}
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	if tab.ActivityStatus != status {
-		// A new turn (or its TurnDone) landed while the locks were dropped.
-		return false
-	}
-	tab.ActivityStatus = ""
-	slog.Warn("desktop: cleared stale topic activity status on session open", "tab", tab.ID, "status", status)
-	return true
-}
-
 // setTabActivityStatus records the project-tree status for a tab's in-flight
 // turn and notes the event time for the TTL watchdog.
 func (a *App) setTabActivityStatus(tabID, status string) bool {

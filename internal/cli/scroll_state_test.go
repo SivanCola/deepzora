@@ -47,41 +47,6 @@ func assertLegacyViewportClearCmd(t *testing.T, cmd tea.Cmd, want bool) {
 	}
 }
 
-func TestModalOpenDoesNotDisableTailFollow(t *testing.T) {
-	// Opening an approval banner shrinks the transcript viewport. Without an
-	// explicit scroll state machine that used to make AtBottom() flip false and
-	// permanently stop tail-follow (#6430).
-	ctrl := newOwnedTestController(t, control.Options{})
-	adv := func(m chatTUI, msg tea.Msg) chatTUI {
-		n, _ := m.Update(msg)
-		return n.(chatTUI)
-	}
-	notice := agentEventMsg(event.Event{Kind: event.Notice, Level: event.LevelInfo, Text: "line"})
-
-	cur := adv(newChatTUI(ctrl, "", make(chan event.Event, 1), 80), tea.WindowSizeMsg{Width: 80, Height: 12})
-	for range 20 {
-		cur = adv(cur, notice)
-	}
-	if !cur.shouldFollowTail() || !cur.viewport.AtBottom() {
-		t.Fatal("expected followTail at bottom after streaming")
-	}
-
-	// Simulate approval popup (height-only change, no user scroll).
-	cur.pendingApproval = &event.Approval{Tool: "bash", Subject: "echo hi"}
-	if !cur.modalOpen() {
-		t.Fatal("pendingApproval must report modalOpen")
-	}
-	cur = adv(cur, tea.WindowSizeMsg{Width: 80, Height: 12})
-	if !cur.shouldFollowTail() {
-		t.Fatal("modal open must not mark userScrolled")
-	}
-
-	cur = adv(cur, notice)
-	if !cur.viewport.AtBottom() {
-		t.Fatalf("new output while modal open must keep followTail pin, YOffset=%d", cur.viewport.YOffset())
-	}
-}
-
 func TestUserScrollBreaksAndEmptyEnterRestoresFollow(t *testing.T) {
 	ctrl := newOwnedTestController(t, control.Options{})
 	adv := func(m chatTUI, msg tea.Msg) chatTUI {

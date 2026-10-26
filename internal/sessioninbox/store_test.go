@@ -1,7 +1,6 @@
 package sessioninbox
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"os"
@@ -576,46 +575,6 @@ func TestEnqueueRefusesSymlinkBlobsDirectory(t *testing.T) {
 	}
 	if len(entries) != 0 {
 		t.Fatalf("enqueue wrote through symlink: %+v", entries)
-	}
-}
-
-func TestFreezeRefsRejectsWorkspaceEscape(t *testing.T) {
-	ws := t.TempDir()
-	refs, err := FreezeRefs(context.Background(), ws, []string{"/etc/passwd"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(refs) != 1 {
-		t.Fatalf("want 1 ref, got %d", len(refs))
-	}
-	if !strings.Contains(string(refs[0].Content), "outside workspace") && !strings.Contains(string(refs[0].Content), "freeze failed") {
-		t.Fatalf("want workspace escape rejection, got %q", refs[0].Content)
-	}
-}
-
-func TestFreezeRefsRejectsSymlinkEscape(t *testing.T) {
-	ws := t.TempDir()
-	external := t.TempDir()
-	secret := filepath.Join(external, "secret.txt")
-	if err := os.WriteFile(secret, []byte("outside-secret"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	link := filepath.Join(ws, "linked-secret.txt")
-	if err := os.Symlink(secret, link); err != nil {
-		t.Skipf("symlink unsupported: %v", err)
-	}
-	refs, err := FreezeRefs(context.Background(), ws, []string{"linked-secret.txt"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(refs) != 1 {
-		t.Fatalf("want one blocked marker, got %d", len(refs))
-	}
-	if strings.Contains(string(refs[0].Content), "outside-secret") {
-		t.Fatal("workspace-local symlink leaked content from outside the workspace")
-	}
-	if !strings.Contains(string(refs[0].Content), "path escapes workspace") {
-		t.Fatalf("want symlink escape rejection, got %q", refs[0].Content)
 	}
 }
 

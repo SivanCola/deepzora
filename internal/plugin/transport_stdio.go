@@ -533,18 +533,6 @@ func (t *stdioTransport) startupStderr() string {
 	return secrets.RedactCredentials(t.stderr.String())
 }
 
-func (t *stdioTransport) withStderr(err error) error {
-	if t == nil || t.stderr == nil {
-		return err
-	}
-	waitWithBudget(t.wait, closeWaitBudget)
-	message := secrets.RedactCredentials(t.stderr.String())
-	if message == "" {
-		return err
-	}
-	return fmt.Errorf("%w: stderr: %s", err, message)
-}
-
 // wait reaps the child exactly once; cmd.Wait blocks until the stderr-copy
 // goroutine completes, so the tail buffer is settled before anyone reads it.
 func (t *stdioTransport) wait() {

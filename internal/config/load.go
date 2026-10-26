@@ -6,7 +6,6 @@ import (
 	"maps"
 	"net/url"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -825,29 +824,6 @@ func officialProviderHost(baseURL string) string {
 	return strings.ToLower(u.Hostname())
 }
 
-func ensureProviderModels(p *ProviderEntry, required []string, fallbackDefault string) {
-	if p == nil {
-		return
-	}
-	// If the user has explicitly curated a model list (via Settings), respect
-	// that choice and do not merge additional required models.
-	if len(p.Models) > 0 {
-		return
-	}
-	models := mergeModelLists(required, p.ModelList())
-	if len(models) == 0 {
-		return
-	}
-	p.Model = models[0]
-	if len(models) > 1 {
-		p.Models = models
-		p.Default = firstKnownModel(p.Default, models, fallbackDefault)
-		return
-	}
-	p.Models = nil
-	p.Default = ""
-}
-
 func desktopProviderAccessMap(names []string) map[string]bool {
 	out := map[string]bool{}
 	for _, name := range names {
@@ -857,20 +833,6 @@ func desktopProviderAccessMap(names []string) map[string]bool {
 		}
 	}
 	return out
-}
-
-func mergeCuratedModelsIntoProvider(e *ProviderEntry, models []string, fallback string) {
-	// If the user has explicitly curated a model list (via Settings), respect
-	// that choice and do not merge additional curated models.
-	if len(e.Models) > 0 {
-		return
-	}
-	currentDefault := e.Default
-	if strings.TrimSpace(currentDefault) == "" {
-		currentDefault = e.Model
-	}
-	e.Models = mergeModelLists(models, e.ModelList())
-	e.Default = firstKnownModel(currentDefault, e.Models, fallback)
 }
 
 func backfillOfficialContextWindow(e *ProviderEntry, fallback int) {
@@ -886,36 +848,6 @@ func pricingForModelKey(prices map[string]*provider.Pricing, model string) (*pro
 		}
 	}
 	return nil, false
-}
-
-func mergeModelLists(primary, extra []string) []string {
-	seen := map[string]bool{}
-	out := make([]string, 0, len(primary))
-	for _, list := range [][]string{primary, extra} {
-		for _, model := range list {
-			model = strings.TrimSpace(model)
-			if model == "" || seen[model] {
-				continue
-			}
-			seen[model] = true
-			out = append(out, model)
-		}
-	}
-	return out
-}
-
-func firstKnownModel(current string, models []string, fallback string) string {
-	current = strings.TrimSpace(current)
-	if slices.Contains(models, current) {
-		return current
-	}
-	if slices.Contains(models, fallback) {
-		return fallback
-	}
-	if len(models) > 0 {
-		return models[0]
-	}
-	return ""
 }
 
 func CanonicalDesktopOfficialProviderName(name string) string { return strings.TrimSpace(name) }

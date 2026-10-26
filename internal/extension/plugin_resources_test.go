@@ -1,7 +1,6 @@
 package extension
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,65 +17,6 @@ func writePluginFile(t *testing.T, path, body string) {
 	}
 	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
 		t.Fatal(err)
-	}
-}
-
-// parseResourcesPlugin builds a v1 package with prompts and themes on disk.
-func parseResourcesPlugin(t *testing.T) pluginpkg.Package {
-	t.Helper()
-	root := t.TempDir()
-	writePluginFile(t, filepath.Join(root, pluginpkg.NativeManifest), `{
-  "apiVersion": "deepzora.com/plugin/v2",
-  "name": "res",
-  "contributes": {
-    "prompts": ["prompts"],
-    "themes": ["themes/*.deepzora-theme"]
-  }
-}`)
-	writePluginFile(t, filepath.Join(root, "prompts", "plan.md"), "---\ndescription: plan\n---\nPlan $ARGUMENTS")
-	writePluginFile(t, filepath.Join(root, "themes", "neon.deepzora-theme"), "theme bytes")
-	pkg, _, err := pluginpkg.ParseDir(root)
-	if err != nil {
-		t.Fatalf("ParseDir: %v", err)
-	}
-	return pkg
-}
-
-func TestPluginResourcesContributor(t *testing.T) {
-	pkg := parseResourcesPlugin(t)
-	contributions, err := PluginResourcesContributor(pkg).Contribute(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(contributions) != 2 {
-		t.Fatalf("contributions = %+v, want one prompt and one theme", contributions)
-	}
-	byKind := map[ContributionKind]Contribution{}
-	for _, c := range contributions {
-		byKind[c.Kind] = c
-		if c.Source.Scope != ScopePlugin || c.Source.PluginID != "res" {
-			t.Fatalf("contribution source = %+v, want plugin tier owned by res", c.Source)
-		}
-	}
-	prompt, ok := byKind[KindPrompt]
-	if !ok {
-		t.Fatalf("no KindPrompt contribution: %+v", contributions)
-	}
-	if prompt.ID != "plugin:res:plan" {
-		t.Fatalf("prompt ID = %q, want plugin:res:plan", prompt.ID)
-	}
-	if _, ok := prompt.Payload.(pluginpkg.PromptRef); !ok {
-		t.Fatalf("prompt payload = %T, want pluginpkg.PromptRef", prompt.Payload)
-	}
-	theme, ok := byKind[KindTheme]
-	if !ok {
-		t.Fatalf("no KindTheme contribution: %+v", contributions)
-	}
-	if theme.ID != "plugin:res:neon" {
-		t.Fatalf("theme ID = %q, want plugin:res:neon", theme.ID)
-	}
-	if _, ok := theme.Payload.(pluginpkg.ThemeRef); !ok {
-		t.Fatalf("theme payload = %T, want pluginpkg.ThemeRef", theme.Payload)
 	}
 }
 

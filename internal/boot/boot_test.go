@@ -1292,21 +1292,6 @@ api_key_env = "DEEPZORA_TEST_KEY_UNSET"
 	}
 }
 
-func TestRecoveryHeadlessModeUsesExplicitFrontendCapability(t *testing.T) {
-	if recoveryHeadlessMode(Options{}) {
-		t.Fatal("interactive frontend without HeadlessApprovalMode must remain answerable")
-	}
-	if recoveryHeadlessMode(Options{ApprovalTimeout: time.Minute}) {
-		t.Fatal("a bounded bot approval timeout must not make recovery headless")
-	}
-	if !recoveryHeadlessMode(Options{HeadlessApprovalMode: control.ToolApprovalWorkspaceWrite}) {
-		t.Fatal("deepzora run Auto mode must fail closed instead of waiting for a card")
-	}
-	if !recoveryHeadlessMode(Options{HeadlessApprovalMode: control.ToolApprovalReadOnly}) {
-		t.Fatal("all explicit headless permission modes must use the non-waiting recovery path")
-	}
-}
-
 // TestBuildInteractiveApprovalModeSwitchPropagatesToTaskSubagentGate pins the
 // interactive counterpart of TestBuildHeadlessApprovalModePropagatesToTaskSubagentGate:
 // boot.Build with no HeadlessApprovalMode — the interactive REPL's boot path,

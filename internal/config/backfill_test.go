@@ -427,40 +427,6 @@ func TestResolveModelUsesPerModelPricing(t *testing.T) {
 
 // ── Explicit model list: normalization must not override user selection ───────
 
-func TestEnsureProviderModelsSkipsWhenExplicitModelList(t *testing.T) {
-	// User saved with only flash via Settings → Models = ["deepseek-v4-flash"].
-	p := &ProviderEntry{
-		Name:    "deepseek",
-		BaseURL: "https://api.deepseek.com",
-		Models:  []string{"deepseek-v4-flash"},
-		Default: "deepseek-v4-flash",
-	}
-	ensureProviderModels(p, []string{"deepseek-v4-flash", "deepseek-v4-pro"}, "deepseek-v4-flash")
-	if p.HasModel("deepseek-v4-pro") {
-		t.Fatal("ensureProviderModels must not merge required models when Models is explicitly set")
-	}
-	if len(p.Models) != 1 || p.Models[0] != "deepseek-v4-flash" {
-		t.Fatalf("models = %v, want [deepseek-v4-flash]", p.Models)
-	}
-}
-
-func TestMergeCuratedModelsIntoProviderSkipsWhenExplicitModelList(t *testing.T) {
-	// User saved with only two mimo models via Settings.
-	p := &ProviderEntry{
-		Name:    "mimo-api",
-		BaseURL: "https://api.xiaomimimo.com/v1",
-		Models:  []string{"mimo-v2.5-pro", "mimo-v2.5"},
-		Default: "mimo-v2.5-pro",
-	}
-	mergeCuratedModelsIntoProvider(p, []string{"mimo-v2.5-pro", "mimo-v2.5", "mimo-v2-omni"}, "mimo-v2.5-pro")
-	if p.HasModel("mimo-v2-omni") {
-		t.Fatal("mergeCuratedModelsIntoProvider must not add mimo-v2-omni when Models is explicitly set")
-	}
-	if len(p.Models) != 2 {
-		t.Fatalf("models = %v, want 2 selected models", p.Models)
-	}
-}
-
 func TestNormalizeOfficialDeepSeekModelsSkipsExplicitModelList(t *testing.T) {
 	// User saved with only flash via Settings → Models = ["deepseek-v4-flash"].
 	c := &Config{Providers: []ProviderEntry{{

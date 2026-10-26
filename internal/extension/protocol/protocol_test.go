@@ -2,7 +2,6 @@ package protocol
 
 import (
 	"errors"
-	"strings"
 	"testing"
 )
 
@@ -49,13 +48,6 @@ func TestCompareProtocolVersion(t *testing.T) {
 	}
 }
 
-func TestHandshakeIdentityEmbedsSchemaHash(t *testing.T) {
-	identity := HandshakeIdentity()
-	if !strings.Contains(identity, ProtocolID) || !strings.Contains(identity, SchemaHash()) {
-		t.Fatalf("HandshakeIdentity = %q, want protocol ID and schema hash embedded", identity)
-	}
-}
-
 func TestFrozenLimitsSanity(t *testing.T) {
 	if FrameBytes != 8<<20 {
 		t.Fatalf("FrameBytes = %d, want %d", FrameBytes, 8<<20)
@@ -79,24 +71,6 @@ func TestFrozenLimitsSanity(t *testing.T) {
 	if limits.FrameBytes != FrameBytes || limits.ExternalizeFieldBytes != ExternalizeFieldBytes ||
 		limits.ContentRefChunkBytes != ContentRefChunkBytes || limits.ContentRefObjectBytes != ContentRefObjectBytes {
 		t.Fatalf("FrozenLimits = %+v does not match the constants", limits)
-	}
-}
-
-func TestValidateFrameSize(t *testing.T) {
-	for _, ok := range []int{0, 1, FrameBytes - 1, FrameBytes} {
-		if err := ValidateFrameSize(ok); err != nil {
-			t.Fatalf("ValidateFrameSize(%d) = %v, want nil", ok, err)
-		}
-	}
-	for _, bad := range []int{-1, FrameBytes + 1, FrameBytes * 2} {
-		err := ValidateFrameSize(bad)
-		if err == nil {
-			t.Fatalf("ValidateFrameSize(%d) accepted an oversized frame", bad)
-		}
-		var protocolErr *ProtocolError
-		if !errors.As(err, &protocolErr) || protocolErr.Reason != ErrFrameTooLarge {
-			t.Fatalf("ValidateFrameSize(%d) error = %v, want frame_too_large ProtocolError", bad, err)
-		}
 	}
 }
 

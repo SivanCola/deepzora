@@ -38,26 +38,6 @@ func versionedWindowsTransaction(installDir, version, createdAt string) *repair.
 	}
 }
 
-func TestPreferVersionedWindowsActivation(t *testing.T) {
-	staging := t.TempDir()
-	if preferVersionedWindowsActivation(staging) {
-		t.Fatal("empty staging must not prefer versioned")
-	}
-	for _, name := range []string{
-		"deepzora-desktop.exe",
-		"deepzora-cli.exe",
-		"deepzora-update-helper.exe",
-		"deepzora-launcher.exe",
-	} {
-		if err := os.WriteFile(filepath.Join(staging, name), []byte(name), 0o700); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if !preferVersionedWindowsActivation(staging) {
-		t.Fatal("complete staging must prefer versioned")
-	}
-}
-
 func TestActivateVersionedWindowsFromStaging(t *testing.T) {
 	acceptWindowsPayloadManifestForTest(t)
 	installDir := t.TempDir()

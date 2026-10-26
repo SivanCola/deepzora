@@ -215,10 +215,6 @@ type Options struct {
 	deferPublish bool
 }
 
-func recoveryHeadlessMode(opts Options) bool {
-	return strings.TrimSpace(opts.HeadlessApprovalMode) != ""
-}
-
 // build is the assembly body behind BuildRuntime (and the Build compat
 // wrapper): it loads config, resolves the model(s), wires the full runtime,
 // and freezes the extension kernel snapshot from the objects it just

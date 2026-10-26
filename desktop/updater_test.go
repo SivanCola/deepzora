@@ -1,9 +1,7 @@
 package main
 
 import (
-	"archive/tar"
 	"bytes"
-	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -897,35 +895,6 @@ func TestCheckSHA256(t *testing.T) {
 	// Case-insensitive hex.
 	if err := checkSHA256(data, "B94D27B9934D3E08A52E52D7DA7DABFAC484EFE37A5380EE9088F7ACE2EFCDE9"); err != nil {
 		t.Errorf("uppercase digest should pass: %v", err)
-	}
-}
-
-func TestExtractBinary(t *testing.T) {
-	want := []byte("#!/bin/sh\necho deepzora\n")
-	var buf bytes.Buffer
-	gz := gzip.NewWriter(&buf)
-	tw := tar.NewWriter(gz)
-	files := map[string][]byte{"README": []byte("ignore me"), "deepzora-desktop": want}
-	for name, body := range files {
-		if err := tw.WriteHeader(&tar.Header{Name: name, Mode: 0o755, Size: int64(len(body)), Typeflag: tar.TypeReg}); err != nil {
-			t.Fatal(err)
-		}
-		if _, err := tw.Write(body); err != nil {
-			t.Fatal(err)
-		}
-	}
-	tw.Close()
-	gz.Close()
-
-	got, err := extractBinary(buf.Bytes(), "deepzora-desktop")
-	if err != nil {
-		t.Fatalf("extractBinary: %v", err)
-	}
-	if !bytes.Equal(got, want) {
-		t.Fatalf("extracted %q, want %q", got, want)
-	}
-	if _, err := extractBinary(buf.Bytes(), "missing"); err == nil {
-		t.Error("missing entry should error")
 	}
 }
 

@@ -34,16 +34,6 @@ func FrozenLimits() Limits {
 	}
 }
 
-// ValidateFrameSize rejects a frame that exceeds the frozen transport limit.
-// The error is the frozen frame_too_large *ProtocolError so transports answer
-// with the structured wire reason instead of an ad-hoc string.
-func ValidateFrameSize(bytes int) error {
-	if bytes < 0 || bytes > FrameBytes {
-		return MustProtocolError(ErrFrameTooLarge)
-	}
-	return nil
-}
-
 // RequiresExternalization reports whether an inline externalizable payload
 // exceeds the frozen threshold and must move into a content ref.
 func RequiresExternalization(payloadBytes int) bool {
