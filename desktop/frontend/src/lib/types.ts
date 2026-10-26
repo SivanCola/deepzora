@@ -12,7 +12,7 @@ export type { ProviderProtocolEndpoint, ProviderCatalog, ProviderPresetView } fr
 import type { WireReadStatus } from "./readStatus";
 export type { WireReadStatus } from "./readStatus";
 import type { RecoveryEventFields } from "./recoveryStatus";
-// Wire contract: one discriminated event channel mirrors desktop/wire.go and internal/serve/wire.go.
+// Wire contract: one discriminated event channel mirrors desktop/wire.go.
 import type { HistoryServerSearch } from "./searchSources";
 import type { Todo } from "./tools";
 import type { ContextBudgetInfo, ContextMaintenanceInfo, WireContextMaintenance } from "./contextMaintenanceTypes";

@@ -457,13 +457,12 @@ type Options struct {
 	// the exact active model. Nil keeps the legacy config-only behavior.
 	ModelCapabilityResolver func(*config.ProviderEntry) config.ResolvedModelCapability
 	// FrozenImageInput belongs to the provider instance built for this runtime.
-	FrozenImageInput            *bool
-	ImageCapabilityChanged      func() bool
-	ModelSettingsRevision       string
-	ModelSettingsSourceRevision string
-	ModelSettingsCurrent        func() (string, error)
-	ModelSettingsContinuation   func() error
-	ModelConnectionTarget       string
+	FrozenImageInput          *bool
+	ImageCapabilityChanged    func() bool
+	ModelSettingsRevision     string
+	ModelSettingsCurrent      func() (string, error)
+	ModelSettingsContinuation func() error
+	ModelConnectionTarget     string
 	// BeforeInboxDispatch lets the owner reserve runtime admission before a
 	// queued message becomes a new turn. The returned release runs after claim
 	// and synchronous turn admission, outside every controller lock.

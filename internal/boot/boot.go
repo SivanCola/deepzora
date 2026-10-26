@@ -81,14 +81,11 @@ var ErrUnknownModel = errors.New("unknown model")
 // uses automatic execution; RequireKey fails fast on a missing key.
 type Options struct {
 	BackgroundScope *jobs.SessionBackgroundScope
-	// ModelSettings supplies an immutable desktop credential-proxy resolver.
-	// The bundle contains virtual tunnel credentials only and stays in memory.
-	ModelSettings *config.ModelRuntimeSettings
-	Model         string
-	MaxSteps      int
-	MaxStepsKey   string
-	RequireKey    bool
-	Sink          event.Sink
+	Model           string
+	MaxSteps        int
+	MaxStepsKey     string
+	RequireKey      bool
+	Sink            event.Sink
 	// EffortOverride is a session-local reasoning effort override. Nil means use
 	// the resolved provider config; a non-nil empty string means provider default.
 	EffortOverride *string
@@ -1643,11 +1640,11 @@ func build(ctx context.Context, opts Options) (*BuildResult, error) {
 		Authentication:                 authentication,
 		AuthenticationForModel:         authenticationReader(cfg, opts.ProviderResolver),
 		ModelSettingsRevision:          cfg.ModelRuntimeFingerprint(modelRef),
-		ModelSettingsCurrent:           runtimeModelSettingsReader(root, modelName, modelRef, opts.ModelSettings),
-		ModelSettingsContinuation:      runtimeModelContinuationReader(root, modelName, cfg, opts.ModelSettings, opts.ProviderResolver, extensionResolver),
+		ModelSettingsCurrent:           runtimeModelSettingsReader(root, modelName, modelRef),
+		ModelSettingsContinuation:      runtimeModelContinuationReader(root, modelName, cfg, opts.ProviderResolver, extensionResolver),
 		ModelConnectionTarget:          config.SafeModelConnectionTarget(config.ProviderEffectiveRequestURL(entry)),
 		FrozenImageInput:               &imageEnabled,
-		ImageCapabilityChanged:         runtimeImageCapabilityReader(root, modelName, imageSnapshot, opts.ModelSettings),
+		ImageCapabilityChanged:         runtimeImageCapabilityReader(root, modelName, imageSnapshot),
 		TaskBudget:                     taskBudgetFromConfig(cfg),
 		GoalTokenBudget:                cfg.Agent.GoalTokenBudget,
 		Runner:                         runner,
@@ -1740,9 +1737,6 @@ func build(ctx context.Context, opts Options) (*BuildResult, error) {
 		// Controller observe the same temporary generation across rebuilds.
 		SessionTemp:     sessionTemp,
 		PersistentShell: persistentShell,
-	}
-	if opts.ModelSettings != nil {
-		ctrlOpts.ModelSettingsSourceRevision = opts.ModelSettings.Revision
 	}
 	// Guardian: when guardian_model is configured, spawn an LLM safety reviewer
 	// that can auto-allow safe Ask decisions and annotate risky ones before

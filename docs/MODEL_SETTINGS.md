@@ -37,7 +37,6 @@ scoped to the failed model where possible. The recovery banner keeps the draft
 and attachments and offers credential editing, model selection, connection
 testing, and one explicit retry. Saving or testing never replays a failed turn.
 
-Desktop-managed remote sessions use immutable tunnel tokens. Remote browser turns and queued follow-ups check Desktop settings before starting; existing requests keep their old token until their work ends. An older Serve without snapshot support must be upgraded or safely reconnected after its current work finishes. Desktop does not force-stop it to apply a setting. Independently configured remote sessions continue to use remote configuration.
 
 ## Background processes and sending recovery
 

@@ -9,7 +9,7 @@ schema 4、storage revision 3。详见[存储契约](session-storage-v4.zh-CN.md
 ## 会话写者
 
 会话服务负责 writer lease、运行时绑定和持久化提交。每次修改都校验当前会话身份及
-writer generation；另一个进程必须通过当前 takeover 协议取得写入权。只读历史查询
+writer generation；另一个进程试图写入同一会话时会被拒绝。只读历史查询
 不会取得写入权，也不会创建会话。
 
 替换控制器时先准备候选实例，验证通过后才转移运行时所有权并发布。准备失败保留原

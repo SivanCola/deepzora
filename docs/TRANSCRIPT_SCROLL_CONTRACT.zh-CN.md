@@ -5,7 +5,7 @@
 ## 适用范围
 
 对话区（`../desktop/frontend/src/components/Transcript.tsx`）通过 `ChatSource`
-和 `ChatScrollController` 以自然文档流渲染。本地与远程会话共用同一套实现。
+和 `ChatScrollController` 以自然文档流渲染，只有一套实现。
 已退役的 window adapter、measurement ledger、几何 revision 循环和逻辑选区不会
 回归：不要重新引入第二套渲染栈、嵌套的虚拟纵向滚动区域或平台专属滚动补偿。
 
@@ -70,10 +70,8 @@
 
 ## 路由
 
-- 历史读取按标签页的**绑定身份**路由，在请求之前由 controller 已加载的标签页
-  元数据决定。一次本地失败绝不能被另一个持有不同会话的远程服务应答。
-- 聊天要求 Desktop 与 Serve 协商 `transcript-v2`。旧服务显示升级错误，不回退到
-  旧聊天协议。权限、损坏和网络错误不触发协议降级。
+- 历史读取只发往标签页自身的会话服务；失败的调用绝不由其他会话应答。
+- 聊天要求 `transcript-v2`，不回退到旧聊天协议。权限、损坏和网络错误不触发协议降级。
 
 ## 代际隔离
 

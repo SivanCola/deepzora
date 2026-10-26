@@ -18,16 +18,6 @@ a newer subscriber. AppRuntime wires these owners to AppRuntimeView. App.tsx is 
 entry; the view receives committed commands and presentation data without
 creating a second session authority.
 
-Remote resume rejection completes behind the tab's publication fence. Session
-identity, title, route, pending prompts and runtime state are restored before
-the error becomes observable. HTTP rejection, busy, listing failure, missing
-target and transport reconciliation share that completion owner. Generation,
-client, selection and route ownership are rechecked before restoration.
-
-Generation replacement, retirement, reconnect, host suspension and explicit
-close follow the same per-tab publication order. Network handshakes and pump
-waits remain outside the fence; map snapshots are revalidated after taking it.
-
 ## Local readable history and runtime readiness
 
 Local navigation starts a bounded canonical history read after publishing the
@@ -35,8 +25,7 @@ target tab identity, independently of controller activation. A readable history
 window can appear while runtime setup is still pending. Draft input stays mounted
 and editable, while send/control actions retain their runtime readiness fence.
 Runtime failure preserves history that already arrived; it cannot turn an
-unfinished history read into a successful empty transcript. Remote transitions
-keep their existing presentation gate.
+unfinished history read into a successful empty transcript.
 
 Navigation detaches renderer subscriptions and retains history under the existing
 store budgets; explicit close evicts it. Lazy bodies can hand off once to a newer
@@ -46,32 +35,14 @@ generations and legacy tab fingerprints are different identity domains, and a ne
 tab binding needs explicit ownership reconciliation. Browser-mock paint timings
 do not establish native backend latency or cross-binding cache reuse.
 
-## Remote bootstrap lock handoff
-
-A remote server owner can release its directory between a competing exclusive
-mkdir and the contender's Stat. The acquisition owner retries this missing
-observation once, through exclusive mkdir again. Only Exists or structured
-SFTP v3 generic failure qualifies; permission, transport and cancellation
-errors remain terminal. A second consecutive missing observation fails closed,
-because the protocol cannot distinguish repeated contention from a permanent
-generic failure. Observing a live lock restores the normal context-bound wait.
-This does not change the separate stale-lock reclamation policy.
-
-`go test -race ./internal/remote/bootstrap` covers the release interleaving,
-bounded permanent failure, cancellation and one-launch concurrent clients.
-
 ## Verification
 
 `pnpm test:app-lifecycle` exercises source capture, committed publication,
 supersession, A-to-B-to-A navigation, canonical background cancellation,
 unmount, subscription disposal, and negative memory-protocol fixtures.
-`pnpm test:app-browser` replays real local/remote navigation, send/Stop,
+`pnpm test:app-browser` replays real navigation, send/Stop,
 three layouts, and Composer/Workspace DOM identity. `pnpm test:all` discovers
 the remaining frontend regression suites.
-
-`cd desktop && go test -race . -run 'TestRemoteResumeFailure|TestOpenRemoteProjectTabRejectedResumeRestoresPreviousIdentity|TestRemoteRejectedResume'`
-covers error-time identity, all rejection paths, lost ownership and publication
-interleavings with retirement, reconnect, host suspension and close.
 
 ## Independent memory screening
 

@@ -41,9 +41,5 @@ client before releasing the hub lock, and applies completion only to that form
 instance. Re-publishing the same plugin surface creates a different instance,
 so an older completion cannot close or revive the replacement.
 
-Remote Serve advertises `interaction-target-v1` and
-`extension-form-instance-v1` independently. Without the relevant capability,
-the current client keeps the session readable but disables that card or form
-and asks the user to upgrade; it never sends an unsafe legacy mutation. These
-identities are transport and UI ownership fields and require no persisted
-session migration.
+These identities are transport and UI ownership fields and require no
+persisted session migration.

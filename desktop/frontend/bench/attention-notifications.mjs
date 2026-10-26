@@ -65,7 +65,7 @@ try {
         cancelRequested: false, cancellable: true, backgroundJobs: 0, activity: "" };
       runtimeStateStore.commit({ epoch: "attention-fixture", revision, sessions: [{ tabId: "detached:A", scope: "global",
         workspaceRoot: "/fixture", topicId: "topic-A", sessionId: "session-A", sessionPath: "/fixture/a", sessionGeneration: 1,
-        open: false, remote: false, freshness: "synced", state }], topics: [{ scope: "global", node: {
+        open: false, freshness: "synced", state }], topics: [{ scope: "global", node: {
         key: "session-B", topicId: "topic-A", kind: "global_session", label: "Conversation B",
         session: { hostId: "local", sessionId: "session-B" },
       } }, { scope: "global", node: {

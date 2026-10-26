@@ -47,7 +47,7 @@ Flags may appear before or after the prompt where applicable.
 
 ## Agent persona and tool presets
 
-`--preset ID` works with interactive `deepzora`/`chat`, `run`, `serve`, and `web`.
+`--preset ID` works with interactive `deepzora`/`chat` and `run`.
 A preset selects the persona and admitted tools; model and permission settings
 remain independent. The built-in `default` preset is read-only.
 
@@ -98,7 +98,6 @@ rules still apply to admitted tools.
 deepzora preset new reviewer --prompt "Review changes carefully" --tools 'read_file,mcp:docs'
 deepzora --preset reviewer
 deepzora run --preset reviewer "review the current diff"
-deepzora serve --preset reviewer
 ```
 
 Inside a blank session, `/preset list` lists definitions, `/preset current`
@@ -556,7 +555,6 @@ the displayed list matches the commands the TUI accepts.
 | `/provider` | Choose a provider, then choose one of its configured models. |
 | `/preset [list\|current\|select <id>]` | Inspect agent persona/tool presets, or rebuild a blank session with a selected preset. |
 | `/resume` | Search recent sessions and switch to one. |
-| `/takeover` | Take over the last refused session (or a listed entry) from the resident serve: this CLI becomes the writer and remote viewers become read-only spectators until they reclaim. After a desktop reclaim it re-takes the remembered session directly; a session no runtime holds any more is simply resumed. |
 | `/status` | Show model, effort, cache, Git, background jobs, and balance details. |
 | `/theme [auto\|light\|dark\|style]` | View or change the CLI background mode and accent palette. |
 | `/currency [auto\|CNY\|USD]` | View or change the user-global fee display currency and refresh the runtime. |
@@ -676,8 +674,5 @@ names, and owned archive paths.
 | `/memory archived` | List archived facts and their owned paths. |
 | `/memory recover <archive-path>` | Recover an archive as a new revision without overwriting active data. |
 
-These commands run against the active session controller. When the session
-lives on a remote host (`deepzora remote connect` / a desktop remote web
-window), they use the remote memory catalog and never fall back to local
-desktop memory. See [Context Engine v2](./SESSION_MEMORY_RETRIEVAL.md) for
-authority, automatic recall, write confirmation, and migration behavior.
+These commands run against the active session controller. See
+[Context Engine v2](./SESSION_MEMORY_RETRIEVAL.md) for authority, automatic recall, write confirmation, and migration behavior.

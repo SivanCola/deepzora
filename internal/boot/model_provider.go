@@ -4,7 +4,6 @@ import (
 	"deepzora/internal/config"
 	"deepzora/internal/netclient"
 	"deepzora/internal/provider"
-	"net/http"
 )
 
 // NewProvider builds a provider.Provider from a configured entry. Exported so
@@ -44,17 +43,8 @@ func newProviderWithSearchMode(e *config.ProviderEntry, proxy netclient.ProxySpe
 		resolved := config.NewModelCapabilityResolver().Resolve(e)
 		modelInfo = &resolved.ModelInfo
 	}
-	var tunnelClient *http.Client
-	if endpoint := e.CredentialProxyURL(); endpoint != "" {
-		var err error
-		tunnelClient, err = netclient.NewModelCredentialProxyClient(endpoint, e.APIKey())
-		if err != nil {
-			return nil, err
-		}
-	}
 	return provider.New(e.Kind, provider.Config{
-		HTTPClient: tunnelClient,
-		Name:       e.Name, DisplayName: e.DisplayName, Protocol: e.Kind,
+		Name: e.Name, DisplayName: e.DisplayName, Protocol: e.Kind,
 		BaseURL: e.BaseURL, Model: e.Model, APIKey: e.APIKey(), ModelInfo: modelInfo,
 		// Pass the key's env var so auth failures can name where to fix it, plus
 		// provider-kind-specific knobs. EffectiveEffort applies a configured

@@ -256,9 +256,6 @@ landed.
 | `host/app.quit` | `{}` | `{}` |
 | `host/app.relaunch` | `{"args":[],"execPath"?:string}` | `{}` |
 | `host/devtools.toggle` | `{}` | `{}` |
-| `host/remoteWindow.open` | `{"hostKey","url","title"}` | `{"windowId":string}` |
-| `host/remoteWindow.navigate` | `{"hostKey","url","title"}` | `{}` |
-| `host/remoteWindow.focus` `close` | `{"hostKey"}` | `{}` |
 | `host/tray.ensure` | `{"openTitle","openTooltip","quitTitle","quitTooltip","tooltip"}` | `{"ready":bool,"reason":string}` |
 
 `host/shell.openExternal` accepts only `http:`, `https:`, and `mailto:` URLs.
@@ -282,8 +279,8 @@ kernel sentinels and records the operation outcome in its ledger. Grant
 belong to it.
 
 Host events (`desktop/hostEvent`): `tray.open`, `tray.quit`, `secondInstance`
-(raw argv in `payload`), `menu.showWindow`, `remoteWindow.closed`
-(`{"hostKey"}`), `browser.takeover` (`{"tabId","epoch","reason"}`).
+(raw argv in `payload`), `menu.showWindow`,
+`browser.takeover` (`{"tabId","epoch","reason"}`).
 
 Dialog results never expose file contents; they return paths that Go then
 authorises through the existing workspace and media checks.
@@ -319,7 +316,7 @@ handlers (`/__deepzora_workspace_media/…`, `/__deepzora_theme_asset/…`, the
 remote markdown image proxy) and the exact attachment-upload route. The shell serves the packaged UI from the
 privileged `deepzora://app/` scheme and forwards only those prefixes to the
 resource origin, adding `Authorization: Bearer <token>` in the main process.
-The token never reaches the renderer, a website view, a remote window or an
+The token never reaches the renderer, a website view or an
 MCP App frame. Go keeps every file-identity and TTL check it has today.
 
 ## Renderer preload API
@@ -456,7 +453,7 @@ must still cover startup, extended use, foreground return and closing tabs.
 
 - The application window: sandbox on, context isolation on, Node integration
   off, `deepzora://app` only, preload above.
-- Website views, remote Serve windows and MCP App frames: separate sessions,
+- Website views and MCP App frames: separate sessions,
   no preload from the application, no `deepzora://` access, no `host/*` reach.
 - IPC handlers accept requests only from the application window's
   `webContents`. Any other sender is rejected and logged.

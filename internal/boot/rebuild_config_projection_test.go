@@ -183,24 +183,3 @@ func TestRuntimeConfigFingerprintUsesWorkspacePrompt(t *testing.T) {
 		t.Fatal("changed workspace prompt did not invalidate runtime reuse")
 	}
 }
-
-func TestRuntimeConfigFingerprintIncludesCredentialProxy(t *testing.T) {
-	isolateConfigHome(t)
-	root := t.TempDir()
-	cfg := projectionConfig(t)
-	settings := config.ModelRuntimeSettings{
-		ProxyURL: "http://127.0.0.1:1234", Providers: cfg.Providers,
-		Credentials: map[string]string{"fixture": "fixture-tunnel-token"},
-	}
-	if err := settings.Apply(cfg, root); err != nil {
-		t.Fatal(err)
-	}
-	before := runtimeConfigFingerprint(cfg, root)
-	settings.ProxyURL = "http://127.0.0.1:1235"
-	if err := settings.Apply(cfg, root); err != nil {
-		t.Fatal(err)
-	}
-	if after := runtimeConfigFingerprint(cfg, root); before == "" || after == "" || after == before {
-		t.Fatal("changed private credential proxy route did not invalidate runtime reuse")
-	}
-}

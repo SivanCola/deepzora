@@ -30,23 +30,23 @@
 
 - `internal/transcript` 在正文分页旁提供有界轮次大纲，与正文绑定同一不可变快照、投影修订和事件覆盖边界。每条携带用户记录的稳定 `RecordID`、可选 `MessageID`、绝对轮次号、该记录在快照中的 `order`，以及两段仅取展示正文的预览：提问 50 个字形簇，回答取该轮分组内最后一条非空助手正文的 120 个字形簇。推理、工具输出、提交文本和注入上下文不会进入大纲。
 - 索引每个冻结快照只构建一次，重复读取复用同一遍扫描；正文分页不会缩减索引；预览内存计入现有快照缓存预算与生命周期。
-- `GET /transcript/outline` 提供该数据，远程握手公布 `transcript-outline-v1`。`TranscriptOutlineAPI` 是 `TranscriptProjectionAPI` 之外的可选能力，旧控制器实现无需改动即可编译，不支持的路由返回 404/405/501 而不是空页。
-- 前端为本地与远程会话共用一份大纲存储，按 tab generation 与快照身份设围栏。快照被回收时如实上报过期；只有用户明确重试才会替换正文。
+- `TranscriptOutlineAPI` 是 `TranscriptProjectionAPI` 之外的可选能力，旧控制器实现无需改动即可编译，不支持时报告 `unsupported` 而不是空页。
+- 前端为所有会话共用一份大纲存储，按 tab generation 与快照身份设围栏。快照被回收时如实上报过期；只有用户明确重试才会替换正文。
 - 点击未加载轮次会启动跳转事务：串行复用普通历史分页，每页之间等待逐批挂载推进，仅在目标节点真正挂载后才写入视口。阅读意图、显式取消、更新的目标或会话／快照替换都会结束待执行事务，且不会重新取得滚动控制权。
 
 ## 验证
 
-本地与远程路径的代码及自动化检查已完成。平台验证按下述分层如实记录，未运行的部分不予声明。
+代码及自动化检查已完成。平台验证按下述分层如实记录，未运行的部分不予声明。
 
 ### Go（已运行）
 
 ```sh
-go test ./internal/transcript/ ./internal/control/ ./internal/serve/
+go test ./internal/transcript/ ./internal/control/
 go test -race ./internal/transcript/
 cd desktop && go test ./...
 ```
 
-覆盖：工具密集尾部导致正文分页不含用户提问时大纲仍完整；与正文记录一致的身份；绝对编号及更早分页后的保持；被回收快照的过期上报；预览长度、空白折叠、Unicode 安全及排除推理／工具输出；空提问保留轮次身份；字节预算与游标前进；响应上限；越界 offset；空会话编码为 `[]`；HTTP 端点的分页、会话绑定、能力公布，以及无该能力控制器返回 501；以及大纲读取与流式提交的并发竞争。
+覆盖：工具密集尾部导致正文分页不含用户提问时大纲仍完整；与正文记录一致的身份；绝对编号及更早分页后的保持；被回收快照的过期上报；预览长度、空白折叠、Unicode 安全及排除推理／工具输出；空提问保留轮次身份；字节预算与游标前进；响应上限；越界 offset；空会话编码为 `[]`；以及大纲读取与流式提交的并发竞争。
 
 ### 前端（已运行）
 
@@ -54,7 +54,6 @@ cd desktop && go test ./...
 cd desktop/frontend
 pnpm test:transcript      # 含 transcript-outline-store、chat-turn-jump、
                           # chat-turn-outline-jump
-pnpm test:remote
 pnpm build                # 类型检查、scroll-writer 门禁、CSS/主题、bundle 预算
 ```
 

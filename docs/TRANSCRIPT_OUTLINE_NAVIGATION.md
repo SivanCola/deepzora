@@ -47,11 +47,10 @@ the window could not be reached at all.
 - The index is built once per frozen cut, so repeated reads reuse one pass, body
   paging never shrinks it, and its previews count against the existing snapshot
   cache budget and lifetime.
-- `GET /transcript/outline` serves it, advertised to remotes as
-  `transcript-outline-v1`. `TranscriptOutlineAPI` is an optional capability
-  beside `TranscriptProjectionAPI`, so an existing controller keeps compiling
-  and an unsupported route answers 404/405/501 rather than an empty page.
-- The frontend keeps one shared outline store for local and remote sessions,
+- `TranscriptOutlineAPI` is an optional capability beside
+  `TranscriptProjectionAPI`, so an existing controller keeps compiling and an
+  unsupported read reports `unsupported` rather than an empty page.
+- The frontend keeps one shared outline store for every session,
   fenced by tab generation and snapshot identity. A recycled cut is reported as
   stale; the body is only replaced when the reader explicitly retries.
 - Selecting an unloaded turn starts a jump transaction that reuses the ordinary
@@ -62,13 +61,13 @@ the window could not be reached at all.
 
 ## Verification
 
-Code and automated checks are complete for the local and remote paths. Platform
+Code and automated checks are complete. Platform
 verification is listed separately below and is not claimed beyond what ran.
 
 ### Go (ran)
 
 ```sh
-go test ./internal/transcript/ ./internal/control/ ./internal/serve/
+go test ./internal/transcript/ ./internal/control/
 go test -race ./internal/transcript/
 cd desktop && go test ./...
 ```
@@ -78,9 +77,8 @@ user turn; identity shared with body records; absolute numbering and survival of
 older paging; staleness for a recycled cut; preview bounds, whitespace
 collapsing, Unicode safety, and exclusion of reasoning/tool output; empty
 prompts keeping turn identity; byte budget and cursor advance; the response
-limit; past-end offsets; an empty session encoding `entries` as `[]`; the HTTP
-endpoint's paging, session binding, capability advertisement, and 501 for a
-controller without the capability; and outline reads racing streaming commits.
+limit; past-end offsets; an empty session encoding `entries` as `[]`; and
+outline reads racing streaming commits.
 
 ### Frontend (ran)
 
@@ -88,7 +86,6 @@ controller without the capability; and outline reads racing streaming commits.
 cd desktop/frontend
 pnpm test:transcript      # includes transcript-outline-store, chat-turn-jump,
                           # chat-turn-outline-jump
-pnpm test:remote
 pnpm build                # typecheck, scroll-writer gate, CSS/theme, bundle budget
 ```
 

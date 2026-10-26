@@ -3,12 +3,11 @@
 [简体中文](BROWSER_CDP.zh-CN.md)
 
 The [desktop browser](DESKTOP_BROWSER.md) gives the agent a Chromium surface
-the user shares, served by the Electron shell. CLI, `deepzora serve`, and
-headless sessions have no shell behind them, so the same `browser_*` tools were
+the user shares, served by the Electron shell. CLI and headless sessions have no shell behind them, so the same `browser_*` tools were
 registered and then failed closed with no host to answer them.
 
-This backend is the third implementation of the host-neutral `browser.Executor`
-(after the Electron shell and the SSH broker): it drives an external Chrome over
+This backend is the second implementation of the host-neutral `browser.Executor`
+(after the Electron shell): it drives an external Chrome over
 the DevTools Protocol. The tools, their descriptions, and their schemas are
 unchanged — only who answers them is new.
 

@@ -255,15 +255,13 @@ There is no setup toggle. It proposes:
 
 Scanning uses original user content, deduplicates against facts from both scopes
 and loaded instruction bodies, and never writes by itself. Every candidate shows
-evidence and must be explicitly accepted. Remote workspaces fail closed:
-Deepzora does not fall back to local sessions or local memory when the remote
-surface cannot provide the feature.
+evidence and must be explicitly accepted.
 
 ## Management surfaces
 
 Bare `/memory` shows every active fact from both scopes, including ID, revision,
 type, scope, freshness, and storage provenance. Structured completion is
-available in CLI, desktop, and remote workspaces.
+available in CLI and desktop.
 
 | Command | Result |
 | --- | --- |
@@ -295,8 +293,6 @@ project-over-global explanations.
 - Automatic recall omits fact storage paths and redacts home-directory prefixes
   in snippets.
 - External approval notifications receive the tool name, not memory contents.
-- Remote management uses the remote controller's memory catalog and never reads
-  the desktop machine's local store as a fallback.
 
 This keeps the provider-visible prefix stable while making dynamic context
 observable and recoverable.

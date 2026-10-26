@@ -13,16 +13,8 @@
 | 启动和连续保存的发布保护 | 启动版本校验、携带版本的延迟重建项 | `TestModelSettingsStartupPublicationRejectsCandidateBuiltBeforeSave`、延迟重建测试 |
 | 最终 lease 失效保留旧运行时并允许安全重试 | 最终 authority 绑定、拒绝失效写入和迁移快照前的 authority 恢复 | `TestModelSettingsFinalAuthorityFailurePreservesRuntimeAndRecovers` 在最终绑定前释放真实 lease |
 | 删除后没有可用模型时阻止新运行，保留历史 | 经过校验的运行时模型选择 | `TestModelSettingsLastProviderRemovalBlocksNewRun`、服务删除测试 |
-| 远程不可变路由、候选所有权和自动下一轮应用 | `desktop/cred_proxy.go`、`desktop/remote_model_settings.go`、`internal/serve/model_settings_source.go` | `TestRemoteModelOwnershipRetiresOldRouteAfterInFlightRequest`、`TestRemoteModelSourceRefreshesAutonomousHTTPRunAndRetiresOldRoute`、Serve 应用失败与回执测试 |
-| 远端项目配置继续优先 | `internal/config/model_runtime_settings.go` | `TestManagedModelSnapshotPreservesProjectProviderAndAssignments` |
-| 架构状态不进入模型前缀 | 仅传输层使用快照元数据，保留序列化行为 | `TestRemoteModelSnapshotPreservesWirePrefixAndKeepsKeysLocal` 比较 OpenAI、Anthropic、Responses 请求字节 |
 | 已保存、待应用、失败状态及草稿竞态 | 结构化桥接结果、请求回执和读写代次 | `model-settings-receipt.test.ts`、`provider-editor-save-races.test.tsx`、设置回读快照测试 |
 | 保存后创建的子代理及审批续轮保持已接受的快照 | Boot 子代理工厂和控制器审批恢复 | `TestModelSettingsChildCreatedAfterSaveInheritsAcceptedRunSnapshot`、`TestModelSettingsApprovalResumeKeepsAcceptedCredential` 验证真实 HTTP 请求 |
-| 连续保存超过构建进度及完成响应丢失 | 共享运行时所有者刷新、源版本校验和候选保留 | `TestModelSettingsSourceFencesOvertakenBuildAndUncertainFinish` |
-| 远程后台分离工作保留自己的接纳边界 | `internal/serve/model_settings_detached.go` | `TestDetachedModelSettingsRefreshTargetsItsOwnerAndPreservesFailure`、`TestDetachedModelSettingsKeepsQueuedOwnerUntilAdmission` |
-| 远程所有权达到容量上限时不清理已接受路由 | 代理范围内的候选接纳 | `TestRemoteModelOfferCapacityPreservesOwnedRoutes` |
-| 迟到回执和旧连接不能撤销当前路由 | Serve 实例及递增序列、原子连接身份绑定和路由回收 | `TestRemoteOwnershipRejectsOvertakenReceipts`、`TestRemoteReplacedConnectionCannotPinOwnership`、`TestRemoteIncarnationReclaimsOldReservationsAndRejectsLateBuilders` |
-| 明确拒绝释放候选；结果未知时保留至确认 | 拒绝类型与正向所有权回读 | `TestRemoteInstallDistinguishesRejectionFromLostAcknowledgement`、`TestRemoteUnknownInstallRetainsOfferUntilOwned` |
 | 控制器关闭后不再创建 inbox 文件 | inbox 打开封锁和同步登记的发布通知 | `TestClosedControllerCannotOpenInboxFromLateDispatch`、`TestStaleRecoveryCannotOverwritePublishedForegroundRoute` |
 | 旧快照不能覆盖新选择的连接 | 列表投影提交期间保持当前租约代次，直到元数据写入完成 | `TestListingProjectionCannotOverwriteModelAfterAuthorityReplacement`、`TestListingAuthorityGuardRetainsGenerationThroughCommit`、`TestOwnedListingRejectsMissingAuthority`、`TestModelSettingsCredentialRefreshPersistsSelectedConnection` |
 | 恢复会话后无需打开选择器即可显示正确连接 | 目录随就绪状态、会话身份刷新，并拒绝过期响应 | `model-switcher-refresh.test.tsx`，同模型双连接的原生冷启动恢复 |
@@ -34,14 +26,14 @@
 
 ```sh
 go test -p 4 ./...
-go test -race ./internal/config ./internal/boot ./internal/control ./internal/bot ./internal/serve
+go test -race ./internal/config ./internal/boot ./internal/control ./internal/bot
 (cd desktop && node ../scripts/desktop-windows-go-tests.mjs --all)
-(cd desktop && go test -race . -run 'TestModelSettings|TestRemoteModel|TestCredentialProxy|TestDeferred')
+(cd desktop && go test -race . -run 'TestModelSettings|TestDeferred')
 (cd desktop/frontend && pnpm typecheck && pnpm test:all && pnpm build)
 go run ./tools/repolint
 ```
 
-前端测试包含回执恢复、延迟保存草稿、远程行为和长历史性能。结果不明的写入先回读，不自动重做。候选保留机制保护构建过程，Serve 全局有序的所有权回执阻止旧状态撤销已发布路由。候选释放与路由回收原子完成；已接受的旧请求在完成时释放自己的引用。
+前端测试包含回执恢复、延迟保存草稿和长历史性能。结果不明的写入先回读，不自动重做。
 
 ## 后台进程跨配置重建与发送恢复
 
@@ -54,8 +46,6 @@ go run ./tools/repolint
 | 失败或丢弃候选保留旧进程和扩展执行代次 | boot `TestRebuildBackgroundCandidateFailurePreservesOwner`、`TestModelCandidateDiscardPreservesLiveExtensionManager` |
 | 候选初始化及旧 Controller 的延迟回调不影响新所有者 | control `TestModelReplacementFencesCandidateAndRetiredCallbacks` |
 | 旧配置发送逐提交检查全部路由、凭证和限制 | config continuation 测试与 Desktop model-application 测试 |
-| 远程过期候选不发布，完成回执丢失后可以核实恢复 | Serve `TestModelSettingsSourceFencesOvertakenBuildAndUncertainFinish` |
-| 重连后读取状态不能重新激活旧确认 | Desktop `TestRemoteModelConfirmationExpiresOnReconnectAndNewRuntime` |
 | 拒收保留正文与附件，应用设置不会自动重发 | 前端 submission 测试与 `node bench/model-application.mjs` |
 | 结构化拒收详情穿过真实 Electron context bridge | `desktop/electron/scripts/smoke.mjs`，使用 Go 服务和生产渲染器 |
 

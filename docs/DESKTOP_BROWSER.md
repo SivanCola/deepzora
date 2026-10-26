@@ -5,7 +5,7 @@
 The desktop browser is a native Chromium surface inside the Deepzora window
 that the user and the agent operate together. Websites render in Electron
 `WebContentsView`s owned by the shell; every agent capability goes through the
-Go desktop service so that local and remote agents, approvals, cancellation,
+Go desktop service so that agents, approvals, cancellation,
 evidence and operation records share one implementation. This document is the
 contract between the browser panel, the shell's surface manager, the Go
 `BrowserExecutor` and the tools the agent sees. Sessions with no shell behind
@@ -26,7 +26,7 @@ user input on the page ─▶ guest preload ─▶ shell: epoch++ ─▶ desktop
   request a take-over and exposes nothing to the page.
 - Partitions: `persist:browser` is the shared login partition for one
   Deepzora data home; `temp:<id>` partitions are in-memory and discarded when
-  their last tab closes. Remote Serve windows and MCP App frames use their
+  their last tab closes. MCP App frames use their
   own partitions and never share the browser partition.
 - The `BrowserSurfaceManager` in the shell owns creation, visibility, bounds,
   focus and destruction. The React panel submits a layout rectangle; the shell
@@ -62,8 +62,7 @@ reload updates the page while leaving the tab in `human` mode.
 This file path serves single files and resources allowed by the existing
 static-preview policy. Projects that need a module build, client routing or a
 local API still use the terminal to start or reuse the project's declared
-development server, then open its confirmed address with `browser_open`. SSH
-files retain their existing file preview in the first release.
+development server, then open its confirmed address with `browser_open`.
 
 ## Browser control settings
 
@@ -157,9 +156,7 @@ inputs, custom widgets and dynamic pages behave as they would for a user.
 Screenshots and downloads never travel through control frames: the shell
 writes them into the task's temporary directory that Go names in the request
 and returns the path; Go turns the file into an image or file result through
-the existing channels. Uploads read only files the task owns; remote tasks
-stage files through the existing SFTP transfer and the task temporary
-directory, so a remote path is never treated as a local one.
+the existing channels. Uploads read only files the task owns.
 
 ## Ownership, take-over and unknown writes
 
@@ -202,32 +199,6 @@ directory, so a remote path is never treated as a local one.
 Events from the shell: `browser:tabs` (tab list changes), `browser:takeover`
 (`{tabID, epoch, reason}`), `browser:download` (progress), `browser:crash`.
 
-## Remote agents
-
-A remote Deepzora agent reaches the local browser through the existing SSH
-connection and forward manager as a restricted host RPC carrying the same
-`BrowserExecutor` contract. Grants are bound to the remote connection
-generation, session and task; disconnect, reconnect or session switch revokes
-them. Browser grants and provider-proxy credentials are separate; no shared
-token. Older remote Serve builds negotiate capabilities and simply do not
-advertise the browser, keeping every existing remote feature.
-
-The wire shape is one loopback HTTP broker per desktop. The bootstrap of a
-fresh Serve injects `DEEPZORA_BROWSER_BROKER` / `DEEPZORA_BROWSER_TOKEN`
-(process environment only) pointing at the reverse-forwarded broker; a reused
-Serve is re-pointed through `POST /browser/broker` after the desktop rotates
-the route. The broker mints one random bearer token per host connection
-generation — registering a new generation replaces the host's old token — and
-authenticates before dispatching to `browser.Executor` over
-`/v1/browser/<method>`. Every request carries `X-Deepzora-Browser-Session`;
-the broker resolves it to the one desktop tab that shows that session and
-refuses anything else with `no_grant`. Screenshots and downloads the shell
-writes on the desktop are staged onto the remote host through the existing
-SFTP channel into a per-workspace scratch directory
-(`~/.deepzora/browser-relay/<workspace>/`), so the serve's tools only ever
-read paths local to them. A Serve started with a broker advertises `browser`
-in the `X-Deepzora-Serve-Capabilities` header of the `/auth/token` handshake.
-
 ## Acceptance
 
 ### Right panel sizing
@@ -259,7 +230,7 @@ These geometry checks do not validate agent-driven HTML page execution.
 Iframes, dynamic DOM, controlled inputs, popups, upload and download,
 navigation history, temporary partitions, shared and isolated logins;
 take-over before approval, after approval before dispatch, lost receipt after
-execution, restart after crash, duplicate operation IDs; remote SSH drop,
-generation change, stale grant, cross-session misrouting. The real tasks in
+execution, restart after crash, duplicate operation IDs; generation change,
+stale grant, cross-session misrouting. The real tasks in
 [the architecture contract](DESKTOP_ARCHITECTURE.md#verification) close
 the phase.

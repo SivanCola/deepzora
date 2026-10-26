@@ -5,7 +5,7 @@
 当前聊天实现借鉴 DeepSeek Harness `c291e7961a515f6d7af9304e7fd1d257929aef26` 的内容分层、过程摘要、工具行、调用检查和文件产物交互，并适配 Deepzora 已有协议和工作台。生产路径只有一套实现：本地会话、远程会话和已有工作台都消费统一投影。
 
 ```text
-controller / 历史 / LiveStream / 远程事件
+controller / 历史 / LiveStream
                     ↓
        ChatSource 内容与轮次投影
                     ↓
@@ -82,7 +82,6 @@ resolveFileResourcePath(ref)
 
 UI 先查询能力快照，只显示可用操作；宿主仍在每次执行时重新校验。浏览器打开使用可取消的宿主就绪订阅，不再逐动画帧轮询。新打开请求或会话切换使旧 intent 失效，并撤销已生成但未消费的预览 URL。
 
-远程 `present` 继续要求 `present-files-v1` 和历史中的可信声明。远程文件修改通过 tab、host、client、generation、当前会话和成功内置工具证据验证，再将相对路径限制在远程工作区内。远程路径不会传给本机系统打开接口。
 
 ## 文档预览与生命周期
 
@@ -106,7 +105,6 @@ HTML 沿用现有媒体 URL 和独立预览源：iframe 为 `sandbox="allow-scri
 
 ## 原生验证范围
 
-- 未连接实际远程服务器执行网络端到端回放；远程来源隔离和降级由协议、宿主与 UI 测试覆盖。
 - 未在 Windows 和 Linux 原生桌面运行系统打开、编码器和输入法验证。
 - WebKit 的长任务指标不可测；没有将缺失值记录为零。
 - 本次 Electron 回放使用真实 Electron 宿主和生产组件 fixture，没有启动签名后的发布包，也没有在隔离图形环境运行小时级 macOS 原生输入法浸泡。

@@ -998,13 +998,12 @@ type ProviderEntry struct {
 	// ResponsesMode selects the Responses API context strategy. Empty preserves
 	// vendor detection; DeepSeek is stateless while compatible endpoints may use
 	// stateful previous_response_id continuation.
-	ResponsesMode      string `toml:"responses_mode"`
-	resolvedAPIKey     string
-	credentialsFrozen  bool
-	credentialProxyURL string // runtime-only loopback transport, never persisted
-	resolvedSource     CredentialSource
-	BalanceURL         string `toml:"balance_url"` // optional; a provider-specific wallet-balance endpoint (DeepSeek: https://api.deepseek.com/user/balance). Empty = no balance readout.
-	ContextWindow      int    `toml:"context_window"`
+	ResponsesMode     string `toml:"responses_mode"`
+	resolvedAPIKey    string
+	credentialsFrozen bool
+	resolvedSource    CredentialSource
+	BalanceURL        string `toml:"balance_url"` // optional; a provider-specific wallet-balance endpoint (DeepSeek: https://api.deepseek.com/user/balance). Empty = no balance readout.
+	ContextWindow     int    `toml:"context_window"`
 	// MaxOutputTokens is a protocol-neutral total output budget for one turn.
 	// Zero means official DeepSeek omits the field (server 384K ceiling) and
 	// other vendors keep their own defaults. Effort selects thinking depth only.
