@@ -32,7 +32,6 @@ export type ComposerRouterInput = {
     setWorkspaceConflict(value: { state: "local"; ownerTabId: string; ownerTitle: string; ownerWork: MockWorkView; canReveal: true; canCreateWorktree: true } | null): void;
     setPendingClose(value: { tabId: string; work: MockWorkView; stopping: boolean } | null): void;
     submitComposerTurn(tabId: string, display: string, submit?: string, structured?: StructuredInvocationSubmit, submissionId?: string): Promise<void>;
-    steerForTab(tabId: string, text: string): Promise<void>;
   };
 };
 
@@ -170,11 +169,5 @@ export function useComposerRouter(input: ComposerRouterInput) {
     await ports.submitComposerTurn(sourceTabId, displayText, submitText, structured, submissionId);
   });
 
-  const handleSteer = useCommittedCommand(async (text: string, requestedTabId = activeTabId) => {
-    const sourceTabId = requestedTabId || activeTabId;
-    if (!sourceTabId) throw new Error(t("composer.workspaceStarting"));
-    await ports.steerForTab(sourceTabId, text.trim());
-  });
-
-  return { handleSend, handleSteer };
+  return { handleSend };
 }

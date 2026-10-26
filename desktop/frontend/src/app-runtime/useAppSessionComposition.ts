@@ -125,7 +125,7 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
     begin: beginNavigationSurface, maskTarget: settleNavigationSurface, commitPaint: commitNavigationSurfacePaint,
   } = input.surface;
   const {
-    sendToTab, runShellForTab, steerForTab, cancel, cancelForTab,
+    sendToTab, runShellForTab, cancel, cancelForTab,
     setControllerModeForTab, setCollaborationMode: setControllerCollaborationMode,
     setCollaborationModeForTab: setControllerCollaborationModeForTab,
     setToolApprovalModeForTab,
@@ -149,7 +149,7 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
   } = runtime.navigation;
   const {
     setTransientOverlayDismissSignal, managementActive,
-    windowsFramelessChrome, rightDockMode,
+    windowsFramelessChrome,
     workspacePanelOpen, workspacePanelMaximized, liveTerminalHeight, setLiveWorkspacePanelRenderWidth,
     setRightDockTreeWidth, terminalPanelOpen, setSettingsTarget, enterConversation,
   } = shell;
@@ -229,7 +229,7 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
   const { dockVisible: surfaceWorkspacePanelRenderable, dockGridOpen: surfaceWorkspacePanelGridOpen,
     dockOverlay: surfaceWorkspacePanelOverlay,
     terminalOpen: terminalSurfaceOpen } = projectConversationLayout({
-    chatVisible: chatSurfaceVisible, localToolsEnabled: conversationView.localToolsEnabled, dockMode: rightDockMode,
+    chatVisible: chatSurfaceVisible,
     dockRenderable: workspacePanelRenderable, dockGridOpen: workspacePanelGridOpen, dockOverlay: workspacePanelOverlay,
     dockOpen: workspacePanelOpen, dockMaximized: workspacePanelMaximized, terminalOpen: terminalPanelOpen,
   });
@@ -510,7 +510,6 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
       setWorkspaceConflict: (value) => setWorkspaceConflict(value),
       setPendingClose: (value) => setPendingClose(value),
       submitComposerTurn: (tab, display, submit, structured, submissionId) => submitComposerTurn(tab, display, submit, structured, submissionId),
-      steerForTab,
     },
   });
 
@@ -583,7 +582,7 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
   });
 
   const terminalPanelCommands = useTerminalPanelCommands({
-    tabId: activeTabId, enabled: conversationView.localToolsEnabled, shortcutsEnabled: !managementActive,
+    tabId: activeTabId, shortcutsEnabled: !managementActive,
   });
 
   const layoutStyle = useMemo(

@@ -63,14 +63,14 @@ Object.defineProperty(navigator, "clipboard", { configurable: true, value: {
   writeText: async (value: string) => { calls.push(`copy:${value}`); },
 } });
 
-async function render(terminalEnabled = true, sessionHasContent = true, tabID = "one") {
+async function render(sessionHasContent = true, tabID = "one") {
   await act(async () => {
     root.render(<LocaleProvider><TopicbarSessionActions
       key={tabID} sessionHasContent={sessionHasContent}
       getSessionMarkdown={async () => "# Session"}
       exportSession={(format) => { calls.push(`export:${format}`); }}
       toggleTerminal={() => { calls.push("terminal"); }} terminalOpen={false}
-      terminalEnabled={terminalEnabled} prefetchTerminal={() => { calls.push("prefetch"); }}
+      prefetchTerminal={() => { calls.push("prefetch"); }}
       openSessionSummary={() => { calls.push("summary"); }} tasksOpen={false}
     /></LocaleProvider>);
   });
@@ -117,14 +117,14 @@ await openExport();
 await act(async () => { document.body.dispatchEvent(new dom.window.MouseEvent("pointerdown", { bubbles: true })); });
 ok(!rootElement.querySelector('[role="menu"]'), "pointer interaction outside dismisses export");
 await openExport();
-await render(true, true, "two");
+await render(true, "two");
 ok(!rootElement.querySelector('[role="menu"]'), "switching sessions clears the previous export menu");
-await render(false, false, "two");
+await render(false, "two");
 const disabledButtons = Array.from(rootElement.querySelectorAll<HTMLButtonElement>("button"));
-ok(disabledButtons[1]!.disabled && disabledButtons[2]!.disabled, "empty sessions disable export and remote surfaces disable terminal");
+ok(disabledButtons[1]!.disabled, "empty sessions disable export");
 const callCount = calls.length;
-await act(async () => { disabledButtons[1]!.click(); disabledButtons[2]!.click(); disabledButtons[2]!.focus(); });
-ok(calls.length === callCount && !rootElement.querySelector('[role="menu"]'), "disabled actions neither run nor prefetch");
+await act(async () => { disabledButtons[1]!.click(); });
+ok(calls.length === callCount && !rootElement.querySelector('[role="menu"]'), "disabled export does not run");
 await act(async () => { root.unmount(); });
 dom.window.close();
 console.log(`\n${passed} passed, ${failed} failed`);

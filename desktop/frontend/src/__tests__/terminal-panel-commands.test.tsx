@@ -19,27 +19,19 @@ const calls: string[] = [];
 useTerminalStore.setState({ createSession: async (tab, path) => { calls.push(`${tab}:${path}`); return null; } });
 let commands!: ReturnType<typeof useTerminalPanelCommands>;
 const noop = () => {};
-function Probe({ disabled }: { disabled: boolean }) {
+function Probe() {
   const page = useAppNavigationStore(state => state.page);
-  commands = useTerminalPanelCommands({ tabId: "A", enabled: !disabled, shortcutsEnabled: page.kind === "workspace" });
+  commands = useTerminalPanelCommands({ tabId: "A", shortcutsEnabled: page.kind === "workspace" });
   return <>
     <TopicbarSessionActions sessionHasContent={false} getSessionMarkdown={() => ""} exportSession={noop}
-      toggleTerminal={commands.toggleTerminalPanel} terminalEnabled={!disabled} terminalOpen={false} openSessionSummary={noop} tasksOpen={false} />
+      toggleTerminal={commands.toggleTerminalPanel} terminalOpen={false} openSessionSummary={noop} tasksOpen={false} />
   </>;
 }
-const paint = (disabled: boolean) => act(async () => root.render(<LocaleProvider><ToastProvider><Probe disabled={disabled} /></ToastProvider></LocaleProvider>));
+const paint = () => act(async () => root.render(<LocaleProvider><ToastProvider><Probe /></ToastProvider></LocaleProvider>));
 const key = (shiftKey = false) => document.dispatchEvent(new KeyboardEvent("keydown", { key: "`", ctrlKey: true, shiftKey, bubbles: true }));
 try {
   useLayoutStore.getState().setTerminalPanelOpen(false);
-  await paint(true);
-  const terminalButton = document.querySelector(".lucide-terminal")?.closest("button")
-    ?? [...document.querySelectorAll("button")].find(button => button.getAttribute("aria-label") === "Terminal");
-  assert.ok(terminalButton);
-  assert.equal(terminalButton.disabled, true);
-  await act(async () => { key(); key(true); commands.openTerminalForPath("disabled-path"); });
-  assert.equal(useLayoutStore.getState().terminalPanelOpen, false);
-  assert.deepEqual(calls, [], "shortcut and direct commands share one local-tool capability gate");
-  await paint(false);
+  await paint();
   await act(async () => useAppNavigationStore.getState().openPage({ kind: "automation" }));
   await act(async () => key());
   assert.equal(useAppNavigationStore.getState().page.kind, "automation");
@@ -54,5 +46,5 @@ try {
   await act(async () => root.unmount());
   commands.openTerminalForPath("stale"); key(true);
   assert.deepEqual(calls, ["A:."], "unmount revokes commands and removes shortcut listeners");
-  console.log("terminal commands: capability gate, native key routing and disposal passed");
+  console.log("terminal commands: native key routing and disposal passed");
 } finally { useTerminalStore.setState({ createSession: originalCreate }); dom.window.close(); }

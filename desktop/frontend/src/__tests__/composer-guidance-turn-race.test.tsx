@@ -16,8 +16,7 @@ installBridgeApp({
   EnqueueInboxFollowupForTarget: async (...args: unknown[]) => { submitted = args; return receipt; },
   InboxQueueForTarget: async () => { throw new Error("missing turn must queue as follow-up"); },
 });
-const { root, rerender } = await renderComposer({ running: true, localDurableGuidance: false,
-  onSteer: async () => { throw new Error("captured targets must use durable receipt tracking"); } });
+const { root, rerender } = await renderComposer({ running: true });
 await rerender({ insertRequest: { id: 9101, text: "preserve my guidance", mode: "replace" } });
 const button = document.querySelector<HTMLButtonElement>(".composer__queue-steer");
 assert.ok(button);

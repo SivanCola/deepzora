@@ -85,7 +85,7 @@ import { upsertReadPause } from "./readPause";
 import { applyHydrateErrorState, hydrateFailureDetail, hydratePlaceholderItems as resolveHydratePlaceholders } from "./hydrateErrorState";
 import { canAdoptUnboundLiveSurface, hasCachedLiveTurn, hasReusableCachedTranscript, sameSessionHydrateIdentity, sameSessionPlaceholderItems, type HydrateSurfacePolicy } from "./hydrateHistoryApply";
 import { useSessionCatalogActions } from "./useSessionCatalogActions";
-import { hydrateIdentityCurrent, sessionIdentityFields, sessionIdentityRoute, sessionIdentityStableKey, type SessionHydrationOptions } from "./sessionIdentity";
+import { hydrateIdentityCurrent, sessionIdentityFields, sessionIdentityStableKey, type SessionHydrationOptions } from "./sessionIdentity";
 import { loadHistoryWindow } from "./historyWindowController";
 import { useHistoryTurnNavigation } from "./useHistoryTurnNavigation";
 import { reduceHistoryWindowState } from "./historyWindowState";
@@ -3603,21 +3603,6 @@ export function useController() {
     await runShellForTab(activeTabId, command);
   }, [activeTabId, runShellForTab]);
 
-  const steerForTab = useCallback(async (tabId: string, text: string) => {
-    if (!tabId) throw new Error(t("composer.workspaceStarting"));
-    const state = statesRef.current.get(tabId);
-    const target = await app.CaptureInboxTarget(tabId, sessionIdentityRoute(state?.meta) ?? "");
-    const { enqueueGuidanceForTarget } = await import("./inboxGuidanceSubmit");
-    await enqueueGuidanceForTarget(app, target, tabId, text, state?.activeTurnId);
-    // queued_followup is success: the instruction is durable and will run at
-    // the next idle/tool-boundary kick. Do not surface it as a send failure.
-  }, []);
-
-  const steer = useCallback(async (text: string) => {
-    if (!activeTabId) throw new Error(t("composer.workspaceStarting"));
-    await steerForTab(activeTabId, text);
-  }, [activeTabId, steerForTab]);
-
   const notice = useCallback((text: string, level: "info" | "warn" = "info") => {
     if (!activeTabId) return;
     dispatchTo(activeTabId, { type: "local_notice", level, text });
@@ -4621,7 +4606,7 @@ export function useController() {
     state: projectedState,
     liveStore,
     activeTabId,
-    send, sendToTab, runShell, runShellForTab, steer, steerForTab, notice,
+    send, sendToTab, runShell, runShellForTab, notice,
     cancel, cancelForTab, approve, approveForTab, isPromptCurrentForTab, resolvePlanDecision, resolvePlanDecisionForTab,
     answerQuestion, answerQuestionForTab,
     answerMCPInteraction, answerMCPInteractionForTab, setControllerMode, setControllerModeForTab,
