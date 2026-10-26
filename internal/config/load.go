@@ -125,7 +125,6 @@ func loadForRoot(root string, opts loadForRootOptions) (*Config, error) {
 	}
 	globalCLI := cfg.CLI
 	globalSecrets := cfg.Secrets
-	globalRemote, globalServe := cfg.Remote.Clone(), cfg.Serve
 	held := holdUserScope(cfg)
 	globalTelemetry, globalStatusline := cfg.Telemetry, cfg.Statusline
 
@@ -151,10 +150,6 @@ func loadForRoot(root string, opts loadForRootOptions) (*Config, error) {
 	// deepzora.toml must not be able to flip on the workflow-breaking env/path
 	// protections.
 	cfg.Secrets = globalSecrets
-	// Remote SSH hosts and serve authentication are equally user-global: a repo
-	// must not inject hosts, jump chains, or port forwards, nor choose serve's
-	// launch token, auth mode, or trust in forwarded headers.
-	cfg.Remote, cfg.Serve = globalRemote, globalServe
 	// Telemetry is a user-global privacy choice and the statusline a command the
 	// TUI runs unprompted: project config sets neither, even with no global value.
 	cfg.Telemetry, cfg.Statusline = globalTelemetry, globalStatusline

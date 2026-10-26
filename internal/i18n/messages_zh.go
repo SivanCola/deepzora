@@ -330,7 +330,6 @@ var Chinese = Messages{
 	CmdRemember:         "保存一条记忆",
 	CmdForget:           "归档一条已存记忆",
 	CmdMcp:              "MCP 服务器",
-	CmdRemote:           "远程 SSH 主机",
 	CmdHooks:            "管理 hooks",
 	CmdPlugins:          "管理插件包",
 	CmdPasteImage:       "粘贴剪贴板图片",
@@ -471,7 +470,6 @@ var Chinese = Messages{
 	SetupSharedKeyWarningFmt: "%s 已被 %s（%s）使用。确认共享这项凭据？",
 	SetupKeyEnvTakenFmt:      "%s 已被 provider %s 使用；把这个 key 存进去会替换那个 provider 的 key。",
 	SetupKeyEnvStoredFmt:     "%s 已经保存了一项凭据；把这个 key 存进去会覆盖原来的值。",
-	SetupKeyEnvSettingFmt:    "%s 已被机器人或远程主机设置读取；把这个 key 存进去会让那项设置拿到你的 key。",
 	SetupKeyEnvShellFmt:      "%s 已在 Deepzora 运行的环境变量中设置；把这个 key 存进去会覆盖那个值。",
 	SetupKeyEnvRetry:         "请换一个变量名，或直接回车由 Deepzora 分配独立变量。",
 	SetupPromptAPIKeyFmt:     "输入 %s 的新值",
@@ -526,18 +524,6 @@ var Chinese = Messages{
 	AnthropicFetchModelsSuccessFmt: "发现 %d 个 %s 模型",
 	AnthropicFetchModelsFailedFmt:  "获取 %s 模型失败: %v",
 	AnthropicSelectModelsLabel:     "选择要启用的 %s 模型",
-
-	RemoteConnectingFmt:       "正在连接 %s…",
-	RemoteConnectedFmt:        "已连接到 %s",
-	RemoteReconnectingFmt:     "正在重连 %s（第 %d 次）…",
-	RemoteDegradedFmt:         "已连接到 %s，但部分端口转发未建立",
-	RemoteDisconnected:        "已断开（远端 serve 仍在运行）",
-	RemoteServeReadyFmt:       "远端 serve 就绪：%s",
-	RemoteHostKeyPromptFmt:    "未知的主机密钥 %s\n  类型：%s\n  指纹：%s",
-	RemotePassphrasePromptFmt: "%s 的密钥口令：",
-	RemotePasswordPromptFmt:   "%s 的登录密码：",
-	RemoteBootstrapStepFmt:    "远端 serve：%s %s",
-	RemoteNoHostsHint:         "尚未配置远程主机；用 `deepzora remote add <名称> [user@]host` 添加",
 
 	UnknownCommandFmt:         "未知命令 %q",
 	UsageRunHint:              "用法：deepzora -p [--model NAME] <task>",
@@ -636,7 +622,6 @@ var Chinese = Messages{
   deepzora run [--model NAME] [--preset ID] [--max-steps N] [-c|--continue] [--resume PATH] [--copy] [--output-format FORMAT] <task>
   deepzora run --events-jsonl [--model NAME] <task>      输出脱敏结构化事件 JSONL
   deepzora review [--base BRANCH] [--commit SHA] [--model NAME]  AI 代码审查（基于本地 diff）
-  deepzora serve [--model NAME] [--preset ID] [--addr HOST:PORT] [--auth none|token] [--token STR]  通过 HTTP+SSE 提供服务（远程工作区后端）
   deepzora acp [--model NAME]                           通过 stdio 提供 Agent Client Protocol（也可用：deepzora --acp）
   deepzora setup [path]                                 交互式配置向导；生成 deepzora.toml（及 .env）
   deepzora config reasoning-language [auto|zh|en]        配置可见思考语言

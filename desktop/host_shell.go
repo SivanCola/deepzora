@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"os"
 	"runtime"
-	"sync"
 
 	"deepzora/desktop/internal/hostrpc"
 )
@@ -16,10 +15,8 @@ import (
 // host/* requests and routes the shell's hostEvent notifications back into
 // the App entry points the Wails callbacks used to call.
 type hostShellBridge struct {
-	app      *App
-	server   *hostrpc.Server
-	remoteMu sync.Mutex
-	remote   *hostRemoteWindows
+	app    *App
+	server *hostrpc.Server
 }
 
 func (a *App) hostMode() bool { return a != nil && a.hostShell != nil }
@@ -125,8 +122,6 @@ func (b *hostShellBridge) updateTrayLocale(locale string) {
 func (b *hostShellBridge) handleHostEvent(_ context.Context, name string, payload json.RawMessage) error {
 	a := b.app
 	switch name {
-	case "remoteWindow.closed":
-		b.remoteWindowClosed(payload)
 	case "secondInstance":
 		a.goSafe("secondInstanceLaunch", a.secondInstanceLaunch)
 	case "tray.open":

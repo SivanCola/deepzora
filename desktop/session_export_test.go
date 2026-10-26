@@ -9,10 +9,8 @@ import (
 	"image"
 	"image/jpeg"
 	"image/png"
-	"net/http"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 )
@@ -179,75 +177,6 @@ func TestSessionExportRejectsCorruptPageWithoutReplacingTarget(t *testing.T) {
 	}
 }
 
-func TestSessionExportRejectsOldRemoteBeforeSaveDialog(t *testing.T) {
-	app, tab := remoteRuntimeTestApp(&http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
-		t.Fatal("old peer must not receive export requests")
-		return nil, nil
-	})})
-	host := &recordingNativeHost{}
-	app.setNativeHost(host)
-	_, err := app.BeginSessionExportForTarget(SessionSelector{}, tab.id, "json", "Old peer", "")
-	if err == nil || !strings.Contains(err.Error(), "session-export-v1") {
-		t.Fatalf("missing explicit upgrade error: %v", err)
-	}
-	if len(host.callNames()) != 0 {
-		t.Fatal("opened save dialog for unsupported peer")
-	}
-}
-
-func TestRemoteSessionExportPinsExplicitIdentityAcrossTabSwitch(t *testing.T) {
-	const sourceID = "source-a"
-	var requests []string
-	app, tab := remoteRuntimeTestApp(&http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-		if got := req.URL.Query().Get("sessionId"); got != sourceID {
-			t.Fatalf("%s sessionId = %q, want %q", req.URL.Path, got, sourceID)
-		}
-		if got := req.Header.Get(expectedSessionIDHeader); got != sourceID {
-			t.Fatalf("%s expected session = %q, want %q", req.URL.Path, got, sourceID)
-		}
-		requests = append(requests, req.URL.Path)
-		switch req.URL.Path {
-		case "/session-export/snapshot":
-			snapshot := session.ExportSnapshot{Ref: session.SessionRef{HostID: "fixture-host", SessionID: sourceID}, StorageGeneration: "generation-a", SnapshotSequence: 1, AcceptedThrough: 1, DurableThrough: 1, Title: "Source A"}
-			return remoteRuntimeTestResponse(req, http.StatusOK, remoteRuntimeTestJSON(t, snapshot)), nil
-		case "/session-export/document":
-			response := remoteRuntimeTestResponse(req, http.StatusOK, `[{"id":"SOURCE-A"}]`)
-			response.Header.Set("X-Deepzora-Export-Records", "1")
-			return response, nil
-		case "/session-export/validate":
-			return remoteRuntimeTestResponse(req, http.StatusNoContent, ""), nil
-		default:
-			t.Fatalf("unexpected remote export request %s", req.URL)
-			return nil, nil
-		}
-	})})
-	tab.capabilities["session-export-v1"] = true
-	tab.routing.currentPath = remoteSessionIDRoutePrefix + sourceID
-	tab.session.path = tab.routing.currentPath
-	path := filepath.Join(t.TempDir(), "remote.json")
-	app.setNativeHost(&recordingNativeHost{dialogPath: path, onCall: func(name string) {
-		if strings.HasPrefix(name, "SaveFileDialog:") {
-			tab.routing.currentPath = remoteSessionIDRoutePrefix + "source-b"
-		}
-	}})
-	ref := session.SessionRef{HostID: "fixture-host", SessionID: sourceID}
-	handle, err := app.BeginSessionExportForTarget(SessionSelector{Ref: &ref}, tab.id, "json", "Source A", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err = app.FinishSessionExport(handle.ExportID); err != nil {
-		t.Fatal(err)
-	}
-	data, err := os.ReadFile(path)
-	if err != nil || !bytes.Contains(data, []byte("SOURCE-A")) {
-		t.Fatalf("published remote export = %s err=%v", data, err)
-	}
-	want := []string{"/session-export/snapshot", "/session-export/validate", "/session-export/document", "/session-export/validate"}
-	if !slices.Equal(requests, want) {
-		t.Fatalf("remote requests = %v, want %v", requests, want)
-	}
-}
-
 func TestSessionExportPublishesValidatedRasterPages(t *testing.T) {
 	for _, format := range []string{"pdf", "image"} {
 		t.Run(format, func(t *testing.T) {
@@ -310,24 +239,5 @@ func TestSessionExportPublishesValidatedRasterPages(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-func TestRemoteExportRejectsReboundSelector(t *testing.T) {
-	app, tab := remoteRuntimeTestApp(&http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
-		t.Fatal("rebound source must not receive requests")
-		return nil, nil
-	})})
-	tab.capabilities = map[string]bool{"session-export-v1": true}
-	tab.ref.HostID = "host-B"
-	tab.routing.currentPath = "session-id:same-id"
-	host := &recordingNativeHost{}
-	app.setNativeHost(host)
-	_, err := app.BeginSessionExportForTarget(SessionSelector{Ref: &session.SessionRef{HostID: "host-A", SessionID: "same-id"}}, tab.id, "json", "A", "")
-	if err == nil {
-		t.Fatal("accepted another host with the same session id")
-	}
-	if len(host.callNames()) != 0 {
-		t.Fatal("opened save dialog for a rebound source")
 	}
 }

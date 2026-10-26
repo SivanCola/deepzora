@@ -81,12 +81,6 @@ func TestCLICompletionListsRootAndNestedCommands(t *testing.T) {
 	if want := []string{"browse"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("mcp subcommand completion = %v, want %v", got, want)
 	}
-
-	got = cliCompletionCandidatesWithValues(root, 3, []string{"deepzora", "remote", "serve", "st"}, values)
-	// "st" prefix matches start, stop, and status (registry order).
-	if want := []string{"start", "stop", "status"}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("remote serve completion = %v, want %v", got, want)
-	}
 }
 
 func TestCLICompletionListsCommandFlags(t *testing.T) {

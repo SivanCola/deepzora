@@ -3,7 +3,6 @@ package main
 import (
 	"reflect"
 	"sort"
-	"strings"
 	"sync"
 
 	"deepzora/internal/control"
@@ -19,8 +18,6 @@ type RuntimeSessionState struct {
 	SessionPath       string                     `json:"sessionPath"`
 	SessionGeneration uint64                     `json:"sessionGeneration"`
 	Open              bool                       `json:"open"`
-	Remote            bool                       `json:"remote"`
-	HostID            string                     `json:"hostId,omitempty"`
 	Freshness         string                     `json:"freshness"`
 	State             event.RuntimeStateSnapshot `json:"state"`
 }
@@ -165,8 +162,6 @@ func sameLocalRuntimeBinding(current, sampled localRuntimeBinding) bool {
 		current.view.SessionPath == sampled.view.SessionPath &&
 		current.view.SessionGeneration == sampled.view.SessionGeneration &&
 		current.view.Open == sampled.view.Open &&
-		current.view.Remote == sampled.view.Remote &&
-		current.view.HostID == sampled.view.HostID &&
 		current.view.Freshness == sampled.view.Freshness &&
 		current.catalog.scope == sampled.catalog.scope &&
 		current.catalog.workspaceRoot == sampled.catalog.workspaceRoot &&
@@ -248,9 +243,7 @@ func (a *App) runtimeStateSnapshotWithUpdate(update *localRuntimeUpdate) Runtime
 
 func (a *App) projectRuntimeBindings(bindings []localRuntimeBinding) RuntimeStateProjection {
 	r := &a.runtimeStateProjection
-	var remote []RuntimeSessionState
 	for {
-		remote = a.sampleRemoteRuntimeSessions()
 		r.mu.Lock()
 		// Sampling can finish before archive/rebind and publish after its
 		// replacement projection. Validate under the publication lock so an
@@ -299,7 +292,6 @@ func (a *App) projectRuntimeBindings(bindings []localRuntimeBinding) RuntimeStat
 	}
 	r.bindings = nextBindings
 	next.Topics = a.projectTreeRuntimeTopics(catalog)
-	next.Sessions = append(next.Sessions, remote...)
 	sort.Slice(next.Sessions, func(i, j int) bool {
 		if next.Sessions[i].TabID == next.Sessions[j].TabID {
 			return next.Sessions[i].SessionPath < next.Sessions[j].SessionPath
@@ -315,63 +307,6 @@ func (a *App) projectRuntimeBindings(bindings []localRuntimeBinding) RuntimeStat
 	result.Sessions = append([]RuntimeSessionState{}, result.Sessions...)
 	result.Topics = cloneRuntimeTopics(result.Topics)
 	return result
-}
-
-func (a *App) sampleRemoteRuntimeSessions() []RuntimeSessionState {
-	if a == nil {
-		return nil
-	}
-	a.remoteTabMu.Lock()
-	defer a.remoteTabMu.Unlock()
-	sessions := make([]RuntimeSessionState, 0)
-	for _, tab := range a.remoteTabs {
-		freshness := "synced"
-		if tab.state != "ready" || tab.session.takenOver || tab.runtime.syncFailed || tab.runtimeUnknown[tab.routing.currentPath] != 0 {
-			freshness = "unknown"
-		}
-		state := tab.runtimeStates[tab.routing.currentPath]
-		if state.SchemaVersion == 0 {
-			state = event.RuntimeStateSnapshot{Phase: "idle", Running: tab.runtime.running, PendingPrompt: tab.runtime.pendingPrompt,
-				BackgroundJobs: tab.runtime.backgroundJobs, Cancellable: tab.runtime.cancellable, CancelRequested: tab.runtime.cancelRequested}
-			if state.Running {
-				state.Phase = "executing"
-			}
-		}
-		sessions = append(sessions, RuntimeSessionState{TabID: tab.id, Scope: "remote", HostID: tab.ref.HostID, WorkspaceRoot: tab.ref.Workspace,
-			SessionID: remoteRuntimeSessionID(tab.routing.currentPath, tab.session.sessionID, state), SessionPath: tab.routing.currentPath,
-			Open: true, Remote: true, Freshness: freshness, State: state})
-		for path, background := range tab.runtimeStates {
-			if path == tab.routing.currentPath {
-				continue
-			}
-			freshness := "synced"
-			// A foreground takeover says nothing about another session, but a
-			// tab without a live stream or with a failed sync only holds the
-			// snapshot frozen at its last observation.
-			if tab.state != "ready" || tab.runtime.syncFailed || tab.runtimeUnknown[path] != 0 {
-				freshness = "unknown"
-			}
-			sessions = append(sessions, RuntimeSessionState{TabID: tab.id, Scope: "remote", HostID: tab.ref.HostID, WorkspaceRoot: tab.ref.Workspace,
-				SessionID: remoteRuntimeSessionID(path, "", background), SessionPath: path, Remote: true, Freshness: freshness, State: background})
-		}
-	}
-	return sessions
-}
-
-func remoteRuntimeSessionID(route, fallback string, state event.RuntimeStateSnapshot) string {
-	if id := strings.TrimSpace(state.SessionID); id != "" {
-		return id
-	}
-	if id, ok := parseSessionRoute(route); ok {
-		return id
-	}
-	return strings.TrimSpace(fallback)
-}
-
-func (a *App) emitRuntimeStateChanged() {
-	if a != nil {
-		a.emitRuntimeEvent("runtime-state:changed", a.GetRuntimeStateSnapshot())
-	}
 }
 
 func (s *tabEventSink) RuntimeStateChanged(snapshot event.RuntimeStateSnapshot) {

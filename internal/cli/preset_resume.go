@@ -48,9 +48,6 @@ func (m *chatTUI) publishPresetResume(next *control.Controller) error {
 	m.setHostAndInvalidateSlashCatalog(next.Host())
 	m.updateWatchdogStatusProvider()
 	m.refreshEffortStatus()
-	if m.takeover != nil {
-		m.takeover.AttachController(next)
-	}
 	if old != nil && old != next {
 		m.oldControllers = append(m.oldControllers, old)
 		if concrete, ok := old.(*control.Controller); ok {

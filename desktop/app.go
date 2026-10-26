@@ -74,8 +74,6 @@ func sessionTempFromController(ctrl control.SessionAPI) *sessiontemp.Manager {
 // `data:` frames.
 const eventChannel = "agent:event"
 
-const singleInstanceIDPrefix = instanceidentity.Prefix
-
 func singleInstanceID() string { return instanceidentity.ForHome(config.DeepzoraHomeDir()) }
 
 // PromptHistoryEntry is one user prompt extracted from a session JSONL file.
@@ -209,7 +207,6 @@ type App struct {
 	projectTreeChangedHook func()
 	projectTreeRuntime     projectTreeRuntimeState
 	runtimeStateProjection desktopRuntimeProjection
-	remoteRuntimeSync      remoteRuntimeSync
 
 	// singleSurfaceMu serializes open/reuse plus visible-tab pruning for the
 	// one-conversation layout so overlapping navigation cannot remove the tab
@@ -282,16 +279,6 @@ type App struct {
 	// It is process-local by design: shutdown closes every detached controller.
 	detachedSessions map[string]*WorkspaceTab
 
-	// takeoverMirrors tracks sessions this desktop took over from a local
-	// serve: the tab writes locally while its events mirror to the remote tab.
-	takeoverMirrors        map[string]*takeoverMirror
-	takeoverAdoptRevisions map[string]uint64
-	takeoverMu             sync.Mutex
-	// serveProbeUntil suppresses serve probing after a failed handshake
-	// (rotated token file); guarded by serveProbeMu.
-	serveProbeUntil map[string]time.Time
-	serveProbeMu    sync.Mutex
-
 	// sharedHosts holds one *plugin.Host per workspace root, shared by all
 	// controllers/tabs in that root so MCP subprocesses (CodeGraph, etc.) are
 	// spawned once instead of N times. Lifecycle: first Acquire creates the
@@ -332,43 +319,9 @@ type App struct {
 	// controller rebuild locks while process I/O is blocked.
 	terminals *terminalManager
 
-	// Remote SSH module: the manager is created lazily on the first remote
-	// binding call and closed on shutdown.
-	remoteMu      sync.Mutex
-	remoteRuntime remoteKernel
-
-	// Remote web windows (SSH Serve pages). The Electron shell owns one
-	// BrowserWindow per host; the bridge tracks which host keys are open.
-	// Host-scoped lifecycle operations are generation-fenced and serialized so
-	// an overlapping disconnect/stop cannot miss a window that is still being
-	// opened. Closing a window never stops the remote Serve or the SSH
-	// connection.
-	remoteWindows          *remoteWindowRegistry
-	remoteWindowLifecycles remoteWindowLifecycleRegistry
-	remoteWindowOpener     func(remoteWindowLaunch) error // test-only injection
-	// Remote project tabs are in-app surfaces bound to a remote workspace.
-	// Project pins persist in user config; open tab shells persist separately
-	// and restore disconnected until the user activates them.
-	remoteTabMu     sync.Mutex
-	remoteTabs      map[string]*remoteTab
-	remoteTabLayout remoteTabLayoutState
-	remoteTabTasks  sync.WaitGroup
-	// remoteTabModelMu makes the caller's current-model snapshot, the remote
-	// Serve rebuild, and the tab metadata commit one transaction. Without it,
-	// overlapping switches could roll remote config back to a stale model.
-	remoteTabModelMu          sync.Mutex
 	modelSettingsSubmitMu     sync.Mutex
 	modelSettingsReceipts     map[string]modelSettingsReceipt
 	modelSettingsReceiptOrder []string
-	// remoteEventHook observes remote events in tests; production leaves it nil.
-	remoteEventHook func(name string, payload any)
-	// credProxy is the lazy app-wide key holder for local-proxy mode.
-	credProxyMu sync.Mutex
-	credProxy   *credentialProxy
-	// browserBroker is the lazy app-wide loopback broker remote serves reach
-	// through SSH reverse tunnels; per-generation tokens isolate hosts.
-	browserBrokerMu sync.Mutex
-	browserBroker   *browserBroker
 
 	// promptHistoryTape is a lazy, cursor-addressed view of prompt history. It
 	// stores session order and per-session parsed entries only after that session is
@@ -447,7 +400,6 @@ func NewApp() *App {
 		detachedSessions:        map[string]*WorkspaceTab{},
 		mediaTokens:             newMediaTokenStore(),
 		presentPreview:          newWorkspacePreviewOrigin(),
-		remoteWindows:           newRemoteWindowRegistry(),
 		worktreeReservations: worktreeRuntimeReservations{
 			cleanup: map[string]struct{}{},
 			merge:   map[string]struct{}{},
@@ -695,9 +647,6 @@ func (a *App) restoreOrBuildTabs() {
 	// Every surviving layout style is single-surface, and a config that failed
 	// to load already took this path when the predicate could still be false.
 	f = singleSurfaceTabsFile(f)
-	// Restore remote tabs as disconnected shells; activation performs the
-	// first network work so desktop startup remains offline-safe.
-	a.restoreRemoteTabShells(f)
 	if len(f.Tabs) > 0 {
 		toBuild := make([]*WorkspaceTab, 0, len(f.Tabs))
 		for _, entry := range f.Tabs {
@@ -724,13 +673,11 @@ func (a *App) restoreOrBuildTabs() {
 				tab.toolApprovalMode = a.sessionPresets.restore(id, tab.toolApprovalMode)
 			} else {
 				tab.toolApprovalMode = normalizeToolApprovalMode(entry.ToolApprovalMode)
-
 			}
 			tab.SessionID = strings.TrimSpace(entry.SessionID)
 			tab.PendingCreateOperationID = strings.TrimSpace(entry.CreateOperationID)
 			tab.persistenceExtra = cloneDesktopJSONFields(entry.extra)
 			tab.ReadOnly = entry.ReadOnly
-			tab.Takeover.Spectator = entry.TakeoverSpectator
 			tab.sink = &tabEventSink{tabID: tab.ID, app: a, ctx: ctx}
 			a.publishRestoredTab(tab, releaseAdmission)
 			if restoreRuntime {
@@ -738,12 +685,6 @@ func (a *App) restoreOrBuildTabs() {
 			}
 		}
 		a.finishRestoredLocalTabs(f, toBuild)
-		return
-	}
-	if len(f.RemoteTabs) > 0 {
-		// Remote-only layout: the remote shell is the visible surface, but local
-		// commands still need a workspace tab to target.
-		a.restoreDormantWorkspaceTab(ctx)
 		return
 	}
 
@@ -1371,9 +1312,6 @@ func normalizeCollaborationMode(mode string) string {
 // turn cannot observe collaboration, approval, and goal from different UI
 // generations.
 func (a *App) SetComposerProfileForTab(tabID, collaborationMode, toolApprovalMode, goal string) ([]string, error) {
-	if a.isRemoteTab(tabID) {
-		return []string{}, nil
-	}
 	collaborationMode = normalizeCollaborationMode(collaborationMode)
 	toolApprovalMode = normalizeToolApprovalMode(toolApprovalMode)
 	goal = strings.TrimSpace(goal)
@@ -3268,13 +3206,6 @@ func firstNonEmpty(values ...string) string {
 }
 
 func (a *App) ContextUsageForTab(tabID string) ContextInfo {
-	if a.isRemoteTab(tabID) {
-		used, window, ok := a.remoteContextSnapshot(tabID)
-		if ok {
-			return ContextInfo{Used: used, Window: window}
-		}
-		return ContextInfo{}
-	}
 	read := a.captureContextRead(tabID)
 	ctrl := read.ctrl
 	var info ContextInfo
@@ -3441,12 +3372,6 @@ func (a *App) CancelJobForTab(tabID, jobID string) (bool, error) {
 		return false, fmt.Errorf("job id is required")
 	}
 	if tabID != "" {
-		if a.isRemoteTab(tabID) {
-			if err := a.CancelRemoteTabJobs(tabID, []string{jobID}); err != nil {
-				return false, err
-			}
-			return true, nil
-		}
 		ctrl := a.ctrlForRuntimeTabID(tabID)
 		if ctrl != nil {
 			return cancelJobForController(ctrl, jobID)
@@ -3560,18 +3485,6 @@ func (a *App) SetToolApprovalModeForTab(tabID, mode string) []string {
 // PermissionSnapshotForTab returns the authoritative preset, capability and
 // same-session grant state for one desktop session.
 func (a *App) PermissionSnapshotForTab(tabID string) (control.PermissionSnapshot, error) {
-	if a.isRemoteTab(tabID) {
-		if err := a.requireRemotePermissionPresets(tabID); err != nil {
-			return control.PermissionSnapshot{}, err
-		}
-		client, base, expectedPath, err := a.remoteTabCommandTarget(tabID)
-		if err != nil {
-			return control.PermissionSnapshot{}, err
-		}
-		ctx, cancel := commandContext(a)
-		defer cancel()
-		return remotePermissionSnapshot(ctx, client, base, expectedPath)
-	}
 	tab := a.tabByID(tabID)
 	if tab == nil {
 		return control.PermissionSnapshot{}, fmt.Errorf("tab not found")
@@ -3587,28 +3500,6 @@ func (a *App) PermissionSnapshotForTab(tabID string) (control.PermissionSnapshot
 // and revision of the snapshot the caller read. The revision alone is per
 // controller, so a snapshot of another session can carry the same number.
 func (a *App) SetPermissionPresetForTab(tabID, expectedSessionID, preset string, expectedRevision uint64) (control.PermissionSnapshot, error) {
-	if a.isRemoteTab(tabID) {
-		if err := a.requireRemoteExecutionProtocol(tabID); err != nil {
-			return control.PermissionSnapshot{}, err
-		}
-		if err := a.requireRemotePermissionPresets(tabID); err != nil {
-			return control.PermissionSnapshot{}, err
-		}
-		client, base, expectedPath, err := a.remoteTabCommandTarget(tabID)
-		if err != nil {
-			return control.PermissionSnapshot{}, err
-		}
-		ctx, cancel := commandContext(a)
-		defer cancel()
-		live, err := remotePermissionSnapshot(ctx, client, base, expectedPath)
-		if err != nil {
-			return control.PermissionSnapshot{}, err
-		}
-		if err := requirePermissionSession(live, expectedSessionID); err != nil {
-			return live, err
-		}
-		return setRemotePermissionPresetAt(ctx, client, base, expectedPath, preset, expectedRevision)
-	}
 	tab := a.tabByID(tabID)
 	if tab == nil {
 		return control.PermissionSnapshot{}, fmt.Errorf("tab not found")
@@ -3646,21 +3537,6 @@ func (a *App) SetPermissionPresetForTab(tabID, expectedSessionID, preset string,
 
 // RevokePermissionGrantForTab removes one exact same-session authorization.
 func (a *App) RevokePermissionGrantForTab(tabID, scope, target string, expectedRevision uint64) (control.PermissionSnapshot, error) {
-	if a.isRemoteTab(tabID) {
-		if err := a.requireRemoteExecutionProtocol(tabID); err != nil {
-			return control.PermissionSnapshot{}, err
-		}
-		if err := a.requireRemotePermissionPresets(tabID); err != nil {
-			return control.PermissionSnapshot{}, err
-		}
-		client, base, expectedPath, err := a.remoteTabCommandTarget(tabID)
-		if err != nil {
-			return control.PermissionSnapshot{}, err
-		}
-		ctx, cancel := commandContext(a)
-		defer cancel()
-		return revokeRemotePermissionGrantAt(ctx, client, base, expectedPath, scope, target, expectedRevision)
-	}
 	tab := a.tabByID(tabID)
 	if tab == nil {
 		return control.PermissionSnapshot{}, fmt.Errorf("tab not found")
@@ -4192,7 +4068,7 @@ func (a *App) lockRuntimeTurnGates(setting string, affected func(*WorkspaceTab) 
 	all := a.runtimeTabsLocked()
 	tabs := make([]*WorkspaceTab, 0, len(all))
 	for _, tab := range all {
-		if tab == nil || (affected != nil && !affected(tab)) {
+		if tab == nil || affected != nil && !affected(tab) {
 			continue
 		}
 		tabs = append(tabs, tab)
@@ -6074,9 +5950,7 @@ func (a *App) SetModelForTab(tabID, name string) (retErr error) {
 	if name == "" {
 		return nil
 	}
-	if a.isRemoteTab(tabID) {
-		return a.SetRemoteTabModel(tabID, name)
-	}
+
 	if a.ctx == nil {
 		return nil
 	}

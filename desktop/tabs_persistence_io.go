@@ -20,23 +20,22 @@ func (a *App) loadTabsForRestore() (desktopTabsFile, uint64) {
 
 // saveTabsWrite writes the tab snapshot outside a.mu. tabsSaveMu serializes
 // writes because every save shares one destination and fixed temporary path.
+// saveTabs persists the tab layout; callers must not hold a.mu.
+func (a *App) saveTabs() {
+	a.mu.Lock()
+	dir, entries, activeID, version := a.saveTabsCollectLocked()
+	a.mu.Unlock()
+	a.saveTabsWrite(dir, entries, activeID, version)
+}
+
 func (a *App) saveTabsWrite(dir string, entries []desktopTabEntry, activeID string, version uint64) {
 	a.tabsSaveMu.Lock()
 	defer a.tabsSaveMu.Unlock()
 	if version < a.tabsLastWrittenVersion {
 		return
 	}
-	localIDs := make([]string, 0, len(entries))
-	for _, entry := range entries {
-		localIDs = append(localIDs, entry.ID)
-	}
-	remoteEntries, remoteOrder, tabOrder, remoteActive := a.remoteTabsFileEntries(localIDs)
-	if remoteActive != "" {
-		activeID = remoteActive
-	}
 	file := desktopTabsFile{
-		Tabs: entries, ActiveTab: activeID, RemoteTabs: remoteEntries,
-		RemoteTabOrder: remoteOrder, TabOrder: tabOrder,
+		Tabs: entries, ActiveTab: activeID,
 		extra: cloneDesktopJSONFields(a.tabsFileExtra),
 	}
 	_ = a.writeTabsFileLocked(dir, file, version)

@@ -65,9 +65,7 @@ type Config struct {
 	Statusline    StatuslineConfig    `toml:"statusline"`
 	LSP           LSPConfig           `toml:"lsp"`
 	Browser       BrowserConfig       `toml:"browser"`
-	Serve         ServeConfig         `toml:"serve"`
 	Secrets       SecretsConfig       `toml:"secrets"`
-	Remote        RemoteConfig        `toml:"remote"`
 
 	systemPromptFileSource   promptFileSource
 	providerSources          map[string]providerSourceScope
@@ -621,23 +619,6 @@ type CheckpointsConfig struct {
 	// BlobQuotaBytes is the soft byte budget for retained file payloads. A
 	// protected or current turn may temporarily exceed it.
 	BlobQuotaBytes int64 `toml:"blob_quota_bytes"`
-}
-
-// ServeConfig controls the HTTP serve frontend security settings.
-type ServeConfig struct {
-	// AuthMode selects the authentication mode for the HTTP serve frontend.
-	// "none" (default): no authentication.
-	// "token": a pre-shared token in the URL query string.
-	AuthMode string `toml:"auth_mode"`
-	// Token is a pre-shared token for auth_mode = "token". When empty, a
-	// cryptographically random token is generated at startup and printed.
-	Token string `toml:"token"`
-	// BehindProxy indicates the server sits behind a trusted reverse proxy
-	// (nginx, Caddy, Cloudflare, etc.) that sets X-Forwarded-For and
-	// X-Forwarded-Proto headers. When true, those headers are used for
-	// Secure-cookie and host-guard decisions. When false (default), they
-	// are ignored — an attacker can otherwise forge them.
-	BehindProxy bool `toml:"behind_proxy"`
 }
 
 // NetworkConfig controls ordinary outbound HTTP traffic such as model providers,

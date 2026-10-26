@@ -71,18 +71,14 @@ func (m *chatTUI) runBranchCommand(input string) {
 		return
 	} else if fromTurn {
 		if _, err := m.ctrl.ForkNamed(n-1, name); err != nil {
-			m.syncTakeoverIdentity()
 			return
 		}
-		m.syncTakeoverIdentity()
 		m.replayActiveBranch(fmt.Sprintf("branched from turn %d", n))
 		return
 	} else {
 		if _, err := m.ctrl.Branch(name); err != nil {
-			m.syncTakeoverIdentity()
 			return
 		}
-		m.syncTakeoverIdentity()
 	}
 	m.showBranchTree()
 }
@@ -94,10 +90,8 @@ func (m *chatTUI) runSwitchCommand(input string) {
 		return
 	}
 	if _, err := m.ctrl.SwitchBranch(ref); err != nil {
-
 		return
 	}
-	m.syncTakeoverIdentity()
 	m.replayActiveBranch("switched branch")
 }
 

@@ -39,9 +39,6 @@ type Meta struct {
 	CanonicalTodos *[]evidence.TodoItem `json:"canonicalTodos,omitempty"`
 	// PinnedFiles holds metadata about standing pinned context files for this tab.
 	PinnedFiles []PinnedFileInfo `json:"pinnedFiles,omitempty"`
-	// Remote marks a remote session tab; its readiness is carried by the
-	// remote-tab state channel rather than a local controller.
-	Remote *RemoteTabRef `json:"remote,omitempty"`
 }
 
 type GoalRuntimeView struct {

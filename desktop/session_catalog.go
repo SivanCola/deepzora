@@ -310,11 +310,6 @@ func (a *App) GetProjectTreeSnapshot() (ProjectTreeSnapshot, error) {
 			Children: []ProjectNode{},
 		})
 	}
-	// Remote projects (pinned via the connection wizard) render as project
-	// groups too; the Remote ref swaps the folder icon for a cloud icon.
-	if remoteNodes, err := a.remoteProjectNodes(); err == nil {
-		projects = append(projects, remoteNodes...)
-	}
 	projects = a.mergeCanonicalWorkspaceShellsFromProjection(projects, state, versions)
 	projects = applyPinnedProjectOrder(applyProjectTreeOrder(projects, f.SidebarOrder), f.PinnedProjects)
 	status := a.currentSessionCatalogStatusFor(state)

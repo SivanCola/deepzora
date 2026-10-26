@@ -6,35 +6,6 @@ import (
 	"deepzora/internal/control"
 )
 
-// A receipt belongs to a durable session, not the UI tab which originally
-// submitted it. Rebinding is read-only; enqueue still uses the original fence.
-func (a *App) remoteReceiptTarget(original InboxTargetView) (InboxTargetView, error) {
-	if original.HostID == "" || original.Workspace == "" {
-		return original, nil // old callers cannot safely rebind without identity
-	}
-	a.remoteTabMu.Lock()
-	defer a.remoteTabMu.Unlock()
-	var chosen *remoteTab
-	for _, tab := range a.remoteTabs {
-		if tab == nil || tab.ref.HostID != original.HostID || tab.ref.Workspace != original.Workspace ||
-			tab.routing.currentPath != original.SessionPath || tab.state != "ready" ||
-			tab.client == nil || tab.routing.rehydratingPath != "" {
-			continue
-		}
-		if chosen == nil || tab.id < chosen.id || tab.id == original.TabID {
-			chosen = tab
-		}
-		if tab.id == original.TabID {
-			break
-		}
-	}
-	if chosen == nil {
-		return InboxTargetView{}, fmt.Errorf("inbox receipt session unavailable")
-	}
-	return InboxTargetView{TabID: chosen.id, SessionPath: original.SessionPath, Generation: chosen.gen,
-		Selection: chosen.selectionRevision, Remote: true, HostID: chosen.ref.HostID, Workspace: chosen.ref.Workspace}, nil
-}
-
 type localReceiptOwner struct {
 	tab        *WorkspaceTab
 	ctrl       control.SessionAPI

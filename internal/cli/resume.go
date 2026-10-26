@@ -110,29 +110,22 @@ func (m *chatTUI) runResumeCommand(input string) {
 		m.notice(i18n.M.ResumeAlreadyActive)
 		return
 	}
-	detached := m.sessionReclaimed || m.takeover != nil && m.takeover.Returned()
-	if !detached {
-		// Persist the conversation we're leaving so switching back later restores it.
-		// Snapshot before moving the lease: the outgoing session must be written
-		// while this process still owns it.
-		if err := m.ctrl.Snapshot(); err != nil {
-			m.notice("resume: snapshot current session: " + err.Error())
-			return
-		}
-		m.syncTakeoverIdentity()
+	// Persist the conversation we're leaving so switching back later restores it.
+	// Snapshot before moving the lease: the outgoing session must be written
+	// while this process still owns it.
+	if err := m.ctrl.Snapshot(); err != nil {
+		m.notice("resume: snapshot current session: " + err.Error())
+		return
 	}
 	if err := m.commitResumeTarget(target.target); err != nil {
 		if errors.Is(err, session.ErrWriterOwned) {
-			m.pendingTakeoverTarget = target.target
-			m.notice("resume: " + sessionWriterHeldNotice())
-			m.notice("run /takeover to take this session over")
+			m.notice("resume: " + control.SessionInUseMessage)
 			return
 		}
 		m.notice("resume: " + err.Error())
 		return
 	}
 
-	m.resumeAfterReclaim()
 	m.replayActiveBranch(i18n.M.ResumedTitle)
 }
 
@@ -188,11 +181,6 @@ func (m *chatTUI) commitResumeTarget(target cliResumeTarget) error {
 			replacement.Close()
 		}
 	}()
-	if m.takeover != nil {
-		if err := m.takeover.leaveMirror(""); err != nil {
-			return err
-		}
-	}
 	if replacement != nil {
 		identity = replacement
 	}
@@ -213,48 +201,6 @@ func (m *chatTUI) commitResumeTarget(target cliResumeTarget) error {
 		}
 	}
 	return nil
-}
-
-// runTakeoverCommand handles "/takeover": it force-takes the last refused
-// resume target (or an explicit index/identity argument) from the resident serve
-// on this machine, then resumes it.
-func (m *chatTUI) runTakeoverCommand(input string) {
-	m.echoLocalCommand(input)
-	args := tokenizeArgs(input) // args[0] == "/takeover"
-	target := ""
-	if !m.pendingTakeoverTarget.empty() {
-		target = cliCanonicalRoute(m.pendingTakeoverTarget.ref.SessionID)
-	}
-	if len(args) >= 2 {
-		target = strings.TrimSpace(args[1])
-		if idx, err := strconv.Atoi(target); err == nil {
-			entries := resumeEntries(m.ctrl.SessionDir())
-			if idx < 1 || idx > len(entries) {
-				m.notice(fmt.Sprintf(i18n.M.ResumeBadIndexFmt, len(entries)))
-				return
-			}
-			picked := entries[idx-1]
-			m.pendingTakeoverTarget = picked.target
-			target = cliCanonicalRoute(picked.target.ref.SessionID)
-		}
-	}
-	if target == "" && m.sessionReclaimed {
-		// The reclaim notice promises "/takeover takes it back": the session
-		// the desktop re-claimed is remembered in reclaimedTarget, not in
-		// pendingTakeoverTarget (which only a refused resume populates).
-		if m.reclaimedTarget.canonical() {
-			target = cliCanonicalRoute(m.reclaimedTarget.ref.SessionID)
-		}
-	}
-	if target == "" {
-		m.notice("takeover: no refused session; run /resume <n> first or pass an index")
-		return
-	}
-	if !isCLICanonicalRoute(target) {
-		m.notice("takeover: use a session index or session-id identity")
-		return
-	}
-	m.runCanonicalTakeoverCommand(target)
 }
 
 // resumeArgItems completes the index argument of "/resume <n>": once past the

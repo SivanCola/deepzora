@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 )
 
 type desktopTabEntry struct {
@@ -15,7 +14,6 @@ type desktopTabEntry struct {
 	SessionID          string  `json:"sessionId,omitempty"`
 	CreateOperationID  string  `json:"createOperationId,omitempty"`
 	ReadOnly           bool    `json:"readOnly,omitempty"`
-	TakeoverSpectator  bool    `json:"takeoverSpectator,omitempty"`
 	Model              string  `json:"model,omitempty"`
 	Effort             *string `json:"effort,omitempty"`
 	Mode               string  `json:"mode,omitempty"`
@@ -27,12 +25,10 @@ type desktopTabEntry struct {
 }
 
 type desktopTabsFile struct {
-	Tabs           []desktopTabEntry       `json:"tabs"`
-	ActiveTab      string                  `json:"activeTab"`
-	RemoteTabs     []desktopRemoteTabEntry `json:"remoteTabs,omitempty"`
-	RemoteTabOrder []string                `json:"remoteTabOrder,omitempty"`
-	TabOrder       []string                `json:"tabOrder,omitempty"`
-	extra          map[string]json.RawMessage
+	Tabs      []desktopTabEntry `json:"tabs"`
+	ActiveTab string            `json:"activeTab"`
+	TabOrder  []string          `json:"tabOrder,omitempty"`
+	extra     map[string]json.RawMessage
 }
 
 type desktopTabWorkspace struct {
@@ -49,7 +45,6 @@ func persistedDesktopTabEntry(tab *WorkspaceTab) desktopTabEntry {
 		SessionID:         tab.SessionID,
 		CreateOperationID: tab.PendingCreateOperationID,
 		ReadOnly:          tab.ReadOnly,
-		TakeoverSpectator: tab.Takeover.Spectator,
 		Model:             tab.model,
 		Effort:            cloneStringPtr(tab.effort),
 		Mode:              persistedTabMode(currentTabMode(tab)),
@@ -87,47 +82,13 @@ func (entry desktopTabEntry) MarshalJSON() ([]byte, error) {
 	return mergeDesktopUnknownJSONFields(body, entry.extra)
 }
 
-func (entry *desktopRemoteTabEntry) UnmarshalJSON(body []byte) error {
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(body, &fields); err != nil {
-		return err
-	}
-	for _, key := range []string{"sessionName", "sessionPath"} {
-		if _, ok := fields[key]; ok {
-			return fmt.Errorf("retired remote session selector %s is unsupported", key)
-		}
-	}
-	type plain desktopRemoteTabEntry
-	var decoded plain
-	if err := json.Unmarshal(body, &decoded); err != nil {
-		return err
-	}
-	extra, err := desktopUnknownJSONFields(body,
-		"id", "hostId", "workspace", "topicTitle", "model", "sessionId", "sessionReset",
-	)
-	if err != nil {
-		return err
-	}
-	*entry = desktopRemoteTabEntry(decoded)
-	entry.extra = extra
-	return nil
-}
-
-func (entry desktopRemoteTabEntry) MarshalJSON() ([]byte, error) {
-	type plain desktopRemoteTabEntry
-	body, err := json.Marshal(plain(entry))
-	if err != nil {
-		return nil, err
-	}
-	return mergeDesktopUnknownJSONFields(body, entry.extra)
-}
-
 func (file *desktopTabsFile) UnmarshalJSON(body []byte) error {
 	type plain desktopTabsFile
 	var decoded plain
 	if err := json.Unmarshal(body, &decoded); err != nil {
 		return err
 	}
+	// Retired remote-tab sections are dropped rather than carried forward.
 	extra, err := desktopUnknownJSONFields(body, "tabs", "activeTab", "remoteTabs", "remoteTabOrder", "tabOrder")
 	if err != nil {
 		return err

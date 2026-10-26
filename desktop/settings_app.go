@@ -1208,10 +1208,6 @@ func (a *App) activeWorkspaceRoot() string {
 	return "."
 }
 
-func providerCredentialSourceNotice(apiKeyEnv, value string) string {
-	return ""
-}
-
 // rebuild builds a replacement controller from the (just-changed) config and
 // swaps it in only after the target session lease is available. The old
 // controller stays usable if the rebuild fails.

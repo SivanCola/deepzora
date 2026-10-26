@@ -9,7 +9,7 @@ import (
 )
 
 func TestRenameCurrentCanonicalSessionWritesTitleEvent(t *testing.T) {
-	m, ctrl, service, _ := newCanonicalTakeoverTUI(t)
+	m, ctrl, service, _ := newCanonicalSessionTUI(t)
 
 	m.runRenameCommand("/rename testname")
 
@@ -28,7 +28,7 @@ func TestRenameCurrentCanonicalSessionWritesTitleEvent(t *testing.T) {
 }
 
 func TestRenameIndexedCanonicalSessionWritesTitleEvent(t *testing.T) {
-	m, _, service, held := newCanonicalTakeoverTUI(t)
+	m, _, service, held := newCanonicalSessionTUI(t)
 	if err := service.SetTitle(t.Context(), held, "before"); err != nil {
 		t.Fatal(err)
 	}

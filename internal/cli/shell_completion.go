@@ -115,12 +115,9 @@ func cliCompletionRootSpec() cliCompletionSpec {
 		completionFlag("--version -v", cliCompletionNoValue),
 	}, help)}
 
-	serveFlags := cliServeCompletionFlags(model, help)
-
 	root.subcommands = []cliCompletionSpec{
 		completionSpec("run", runFlags),
 		completionSpecWithAliases("chat", []string{"code"}, interactiveFlags),
-		completionSpec("serve", serveFlags),
 		completionSpec("setup", []cliCompletionFlag{completionFlag("--local -l", cliCompletionNoValue), help}),
 		completionSpec("config", []cliCompletionFlag{help},
 			completionSpec("reasoning-language", []cliCompletionFlag{completionFlag("--local", cliCompletionNoValue), help}),
@@ -152,38 +149,6 @@ func cliCompletionRootSpec() cliCompletionSpec {
 			}),
 			completionSpec("install", []cliCompletionFlag{completionFlag("--as", cliCompletionStaticValue), help}),
 			completionSpecWithAliases("remove", []string{"rm"}, []cliCompletionFlag{help}),
-		),
-		completionSpec("remote", []cliCompletionFlag{help},
-			completionSpec("add", []cliCompletionFlag{
-				completionFlag("--identity --jump --workspace --serve-install --passphrase-env --password-env", cliCompletionStaticValue),
-				completionFlag("--use-ssh-config", cliCompletionNoValue), help,
-			}),
-			completionSpecWithAliases("list", []string{"ls"}, []cliCompletionFlag{help}),
-			completionSpecWithAliases("remove", []string{"rm"}, []cliCompletionFlag{help}),
-			completionSpec("import", []cliCompletionFlag{completionFlag("--all", cliCompletionNoValue), help}),
-			completionSpec("test", []cliCompletionFlag{help}),
-			completionSpecWithAliases("connect", []string{"open"}, []cliCompletionFlag{
-				completionFlag("--workspace --local-port", cliCompletionStaticValue),
-				completionFlag("--no-serve --open --forward-only", cliCompletionNoValue), help,
-			}),
-			completionSpec("status", []cliCompletionFlag{help}),
-			completionSpec("forward", []cliCompletionFlag{help},
-				completionSpec("add", []cliCompletionFlag{help}),
-				completionSpecWithAliases("remove", []string{"rm"}, []cliCompletionFlag{help}),
-				completionSpecWithAliases("list", []string{"ls"}, []cliCompletionFlag{help}),
-			),
-			completionSpec("serve", []cliCompletionFlag{help},
-				completionSpec("start", []cliCompletionFlag{completionFlag("--workspace -n", cliCompletionStaticValue), help}),
-				completionSpec("stop", []cliCompletionFlag{completionFlag("--workspace -n", cliCompletionStaticValue), help}),
-				completionSpec("status", []cliCompletionFlag{completionFlag("--workspace -n", cliCompletionStaticValue), help}),
-				completionSpec("logs", []cliCompletionFlag{completionFlag("--workspace -n", cliCompletionStaticValue), help}),
-			),
-			completionSpec("fs", []cliCompletionFlag{help},
-				completionSpecWithAliases("list", []string{"ls"}, []cliCompletionFlag{help}),
-				completionSpec("get", []cliCompletionFlag{help}),
-				completionSpec("put", []cliCompletionFlag{help}),
-			),
-			completionSpec("attach-workspace", []cliCompletionFlag{completionFlag("--stdio", cliCompletionNoValue), completionFlag("--workspace", cliCompletionStaticValue), help}),
 		),
 		completionSpec("plugin", []cliCompletionFlag{help},
 			completionSpec("install", []cliCompletionFlag{
@@ -291,18 +256,6 @@ func doctorCompletionSpec(help cliCompletionFlag) cliCompletionSpec {
 			completionFlag("--root --timeout", cliCompletionStaticValue), completionFlag("--json --live", cliCompletionNoValue), help,
 		}),
 	)
-}
-
-func cliServeCompletionFlags(model, help cliCompletionFlag) []cliCompletionFlag {
-	return []cliCompletionFlag{
-		model,
-		completionFlag("--preset", cliCompletionStaticValue, "default"),
-		completionFlag("--max-steps --addr", cliCompletionStaticValue),
-		completionFlag("--resume", cliCompletionSessionValue),
-		completionFlag("--auth", cliCompletionStaticValue, "none", "token"),
-		completionFlag("--token --port-file --token-file --pid-file", cliCompletionStaticValue),
-		completionFlag("--behind-proxy", cliCompletionNoValue), help,
-	}
 }
 
 func presetCompletionSpec(help cliCompletionFlag) cliCompletionSpec {

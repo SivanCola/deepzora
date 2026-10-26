@@ -1,8 +1,6 @@
 package config
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -12,14 +10,6 @@ import (
 
 	"github.com/BurntSushi/toml"
 )
-
-func NewModelSettingsOfferID() (string, error) {
-	var id [16]byte
-	if _, err := rand.Read(id[:]); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(id[:]), nil
-}
 
 // ModelRuntimeSettings is an in-memory model resolver bundle. Desktop sends
 // only tunnel tokens in Credentials; actual provider credentials remain local.

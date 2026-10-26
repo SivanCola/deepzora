@@ -130,39 +130,6 @@ func TestHostShellTrayUnavailableWhenTheShellHasNone(t *testing.T) {
 	}
 }
 
-func TestHostShellRemoteWindowsTrackShellClosure(t *testing.T) {
-	a, bridge, shell := newHostShellBridgeForTest(t, nil)
-	launch := remoteWindowLaunch{URL: "http://127.0.0.1:1/", Title: "box", HostKey: remoteWindowHostKey("box")}
-	if err := a.openRemoteWindowForHost("box", "/srv", launch.URL); err != nil {
-		t.Fatal(err)
-	}
-	if !a.hasRemoteWindow("box") {
-		t.Fatal("window must be tracked after open")
-	}
-	payload, _ := json.Marshal(map[string]string{"hostKey": launch.HostKey})
-	if err := bridge.handleHostEvent(context.Background(), "remoteWindow.closed", payload); err != nil {
-		t.Fatal(err)
-	}
-	if a.hasRemoteWindow("box") {
-		t.Fatal("a window the user closed must be forgotten")
-	}
-	a.closeRemoteWindowForHost("box")
-	if calls := shell.methods(); len(calls) != 1 || calls[0] != "host/remoteWindow.open" {
-		t.Fatalf("closing a forgotten window must not reach the shell: %v", calls)
-	}
-	if err := a.openRemoteWindowForHost("box", "/srv", launch.URL); err != nil {
-		t.Fatal(err)
-	}
-	a.closeAllRemoteWindows()
-	if a.hasRemoteWindow("box") {
-		t.Fatal("closeAll must drop every window")
-	}
-	waitFor(t, "close request", func() bool {
-		calls := shell.methods()
-		return len(calls) == 3 && calls[2] == "host/remoteWindow.close"
-	})
-}
-
 func TestHostShellQuitReasonBypassesBackgroundClose(t *testing.T) {
 	_, bridge, _ := newHostShellBridgeForTest(t, nil)
 	if consumeSystemQuitRequested() {

@@ -35,7 +35,7 @@ func TestRunResumeRejectsTranscriptPath(t *testing.T) {
 }
 
 func TestChatNewSessionOwnsFreshCanonicalIdentity(t *testing.T) {
-	m, ctrl, service, _ := newCanonicalTakeoverTUI(t)
+	m, ctrl, service, _ := newCanonicalSessionTUI(t)
 	previous, _ := ctrl.SessionRef()
 	if cmd := m.runSlashCommand("/new"); cmd != nil {
 		t.Fatal("/new should complete synchronously")

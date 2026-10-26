@@ -144,26 +144,6 @@ func TestStartControllerTurnQueuesThroughSessionPort(t *testing.T) {
 	}
 }
 
-func TestStartControllerTurnRejectsInputDuringRemoteReclaim(t *testing.T) {
-	ctrl := &runningQueueController{SessionAPI: newCurrentTestController(t, control.Options{})}
-	takeover := newCLITakeoverManager(nil)
-	takeover.reclaiming.Store(true)
-	m := newChatTUI(ctrl, "", make(chan event.Event, 1), 80)
-	m.takeover = takeover
-	started := false
-
-	cmd := m.startControllerTurn("expanded", "draft", func(control.SessionAPI) { started = true })
-	if cmd != nil || started {
-		t.Fatalf("remote reclaim started a turn: cmd=%v started=%v", cmd != nil, started)
-	}
-	if ctrl.calls != 0 {
-		t.Fatalf("remote reclaim queued input %d time(s): %+v", ctrl.calls, ctrl.req)
-	}
-	if m.state != tuiIdle || m.bubblePending {
-		t.Fatalf("remote reclaim changed turn state: state=%v bubblePending=%v", m.state, m.bubblePending)
-	}
-}
-
 func TestStartTurnWithRawQueuesMaterializablePrompt(t *testing.T) {
 	ctrl := &runningQueueController{SessionAPI: newCurrentTestController(t, control.Options{})}
 	m := newChatTUI(ctrl, "", make(chan event.Event, 1), 80)

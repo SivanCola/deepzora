@@ -1,11 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
-	"net/url"
 	"strings"
 
 	"deepzora/internal/sessioninbox"
@@ -27,9 +24,6 @@ type InboxTargetView struct {
 	SessionPath string `json:"sessionPath"`
 	Generation  uint64 `json:"generation"`
 	Selection   uint64 `json:"selection"`
-	Remote      bool   `json:"remote"`
-	HostID      string `json:"hostId,omitempty"`
-	Workspace   string `json:"workspace,omitempty"`
 }
 
 // Callers hold App.mu. Canonical tabs deliberately have no legacy file path;
@@ -52,17 +46,6 @@ func (a *App) CaptureInboxTarget(tabID, expectedPath string) (InboxTargetView, e
 }
 
 func (a *App) captureInboxTarget(tabID, expectedPath string) (InboxTargetView, error) {
-	a.remoteTabMu.Lock()
-	remote := a.remoteTabs[tabID]
-	if remote != nil {
-		defer a.remoteTabMu.Unlock()
-		if remote.state != "ready" || remote.client == nil || remote.routing.rehydratingPath != "" || remote.routing.currentPath == "" || remote.routing.currentPath != expectedPath {
-			return InboxTargetView{}, errInboxTargetChanged
-		}
-		return InboxTargetView{TabID: tabID, SessionPath: expectedPath, Generation: remote.gen, Selection: remote.selectionRevision,
-			Remote: true, HostID: remote.ref.HostID, Workspace: remote.ref.Workspace}, nil
-	}
-	a.remoteTabMu.Unlock()
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	for _, tab := range a.tabs {
@@ -73,31 +56,12 @@ func (a *App) captureInboxTarget(tabID, expectedPath string) (InboxTargetView, e
 	return InboxTargetView{}, errInboxTargetChanged
 }
 
-func (a *App) remoteInboxTarget(target InboxTargetView) (*http.Client, string, error) {
-	a.remoteTabMu.Lock()
-	defer a.remoteTabMu.Unlock()
-	tab := a.remoteTabs[target.TabID]
-	if tab == nil || tab.client == nil || tab.state != "ready" || tab.gen != target.Generation || tab.selectionRevision != target.Selection || tab.routing.currentPath != target.SessionPath || tab.routing.rehydratingPath != "" || (target.HostID != "" && (tab.ref.HostID != target.HostID || tab.ref.Workspace != target.Workspace)) {
-		return nil, "", errInboxTargetChanged
-	}
-	return tab.client, tab.base, nil
-}
-
 // EnqueueInboxFollowupForTarget writes through the captured session owner.
 func (a *App) EnqueueInboxFollowupForTarget(target InboxTargetView, display, submit string, invocations []InvocationRequest, key string) (InboxReceiptView, error) {
 	if strings.TrimSpace(key) == "" {
 		return InboxReceiptView{}, inboxNotSubmitted(fmt.Errorf("idempotency key required"))
 	}
-	if target.Remote {
-		client, base, err := a.remoteInboxTarget(target)
-		if err != nil {
-			if errors.Is(err, errInboxTargetChanged) {
-				return InboxReceiptView{}, inboxTargetTransient(err)
-			}
-			return InboxReceiptView{}, inboxNotSubmitted(err)
-		}
-		return a.enqueueRemoteFollowupAt(client, base, target.SessionPath, display, submit, invocations, key)
-	}
+
 	a.runtimeAdmissionMu.RLock()
 	defer a.runtimeAdmissionMu.RUnlock()
 	current, err := a.captureInboxTarget(target.TabID, target.SessionPath)
@@ -121,32 +85,6 @@ func inboxNotSubmitted(err error) error {
 // LookupInboxFollowupForTarget never creates an item, including on a missing
 // or expired receipt. Position zero identifies an already removed item.
 func (a *App) LookupInboxFollowupForTarget(target InboxTargetView, key string) (InboxReceiptView, error) {
-	if target.Remote {
-		current, err := a.remoteReceiptTarget(target)
-		if err != nil {
-			return InboxReceiptView{}, err
-		}
-		target = current
-		client, base, err := a.remoteInboxTarget(target)
-		if err != nil {
-			return InboxReceiptView{}, err
-		}
-		ctx, cancel := commandContext(a)
-		defer cancel()
-		data, err := serveGet(ctx, client, serveURL(base, "/inbox/receipt?key="+url.QueryEscape(key)+"&session="+url.QueryEscape(target.SessionPath)))
-		if err != nil {
-			return InboxReceiptView{}, err
-		}
-		var receipt InboxReceiptView
-		if err := json.Unmarshal(data, &receipt); err != nil {
-			return receipt, err
-		}
-		currentClient, currentBase, err := a.remoteInboxTarget(target)
-		if err != nil || currentClient != client || currentBase != base {
-			return InboxReceiptView{}, fmt.Errorf("inbox receipt route changed during read")
-		}
-		return receipt, nil
-	}
 	a.runtimeAdmissionMu.RLock()
 	defer a.runtimeAdmissionMu.RUnlock()
 	owner, err := a.localReceiptTarget(target.SessionPath)

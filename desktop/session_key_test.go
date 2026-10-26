@@ -32,14 +32,3 @@ func TestSessionLeaseBusyErrorOmitsSettingClause(t *testing.T) {
 		t.Fatalf("setting busy error lost its clause: %q", withSetting)
 	}
 }
-
-func TestSessionRouteFenceRejectsFileAliasesAndMissingIdentity(t *testing.T) {
-	for _, pair := range [][2]string{{"", ""}, {"same.jsonl", "same.jsonl"}, {"session-id:a/b", "session-id:a/b"}, {"session-id:CaseMix", "session-id:casemix"}} {
-		if sameSessionRoute(pair[0], pair[1]) {
-			t.Fatalf("invalid route fence matched %q and %q", pair[0], pair[1])
-		}
-	}
-	if !sameSessionRoute("session-id:current", " session-id:current ") {
-		t.Fatal("current route spelling did not match its identity")
-	}
-}

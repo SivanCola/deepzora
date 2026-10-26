@@ -95,7 +95,7 @@ type compactSnapshotSpy struct {
 func (c *compactSnapshotSpy) Snapshot() error { c.calls++; return nil }
 
 func TestCompactOperationCompletionDoesNotRepeatMaintenanceSnapshot(t *testing.T) {
-	m, ctrl, _, _ := newCanonicalTakeoverTUI(t)
+	m, ctrl, _, _ := newCanonicalSessionTUI(t)
 	spy := &compactSnapshotSpy{SessionAPI: ctrl}
 	m.ctrl = spy
 	m.ingestSessionOperation(event.Event{Kind: event.SessionOperation, SessionOperation: &event.SessionOperationInfo{

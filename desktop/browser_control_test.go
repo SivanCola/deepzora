@@ -29,16 +29,6 @@ func TestBrowserControlGatesNewSessions(t *testing.T) {
 	}
 }
 
-func TestBrowserControlGateCoversRemoteExecutors(t *testing.T) {
-	isolateDesktopUserDirs(t)
-	app := NewApp()
-	app.hostShell = &hostShellBridge{app: app}
-	app.setBrowserControlEnabled(false)
-	if exec := app.browserExecutorForRemoteTab(&remoteTab{id: "remote-1"}, "/workspace"); exec != nil {
-		t.Fatalf("disabled control returned %T for a remote tab, want nil", exec)
-	}
-}
-
 func TestBrowserControlGateKeepsNonHostModeClosed(t *testing.T) {
 	isolateDesktopUserDirs(t)
 	app := NewApp()

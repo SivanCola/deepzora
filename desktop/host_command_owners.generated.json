@@ -250,50 +250,6 @@
       ]
     }
   },
-  "AddRemoteForward": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.AddRemoteForward",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.AddRemoteForward",
-      "inputs": [
-        "hostID",
-        "in"
-      ]
-    }
-  },
-  "AddRemoteHost": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.AddRemoteHost",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.AddRemoteHost",
-      "inputs": [
-        "in"
-      ]
-    }
-  },
-  "AddRemoteProject": {
-    "domain": "desktop/remote_project_registry.go",
-    "owner": "App.AddRemoteProject",
-    "sources": [
-      "desktop/remote_project_registry.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.AddRemoteProject",
-      "inputs": [
-        "hostID",
-        "workspace"
-      ]
-    }
-  },
   "AddSkillPath": {
     "domain": "desktop/app.go",
     "owner": "App.AddSkillPath",
@@ -305,22 +261,6 @@
       "resolver": "App.AddSkillPath",
       "inputs": [
         "path"
-      ]
-    }
-  },
-  "AnswerRemoteTab": {
-    "domain": "desktop/remote_tab.go",
-    "owner": "App.AnswerRemoteTab",
-    "sources": [
-      "desktop/remote_tab.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.AnswerRemoteTab",
-      "inputs": [
-        "tabID",
-        "callID",
-        "answers"
       ]
     }
   },
@@ -380,22 +320,6 @@
         "selectedChannel",
         "expectedVersion",
         "requestID"
-      ]
-    }
-  },
-  "ApproveRemoteTab": {
-    "domain": "desktop/remote_tab.go",
-    "owner": "App.ApproveRemoteTab",
-    "sources": [
-      "desktop/remote_tab.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.ApproveRemoteTab",
-      "inputs": [
-        "tabID",
-        "callID",
-        "decision"
       ]
     }
   },
@@ -744,35 +668,6 @@
       ]
     }
   },
-  "CancelRemoteTab": {
-    "domain": "desktop/remote_tab.go",
-    "owner": "App.CancelRemoteTab",
-    "sources": [
-      "desktop/remote_tab.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.CancelRemoteTab",
-      "inputs": [
-        "tabID"
-      ]
-    }
-  },
-  "CancelRemoteTabJobs": {
-    "domain": "desktop/remote_tab_commands.go",
-    "owner": "App.CancelRemoteTabJobs",
-    "sources": [
-      "desktop/remote_tab_commands.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.CancelRemoteTabJobs",
-      "inputs": [
-        "tabID",
-        "jobIDs"
-      ]
-    }
-  },
   "CancelSessionExport": {
     "domain": "desktop/session_export.go",
     "owner": "App.CancelSessionExport",
@@ -911,20 +806,6 @@
       ]
     }
   },
-  "CheckRemotePlatform": {
-    "domain": "desktop/remote_platform.go",
-    "owner": "App.CheckRemotePlatform",
-    "sources": [
-      "desktop/remote_platform.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.CheckRemotePlatform",
-      "inputs": [
-        "hostID"
-      ]
-    }
-  },
   "CheckUpdate": {
     "domain": "desktop/updater_app.go",
     "owner": "App.CheckUpdate",
@@ -995,20 +876,6 @@
       ]
     }
   },
-  "ClearRemoteTabSession": {
-    "domain": "desktop/remote_tab_commands.go",
-    "owner": "App.ClearRemoteTabSession",
-    "sources": [
-      "desktop/remote_tab_commands.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.ClearRemoteTabSession",
-      "inputs": [
-        "tabID"
-      ]
-    }
-  },
   "ClearSession": {
     "domain": "desktop/session_clear.go",
     "owner": "App.ClearSession",
@@ -1046,20 +913,6 @@
       "resolver": "App.CloseMergedWorktreeTab",
       "inputs": [
         "request"
-      ]
-    }
-  },
-  "CloseRemoteTab": {
-    "domain": "desktop/remote_tab_registry.go",
-    "owner": "App.CloseRemoteTab",
-    "sources": [
-      "desktop/remote_tab_registry.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.CloseRemoteTab",
-      "inputs": [
-        "tabID"
       ]
     }
   },
@@ -1166,21 +1019,6 @@
       ]
     }
   },
-  "CompactRemoteTab": {
-    "domain": "desktop/remote_tab_commands.go",
-    "owner": "App.CompactRemoteTab",
-    "sources": [
-      "desktop/remote_tab_commands.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.CompactRemoteTab",
-      "inputs": [
-        "tabID",
-        "instructions"
-      ]
-    }
-  },
   "CompleteSessionComposerSubmission": {
     "domain": "desktop/session_composer_state.go",
     "owner": "App.CompleteSessionComposerSubmission",
@@ -1211,38 +1049,6 @@
       ]
     }
   },
-  "ConfirmRemoteHostKey": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.ConfirmRemoteHostKey",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.ConfirmRemoteHostKey",
-      "inputs": [
-        "hostID",
-        "accept"
-      ]
-    }
-  },
-  "ConfirmRemoteSecret": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.ConfirmRemoteSecret",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.ConfirmRemoteSecret",
-      "inputs": [
-        "hostID",
-        "promptID",
-        "secret",
-        "accept"
-      ]
-    }
-  },
   "ConnectKey": {
     "domain": "desktop/app.go",
     "owner": "App.ConnectKey",
@@ -1254,20 +1060,6 @@
       "resolver": "App.ConnectKey",
       "inputs": [
         "apiKey"
-      ]
-    }
-  },
-  "ConnectRemoteHost": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.ConnectRemoteHost",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.ConnectRemoteHost",
-      "inputs": [
-        "id"
       ]
     }
   },
@@ -1354,21 +1146,6 @@
     "scope": {
       "kind": "owner-inputs",
       "resolver": "App.CreateForkForTab",
-      "inputs": [
-        "tabID",
-        "anchor"
-      ]
-    }
-  },
-  "CreateForkRemoteTab": {
-    "domain": "desktop/remote_fork_targets.go",
-    "owner": "App.CreateForkRemoteTab",
-    "sources": [
-      "desktop/remote_fork_targets.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.CreateForkRemoteTab",
       "inputs": [
         "tabID",
         "anchor"
@@ -1539,38 +1316,6 @@
       ]
     }
   },
-  "DeleteRemotePath": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.DeleteRemotePath",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.DeleteRemotePath",
-      "inputs": [
-        "hostID",
-        "path",
-        "recursive"
-      ]
-    }
-  },
-  "DeleteRemoteProjectSession": {
-    "domain": "desktop/remote_tab_commands.go",
-    "owner": "App.DeleteRemoteProjectSession",
-    "sources": [
-      "desktop/remote_tab_commands.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.DeleteRemoteProjectSession",
-      "inputs": [
-        "hostID",
-        "workspace",
-        "sessionID"
-      ]
-    }
-  },
   "DeleteSessionTarget": {
     "domain": "desktop/session_operations.go",
     "owner": "App.DeleteSessionTarget",
@@ -1638,20 +1383,6 @@
       "inputs": []
     }
   },
-  "DisconnectRemoteHost": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.DisconnectRemoteHost",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.DisconnectRemoteHost",
-      "inputs": [
-        "id"
-      ]
-    }
-  },
   "EditGoalForTab": {
     "domain": "desktop/goal_app.go",
     "owner": "App.EditGoalForTab",
@@ -1661,22 +1392,6 @@
     "scope": {
       "kind": "owner-inputs",
       "resolver": "App.EditGoalForTab",
-      "inputs": [
-        "tabID",
-        "objective",
-        "maxGoalRounds"
-      ]
-    }
-  },
-  "EditRemoteTabGoal": {
-    "domain": "desktop/remote_goal_edit.go",
-    "owner": "App.EditRemoteTabGoal",
-    "sources": [
-      "desktop/remote_goal_edit.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.EditRemoteTabGoal",
       "inputs": [
         "tabID",
         "objective",
@@ -1759,21 +1474,6 @@
       "inputs": [
         "scope",
         "workspaceRoot"
-      ]
-    }
-  },
-  "EnsureRemoteProjectSessions": {
-    "domain": "desktop/remote_listing.go",
-    "owner": "App.EnsureRemoteProjectSessions",
-    "sources": [
-      "desktop/remote_listing.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.EnsureRemoteProjectSessions",
-      "inputs": [
-        "hostID",
-        "workspace"
       ]
     }
   },
@@ -1970,21 +1670,6 @@
       ]
     }
   },
-  "ForgetRemoteTab": {
-    "domain": "desktop/remote_tab_commands.go",
-    "owner": "App.ForgetRemoteTab",
-    "sources": [
-      "desktop/remote_tab_commands.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.ForgetRemoteTab",
-      "inputs": [
-        "tabID",
-        "name"
-      ]
-    }
-  },
   "ForkForTab": {
     "domain": "desktop/app.go",
     "owner": "App.ForkForTab",
@@ -1997,22 +1682,6 @@
       "inputs": [
         "tabID",
         "turn"
-      ]
-    }
-  },
-  "ForkRemoteTab": {
-    "domain": "desktop/remote_tab_commands.go",
-    "owner": "App.ForkRemoteTab",
-    "sources": [
-      "desktop/remote_tab_commands.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.ForkRemoteTab",
-      "inputs": [
-        "tabID",
-        "turn",
-        "name"
       ]
     }
   },
@@ -2055,20 +1724,6 @@
     "scope": {
       "kind": "owner-inputs",
       "resolver": "App.ForkTargetsForTab",
-      "inputs": [
-        "tabID"
-      ]
-    }
-  },
-  "ForkTargetsRemoteTab": {
-    "domain": "desktop/remote_fork_targets.go",
-    "owner": "App.ForkTargetsRemoteTab",
-    "sources": [
-      "desktop/remote_fork_targets.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.ForkTargetsRemoteTab",
       "inputs": [
         "tabID"
       ]
@@ -2876,33 +2531,6 @@
       ]
     }
   },
-  "ListRemoteDir": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.ListRemoteDir",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.ListRemoteDir",
-      "inputs": [
-        "hostID",
-        "path"
-      ]
-    }
-  },
-  "ListRemoteProjects": {
-    "domain": "desktop/remote_project_registry.go",
-    "owner": "App.ListRemoteProjects",
-    "sources": [
-      "desktop/remote_project_registry.go"
-    ],
-    "scope": {
-      "kind": "owner-state",
-      "resolver": "App.ListRemoteProjects",
-      "inputs": []
-    }
-  },
   "ListSessions": {
     "domain": "desktop/session_history_listing.go",
     "owner": "App.ListSessions",
@@ -3359,21 +2987,6 @@
       ]
     }
   },
-  "MkdirRemote": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.MkdirRemote",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.MkdirRemote",
-      "inputs": [
-        "hostID",
-        "path"
-      ]
-    }
-  },
   "Models": {
     "domain": "desktop/app.go",
     "owner": "App.Models",
@@ -3618,37 +3231,6 @@
       ]
     }
   },
-  "OpenRemoteProjectTab": {
-    "domain": "desktop/remote_projects.go",
-    "owner": "App.OpenRemoteProjectTab",
-    "sources": [
-      "desktop/remote_projects.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.OpenRemoteProjectTab",
-      "inputs": [
-        "hostID",
-        "workspace",
-        "opts"
-      ]
-    }
-  },
-  "OpenRemoteWorkspace": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.OpenRemoteWorkspace",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.OpenRemoteWorkspace",
-      "inputs": [
-        "hostID",
-        "workspace"
-      ]
-    }
-  },
   "OpenSession": {
     "domain": "desktop/session_workspace_api.go",
     "owner": "App.OpenSession",
@@ -3748,20 +3330,6 @@
       ]
     }
   },
-  "PauseRemoteTabGoal": {
-    "domain": "desktop/remote_tab_commands.go",
-    "owner": "App.PauseRemoteTabGoal",
-    "sources": [
-      "desktop/remote_tab_commands.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.PauseRemoteTabGoal",
-      "inputs": [
-        "tabID"
-      ]
-    }
-  },
   "PendingPromptIdentitiesForTab": {
     "domain": "desktop/decision_runtime_api.go",
     "owner": "App.PendingPromptIdentitiesForTab",
@@ -3826,18 +3394,6 @@
     "scope": {
       "kind": "owner-state",
       "resolver": "App.PickPluginFolder",
-      "inputs": []
-    }
-  },
-  "PickRemoteIdentityFile": {
-    "domain": "desktop/remote_dialog.go",
-    "owner": "App.PickRemoteIdentityFile",
-    "sources": [
-      "desktop/remote_dialog.go"
-    ],
-    "scope": {
-      "kind": "owner-state",
-      "resolver": "App.PickRemoteIdentityFile",
       "inputs": []
     }
   },
@@ -4018,20 +3574,6 @@
       ]
     }
   },
-  "QuerySessionTakeover": {
-    "domain": "desktop/session_takeover.go",
-    "owner": "App.QuerySessionTakeover",
-    "sources": [
-      "desktop/session_takeover.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.QuerySessionTakeover",
-      "inputs": [
-        "tabID"
-      ]
-    }
-  },
   "ReadDraftImageForTab": {
     "domain": "desktop/attachments_app.go",
     "owner": "App.ReadDraftImageForTab",
@@ -4186,21 +3728,6 @@
       ]
     }
   },
-  "ReadRemoteFile": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.ReadRemoteFile",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.ReadRemoteFile",
-      "inputs": [
-        "hostID",
-        "path"
-      ]
-    }
-  },
   "ReadSessionAttachmentForTab": {
     "domain": "desktop/attachments_app.go",
     "owner": "App.ReadSessionAttachmentForTab",
@@ -4343,20 +3870,6 @@
       "kind": "owner-state",
       "resolver": "App.RebuildTaskCatalog",
       "inputs": []
-    }
-  },
-  "ReclaimRemoteTabSession": {
-    "domain": "desktop/remote_tab.go",
-    "owner": "App.ReclaimRemoteTabSession",
-    "sources": [
-      "desktop/remote_tab.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.ReclaimRemoteTabSession",
-      "inputs": [
-        "tabID"
-      ]
     }
   },
   "ReconnectMCPServer": {
@@ -4566,332 +4079,6 @@
       ]
     }
   },
-  "RemoteConnectionStatuses": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.RemoteConnectionStatuses",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-state",
-      "resolver": "App.RemoteConnectionStatuses",
-      "inputs": []
-    }
-  },
-  "RemoteForwards": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.RemoteForwards",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteForwards",
-      "inputs": [
-        "hostID"
-      ]
-    }
-  },
-  "RemoteHosts": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.RemoteHosts",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-state",
-      "resolver": "App.RemoteHosts",
-      "inputs": []
-    }
-  },
-  "RemoteLastWorkspace": {
-    "domain": "desktop/remote_prefs.go",
-    "owner": "App.RemoteLastWorkspace",
-    "sources": [
-      "desktop/remote_prefs.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteLastWorkspace",
-      "inputs": [
-        "hostID"
-      ]
-    }
-  },
-  "RemoteLocateSessionMessageForTab": {
-    "domain": "desktop/remote_transcript_api.go",
-    "owner": "App.RemoteLocateSessionMessageForTab",
-    "sources": [
-      "desktop/remote_transcript_api.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteLocateSessionMessageForTab",
-      "inputs": [
-        "tabID",
-        "messageID",
-        "snapshot"
-      ]
-    }
-  },
-  "RemoteProjectSessions": {
-    "domain": "desktop/remote_listing.go",
-    "owner": "App.RemoteProjectSessions",
-    "sources": [
-      "desktop/remote_listing.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteProjectSessions",
-      "inputs": [
-        "hostID",
-        "workspace"
-      ]
-    }
-  },
-  "RemoteSearchSessionHistoryForTab": {
-    "domain": "desktop/remote_transcript_api.go",
-    "owner": "App.RemoteSearchSessionHistoryForTab",
-    "sources": [
-      "desktop/remote_transcript_api.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteSearchSessionHistoryForTab",
-      "inputs": [
-        "tabID",
-        "textQuery",
-        "cursor",
-        "limit"
-      ]
-    }
-  },
-  "RemoteServerLogs": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.RemoteServerLogs",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteServerLogs",
-      "inputs": [
-        "hostID",
-        "workspace",
-        "tailLines"
-      ]
-    }
-  },
-  "RemoteServerStatus": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.RemoteServerStatus",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteServerStatus",
-      "inputs": [
-        "hostID",
-        "workspace"
-      ]
-    }
-  },
-  "RemoteSessionHistoryContentForTab": {
-    "domain": "desktop/remote_transcript_api.go",
-    "owner": "App.RemoteSessionHistoryContentForTab",
-    "sources": [
-      "desktop/remote_transcript_api.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteSessionHistoryContentForTab",
-      "inputs": [
-        "tabID",
-        "ref",
-        "offset"
-      ]
-    }
-  },
-  "RemoteSessionHistoryOutlineForTab": {
-    "domain": "desktop/remote_history_outline.go",
-    "owner": "App.RemoteSessionHistoryOutlineForTab",
-    "sources": [
-      "desktop/remote_history_outline.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteSessionHistoryOutlineForTab",
-      "inputs": [
-        "tabID",
-        "req"
-      ]
-    }
-  },
-  "RemoteSessionHistoryPageForTab": {
-    "domain": "desktop/remote_transcript_api.go",
-    "owner": "App.RemoteSessionHistoryPageForTab",
-    "sources": [
-      "desktop/remote_transcript_api.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteSessionHistoryPageForTab",
-      "inputs": [
-        "tabID",
-        "cursor",
-        "limit"
-      ]
-    }
-  },
-  "RemoteSessionHistoryWindowForTab": {
-    "domain": "desktop/remote_transcript_api.go",
-    "owner": "App.RemoteSessionHistoryWindowForTab",
-    "sources": [
-      "desktop/remote_transcript_api.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteSessionHistoryWindowForTab",
-      "inputs": [
-        "tabID",
-        "req"
-      ]
-    }
-  },
-  "RemoteSessionMessageFieldForTab": {
-    "domain": "desktop/remote_transcript_api.go",
-    "owner": "App.RemoteSessionMessageFieldForTab",
-    "sources": [
-      "desktop/remote_transcript_api.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteSessionMessageFieldForTab",
-      "inputs": [
-        "tabID",
-        "messageID",
-        "version",
-        "field",
-        "offset",
-        "length"
-      ]
-    }
-  },
-  "RemoteSessionOpenForTab": {
-    "domain": "desktop/remote_transcript_api.go",
-    "owner": "App.RemoteSessionOpenForTab",
-    "sources": [
-      "desktop/remote_transcript_api.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteSessionOpenForTab",
-      "inputs": [
-        "tabID"
-      ]
-    }
-  },
-  "RemoteTabBranches": {
-    "domain": "desktop/remote_tab_commands.go",
-    "owner": "App.RemoteTabBranches",
-    "sources": [
-      "desktop/remote_tab_commands.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteTabBranches",
-      "inputs": [
-        "tabID"
-      ]
-    }
-  },
-  "RemoteTabMetadata": {
-    "domain": "desktop/remote_tab_snapshot.go",
-    "owner": "App.RemoteTabMetadata",
-    "sources": [
-      "desktop/remote_tab_snapshot.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteTabMetadata",
-      "inputs": [
-        "tabID"
-      ]
-    }
-  },
-  "RemoteTabSkills": {
-    "domain": "desktop/remote_tab_commands.go",
-    "owner": "App.RemoteTabSkills",
-    "sources": [
-      "desktop/remote_tab_commands.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteTabSkills",
-      "inputs": [
-        "tabID"
-      ]
-    }
-  },
-  "RemoteTabSnapshot": {
-    "domain": "desktop/remote_tab_snapshot.go",
-    "owner": "App.RemoteTabSnapshot",
-    "sources": [
-      "desktop/remote_tab_snapshot.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteTabSnapshot",
-      "inputs": [
-        "tabID"
-      ]
-    }
-  },
-  "RemoteTabStatus": {
-    "domain": "desktop/remote_tab_snapshot.go",
-    "owner": "App.RemoteTabStatus",
-    "sources": [
-      "desktop/remote_tab_snapshot.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteTabStatus",
-      "inputs": [
-        "tabID"
-      ]
-    }
-  },
-  "RemoteTranscriptContentForTab": {
-    "domain": "desktop/remote_transcript_api.go",
-    "owner": "App.RemoteTranscriptContentForTab",
-    "sources": [
-      "desktop/remote_transcript_api.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteTranscriptContentForTab",
-      "inputs": [
-        "tabID",
-        "req"
-      ]
-    }
-  },
-  "RemoteTranscriptFollowForTab": {
-    "domain": "desktop/remote_transcript_api.go",
-    "owner": "App.RemoteTranscriptFollowForTab",
-    "sources": [
-      "desktop/remote_transcript_api.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoteTranscriptFollowForTab",
-      "inputs": [
-        "tabID",
-        "req"
-      ]
-    }
-  },
   "RemoveMCPServer": {
     "domain": "desktop/app.go",
     "owner": "App.RemoveMCPServer",
@@ -4960,50 +4147,6 @@
       "resolver": "App.RemoveProviderAccesses",
       "inputs": [
         "rawNames"
-      ]
-    }
-  },
-  "RemoveRemoteForward": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.RemoveRemoteForward",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoveRemoteForward",
-      "inputs": [
-        "hostID",
-        "forwardID"
-      ]
-    }
-  },
-  "RemoveRemoteHost": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.RemoveRemoteHost",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoveRemoteHost",
-      "inputs": [
-        "id"
-      ]
-    }
-  },
-  "RemoveRemoteProject": {
-    "domain": "desktop/remote_project_registry.go",
-    "owner": "App.RemoveRemoteProject",
-    "sources": [
-      "desktop/remote_project_registry.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RemoveRemoteProject",
-      "inputs": [
-        "hostID",
-        "workspace"
       ]
     }
   },
@@ -5091,39 +4234,6 @@
       "inputs": [
         "names",
         "displayName"
-      ]
-    }
-  },
-  "RenameRemotePath": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.RenameRemotePath",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RenameRemotePath",
-      "inputs": [
-        "hostID",
-        "oldPath",
-        "newPath"
-      ]
-    }
-  },
-  "RenameRemoteProjectSession": {
-    "domain": "desktop/remote_tab_commands.go",
-    "owner": "App.RenameRemoteProjectSession",
-    "sources": [
-      "desktop/remote_tab_commands.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RenameRemoteProjectSession",
-      "inputs": [
-        "hostID",
-        "workspace",
-        "sessionID",
-        "title"
       ]
     }
   },
@@ -5254,20 +4364,6 @@
     "scope": {
       "kind": "owner-inputs",
       "resolver": "App.ReplayPendingPromptsForTab",
-      "inputs": [
-        "tabID"
-      ]
-    }
-  },
-  "ReplayRemoteTabPrompts": {
-    "domain": "desktop/remote_tab_commands.go",
-    "owner": "App.ReplayRemoteTabPrompts",
-    "sources": [
-      "desktop/remote_tab_commands.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.ReplayRemoteTabPrompts",
       "inputs": [
         "tabID"
       ]
@@ -5441,72 +4537,6 @@
       ]
     }
   },
-  "ResolveRemotePresentedPathForTab": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.ResolveRemotePresentedPathForTab",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.ResolveRemotePresentedPathForTab",
-      "inputs": [
-        "tabID",
-        "hostID",
-        "toolCallID",
-        "remotePath"
-      ]
-    }
-  },
-  "ResolveRemoteTabPlanDecision": {
-    "domain": "desktop/remote_tab.go",
-    "owner": "App.ResolveRemoteTabPlanDecision",
-    "sources": [
-      "desktop/remote_tab.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.ResolveRemoteTabPlanDecision",
-      "inputs": [
-        "tabID",
-        "callID",
-        "action",
-        "feedback"
-      ]
-    }
-  },
-  "ResolveRemoteTabPromptExact": {
-    "domain": "desktop/remote_tab_exact_interactions.go",
-    "owner": "App.ResolveRemoteTabPromptExact",
-    "sources": [
-      "desktop/remote_tab_exact_interactions.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.ResolveRemoteTabPromptExact",
-      "inputs": [
-        "target",
-        "answer"
-      ]
-    }
-  },
-  "ResolveRemoteWorkspacePathForTab": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.ResolveRemoteWorkspacePathForTab",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.ResolveRemoteWorkspacePathForTab",
-      "inputs": [
-        "tabID",
-        "hostID",
-        "toolCallID",
-        "remotePath"
-      ]
-    }
-  },
   "ResolveWorkspacePathForTab": {
     "domain": "desktop/workspace_path.go",
     "owner": "App.ResolveWorkspacePathForTab",
@@ -5643,20 +4673,6 @@
     "scope": {
       "kind": "owner-inputs",
       "resolver": "App.ResumeGoalForTab",
-      "inputs": [
-        "tabID"
-      ]
-    }
-  },
-  "ResumeRemoteTabGoal": {
-    "domain": "desktop/remote_tab_commands.go",
-    "owner": "App.ResumeRemoteTabGoal",
-    "sources": [
-      "desktop/remote_tab_commands.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.ResumeRemoteTabGoal",
       "inputs": [
         "tabID"
       ]
@@ -5864,22 +4880,6 @@
       "resolver": "App.RevokeWorkspaceMediaPreview",
       "inputs": [
         "resourceURL"
-      ]
-    }
-  },
-  "RewindRemoteTab": {
-    "domain": "desktop/remote_tab.go",
-    "owner": "App.RewindRemoteTab",
-    "sources": [
-      "desktop/remote_tab.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.RewindRemoteTab",
-      "inputs": [
-        "tabID",
-        "checkpointID",
-        "scope"
       ]
     }
   },
@@ -6298,38 +5298,6 @@
       ]
     }
   },
-  "SaveRemoteFileAs": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.SaveRemoteFileAs",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.SaveRemoteFileAs",
-      "inputs": [
-        "hostID",
-        "remotePath"
-      ]
-    }
-  },
-  "SaveRemotePresentedFileAs": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.SaveRemotePresentedFileAs",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.SaveRemotePresentedFileAs",
-      "inputs": [
-        "tabID",
-        "hostID",
-        "toolCallID",
-        "remotePath"
-      ]
-    }
-  },
   "SaveSessionComposerState": {
     "domain": "desktop/session_composer_state.go",
     "owner": "App.SaveSessionComposerState",
@@ -6415,18 +5383,6 @@
       "inputs": [
         "rawRequest"
       ]
-    }
-  },
-  "ScanSSHConfig": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.ScanSSHConfig",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-state",
-      "resolver": "App.ScanSSHConfig",
-      "inputs": []
     }
   },
   "SearchFileRefs": {
@@ -7295,131 +6251,6 @@
       ]
     }
   },
-  "SetRemoteProjectTitle": {
-    "domain": "desktop/remote_tab_commands.go",
-    "owner": "App.SetRemoteProjectTitle",
-    "sources": [
-      "desktop/remote_tab_commands.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.SetRemoteProjectTitle",
-      "inputs": [
-        "hostID",
-        "workspace",
-        "title"
-      ]
-    }
-  },
-  "SetRemoteSessionPinned": {
-    "domain": "desktop/remote_tab_commands.go",
-    "owner": "App.SetRemoteSessionPinned",
-    "sources": [
-      "desktop/remote_tab_commands.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.SetRemoteSessionPinned",
-      "inputs": [
-        "hostID",
-        "workspace",
-        "sessionID",
-        "pinned"
-      ]
-    }
-  },
-  "SetRemoteTabComposerProfile": {
-    "domain": "desktop/remote_tab.go",
-    "owner": "App.SetRemoteTabComposerProfile",
-    "sources": [
-      "desktop/remote_tab.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.SetRemoteTabComposerProfile",
-      "inputs": [
-        "tabID",
-        "collaborationMode",
-        "toolApprovalMode",
-        "goal"
-      ]
-    }
-  },
-  "SetRemoteTabEffort": {
-    "domain": "desktop/remote_tab_commands.go",
-    "owner": "App.SetRemoteTabEffort",
-    "sources": [
-      "desktop/remote_tab_commands.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.SetRemoteTabEffort",
-      "inputs": [
-        "tabID",
-        "level"
-      ]
-    }
-  },
-  "SetRemoteTabGoal": {
-    "domain": "desktop/remote_tab.go",
-    "owner": "App.SetRemoteTabGoal",
-    "sources": [
-      "desktop/remote_tab.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.SetRemoteTabGoal",
-      "inputs": [
-        "tabID",
-        "goal"
-      ]
-    }
-  },
-  "SetRemoteTabModel": {
-    "domain": "desktop/remote_tab_commands.go",
-    "owner": "App.SetRemoteTabModel",
-    "sources": [
-      "desktop/remote_tab_commands.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.SetRemoteTabModel",
-      "inputs": [
-        "tabID",
-        "ref"
-      ]
-    }
-  },
-  "SetRemoteTabPlanMode": {
-    "domain": "desktop/remote_tab_commands.go",
-    "owner": "App.SetRemoteTabPlanMode",
-    "sources": [
-      "desktop/remote_tab_commands.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.SetRemoteTabPlanMode",
-      "inputs": [
-        "tabID",
-        "on"
-      ]
-    }
-  },
-  "SetRemoteTabToolApprovalMode": {
-    "domain": "desktop/remote_tab.go",
-    "owner": "App.SetRemoteTabToolApprovalMode",
-    "sources": [
-      "desktop/remote_tab.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.SetRemoteTabToolApprovalMode",
-      "inputs": [
-        "tabID",
-        "mode"
-      ]
-    }
-  },
   "SetSandbox": {
     "domain": "desktop/settings_app.go",
     "owner": "App.SetSandbox",
@@ -7897,36 +6728,6 @@
       ]
     }
   },
-  "SteerRemoteTab": {
-    "domain": "desktop/remote_tab_commands.go",
-    "owner": "App.SteerRemoteTab",
-    "sources": [
-      "desktop/remote_tab_commands.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.SteerRemoteTab",
-      "inputs": [
-        "tabID",
-        "input"
-      ]
-    }
-  },
-  "StopRemoteServer": {
-    "domain": "desktop/remote_server_stop.go",
-    "owner": "App.StopRemoteServer",
-    "sources": [
-      "desktop/remote_server_stop.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.StopRemoteServer",
-      "inputs": [
-        "hostID",
-        "workspace"
-      ]
-    }
-  },
   "StopTaskByKey": {
     "domain": "desktop/task_catalog.go",
     "owner": "App.StopTaskByKey",
@@ -8059,86 +6860,6 @@
       ]
     }
   },
-  "SubmitRemoteTab": {
-    "domain": "desktop/remote_submit.go",
-    "owner": "App.SubmitRemoteTab",
-    "sources": [
-      "desktop/remote_submit.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.SubmitRemoteTab",
-      "inputs": [
-        "tabID",
-        "text"
-      ]
-    }
-  },
-  "SubmitRemoteTabExtensionForm": {
-    "domain": "desktop/remote_tab.go",
-    "owner": "App.SubmitRemoteTabExtensionForm",
-    "sources": [
-      "desktop/remote_tab.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.SubmitRemoteTabExtensionForm",
-      "inputs": [
-        "tabID",
-        "pluginID",
-        "surfaceID",
-        "values"
-      ]
-    }
-  },
-  "SubmitRemoteTabExtensionFormExact": {
-    "domain": "desktop/remote_tab_exact_interactions.go",
-    "owner": "App.SubmitRemoteTabExtensionFormExact",
-    "sources": [
-      "desktop/remote_tab_exact_interactions.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.SubmitRemoteTabExtensionFormExact",
-      "inputs": [
-        "target",
-        "values"
-      ]
-    }
-  },
-  "SubmitRemoteTabWithModelApplication": {
-    "domain": "desktop/remote_model_application.go",
-    "owner": "App.SubmitRemoteTabWithModelApplication",
-    "sources": [
-      "desktop/remote_model_application.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.SubmitRemoteTabWithModelApplication",
-      "inputs": [
-        "tabID",
-        "text",
-        "submissionID",
-        "choice"
-      ]
-    }
-  },
-  "SubmitRemoteTabWithSubmission": {
-    "domain": "desktop/remote_submit.go",
-    "owner": "App.SubmitRemoteTabWithSubmission",
-    "sources": [
-      "desktop/remote_submit.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.SubmitRemoteTabWithSubmission",
-      "inputs": [
-        "tabID",
-        "text",
-        "submissionID"
-      ]
-    }
-  },
   "SubmitToTabWithID": {
     "domain": "desktop/turn_submission_app.go",
     "owner": "App.SubmitToTabWithID",
@@ -8170,22 +6891,6 @@
       ]
     }
   },
-  "SummarizeRemoteTab": {
-    "domain": "desktop/remote_tab_commands.go",
-    "owner": "App.SummarizeRemoteTab",
-    "sources": [
-      "desktop/remote_tab_commands.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.SummarizeRemoteTab",
-      "inputs": [
-        "tabID",
-        "turn",
-        "mode"
-      ]
-    }
-  },
   "SummarizeUpToForTab": {
     "domain": "desktop/app.go",
     "owner": "App.SummarizeUpToForTab",
@@ -8212,33 +6917,6 @@
       "resolver": "App.SwitchWorkspace",
       "inputs": [
         "dir"
-      ]
-    }
-  },
-  "SyncRuntimeState": {
-    "domain": "desktop/remote_runtime_state.go",
-    "owner": "App.SyncRuntimeState",
-    "sources": [
-      "desktop/remote_runtime_state.go"
-    ],
-    "scope": {
-      "kind": "owner-state",
-      "resolver": "App.SyncRuntimeState",
-      "inputs": []
-    }
-  },
-  "TakeoverSession": {
-    "domain": "desktop/session_takeover.go",
-    "owner": "App.TakeoverSession",
-    "sources": [
-      "desktop/session_takeover.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.TakeoverSession",
-      "inputs": [
-        "tabID",
-        "mode"
       ]
     }
   },
@@ -8480,21 +7158,6 @@
       ]
     }
   },
-  "UpdateRemoteHost": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.UpdateRemoteHost",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.UpdateRemoteHost",
-      "inputs": [
-        "id",
-        "in"
-      ]
-    }
-  },
   "UpdateSessionOrganization": {
     "domain": "desktop/session_organization.go",
     "owner": "App.UpdateSessionOrganization",
@@ -8688,23 +7351,6 @@
         "sessionPath",
         "turn",
         "resultID"
-      ]
-    }
-  },
-  "WriteRemoteFile": {
-    "domain": "desktop/remote_app.go",
-    "owner": "App.WriteRemoteFile",
-    "sources": [
-      "desktop/remote_app.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.WriteRemoteFile",
-      "inputs": [
-        "hostID",
-        "path",
-        "body",
-        "expectMtimeUnix"
       ]
     }
   },
