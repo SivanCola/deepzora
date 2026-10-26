@@ -6,7 +6,7 @@ import (
 )
 
 // Audit is a non-persisted capability/routing counters sink, mirroring
-// readiness audit collection for run --metrics and e2ebench.
+// readiness audit collection for run --metrics.
 type Audit struct {
 	mu sync.Mutex
 

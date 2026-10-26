@@ -50,7 +50,6 @@ type chatTUI struct {
 	shutdownErr        error // final save's failure; reported after terminal release
 	label              string
 	missing            string // missing-key warning surfaced once in the banner, "" when ready
-	webHandoffState
 	// diagnostics is the process-owned TUI log/watchdog started before terminal
 	// takeover. Nil in unit tests that construct chatTUI without chatREPL.
 	diagnostics      *tuiDiagnostics
@@ -4180,8 +4179,10 @@ func (m *chatTUI) runSlashCommand(input string) tea.Cmd {
 	case "/currency":
 		m.echoLocalCommand(input)
 		return m.runCurrencySubcommand(input)
-	case "/help", "/web":
-		return m.runHelpOrWebSlash(input, typedCmd)
+	case "/help":
+		m.echoLocalCommand(input)
+		m.showHelp()
+		return nil
 	case "/memory":
 		m.echoLocalCommand(input)
 		m.showMemory(input)

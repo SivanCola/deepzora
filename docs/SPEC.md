@@ -1084,9 +1084,8 @@ ask   = []                                 # force a prompt even if otherwise al
 # forbid_read    = ["${HOME}/.ssh"]   # paths read/list/search tools and sandboxed bash may not inspect
 
 [serve]
-auth_mode = "none"             # none|token|password; use auth before binding beyond localhost
+auth_mode = "none"             # none|token; use token auth before binding beyond localhost
 # token = ""                   # optional fixed token; empty token mode generates one at startup
-# password_hash = ""           # bcrypt hash generated with deepzora serve --hash-password --password '...'
 # behind_proxy = false         # trust X-Forwarded-* only behind a trusted reverse proxy
 
 [[plugins]]
@@ -1129,16 +1128,15 @@ unknown values fall back to `bar`. It applies to the Bubble Tea CLI/TUI
 textarea only, while desktop and browser inputs keep their platform-native
 cursor behavior.
 
-`[serve]` controls the HTTP browser frontend used by `deepzora serve`. The
-default `auth_mode = "none"` is intended for the loopback default
-`127.0.0.1:8787`; deployments reachable from another machine must use `token` or
-`password`. In `none` mode every state-changing request still needs the launch
+`[serve]` controls the HTTP frontend used by `deepzora serve`, the backend for
+desktop remote workspaces. The default `auth_mode = "none"` is intended for the
+loopback default `127.0.0.1:8787`; deployments reachable from another machine
+must use `token`. In `none` mode every state-changing request still needs the launch
 token, which Serve writes to a 0600 file under `<Deepzora home>/remote/` rather
 than to the terminal, and otherwise refuses with `launch_token_required`.
-`[serve]` is read from the user config only. Password mode requires either a startup `--password` or a stored
-bcrypt `password_hash`. `behind_proxy` must stay false unless the server is
-behind a trusted proxy that owns the `X-Forwarded-For` and `X-Forwarded-Proto`
-headers.
+`[serve]` is read from the user config only. `behind_proxy` must stay false
+unless the server is behind a trusted proxy that owns the `X-Forwarded-Proto`
+header.
 
 MCP servers may also be declared in a project-root `.mcp.json` using Claude
 Code's exact `mcpServers` schema (`command`/`args`/`env`, `type`/`url`/`headers`,

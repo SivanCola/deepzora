@@ -46,8 +46,8 @@ The agent runs on your computer or the remote host you select. Your configured m
 
 | Code with context | Stay in control | Extend your workflow |
 | --- | --- | --- |
-| Read a repository, edit files, run commands and tests, and inspect changes and check results. | Preview a plan before implementation, choose tool permissions, and rewind supported edit-tool changes by conversation turn. | Connect MCP tools, add skills and extensions, and integrate an ACP editor or the Go extension SDK. |
-| [Turn results](docs/TURN_RESULTS.md) | [Permissions](docs/TOOL_APPROVAL_MODES.md) · [Checkpoints](docs/CHECKPOINTS.md) | [Extensions](docs/EXTENSIONS.md) · [Go SDK](sdk/go/README.md) |
+| Read a repository, edit files, run commands and tests, and inspect changes and check results. | Preview a plan before implementation, choose tool permissions, and rewind supported edit-tool changes by conversation turn. | Connect MCP tools, add skills and extensions, and integrate an ACP editor. |
+| [Turn results](docs/TURN_RESULTS.md) | [Permissions](docs/TOOL_APPROVAL_MODES.md) · [Checkpoints](docs/CHECKPOINTS.md) | [Extensions](docs/EXTENSIONS.md) |
 
 Checkpoints cover supported file-edit tools; shell-command side effects are outside rewind coverage.
 
@@ -57,7 +57,7 @@ Checkpoints cover supported file-edit tools; shell-command side effects are outs
 | --- | --- | --- |
 | **Desktop** | A visual workspace for conversations, files, changes and tools | [Download the Electron app](#desktop-downloads) |
 | **Terminal** | Interactive coding and scripted tasks | `deepzora` · `deepzora run "task"` |
-| **Browser & remote** | A browser session or code on a remote SSH host | `deepzora web` · [Remote sessions](docs/REMOTE_SESSIONS.md) |
+| **Remote** | Code on a remote SSH host from the desktop app | [Remote sessions](docs/REMOTE_SESSIONS.md) |
 | **Editor** | Connecting an ACP-compatible editor to the agent | `deepzora acp` · [ACP guide](docs/ACP.md) |
 
 ## Quick start
@@ -104,7 +104,7 @@ For supported data formats and compatibility, see the [current baseline](docs/cu
 | [User guide](docs/GUIDE.md) | [Model settings](docs/MODEL_SETTINGS.md) | [Contributing](CONTRIBUTING.md) |
 | [CLI reference](docs/CLI.md) | [Configuration paths](docs/CONFIG_PATHS.md) | [Architecture & spec](docs/SPEC.md) |
 | [Plans & goals](docs/COLLABORATION_MODES.md) | [Remote sessions](docs/REMOTE_SESSIONS.md) | [Desktop development](desktop/README.md) |
-| [Permissions & sandbox](docs/TOOL_APPROVAL_MODES.md) | [ACP editor integration](docs/ACP.md) | [Go extension SDK](sdk/go/README.md) |
+| [Permissions & sandbox](docs/TOOL_APPROVAL_MODES.md) | [ACP editor integration](docs/ACP.md) | [Extension protocol](docs/EXTENSION_PROTOCOL.md) |
 | [Checkpoints & rewind](docs/CHECKPOINTS.md) | [Extensions & MCP](docs/EXTENSIONS.md) | [Release candidates](docs/RELEASE_CANDIDATES.md) |
 | [Context & memory](docs/SESSION_MEMORY_RETRIEVAL.md) | [Theme packs](docs/THEME_PACK.md) | [Optional feedback backend (中文)](supabase/README.md) |
 | [Agent presets](docs/AGENT_PRESETS.md) | Persona and tool allowlists for each conversation | |

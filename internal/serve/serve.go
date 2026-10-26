@@ -132,7 +132,7 @@ func (s *Server) AuthToken() string {
 	return s.auth.Token()
 }
 
-// AuthMode returns the authentication mode: "none", "token", or "password".
+// AuthMode returns the authentication mode: "none" or "token".
 func (s *Server) AuthMode() string {
 	if s.auth == nil {
 		return "none"

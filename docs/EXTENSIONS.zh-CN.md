@@ -94,28 +94,20 @@ go test ./internal/extension/... -run '^$' -bench 'Extension|Dispatch' -benchmem
 
 ## 开发扩展
 
-建议从完整的
-[`starterextension`](../sdk/go/examples/starterextension/README.zh-CN.md)
-开始。它把 Manifest、Sidecar 源码、跨平台构建命令、链接安装和第一个可观察
-拦截效果放在同一目录。标准开发流程是：
+扩展由一个 Manifest 和一个可用任意语言编写的 Sidecar 可执行文件组成。标准开发流程是：
 
 1. 在 `deepzora-plugin.json` 中加入
    `apiVersion: "deepzora.com/plugin/v2"`，声明 `contributes` 与
    （可选的）`runtime`——见
    [插件包文档](./PLUGIN_PACKAGES.zh-CN.md#manifest-v2扩展)。
-2. 实现 Sidecar。[Go SDK](../sdk/go/README.md)（仅依赖标准库）已经处理传输、
-   握手、序号、content ref 与关闭；语言无关的参考见
-   [线协议](./EXTENSION_PROTOCOL.zh-CN.md)和
-   [生成方法索引](./EXTENSION_PROTOCOL.generated.md)。
+2. 按照[线协议](./EXTENSION_PROTOCOL.zh-CN.md)和
+   [生成方法索引](./EXTENSION_PROTOCOL.generated.md)实现 Sidecar；机器可读的 schema 是
+   `internal/extension/protocol/schema.generated.json`。
 3. 构建 Runtime 二进制，先用
    `deepzora plugin install /path/to/plugin --dry-run` 检查信任与能力，再用
    `--link --yes` 安装。
 4. 用 `deepzora plugin doctor <name>` 校验，在空闲时运行 `/reload`，然后验证
    插件贡献的拦截器、Provider、UI action 或资源。
-
-SDK 使用不可变的 `sdk/go/vX.Y.Z` 标签发布，首个公开版本为
-`sdk/go/v1.0.0`。该标签存在之前，请从源码 checkout 使用 starter，不要依赖
-未版本化的 module API。
 
 ## 兼容性
 

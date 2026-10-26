@@ -46,8 +46,8 @@ Agent 在本机或你选择的远程主机上运行；模型请求所需的上�
 
 | 理解项目并完成修改 | 掌握执行过程 | 接入自己的工作流 |
 | --- | --- | --- |
-| 阅读仓库、编辑文件、执行命令与测试，查看修改差异和检查结果。 | 先预览计划再实施，自选工具权限，按对话轮次回退受支持编辑工具的修改。 | 连接 MCP 工具、添加技能与扩展，通过 ACP 编辑器或 Go 扩展 SDK 集成。 |
-| [回合结果](docs/TURN_RESULTS.zh-CN.md) | [权限模式](docs/TOOL_APPROVAL_MODES.zh-CN.md) · [检查点](docs/CHECKPOINTS.zh-CN.md) | [扩展](docs/EXTENSIONS.zh-CN.md) · [Go SDK](sdk/go/README.md) |
+| 阅读仓库、编辑文件、执行命令与测试，查看修改差异和检查结果。 | 先预览计划再实施，自选工具权限，按对话轮次回退受支持编辑工具的修改。 | 连接 MCP 工具、添加技能与扩展，通过 ACP 编辑器集成。 |
+| [回合结果](docs/TURN_RESULTS.zh-CN.md) | [权限模式](docs/TOOL_APPROVAL_MODES.zh-CN.md) · [检查点](docs/CHECKPOINTS.zh-CN.md) | [扩展](docs/EXTENSIONS.zh-CN.md) |
 
 检查点覆盖受支持的文件编辑工具，不覆盖 Shell 命令产生的文件副作用。
 
@@ -57,7 +57,7 @@ Agent 在本机或你选择的远程主机上运行；模型请求所需的上�
 | --- | --- | --- |
 | **桌面端** | 在可视化工作区中管理对话、文件、修改和工具 | [下载 Electron 桌面端](#桌面版下载) |
 | **终端** | 交互式编程与脚本任务 | `deepzora` · `deepzora run "任务"` |
-| **浏览器与远程** | 在浏览器中工作，或连接远程 SSH 主机上的代码 | `deepzora web` · [远程会话](docs/REMOTE_SESSIONS.zh-CN.md) |
+| **远程** | 在桌面端连接远程 SSH 主机上的代码 | [远程会话](docs/REMOTE_SESSIONS.zh-CN.md) |
 | **编辑器** | 将支持 ACP 的编辑器连接到 Agent | `deepzora acp` · [ACP 指南](docs/ACP.zh-CN.md) |
 
 ## 快速开始
@@ -104,7 +104,7 @@ deepzora -p "概述这个仓库的结构" --output-format json
 | [使用指南](docs/GUIDE.zh-CN.md) | [模型设置](docs/MODEL_SETTINGS.zh-CN.md) | [贡献指南（English）](CONTRIBUTING.md) |
 | [CLI 参考](docs/CLI.zh-CN.md) | [配置路径](docs/CONFIG_PATHS.zh-CN.md) | [架构与规范（English）](docs/SPEC.md) |
 | [计划与目标](docs/COLLABORATION_MODES.zh-CN.md) | [远程会话](docs/REMOTE_SESSIONS.zh-CN.md) | [桌面端开发（English）](desktop/README.md) |
-| [权限与沙箱](docs/TOOL_APPROVAL_MODES.zh-CN.md) | [ACP 编辑器集成](docs/ACP.zh-CN.md) | [Go 扩展 SDK（English）](sdk/go/README.md) |
+| [权限与沙箱](docs/TOOL_APPROVAL_MODES.zh-CN.md) | [ACP 编辑器集成](docs/ACP.zh-CN.md) | [扩展协议](docs/EXTENSION_PROTOCOL.zh-CN.md) |
 | [检查点与回退](docs/CHECKPOINTS.zh-CN.md) | [扩展与 MCP](docs/EXTENSIONS.zh-CN.md) | [发布候选](docs/RELEASE_CANDIDATES.zh-CN.md) |
 | [上下文与记忆](docs/SESSION_MEMORY_RETRIEVAL.zh-CN.md) | [主题包](docs/THEME_PACK.zh-CN.md) | [可选反馈接收服务](supabase/README.md) |
 | [智能体预设](docs/AGENT_PRESETS.zh-CN.md) | 按会话选择人设和工具白名单 | |

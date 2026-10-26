@@ -32,7 +32,7 @@ func TestAuthDisabledServeKeepsLaunchTokenOffTheTerminal(t *testing.T) {
 	t.Cleanup(ctrl.Close)
 	srv := serve.New(ctrl, serve.NewBroadcaster(), config.ServeConfig{AuthMode: "none"})
 	resources := &serveFrontendResources{}
-	opts := serveFrontendOptions{command: "serve"}
+	opts := serveFrontendOptions{}
 	path, err := launchTokenLocation(srv.AuthToken(), opts, resources)
 	if err != nil {
 		t.Fatal(err)

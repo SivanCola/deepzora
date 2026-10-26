@@ -98,7 +98,6 @@ rules still apply to admitted tools.
 deepzora preset new reviewer --prompt "Review changes carefully" --tools 'read_file,mcp:docs'
 deepzora --preset reviewer
 deepzora run --preset reviewer "review the current diff"
-deepzora web --preset reviewer
 deepzora serve --preset reviewer
 ```
 

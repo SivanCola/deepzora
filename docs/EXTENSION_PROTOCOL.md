@@ -10,7 +10,6 @@ publishes structured UI — without ever linking into the host binary.
 - Machine-readable schema: `internal/extension/protocol/schema.generated.json`
 - Method/event/limit/error index: `docs/EXTENSION_PROTOCOL.generated.md`
   (generated, drift-checked in CI)
-- Go SDK (implements everything below): `sdk/go`
 
 This document is the prose companion to the generated index. Where they
 disagree, the generated schema wins.

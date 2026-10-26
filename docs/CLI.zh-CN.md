@@ -83,7 +83,6 @@ edit/copy 时省略参数会保留已保存的值；用 `--complete=false` 或
 deepzora preset new reviewer --prompt "仔细审查变更" --tools 'read_file,mcp:docs'
 deepzora --preset reviewer
 deepzora run --preset reviewer "审查当前 diff"
-deepzora web --preset reviewer
 deepzora serve --preset reviewer
 ```
 

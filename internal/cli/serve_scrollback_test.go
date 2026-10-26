@@ -31,7 +31,7 @@ func TestSandboxCannotReadServeTokenFromScrollback(t *testing.T) {
 		ctrl := newOwnedTestController(t, control.Options{SessionDir: t.TempDir()})
 		srv := serve.New(ctrl, serve.NewBroadcaster(), config.ServeConfig{AuthMode: mode})
 		res := &serveFrontendResources{}
-		opts := serveFrontendOptions{command: "serve"}
+		opts := serveFrontendOptions{}
 		if opts.launchTokenPath, err = launchTokenLocation(srv.AuthToken(), opts, res); err != nil {
 			t.Fatal(err)
 		}

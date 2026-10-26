@@ -20,9 +20,6 @@ const (
 	SchemaArtifactPath   = "internal/extension/protocol/schema.generated.json"
 	HashArtifactPath     = "internal/extension/protocol/schema_hash.generated.go"
 	MarkdownArtifactPath = "docs/EXTENSION_PROTOCOL.generated.md"
-	// SDKTypesArtifactPath is the Go DTO mirror compiled into the stdlib-only
-	// extension SDK module.
-	SDKTypesArtifactPath = "sdk/go/types_generated.go"
 )
 
 // Artifact is one deterministic generated file, relative to the repository
@@ -65,16 +62,11 @@ func Generate() ([]Artifact, error) {
 	if err != nil {
 		return nil, fmt.Errorf("generate markdown: %w", err)
 	}
-	sdkTypes, err := generateSDKTypesGo()
-	if err != nil {
-		return nil, fmt.Errorf("generate sdk types: %w", err)
-	}
 
 	return []Artifact{
 		{Path: SchemaArtifactPath, Data: append([]byte(nil), canonical...)},
 		{Path: HashArtifactPath, Data: hashSource},
 		{Path: MarkdownArtifactPath, Data: markdown},
-		{Path: SDKTypesArtifactPath, Data: sdkTypes},
 	}, nil
 }
 

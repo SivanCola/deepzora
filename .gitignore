@@ -5,8 +5,6 @@
 /npm/.stage/
 /deepzora
 /deepzora.exe
-/e2ebench
-/e2ebench.exe
 
 # Website (Astro) build output
 /site/dist/
@@ -72,7 +70,6 @@ Thumbs.db
 .vscode/
 /site/public/av/
 
-benchmarks/context-maintenance-e2e/run/
 
 # Local scratch
 temp/

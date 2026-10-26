@@ -106,8 +106,6 @@ Resume 加载已经提交的模型工作集和维护记录，不重新调用摘�
 ## 八、验证与烟雾
 
 - 确定性：`internal/agent` compact / projection / pressure-prune / restart 测试
-- 离线 e2e：`benchmarks/context-maintenance-e2e` 的 `seed` + `resume`（`-offline`）
-- 在线 e2e：同目录 `continue`（`DEEPSEEK_API_KEY`，`-max-usd` 费用上限，至多一次摘要）
 
 ## 九、当前持久化边界
 

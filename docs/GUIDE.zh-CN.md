@@ -18,7 +18,7 @@ Provider 模型能力元数据见
 - [计费与展示币种](./BILLING.zh-CN.md)
 - [CLI 命令参考](./CLI.zh-CN.md)
 - [环境变量](#环境变量)
-- [Web 前端](#web-前端)
+- [Serve](#serve)
 - [配置路径](./CONFIG_PATHS.zh-CN.md)
 - [思考语言](./REASONING_LANGUAGE.zh-CN.md)
 - [任务合约与暂停策略](./TASK_CONTRACT.zh-CN.md)
@@ -109,9 +109,8 @@ allow = ["Bash(go test:*)"]                  # 从不询问
 # forbid_read    = ["${HOME}/.ssh"]   # agent 不可读取或列出的路径
 
 [serve]
-auth_mode = "none"             # none|token|password；绑定到非 localhost 前请先开启认证
+auth_mode = "none"             # none|token；绑定到非 localhost 前请先开启 token 认证
 # token = ""                   # 可选固定 token；token 模式为空时启动时自动生成
-# password_hash = ""           # 用 deepzora serve --hash-password --password '...' 生成
 # behind_proxy = false         # 只在可信反向代理后方设为 true
 
 [[plugins]]
@@ -191,34 +190,13 @@ deepzora report delete [ID]     # 不发送，直接删除
 需要单独审阅的报告。Go 无法恢复 runtime fatal throw、操作系统强制终止，以及未包装
 后台 goroutine 中的 panic，因此这些情况不会生成本地报告。
 
-## Web 前端
+## Serve
 
-本机使用时，`deepzora web` 会启动浏览器 UI，并自动用默认浏览器打开。也可以在 CLI 交互会话中
-执行 `/web`：Deepzora 会保存当前会话、恢复终端，然后打开明确的
-`/sessions/<id>#token=...` 深链。即使会话尚未产生第一轮消息，也会延续已预留的 Session ID，
-同时继续保持“空会话不提前写 transcript”的惰性落盘行为。
+`deepzora serve` 通过 HTTP+SSE API 运行引擎，主要用作桌面端远程工作区的后端：桌面端在 SSH
+主机上启动 `deepzora serve --auth token --token-file ...`，再在转发后的回环端口上打开窗口。
+它不会打开浏览器，默认监听 `127.0.0.1:8787`，保持在前台运行，按 Ctrl-C 停止。
 
-```bash
-cd your-project
-deepzora web
-```
-
-如果想启动前台 Web 服务并打印地址、但不自动新开浏览器标签页，可使用
-`deepzora web --no-open`。底层的 `deepzora serve`
-默认不会打开浏览器，继续用于远程开发机、进程托管、tunnel、反向代理和需要认证分享的场景。
-
-`deepzora web` 从 `127.0.0.1:8787` 开始监听；端口占用时会依次尝试 8788、8789……，
-最多递增重试 100 次。它默认启用自动生成的 Token，即使配置中的 `[serve].auth_mode`
-是 `none` 也一样。每个运行实例都会在 `<Deepzora home>/server/instances/` 下写入自己的
-单写者 heartbeat 文件；正常退出时只删除自己的文件，新实例则会惰性清理已确认进程死亡的记录。
-因此多个 Web 实例可以共用同一个 Deepzora home，而不会相互覆盖登记状态。服务保持在前台运行，
-按 Ctrl-C 停止。
-
-显式传入 `deepzora web --auth none` 可以关闭默认 Token，只应在监听地址确定可信时使用。
-`deepzora serve` 的默认监听 `127.0.0.1:8787`，认证模式仍由配置决定，空配置为
-`auth_mode = "none"`。
-
-未开启认证时读取接口保持开放，但所有会改变状态的请求（包括审批）都需要本次启动的令牌：
+未开启认证时（`auth_mode = "none"`，即 `serve` 的默认值）读取接口保持开放，但所有会改变状态的请求（包括审批）都需要本次启动的令牌：
 
 - serve 把令牌写进 `<Deepzora home>/remote/` 下权限 0600 的文件，终端只打印文件路径和 `approvals:` 链接；在链接后拼上 `#token=<文件内容>` 用浏览器打开。带 `--token-file` 的托管启动则打印该文件路径。token 模式的 `share:` 链接同样处理。
 - 以 `Authorization: Bearer <token>` 发送，或打开一次链接让页面写入 Cookie；否则返回 403 `launch_token_required`。
@@ -226,40 +204,26 @@ deepzora web
 - macOS 和 Linux 的系统沙盒会拒绝读取该状态目录和 `--token-file`；Windows 没有 bash 沙盒，agent 命令可以读到该文件。
 - `[serve]` 只从用户配置读取，项目里的 `deepzora.toml` 不能设置它。
 
-如果要绑定到非 loopback 地址、通过 tunnel 暴露，或放到反向代理后面，请先开启认证再分享 URL：
+如果要绑定到非 loopback 地址、通过 tunnel 暴露，或放到反向代理后面，请先开启 Token 认证再分享 URL：
 
 ```bash
 deepzora serve --auth token
 deepzora serve --addr 0.0.0.0:8787 --auth token
-deepzora serve --auth password --password 'temporary-password'
 ```
 
-Token 模式会在终端打印带 `#token=...` 的分享链接；Web 页面会先将 fragment 换成
-HttpOnly Cookie，再启动 API 与 SSE 请求，从而避免 Token 进入请求 URL、浏览器历史、
-Referrer 和访问日志。可通过 `--token` 或 `[serve].token`
-复用固定 token。Password 模式必须在启动时传 `--password`，或在配置里保存 bcrypt hash：
+Token 模式会在终端打印带 `#token=...` 的分享链接；页面会先将 fragment 换成 HttpOnly Cookie，
+再启动 API 与 SSE 请求，从而避免 Token 进入请求 URL、浏览器历史、Referrer 和访问日志。可通过
+`--token-file`、`--token` 或 `[serve].token` 复用固定 token。仅在可信反向代理后方才设置
+`behind_proxy = true`。
 
-```bash
-deepzora serve --hash-password --password 'strong-password'
-
-# <Deepzora home>/config.toml
-[serve]
-auth_mode = "password" # none|token|password
-password_hash = "$2a$12$..."
-behind_proxy = true    # 仅可信反向代理后方使用
-```
-
-Web UI 提供聊天、工具审批、会话历史、rewind/fork/summarize、模型与 reasoning effort 控件、
-Goal、由 `todo_write` 工具驱动的实时 Todo 面板、扩展发布的 status/card/form/notification
-界面，以及已配置 provider 的余额显示。扩展提供的模型也会进入模型选择器。Serve 可以同时维持
-多个活动会话：新建或恢复其他会话时，正在执行的回合会转入后台而不是被取消，会话列表也会持续显示
-其运行状态。空闲时运行 `/reload` 可在不重启 Serve 的情况下，以失败原子方式重载扩展 Sidecar
-和运行时 generation。临时启动可用 `--model`、`--max-steps` 或 `--resume`；不传
-`--model` 时，`serve` 使用用户全局 `default_model`。
+Serve 可以同时维持多个活动会话：新建或恢复其他会话时，正在执行的回合会转入后台而不是被取消，
+会话列表也会持续显示其运行状态。空闲时运行 `/reload` 可在不重启 Serve 的情况下，以失败原子方式
+重载扩展 Sidecar 和运行时 generation。临时启动可用 `--model`、`--max-steps` 或 `--resume`；
+不传 `--model` 时，`serve` 使用用户全局 `default_model`。
 
 如果当前 Provider 尚未保存 API Key，绑定在回环地址的 Serve 仍会启动，并先显示 Provider
-配置页，而不是在浏览器连接前直接失败。通过 Serve 认证后可在该页输入 Key；Deepzora 会以受限
-权限写入**当前主机**的全局凭据文件，在同一进程内重建 Controller，然后进入正常 Web UI。
+配置页，而不是在窗口连接前直接失败。通过 Serve 认证后可在该页输入 Key；Deepzora 会以受限
+权限写入**当前主机**的全局凭据文件，在同一进程内重建 Controller，然后进入正常界面。
 凭据写入接口在非回环监听器上始终禁用。对于 SSH 远程窗口，“当前主机”指经 SSH 隧道访问的
 远端主机；Key 不会从桌面本机自动复制过去。
 

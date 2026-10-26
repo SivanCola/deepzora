@@ -305,7 +305,7 @@ Deepzora 原生扩展使用精确的 v2 `apiVersion`：
 
 `runtime` 块声明的是代码型扩展——由 Deepzora 启动并通过 Extension
 Protocol（基于 stdio 的 JSON-RPC 2.0，方法索引见
-`docs/EXTENSION_PROTOCOL.generated.md`，Go SDK 见 `sdk/go/README.md`）
+`docs/EXTENSION_PROTOCOL.generated.md`）
 驱动的 Sidecar 进程：
 
 - `command`/`args`/`env` 仅支持 **exec form**：command 即可执行文件，

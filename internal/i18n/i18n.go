@@ -333,7 +333,6 @@ type Messages struct {
 	CmdMouse            string // /mouse
 	CmdReasonLang       string // /reasoning-language
 	CmdHelp             string // /help
-	CmdWeb              string // /web
 	CmdTodo             string // /todo
 	CmdQuit             string // /quit (also accepts /exit as hidden alias)
 	CmdCopy             string // /copy

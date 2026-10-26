@@ -50,7 +50,6 @@ import (
 var (
 	runInteractiveSession = chatREPL
 	cliIsInteractive      = isInteractive
-	runWebCommand         = runWeb
 	openBrowserURL        = openInBrowser
 )
 
@@ -122,8 +121,6 @@ func RunWithBuildInfo(args []string, info BuildInfo) int {
 		return runInteractiveSession(rest, version)
 	case "serve":
 		return runServe(rest)
-	case "web":
-		return runWebCommand(rest)
 	case "setup":
 		configureCLIThemeFromConfigForTTYOutput()
 		return setupConfig(rest)
@@ -656,79 +653,29 @@ func runAgent(args []string, version string) int {
 	return completion.exitCode
 }
 
-func runServeWithOptions(args []string, opts serveRunOptions) int {
-	if opts.command == "" {
-		opts.command = "serve"
-	}
-	fs := flag.NewFlagSet(opts.command, flag.ContinueOnError)
+func runServe(args []string) int {
+	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
 	model := fs.String("model", "", "provider name (default: config default_model)")
 	preset := fs.String("preset", "", "agent persona/tool preset id (default: default; resumed sessions keep their preset)")
 	maxSteps := fs.Int("max-steps", 0, "one-off max tool-call rounds (0 = automatic)")
 	addr := fs.String("addr", "127.0.0.1:8787", "listen address")
 	resume := fs.String("resume", "", "resume by session ID or query")
-	sessionIDValue := ""
-	sessionID := &sessionIDValue
-	if opts.command == "web" {
-		sessionID = fs.String("session-id", "", "bind a fresh Web session with the specified ID")
-	}
-	authHelp := "auth mode: none, token, or password (default: config/none; none still requires the launch token for changes)"
-	if opts.command == "web" {
-		authHelp = "auth mode: none, token, or password (default: generated token)"
-	}
-	auth := fs.String("auth", "", authHelp)
+	auth := fs.String("auth", "", "auth mode: none or token (default: config/none; none still requires the launch token for changes)")
 	token := fs.String("token", "", "pre-shared token for auth=token (auto-generated if empty)")
-	password := fs.String("password", "", "password for auth=password (use --hash-password to store a hash instead)")
-	hashPassword := fs.Bool("hash-password", false, "print a bcrypt hash of --password and exit")
-	behindProxy := fs.Bool("behind-proxy", false, "trust X-Forwarded-For / X-Forwarded-Proto headers from a reverse proxy")
+	behindProxy := fs.Bool("behind-proxy", false, "trust X-Forwarded-Proto headers from a reverse proxy")
 	portFile := fs.String("port-file", "", "write the actual bound listen address (host:port) to this file after binding")
 	tokenFile := fs.String("token-file", "", "read the auth=token pre-shared token from this file (overrides --token; keeps the secret out of argv)")
 	pidFile := fs.String("pid-file", "", "write the server process id to this file")
 	registerServeCapabilityFlags(fs)
-	openBrowser := fs.Bool("open", opts.openBrowser, "open the Web UI in the default browser")
-	noOpen := fs.Bool("no-open", false, "do not open the Web UI in the default browser")
 	if code, ok := parseCommandFlags(fs, args); !ok {
 		return code
-	}
-	authExplicit := false
-	fs.Visit(func(f *flag.Flag) {
-		if f.Name == "auth" {
-			authExplicit = true
-		}
-	})
-	if *resume != "" && *sessionID != "" {
-		fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, "--resume and --session-id cannot be used together")
-		return 2
-	}
-	if *sessionID != "" {
-		if err := validateWebSessionID(*sessionID); err != nil {
-			fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, err)
-			return 2
-		}
-	}
-
-	// --hash-password: generate a bcrypt hash and exit.
-	if *hashPassword {
-		if *password == "" {
-			fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, "--hash-password requires --password")
-			return 1
-		}
-		h, err := serve.HashPassword(*password)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, err)
-			return 1
-		}
-		fmt.Println(h)
-		return 0
 	}
 
 	ctx := context.Background()
 	bc, sessionTag, cfg := newServeBootstrap()
 
 	// Build serve config, merging CLI flags over config file.
-	serveCfg := serveConfigWithCommandDefaults(opts.command, authExplicit, cfg.Serve)
-	// `deepzora web` is a local browser entry point and defaults to a freshly
-	// generated token. `deepzora serve` keeps its existing config-driven default,
-	// and an explicit --auth always wins for both commands.
+	serveCfg := cfg.Serve
 	if *auth != "" {
 		serveCfg.AuthMode = *auth
 	}
@@ -753,20 +700,6 @@ func runServeWithOptions(args []string, opts serveRunOptions) int {
 		return 1
 	}
 	serveCfg.AuthMode = mode
-	if *password != "" && serveCfg.AuthMode == "password" {
-		// Hash the password at startup so the config never stores plaintext.
-		// If a PasswordHash is already set in config, the CLI password overrides it.
-		h, err := serve.HashPassword(*password)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, "failed to hash password:", err)
-			return 1
-		}
-		serveCfg.PasswordHash = h
-	}
-	if serveCfg.AuthMode == "password" && strings.TrimSpace(serveCfg.PasswordHash) == "" {
-		fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, "auth mode password requires --password or serve.password_hash")
-		return 1
-	}
 
 	// Own the active session file for the server's lifetime; the serve
 	// handlers that rebind sessions (/resume, /new, /fork) move the lease
@@ -782,7 +715,7 @@ func runServeWithOptions(args []string, opts serveRunOptions) int {
 	// ignoring project-level default_model overrides. Explicit flags and
 	// resumable session models remain strict and are preserved verbatim.
 	*model = resolveServeModel(*model)
-	// Keep the browser reachable when the selected provider has no saved key.
+	// Keep the window reachable when the selected provider has no saved key.
 	// The loopback-only provider setup surface stores the missing credential and
 	// rebuilds this controller in place before the normal web UI is exposed.
 	ctrl, serveBuildOpts, err := setupCLIMultiSessionProfile(ctx, *model, *maxSteps, sessionTag, cliBuildOverrides{
@@ -796,7 +729,7 @@ func runServeWithOptions(args []string, opts serveRunOptions) int {
 	SetTaskJobKiller(ctrlKillerAdapter{ctrl})
 
 	// Keep the resumed identity, or create a current session before serving.
-	if err := prepareServeSession(ctrl, resumeTarget, *sessionID); err != nil {
+	if err := prepareServeSession(ctrl, resumeTarget); err != nil {
 		return cliFailure(err)
 	}
 	if _, err := ctrl.EnsureSession(ctx, session.CreateOptions{}); err != nil {
@@ -806,10 +739,8 @@ func runServeWithOptions(args []string, opts serveRunOptions) int {
 	srv := newCLIMultiSessionServer(ctrl, bc, sessionTag, serveCfg, serveBuildOpts)
 	defer srv.Close()
 	return runServeFrontend(ctrl, srv, serveCfg, serveFrontendOptions{
-		command: opts.command, address: *addr,
+		address:  *addr,
 		portFile: *portFile, tokenFile: *tokenFile, pidFile: *pidFile,
-		openBrowser: *openBrowser && !*noOpen,
-		hasSession:  *resume != "" || *sessionID != "",
 	})
 }
 
@@ -1063,19 +994,13 @@ func chatREPL(args []string, version string) int {
 	// because Controller.Close() runs SessionEnd hooks and kills plugin
 	// subprocesses — operations that corrupt bubbletea's terminal raw mode
 	// when executed while the TUI is alive.
-	var launchWeb bool
-	var launchWebSessionID, launchWebModelRef string
 	if fm, ok := final.(chatTUI); ok {
 		reportShutdownFailure(fm.shutdownErr)
-		launchWeb = fm.launchWebOnExit
 		for _, oc := range fm.oldControllers {
 
 			oc.Close()
 		}
 		if fm.ctrl != nil {
-			launchWebSessionID = fm.launchWebSessionID
-			launchWebModelRef = fm.launchWebModelRef
-
 			fm.ctrl.Close()
 		} else {
 			ctrl.Close()
@@ -1086,10 +1011,6 @@ func chatREPL(args []string, version string) int {
 	if runErr != nil {
 		fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, runErr)
 		return 1
-	}
-	if launchWeb {
-		// The closed TUI controller has released its canonical client binding.
-		return runWebCommand(webHandoffArgs(launchWebSessionID, launchWebModelRef))
 	}
 	return 0
 }

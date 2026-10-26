@@ -34,6 +34,6 @@ For an interrupted publication, run `./scripts/release-stable.sh CANDIDATE_ID re
 
 发布中断时运行 `./scripts/release-stable.sh CANDIDATE_ID recover`。恢复查询实际公开状态，仅复用匹配内容、补齐缺失内容，并保留更新的指针。标签不完整、哈希冲突、未发布候选过期或候选撤销时停止发布。不要移动已存在标签或在恢复时重构封存产物。
 
-See [candidate contracts](RELEASE_CANDIDATES.md) ([中文](RELEASE_CANDIDATES.zh-CN.md)) and [Windows signing](CERTUM_SIGNING.md). Manual signing and notarization diagnostics remain available. SDK releases retain their separate `sdk/go/vX.Y.Z` tags.
+See [candidate contracts](RELEASE_CANDIDATES.md) ([中文](RELEASE_CANDIDATES.zh-CN.md)) and [Windows signing](CERTUM_SIGNING.md). Manual signing and notarization diagnostics remain available.
 
 详见候选契约和 Windows 签名文档。保留手动签名与公证诊断；SDK 发布继续使用独立标签。
