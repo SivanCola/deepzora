@@ -643,6 +643,9 @@ func (a *App) openSessionWithNavigation(ref session.SessionRef, navigationSequen
 		if created {
 			a.discardUnboundSurface(tab)
 		}
+		if errors.Is(err, session.ErrWriterOwned) {
+			return a.openLeaseBlockedSession(ref, navigationSequence)
+		}
 		return HistoryPage{}, err
 	}
 	a.selectLocalSurfaceAfterOpen(navigationSequence)
@@ -650,6 +653,21 @@ func (a *App) openSessionWithNavigation(ref session.SessionRef, navigationSequen
 	// is navigation, so publish ready only after the exact target commits and
 	// let every frontend owner re-read its metadata and history.
 	a.emitReady(a.bootContext(), tab.ID)
+	return HistoryPage{Messages: []HistoryMessage{}}, nil
+}
+
+// openLeaseBlockedSession shows a session whose writer another process holds
+// (for example a CLI turn). Its history stays readable through the query
+// service, so navigation publishes a dedicated surface whose controller build
+// reports lease_blocked instead of rejecting the click. The surface it replaces
+// is pruned like any other activation, keeping running runtimes detached.
+func (a *App) openLeaseBlockedSession(ref session.SessionRef, navigationSequence uint64) (HistoryPage, error) {
+	a.singleSurfaceMu.Lock()
+	defer a.singleSurfaceMu.Unlock()
+	if _, err := a.activateTopicLocked("", "", "", sessionRoute(ref.SessionID), navigationSequence); err != nil {
+		return HistoryPage{}, err
+	}
+	a.selectLocalSurfaceAfterOpen(navigationSequence)
 	return HistoryPage{Messages: []HistoryMessage{}}, nil
 }
 
