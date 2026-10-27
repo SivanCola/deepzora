@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Real Chromium UI with controlled runtime frames; backend ownership is covered
-// separately by the controller/Serve/remote HTTP regression tests.
+// separately by the controller regression tests.
 import path from "node:path";
 import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -23,7 +23,7 @@ try {
   await selectSession(page, "bench:small-6t");
   await page.waitForFunction(() => document.querySelector(".transcript")?.textContent?.includes("ASYNC LAYOUT EXPANSION COMPLETE"));
   await page.evaluate(async () => {
-    const { app, onRemoteTabOpened, onRemoteTabUpdated } = await import("/src/lib/bridge.ts");
+    const { app } = await import("/src/lib/bridge.ts");
     const { runtimeStateStore } = await import("/src/lib/runtimeStateStore.ts");
     const { acceptRuntimeState } = await import("/src/lib/runtimeStateReducer.ts");
     const { sessionIdentityRoute } = await import("/src/lib/sessionIdentity.ts");
@@ -34,16 +34,13 @@ try {
     const tree = { topics: [] };
     const selected = tabs.find(tab => tab.sessionPath?.includes("small")) ?? tabs[0];
     window.__runtimeFixture = { tab: selected, revision: 0, calls: [], queries: [], fail: true, accept: (...args) => acceptRuntimeState(runtimeStateStore, ...args), topics: tree.topics };
-    onRemoteTabOpened(tab => { window.__runtimeFixture.tab = tab; });
-    onRemoteTabUpdated(tab => { window.__runtimeFixture.tab = tab; });
-    const host = installDesktopHostStub(new Proxy(fallback, { get(_target, key) {
+    installDesktopHostStub(new Proxy(fallback, { get(_target, key) {
       // Periodic/focus reads must observe the same producer as pushed frames.
       if (key === "SyncRuntimeState" || key === "GetRuntimeStateSnapshot") return async () => runtimeStateStore.getSnapshot();
       if (key === "CaptureInboxTarget") return async (tabId, sessionPath) => {
         const expected = sessionIdentityRoute(window.__runtimeFixture.tab);
         if (!sessionPath || sessionPath !== expected) throw new Error("Composer did not bind its selected session identity: " + JSON.stringify({ tabId, sessionPath, expected }));
-        const remote = window.__runtimeFixture.tab.remote;
-        return { tabId, sessionPath, generation: 1, selection: 0, remote: Boolean(remote), hostId: remote?.hostId, workspace: remote?.workspace };
+        return { tabId, sessionPath, generation: 1, selection: 0 };
       };
       if (key === "LookupInboxFollowupForTarget") return async (...args) => {
         window.__runtimeFixture.queries.push(args);
@@ -55,13 +52,10 @@ try {
         if (window.__runtimeFixture.fail) throw new Error("fixture enqueue unavailable");
         return { itemId: "runtime-queued", disposition: "queued", position: 1, paused: false };
       };
-      const value = fallback[key];
-      if (key === "OpenRemoteProjectTab") return async (...args) => { const tab = await value(...args); window.__runtimeFixture.tab = tab; return tab; };
-      return value;
+      return fallback[key];
     } }));
-    window.__runtimeFixture.emit = (tabId, channel, payload) => host.emit(`remote-tab:${tabId}:${channel}`, payload);
   });
-  const publish = async (phase, extra = {}, remote = false) => page.evaluate(({ phase, extra, remote }) => {
+  const publish = async (phase, extra = {}) => page.evaluate(({ phase, extra }) => {
     const f = window.__runtimeFixture;
     const tab = f.tab;
     const state = { schemaVersion: 1, runtimeEpoch: "fixture-controller", revision: ++f.revision, phase,
@@ -69,10 +63,10 @@ try {
       turnEventSeq: 1, pendingPrompt: false, cancelRequested: false, cancellable: phase === "executing", backgroundJobs: 0, activity: phase === "executing" ? "thinking" : "", ...extra };
     return f.accept({ epoch: "fixture-app", revision: f.revision, topics: f.topics, sessions: [{
       tabId: tab.id, scope: tab.scope ?? "project", workspaceRoot: tab.workspaceRoot, topicId: tab.topicId ?? "",
-      sessionId: tab.session?.sessionId, sessionPath: tab.sessionPath ?? "", sessionGeneration: tab.sessionGeneration ?? 1, open: true, remote,
-      hostId: tab.remote?.hostId, freshness: extra.freshness ?? "synced", state,
+      sessionId: tab.session?.sessionId, sessionPath: tab.sessionPath ?? "", sessionGeneration: tab.sessionGeneration ?? 1, open: true,
+      freshness: extra.freshness ?? "synced", state,
     }] }, true);
-  }, { phase, extra, remote });
+  }, { phase, extra });
   await publish("finishing");
   await page.locator(".composer-run-strip").filter({ hasText: /Finishing|正在收尾/ }).waitFor();
   check(await page.locator(".composer__btn--stop").count() === 0, "finishing hides Stop");
@@ -108,39 +102,8 @@ try {
     return visible().map(el => `${el.closest("[class]")?.className ?? "?"}: ${el.getAttribute("aria-label") ?? el.className}`);
   });
   check(lingering.length === 0, `last job completion clears project activity (lingering: ${lingering.join(" | ") || "none"})`);
-  await page.locator('.project-tree__folder-main:has(svg.lucide-cloud)').click();
-  await page.locator('.project-tree__topic-main:has-text("Remote demo session")').click();
-  await page.locator(".remote-surface--ready").waitFor();
-  await publish("finishing", {}, true);
-  await page.locator(".composer-run-strip").filter({ hasText: /Finishing|正在收尾/ }).waitFor();
-  await input.fill("remote durable next turn");
-  await input.press("Enter");
-  await page.waitForFunction(() => window.__runtimeFixture.calls.length === 2);
-  check(await input.inputValue() === "", "remote finishing queues the next input and clears it after receipt");
-  await publish("executing", { freshness: "unknown" }, true);
-  await page.locator(".composer-run-strip").filter({ hasText: /sync|同步/i }).waitFor();
-  check(await input.isDisabled(), "remote disconnect blocks send while preserving unknown state");
-  check(await page.locator(".composer__btn--stop").count() === 0, "unknown remote state hides Stop");
-  await fs.mkdir("/tmp/deepzora-runtime-evidence", { recursive: true });
-  await page.screenshot({ path: "/tmp/deepzora-runtime-evidence/remote-unknown.png" });
-  await publish("executing", {}, true);
-  await page.locator(".composer__btn--stop").waitFor();
-  check(!(await input.isDisabled()), "remote reconnect restores authoritative execution controls");
-  await page.evaluate(async () => {
-    const __emitMockRemoteTab = window.__runtimeFixture.emit;
-    const tabId = window.__runtimeFixture.tab.id;
-    __emitMockRemoteTab(tabId, "event", { kind: "turn_started", turnId: "fixture-turn" });
-    __emitMockRemoteTab(tabId, "event", { kind: "text", text: "runtime missing completion fixture" });
-  });
-  await page.locator(".remote-surface").getByText("runtime missing completion fixture", { exact: true }).waitFor();
-  await publish("idle", {}, true);
-  await page.locator(".composer-run-strip").waitFor({ state: "hidden" });
-  check(await page.locator(".composer__btn--stop").count() === 0, "remote completion removes the run control");
-  check(await page.locator(".remote-surface").getByText("runtime missing completion fixture", { exact: true }).count() === 1,
-    "ancillary idle cannot erase output before transcript v2 confirms completion");
   await selectSession(page, "bench:geometry");
   await page.waitForFunction(() => document.querySelector(".transcript")?.textContent?.includes("Geometry contract fixture complete."));
-  check(await page.locator(".remote-surface").count() === 0, "local switch retains ownership after remote runtime frames");
   check(errors.length === 0, "runtime scenarios produce no browser errors: " + errors.join("; "));
 } catch (error) {
   console.error("Runtime fixture toasts:", await page.locator(".toast__text").allTextContents());

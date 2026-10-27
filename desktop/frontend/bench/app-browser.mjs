@@ -125,7 +125,7 @@ try {
   }));
   assert(afterSwitch.workspace && afterSwitch.workspaceTree && afterSwitch.preview && afterSwitch.selectedFile === 'README.md',
     'same-project session switching preserves actual WorkspacePanel, tree, preview DOM and selected file');
-  assert(afterSwitch.subscriptions === 6, `the six AppRuntimeEffects subscriptions remain singular (${afterSwitch.subscriptions})`);
+  assert(afterSwitch.subscriptions === 3, `the three AppRuntimeEffects subscriptions remain singular (${afterSwitch.subscriptions})`);
   assert(afterSwitch.operations === 0, "instrumented operation owners report zero active operations (not yet all App operations)");
 
   // Browser-mock local switches exercise the renderer latency contract. Use
@@ -157,8 +157,12 @@ try {
 
   await selectSession(page, "bench:geometry");
   await page.waitForFunction(() => document.querySelector('.transcript')?.textContent?.includes('Geometry contract fixture complete.'));
+  await page.waitForFunction(() => document.querySelector('textarea.composer__input:not([aria-hidden=true])')?.disabled === false);
   const sentText = 'App source-bound submission fixture';
   await composer.fill(sentText);
+  // Switching sessions re-runs runtime activation; Enter before the send gate
+  // opens is intentionally a no-op, so wait for the same gate the user sees.
+  await page.waitForFunction(() => document.querySelector('.composer__btn--send')?.disabled === false);
   await composer.press('Enter');
   await page.locator('[data-chat-kind="user"]').filter({ hasText: sentText }).waitFor();
   await page.locator('.composer__btn--stop').click();
