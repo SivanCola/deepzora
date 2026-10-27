@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
-	"os"
 	"runtime"
 
 	"deepzora/desktop/internal/hostrpc"
@@ -13,7 +12,7 @@ import (
 // hostShellBridge is present only when the Electron shell drives this
 // process. It replaces the in-process tray and the native quit hooks with
 // host/* requests and routes the shell's hostEvent notifications back into
-// the App entry points the Wails callbacks used to call.
+// the matching App entry points.
 type hostShellBridge struct {
 	app    *App
 	server *hostrpc.Server
@@ -117,8 +116,8 @@ func (b *hostShellBridge) updateTrayLocale(locale string) {
 	_ = b.server.Request(ctx, "host/tray.ensure", b.trayLabels(locale), nil)
 }
 
-// handleHostEvent maps shell-originated events onto the App entry points
-// that Wails callbacks (second instance, tray menu, app menu) used to call.
+// handleHostEvent maps shell-originated events (second instance, tray menu,
+// app menu) onto their App entry points.
 func (b *hostShellBridge) handleHostEvent(_ context.Context, name string, payload json.RawMessage) error {
 	a := b.app
 	switch name {
@@ -145,20 +144,6 @@ func (b *hostShellBridge) beforeClose(ctx context.Context, reason string) bool {
 	return b.app.beforeClose(ctx)
 }
 
-// startNativeShellSupport repairs the installed bundle's icon integration.
-// Under the Electron shell the service owns no native UI thread, so the shell
-// owns the window-level hooks; this runs only for a bare service launch.
-func (a *App) startNativeShellSupport() {
-	if a.hostMode() {
-		return
-	}
-	a.goSafe("repairDesktopIconIntegration", func() {
-		if err := repairDesktopIconIntegration(); err != nil {
-			slog.Debug("desktop: repair native icon integration", "err", err)
-		}
-	})
-}
-
 // relaunch asks the shell to restart the whole application; the shell then
 // drives beforeClose and shutdown, so the caller must not exit on its own.
 func (b *hostShellBridge) relaunch() error {
@@ -181,27 +166,23 @@ func (b *hostShellBridge) quit() error {
 	return b.server.Request(ctx, "host/app.quit", struct{}{}, nil)
 }
 
-// relaunchDesktop restarts Deepzora after an update. Under the shell the
-// restart is owned by Electron; the Wails build exits itself after handing
-// off to the thin launcher.
+// relaunchDesktop asks the Electron shell to restart (or only quit, when an
+// update helper owns the restart) after an update. The shell drives
+// beforeClose and shutdown, so the service never exits on its own here.
 func (a *App) relaunchDesktop(relaunchBinary bool) {
-	if a.hostMode() {
-		var err error
-		if relaunchBinary {
-			err = a.hostShell.relaunch()
-		} else {
-			err = a.hostShell.quit()
-		}
-		if err != nil {
-			slog.Warn("desktop host: relaunch request failed", "err", err)
-		}
+	if !a.hostMode() {
+		slog.Warn("desktop host: relaunch requested before the shell connected")
 		return
 	}
-	a.shutdown(a.ctx)
+	var err error
 	if relaunchBinary {
-		_ = relaunchThroughLauncher()
+		err = a.hostShell.relaunch()
+	} else {
+		err = a.hostShell.quit()
 	}
-	os.Exit(0)
+	if err != nil {
+		slog.Warn("desktop host: relaunch request failed", "err", err)
+	}
 }
 
 // relaunchAfterPortableUpdate restarts Deepzora once the platform installer
@@ -215,14 +196,4 @@ func (a *App) relaunchAfterPortableUpdate() {
 		return
 	}
 	a.relaunchDesktop(runtime.GOOS == "linux")
-}
-
-// updateHandoffOwnerPID is the process the platform update helper waits for
-// before it swaps the install: the Electron shell, which is the service's
-// parent and holds the bundle open, under the shell; this process under Wails.
-func (a *App) updateHandoffOwnerPID() int {
-	if a.hostMode() {
-		return os.Getppid()
-	}
-	return os.Getpid()
 }

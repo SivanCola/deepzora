@@ -15,7 +15,7 @@ import (
 
 // updater_app.go is the auto-updater's bound command surface — the App methods the
 // frontend calls — mirroring settings_app.go's "one file per concern" split. The
-// transport-free logic lives in updater.go; this file is the Wails glue: it streams
+// transport-free logic lives in updater.go; this file is the frontend glue: it streams
 // download progress as "updater:progress" events and routes macOS to the manual
 // download path unless the macOS build was Developer ID signed and notarized.
 
@@ -157,7 +157,7 @@ func (a *App) openDownloadPage(selectedChannel string) {
 }
 
 // downloadUpdateRequest downloads, verifies, and caches the exact version bound
-// to a request. Used only by ApplyUpdateRequest; not exposed as a Wails binding.
+// to a request. Used only by ApplyUpdateRequest; not exposed as a frontend binding.
 func (a *App) downloadUpdateRequest(selectedChannel, expectedVersion, requestID string) (*UpdateDownloadResult, error) {
 	requestID, selectedChannel, expectedVersion, err := validateUpdaterRequest(requestID, selectedChannel, expectedVersion)
 	if err != nil {
@@ -376,7 +376,7 @@ func (a *App) installPortableUpdate(requestID string, meta *cachedUpdate, data [
 	case "windows":
 		err = applyWindowsFile(meta.Path, meta.SHA256, meta.Version)
 	case "darwin":
-		err = applyMac(meta.Path, meta.Version, a.updateHandoffOwnerPID())
+		err = applyMac(meta.Path, meta.Version, updateOwnerPID())
 	case "linux":
 		err = applyLinuxVersioned(data, meta.Version)
 	default:
@@ -463,7 +463,7 @@ func (a *App) downloadVerify(requestID, selectedChannel, expectedVersion string,
 	return data, sig, nil
 }
 
-// reqCtx is the context for updater HTTP calls — the Wails context once startup has
+// reqCtx is the context for updater HTTP calls — the service context once startup has
 // run, else Background (CheckUpdate may, in theory, be reached before startup).
 func (a *App) reqCtx() context.Context {
 	if a.ctx != nil {

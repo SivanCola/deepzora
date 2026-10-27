@@ -149,7 +149,7 @@ func TestCrashReportFromStructuredDetail(t *testing.T) {
 		BuildCommit:     buildCommit,
 		Channel:         "canary",
 		Language:        "zh-CN",
-		View:            "wails://wails.localhost/index.html?token=" + secretHex,
+		View:            "app://deepzora/index.html?token=" + secretHex,
 		Breadcrumbs:     []crashBreadcrumb{{T: 1, Cat: "bridge", Msg: "turn SubmitToTab token=" + apiKey}},
 	}
 	detail, err := json.Marshal(payload)

@@ -85,7 +85,7 @@ func TestBootstrapShellExecutableBesideNeverReturnsItself(t *testing.T) {
 		t.Fatal(err)
 	}
 	exe := filepath.Join(dir, installlayout.ShellExecutableNameFor("darwin"))
-	if err := os.WriteFile(exe, []byte("wails desktop"), 0o755); err != nil {
+	if err := os.WriteFile(exe, []byte("desktop service"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if got, ok := shellExecutableBeside(exe, "darwin"); ok {

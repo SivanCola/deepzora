@@ -64,7 +64,7 @@ func loadWorkspace() string {
 // ensureWorkspace establishes a writable working directory at startup: the
 // remembered folder if it's still a directory, else the home directory when the
 // current cwd isn't writable (the Finder/`open` "/" case). A writable cwd with no
-// remembered folder (e.g. `wails dev` in the repo) is left untouched.
+// remembered folder (e.g. a development launch from the repo) is left untouched.
 func ensureWorkspace() {
 	if ws := loadWorkspace(); ws != "" {
 		if info, err := os.Stat(ws); err == nil && info.IsDir() && os.Chdir(ws) == nil {

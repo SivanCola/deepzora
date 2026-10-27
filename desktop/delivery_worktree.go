@@ -151,7 +151,7 @@ func (a *App) GetWorktreeStatus(tabID string) (worktree.MergeInspection, error) 
 
 // PrepareWorktreeMerge performs the same fresh inspection used immediately
 // before a merge request. The request is intentionally small so clients cannot
-// smuggle stale paths or identities across the Wails boundary.
+// smuggle stale paths or identities across the host boundary.
 func (a *App) PrepareWorktreeMerge(tabID string) (worktree.MergeInspection, error) {
 	return a.InspectWorktreeMerge(tabID)
 }

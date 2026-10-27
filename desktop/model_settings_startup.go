@@ -44,7 +44,7 @@ func clearTabStartupError(tab *WorkspaceTab) {
 	tab.modelApplication.startupRetry = false
 }
 
-func (a *App) recordTabStartupFailure(tab *WorkspaceTab, buildGeneration uint64, wailsCtx context.Context, err error) {
+func (a *App) recordTabStartupFailure(tab *WorkspaceTab, buildGeneration uint64, ctx context.Context, err error) {
 	a.mu.Lock()
 	if a.tabBuildSupersededLocked(tab, buildGeneration) {
 		a.mu.Unlock()
@@ -64,7 +64,7 @@ func (a *App) recordTabStartupFailure(tab *WorkspaceTab, buildGeneration uint64,
 		alreadyBlocked := rt != nil && rt.Phase == sessionRuntimeLeaseBlocked && rt.Issue != nil && rt.Issue.Code == "session_lease_held"
 		a.mu.RUnlock()
 		if alreadyBlocked {
-			a.emitReady(wailsCtx, tab.ID)
+			a.emitReady(ctx, tab.ID)
 			return
 		}
 		// Failed startup emits no agent events. Publish the lease-blocked meta
@@ -76,7 +76,7 @@ func (a *App) recordTabStartupFailure(tab *WorkspaceTab, buildGeneration uint64,
 			a.emitRuntimeEvent(tabMetaRefreshEventChannel, TabMetaRefreshEvent{TabID: tabID, Meta: a.MetaForTab(tabID)})
 		})
 	}
-	a.emitReady(wailsCtx, tab.ID)
+	a.emitReady(ctx, tab.ID)
 }
 
 func (a *App) rejectStaleStartupModelSettings(tab *WorkspaceTab, ctrl control.SessionAPI, generation uint64, ctx context.Context, abandon func()) bool {
@@ -95,8 +95,8 @@ func (a *App) rejectStaleStartupModelSettings(tab *WorkspaceTab, ctrl control.Se
 	return true
 }
 
-func (a *App) finishStartupPublication(tab *WorkspaceTab, ctrl control.SessionAPI, wailsCtx context.Context) {
-	a.emitReady(wailsCtx, tab.ID)
+func (a *App) finishStartupPublication(tab *WorkspaceTab, ctrl control.SessionAPI, ctx context.Context) {
+	a.emitReady(ctx, tab.ID)
 	if inbox, ok := ctrl.(interface{ NotifyInboxRuntimeReady() }); ok {
 		go inbox.NotifyInboxRuntimeReady()
 	}

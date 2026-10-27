@@ -93,7 +93,7 @@ func TestValidateAssetInstallLayout(t *testing.T) {
 	}
 }
 
-func TestUpdaterWailsMethodContracts(t *testing.T) {
+func TestUpdaterBindingMethodContracts(t *testing.T) {
 	appType := reflect.TypeFor[*App]()
 	tests := []struct {
 		name   string
@@ -107,7 +107,7 @@ func TestUpdaterWailsMethodContracts(t *testing.T) {
 	// Legacy Download/Install split bindings must stay deleted (v1.20+).
 	for _, removed := range []string{"DownloadUpdate", "InstallUpdate", "DownloadUpdateRequest", "InstallUpdateRequest", "ApplyUpdate"} {
 		if _, ok := appType.MethodByName(removed); ok {
-			t.Fatalf("App.%s must be removed from the Wails surface", removed)
+			t.Fatalf("App.%s must be removed from the binding surface", removed)
 		}
 	}
 	for _, tt := range tests {

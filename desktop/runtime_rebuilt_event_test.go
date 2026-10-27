@@ -15,7 +15,7 @@ import (
 func TestRuntimeRebuildsEmitRuntimeRebuiltForTab(t *testing.T) {
 	app, tab, _, _, _ := canonicalWorkspaceOpenFixture(t)
 	tab.sink.ctx = context.Background()
-	// emitReady calls the Wails runtime directly; the ready hook keeps the
+	// emitReady calls the event bridge directly; the ready hook keeps the
 	// workspace-reconcile path (which SetEffortForTab can take) off the real
 	// event bridge, which log.Fatals on a plain Background context.
 	app.readyHook = func() {}

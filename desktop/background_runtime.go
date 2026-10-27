@@ -19,7 +19,7 @@ type ActiveWorkView struct {
 }
 
 // JobCancelBatchView reports which requested jobs accepted cancellation. Both
-// slices are initialized so Wails never sends null to React.
+// slices are initialized so the host bridge never sends null to React.
 type JobCancelBatchView struct {
 	Cancelled  []string `json:"cancelled"`
 	NotRunning []string `json:"notRunning"`

@@ -52,7 +52,7 @@ func (a *App) setTabLastBuildResult(tab *WorkspaceTab, res *boot.BuildResult) {
 	tab.lastBuildResult = res
 }
 
-// RuntimeDoctorReport is the desktop/Wails view of extension runtime diagnostics.
+// RuntimeDoctorReport is the desktop view of extension runtime diagnostics.
 type RuntimeDoctorReport struct {
 	Text              string                  `json:"text"`
 	PublishedGen      uint64                  `json:"publishedGeneration"`
@@ -72,8 +72,8 @@ type RuntimeDoctorReport struct {
 func (a *App) RuntimeDoctor() RuntimeDoctorReport {
 	var res *boot.BuildResult
 	if a != nil {
-		// Snapshot the active tab and build result under the same lock: Wails can
-		// query diagnostics while another goroutine finishes a runtime rebuild.
+		// Snapshot the active tab and build result under the same lock: the
+		// frontend can query diagnostics while another goroutine finishes a runtime rebuild.
 		a.mu.RLock()
 		if tab := a.activeTabLocked(); tab != nil {
 			candidate := tab.lastBuildResult

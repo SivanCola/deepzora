@@ -40,5 +40,5 @@ export interface SettingsView {
   shadowedByPath?: string; // workspace deepzora.toml that outranks configPath, when one exists
   providerKinds: string[]; // provider implementations the kernel registered (for the kind picker)
   autoApproveTools: boolean;
-  conversationWidth?: string; // "standard" | "full"; absent from older Wails payloads
+  conversationWidth?: string; // "standard" | "full"; absent from older payloads
 }

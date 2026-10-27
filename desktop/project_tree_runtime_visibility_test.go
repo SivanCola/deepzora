@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func TestProjectTreeRuntimeSnapshotWailsArraysAreNonNil(t *testing.T) {
+func TestProjectTreeRuntimeSnapshotArraysAreNonNil(t *testing.T) {
 	snapshot := NewApp().GetProjectTreeRuntimeSnapshot()
 	raw, err := json.Marshal(snapshot)
 	if err != nil || snapshot.Topics == nil || !strings.Contains(string(raw), `"topics":[]`) {

@@ -11,7 +11,7 @@ import (
 	"deepzora/internal/sessioninbox"
 )
 
-func TestInboxWailsErrorsUseStableCodes(t *testing.T) {
+func TestInboxBindingErrorsUseStableCodes(t *testing.T) {
 	tests := []struct {
 		name string
 		err  error

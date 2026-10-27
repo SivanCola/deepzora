@@ -14,7 +14,7 @@ func (a *App) NewSession() error {
 }
 
 // NewSessionForTab snapshots and rotates the requested tab regardless of which
-// tab becomes active while the Wails call is in flight.
+// tab becomes active while the host call is in flight.
 func (a *App) NewSessionForTab(tabID string) error {
 	tab, ctrl := a.tabAndCtrlByID(tabID)
 	if a.tabIsReadOnly(tab) {

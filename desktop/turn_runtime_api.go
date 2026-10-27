@@ -10,7 +10,7 @@ import (
 	"deepzora/internal/event"
 )
 
-// TurnStartView is the synchronous admission receipt for the new Wails turn
+// TurnStartView is the synchronous admission receipt for the frontend turn
 // API. Events remain the streaming authority after admission.
 type TurnStartView struct {
 	TurnID      string                    `json:"turnId"`
@@ -106,7 +106,7 @@ func (a *App) StartTurnForTab(tabID, input, submissionID string) (TurnStartView,
 	}
 	// This is an admission receipt, not a potentially raced runtime snapshot.
 	// Ordered events carry every later transition, including a provider that
-	// completed before the Wails Promise was delivered.
+	// completed before the host call returned.
 	return TurnStartView{TurnID: turnID, Status: event.TurnQueued, Disposition: control.SubmitTurnStarted, RuntimeEpoch: epoch, SubmissionID: submissionID}, nil
 }
 

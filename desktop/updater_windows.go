@@ -48,7 +48,7 @@ func startWindowsVersionedUpdateHandoff(installerPath, installerSHA256, installD
 	defer releaseExecution()
 	err = retryWindowsUpdateHelperStart(func() error {
 		cmd := proc.Command(helperPath, windowsVersionedUpdateHandoffArgs(
-			windowsUpdateOwnerPID(), installerPath, installerSHA256, installDir, relaunchPath, targetVersion,
+			updateOwnerPID(), installerPath, installerSHA256, installDir, relaunchPath, targetVersion,
 		)...)
 		cmd.Env = instanceidentity.UpdateEnvironment(os.Environ(), config.DeepzoraHomeDir())
 		return cmd.Start()
