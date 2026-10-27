@@ -8,16 +8,14 @@ function showTerminal() {
   saveTerminalPanelOpen(true);
 }
 
-/** Commands and shortcuts share the same committed capability boundary. */
-export function useTerminalPanelCommands(input: { tabId?: string; enabled: boolean; shortcutsEnabled?: boolean }) {
+/** Terminal panel commands and their global shortcuts. */
+export function useTerminalPanelCommands(input: { tabId?: string; shortcutsEnabled?: boolean }) {
   const toggleTerminalPanel = useCommittedCommand(() => {
-    if (!input.enabled) return;
     const next = !useLayoutStore.getState().terminalPanelOpen;
     useLayoutStore.getState().setTerminalPanelOpen(next);
     saveTerminalPanelOpen(next);
   });
   const openTerminalForPath = useCommittedCommand((path = ".") => {
-    if (!input.enabled) return;
     showTerminal();
     if (input.tabId) void useTerminalStore.getState().createSession(input.tabId, path || ".", "default").catch(() => {});
   });

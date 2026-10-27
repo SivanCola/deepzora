@@ -275,8 +275,8 @@ eq(
   "new terminal sessions are not hard-coded to the default shell",
 );
 eq(
-  /onPointerEnter=\{terminalEnabled \? prefetchTerminal : undefined\}/.test(sessionActionsSource)
-    && /onFocus=\{terminalEnabled \? prefetchTerminal : undefined\}/.test(sessionActionsSource)
+  /onPointerEnter=\{prefetchTerminal\}/.test(sessionActionsSource)
+    && /onFocus=\{prefetchTerminal\}/.test(sessionActionsSource)
     && /void import\("\.\.\/components\/TerminalPanel"\)/.test(terminalLifecycleSource),
   true,
   "pointer and keyboard intent prefetch the terminal chunk before opening from the topic bar",

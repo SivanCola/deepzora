@@ -31,7 +31,7 @@ function state(phase: "idle" | "executing" | "finishing", revision: number): Run
 
 for (const phase of ["idle", "executing", "finishing"] as const) {
   const dom = installDom();
-  let posts = 0, direct = 0, steers = 0, queries = 0;
+  let posts = 0, direct = 0, queries = 0;
   const target: InboxTarget = { tabId: "tab-a", sessionPath: "session-a", generation: 7, selection: 3 };
   let key = "", confirmed = false;
   installBridgeApp({
@@ -47,7 +47,7 @@ for (const phase of ["idle", "executing", "finishing"] as const) {
     InboxSnapshot: async () => ({ revision: 1, paused: false, recovered: false, items: [], itemsCount: 0, bytes: 0, maxItems: 64, maxBytes: 1024 }),
   });
   runtimeStateStore.commit(state("finishing", 1));
-  let view = await renderComposer({ inboxSessionPath: "session-a", onSend: () => { direct++; }, onSteer: async () => { steers++; } });
+  let view = await renderComposer({ inboxSessionPath: "session-a", onSend: () => { direct++; } });
   await paste("original follow-up");
   await send();
   assert.equal(posts, 1);
@@ -56,7 +56,7 @@ for (const phase of ["idle", "executing", "finishing"] as const) {
   await send();
   assert.equal(queries, 1);
   assert.equal(posts, 1);
-  assert.equal(direct + steers, 0);
+  assert.equal(direct, 0);
   assert.ok(pendingFollowups.get(pendingSession));
 
   await view.rerender({ tabId: "tab-b", sessionKey: "session-b", inboxSessionPath: "session-b" });
@@ -64,7 +64,7 @@ for (const phase of ["idle", "executing", "finishing"] as const) {
   await view.rerender({ tabId: "tab-a", sessionKey: "session-a", inboxSessionPath: "session-a" });
   if (phase === "executing") {
     await act(async () => { view.root.unmount(); });
-    view = await renderComposer({ inboxSessionPath: "session-a", onSend: () => { direct++; }, onSteer: async () => { steers++; } });
+    view = await renderComposer({ inboxSessionPath: "session-a", onSend: () => { direct++; } });
     assert.equal(document.querySelector(".composer__btn--send")?.getAttribute("aria-label"), "Check send result");
     assert.match(document.querySelector('[role="status"]')?.textContent ?? "", /original follow-up/, "the original request survives remount");
   }
@@ -73,7 +73,7 @@ for (const phase of ["idle", "executing", "finishing"] as const) {
   await send();
   assert.equal(posts, 1);
   assert.equal(queries, 2);
-  assert.equal(direct + steers, 0);
+  assert.equal(direct, 0);
   assert.equal(pendingFollowups.get(pendingSession), undefined);
   assert.match((document.querySelector("textarea.composer__input:not([aria-hidden=true])") as HTMLTextAreaElement).value, /later draft edit/);
   assert.equal(document.querySelector(".composer-pending-receipt"), null, "completed receipt must not resurrect a queued row");

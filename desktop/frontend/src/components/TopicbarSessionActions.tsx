@@ -13,7 +13,6 @@ export interface TopicbarSessionActionsProps {
   getSessionMarkdown: () => string | Promise<string>;
   exportSession: (format: "markdown" | "json" | "pdf" | "image" | "diagnostic") => void;
   toggleTerminal: () => void;
-  terminalEnabled?: boolean;
   terminalOpen: boolean;
   prefetchTerminal?: () => void;
   openSessionSummary: () => void;
@@ -25,7 +24,7 @@ const actionClass = "topicbar__action-btn topicbar__action-btn--icon topicbar__a
 /** Keep session actions directly accessible; only export formats need a menu. */
 export function TopicbarSessionActions({
   sessionHasContent, getSessionMarkdown, exportSession,
-  toggleTerminal, terminalEnabled = true, terminalOpen, prefetchTerminal,
+  toggleTerminal, terminalOpen, prefetchTerminal,
   openSessionSummary, tasksOpen,
 }: TopicbarSessionActionsProps) {
   const exportRootRef = useRef<HTMLDivElement>(null);
@@ -92,9 +91,9 @@ export function TopicbarSessionActions({
       <Tooltip label={t("rightDock.terminal")}>
         <button
           className={actionClass} type="button" aria-label={t("rightDock.terminal")}
-          aria-pressed={terminalOpen} disabled={!terminalEnabled}
-          onPointerEnter={terminalEnabled ? prefetchTerminal : undefined}
-          onFocus={terminalEnabled ? prefetchTerminal : undefined}
+          aria-pressed={terminalOpen}
+          onPointerEnter={prefetchTerminal}
+          onFocus={prefetchTerminal}
           onClick={toggleTerminal}
         >
           <TerminalSquare size={14} />

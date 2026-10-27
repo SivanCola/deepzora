@@ -58,7 +58,7 @@ export function TopicbarActionsStack(props: {
     getSessionMarkdown: () => Promise<string>;
     exportSession: (format: SessionExportFormat) => Promise<void>;
   };
-  terminal: { toggle: () => void; enabled: boolean; open: boolean; prefetch: () => void };
+  terminal: { toggle: () => void; open: boolean; prefetch: () => void };
   tasksOpen: false | "session" | "all";
   setTasksOpen: (update: (open: false | "session" | "all") => false | "session" | "all") => void;
   onCloseTasks: () => void;
@@ -77,7 +77,7 @@ export function TopicbarActionsStack(props: {
           sessionHasContent: props.sessionHasContent,
           getSessionMarkdown: props.exportCommands.getSessionMarkdown,
           exportSession: (format) => void props.exportCommands.exportSession(format),
-          toggleTerminal: props.terminal.toggle, terminalEnabled: props.terminal.enabled,
+          toggleTerminal: props.terminal.toggle,
           terminalOpen: props.terminal.open, prefetchTerminal: props.terminal.prefetch,
           openSessionSummary: () => props.setTasksOpen((open) => open ? false : "session"), tasksOpen: Boolean(props.tasksOpen),
         }}

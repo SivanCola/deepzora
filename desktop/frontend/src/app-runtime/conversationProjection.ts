@@ -49,7 +49,6 @@ export function projectConversation({ local, activeTabId, backgroundRuntimes, co
   };
   return {
     runtime,
-    localToolsEnabled: true,
     composer: {
       ...timing,
       running: local.running,
@@ -60,11 +59,9 @@ export function projectConversation({ local, activeTabId, backgroundRuntimes, co
       modelLabel: modelLabel || connectingLabel,
       imageInputEnabled: local.meta?.imageInputEnabled !== false,
       imageUnderstandingEnabled: local.meta?.visionFallbackEnabled === true,
-      attachmentInputEnabled: true,
       pinnedFiles: local.meta?.pinnedFiles,
       turnId: local.activeTurnId,
       effort: local.effort,
-      localDurableGuidance: true,
       context: runtime.context, turnCost: runtime.turnCost, turnRateBand: runtime.turnRateBand,
       currency: runtime.sessionCurrency, cacheHitTokens: runtime.usage?.cacheHitTokens,
       cacheMissTokens: runtime.usage?.cacheMissTokens, balance: runtime.balance,
@@ -94,18 +91,16 @@ export function projectConversation({ local, activeTabId, backgroundRuntimes, co
 }
 
 export function projectConversationLayout(input: {
-  chatVisible: boolean; localToolsEnabled: boolean; dockMode: string;
-  dockRenderable: boolean; dockGridOpen: boolean; dockOverlay: boolean;
+  chatVisible: boolean; dockRenderable: boolean; dockGridOpen: boolean; dockOverlay: boolean;
   dockOpen: boolean; dockMaximized: boolean; terminalOpen: boolean;
 }) {
-  const localDockBlocked = !input.localToolsEnabled && (input.dockMode === "files" || input.dockMode === "changed");
-  const dockVisible = input.chatVisible && input.dockRenderable && !localDockBlocked;
+  const dockVisible = input.chatVisible && input.dockRenderable;
   return {
     dockVisible,
-    dockGridOpen: input.chatVisible && input.dockGridOpen && !localDockBlocked,
+    dockGridOpen: input.chatVisible && input.dockGridOpen,
     dockOverlay: dockVisible && input.dockOverlay,
     dockMaximized: input.chatVisible && input.dockOpen && input.dockMaximized,
-    terminalOpen: input.chatVisible && input.terminalOpen && input.localToolsEnabled,
+    terminalOpen: input.chatVisible && input.terminalOpen,
   };
 }
 

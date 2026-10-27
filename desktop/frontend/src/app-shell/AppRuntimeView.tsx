@@ -259,7 +259,7 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
               dismissSignal={shell.transientOverlayDismissSignal}
               sessionHasContent={session.sessionHasContent}
               exportCommands={session.sessionExportCommands}
-              terminal={{ toggle: session.terminalPanelCommands.toggleTerminalPanel, enabled: true, open: shell.terminalPanelOpen, prefetch: local.prefetchTerminalPanel }}
+              terminal={{ toggle: session.terminalPanelCommands.toggleTerminalPanel, open: shell.terminalPanelOpen, prefetch: local.prefetchTerminalPanel }}
               tasksOpen={local.tasksOpen}
               setTasksOpen={local.setTasksOpen}
               onCloseTasks={() => local.setTasksOpen(false)}
@@ -370,7 +370,6 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
                 rewindCommitting: session.sessionUndo.rewindCommitting,
                 messageActionPending: state.messageAction != null,
                 decisionActive: Boolean(decisionSurface),
-                runtimeTransitioning: false,
                 controllerReady: controllerReady && session.transcript.availability.kind === "ready",
                 submitDisabledReason: submitBlockReason(session.transcript.availability, t),
                 showContextWindowRing: false,

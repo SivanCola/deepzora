@@ -247,7 +247,6 @@ export type ComposerSurfaceInput = {
     rewindCommitting: boolean;
     messageActionPending: boolean;
     decisionActive: boolean;
-    runtimeTransitioning: boolean;
     controllerReady: boolean;
     showContextWindowRing: boolean;
     submitDisabledReason?: string;
@@ -256,7 +255,7 @@ export type ComposerSurfaceInput = {
   tab: { readOnly?: boolean; agentPreset?: string; agentPresetLocked?: boolean; session?: import("../lib/sessionRef").SessionRef | null; sessionPath?: string; workspaceRoot?: string; authentication?: ComposerProps["authentication"]; modelSettingsPending?: boolean } | undefined;
   tabId: string | undefined;
   profile: ReturnType<typeof useComposerProfileProjection>;
-  router: { handleSend: ComposerProps["onSend"]; handleSteer: ComposerProps["onSteer"] };
+  router: { handleSend: ComposerProps["onSend"] };
   modes: ReturnType<typeof useComposerModeActions>;
   goals: ReturnType<typeof useComposerGoalCommands>;
   goalActions: { pauseGoal: ComposerProps["onPauseGoal"]; resumeGoal: ComposerProps["onResumeGoal"]; setEffort: ComposerProps["onSetEffort"] };
@@ -298,7 +297,6 @@ export function buildComposerSurface(input: ComposerSurfaceInput): DecisionFoote
       workspaceRoot: input.tab?.workspaceRoot,
       onSend: router.handleSend,
       onInvocationMetadataChange: input.onInvocationMetadataChange,
-      onSteer: router.handleSteer,
       onCancel: control.handleCancelActive,
       onCycleMode: input.onCycleMode,
       onSetMode: modes.applyMode,
@@ -313,7 +311,7 @@ export function buildComposerSurface(input: ComposerSurfaceInput): DecisionFoote
       insertRequest: inserts.composerInsertRequest,
       selectedTextRequest: inserts.selectedTextRequest,
       readOnly: Boolean(input.tab?.readOnly),
-      disabled: view.runtimeTransitioning || view.rewindCommitting || view.messageActionPending || view.decisionActive,
+      disabled: view.rewindCommitting || view.messageActionPending || view.decisionActive,
       submitDisabled: !modelSettingsAllowSubmission(view.controllerReady, input.tab),
       submitDisabledReason: view.submitDisabledReason,
       authentication: input.tab?.authentication,

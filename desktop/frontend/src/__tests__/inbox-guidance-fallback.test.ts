@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { enqueueComposerGuidance, enqueueGuidanceForTarget, enqueueTrackedGuidance } from "../lib/inboxGuidanceSubmit";
+import { enqueueComposerGuidance } from "../lib/inboxGuidanceSubmit";
 import { resolveActiveTurnId, steerInboxItemForActiveTurn } from "../lib/inboxSubmit";
 import { followupNotSubmitted, type PendingFollowup } from "../lib/pendingFollowup";
 import type { AppBindings } from "../lib/bridge";
@@ -22,13 +22,6 @@ assert.equal(reads, 0);
 assert.deepEqual(await enqueueComposerGuidance(bindings(), request, false, "observed"), receipt);
 assert.deepEqual(writes.pop(), [target, { kind: "enqueue_steer", text: "guide", display: "guide", turnId: "observed", idempotencyKey: "one-request" }]);
 assert.equal(reads, 0, "known turn must not be replaced by a successor query");
-await enqueueGuidanceForTarget(bindings(), target, "tab", "captured guidance", "observed");
-const [capturedTarget, capturedCommand] = writes.pop() as [unknown, { text: string; display: string; turnId: string; idempotencyKey: string }];
-assert.deepEqual(capturedTarget, target);
-assert.equal(capturedCommand.text, "captured guidance");
-assert.equal(capturedCommand.display, "captured guidance");
-assert.equal(capturedCommand.turnId, "observed");
-assert.match(capturedCommand.idempotencyKey, /^guidance-/);
 
 for (const ListTabs of [async () => [], async () => { throw new Error("discovery unavailable"); }]) {
   writes = [];
@@ -56,19 +49,4 @@ assert.equal(writes.length, 0);
 let steered: string[] = [];
 await steerInboxItemForActiveTurn({ ListTabs: async () => { throw new Error("must not refresh"); }, SteerInboxItemForTurn: async (...args: string[]) => { steered = args; return receipt; } } as unknown as AppBindings, "tab", "item", "observed");
 assert.deepEqual(steered, ["tab", "observed", "item"]);
-let posts = 0;
-const lostReply = bindings({
-  InboxQueueForTarget: async () => { posts++; throw new Error("accepted reply lost"); },
-  LookupInboxFollowupForTarget: async (captured, key) => {
-    assert.deepEqual(captured, target);
-    assert.equal(key, request.key);
-    return receipt;
-  },
-});
-await assert.rejects(enqueueTrackedGuidance(lostReply, request, "observed"), /reply lost/);
-assert.deepEqual(await enqueueTrackedGuidance(lostReply, { ...request, key: "retry-key" }, "successor"), receipt);
-assert.equal(posts, 1, "retry confirms the original key without another POST");
-await assert.rejects(enqueueTrackedGuidance(lostReply, request, "observed"), /reply lost/);
-await assert.rejects(enqueueTrackedGuidance(lostReply, { ...request, key: "different-key", submit: "different instruction" }, "observed"), /reply lost/);
-assert.equal(posts, 3, "a different draft needs its own submission, not an old receipt");
-console.log("inbox guidance target, turn, fallback and receipt regressions passed");
+console.log("inbox guidance turn, fallback and receipt regressions passed");

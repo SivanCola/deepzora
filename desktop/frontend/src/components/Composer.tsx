@@ -453,14 +453,11 @@ export function Composer({
   commandCatalog,
   imageInputEnabled = true,
   imageUnderstandingEnabled = false,
-  attachmentInputEnabled = true,
   tabId, turnId,
   agentPreset,
   agentPresetLocked,
   effort,
   onSend,
-  onSteer,
-  localDurableGuidance = true,
   onCancel,
   onCycleMode,
   onSetMode,
@@ -547,8 +544,6 @@ export function Composer({
   imageInputEnabled?: boolean;
   /** True when text-only image turns are preprocessed by a configured vision model. */
   imageUnderstandingEnabled?: boolean;
-  /** False when the surface cannot accept local file attachments. */
-  attachmentInputEnabled?: boolean;
   tabId?: string; turnId?: string;
   agentPreset?: string;
   agentPresetLocked?: boolean;
@@ -558,9 +553,6 @@ export function Composer({
   onReleaseSubmit?: (capture: unknown) => void;
   onPrepareSubmit?: (capture: unknown) => Promise<void>;
   onInvocationMetadataChange?: (metadata: Record<string, { kind: "skill" | "subagent"; color?: string }>) => void;
-  onSteer?: (submitText: string, tabId?: string) => void | Promise<void>;
-  /** False when the owning surface provides its own durable inbox. */
-  localDurableGuidance?: boolean;
   // Returns the un-sent text plus the exact durable queue IDs the backend
   // confirmed were withdrawn and are therefore safe to restore.
   onCancel: (queuedItemIDs?: string[]) => Promise<CancelOutcome>;
@@ -1759,7 +1751,6 @@ export function Composer({
     }
     const ref = parseWorkspaceReference(insertRequest.text);
     if (ref) {
-      if (!attachmentInputEnabled) return;
       addWorkspaceReference(ref);
       return;
     }
@@ -2017,7 +2008,6 @@ export function Composer({
     const trimmedDraft = typedGoalDraft ?? rawDraft;
     const trimmedText = trimmedDraft.text;
     if (draftHasPendingPaste(submitDraftKey)) return;
-    if (!attachmentInputEnabled && (attachmentsRef.current.length > 0 || workspaceRefsRef.current.length > 0)) return;
     if (!imageInputEnabled && !imageUnderstandingEnabled && hasImageAttachments(attachmentsRef.current)) {
       warnImageInputFallback();
     }
@@ -2121,15 +2111,6 @@ export function Composer({
         const guidanceText = displayText.trim() || (structured?.display.trim() ?? "");
         const guidanceSubmitText = submitText.trim();
         if (guidanceText) {
-          if (!queueOnly && !localDurableGuidance && !target && onSteer) {
-            try {
-              await onSteer(guidanceSubmitText, submitTabId);
-              clearSubmittedDraft(submitDraftKey);
-            } catch (error) {
-              showToast(formatInboxError(error, locale), "warn");
-            }
-            return;
-          }
           // Durable follow-up: only clear the composer after a durable receipt.
           const receiptTracker = guidanceReceiptTrackerRef.current;
           receiptTracker?.start(submitDraftKey);
@@ -2244,7 +2225,6 @@ export function Composer({
 
 	const attachImageFiles = async (files: File[], sourceDraftKey: string) => {
 		const owner = persistentTargetsByDraftRef.current[sourceDraftKey];
-		if (!attachmentInputEnabled) return;
 		const sourceBridgeTarget = bridgeTargetsByDraftRef.current[sourceDraftKey] ?? bridgeTarget;
 		const images = files.filter((f) => f.type.startsWith("image/"));
 		if (images.length === 0) return;
@@ -2280,7 +2260,6 @@ export function Composer({
   // Ordinary files use native path references or a raw streaming upload.
   const attachOtherFiles = async (files: File[], sourceDraftKey: string) => {
     const owner = persistentTargetsByDraftRef.current[sourceDraftKey];
-    if (!attachmentInputEnabled) return;
 		const sourceBridgeTarget = bridgeTargetsByDraftRef.current[sourceDraftKey] ?? bridgeTarget;
 		const others = files.filter((f) => !f.type.startsWith("image/"));
 		if (others.length === 0) return;
@@ -2314,7 +2293,6 @@ export function Composer({
 	};
 
   const attachFiles = (files: File[]) => {
-    if (!attachmentInputEnabled) return;
     const sourceDraftKey = activeDraftKeyRef.current;
 		const target = persistentTargetsByDraftRef.current[sourceDraftKey];
 		if (target?.canEdit && !target.canEdit(target.draftId, target.generation)) return;
@@ -2332,7 +2310,6 @@ export function Composer({
   const attachNativeClipboardImage = (notifyOnError: boolean, sourceDraftKey: string, owner = persistentTargetsByDraftRef.current[sourceDraftKey]) => {
 		const sourceBridgeTarget = bridgeTargetsByDraftRef.current[sourceDraftKey] ?? bridgeTarget;
 		const task = (async () => {
-			if (!attachmentInputEnabled) return;
 			if (owner?.isCurrent && !owner.isCurrent(owner.draftId, owner.generation)) return;
 			const attachmentSubmit = await loadAttachmentSubmit();
 			const target = await attachmentSubmit.captureAttachmentTarget(app, sourceBridgeTarget, ["SaveClipboardImageForTarget", "AttachmentDataURLForTarget"]);
@@ -2372,7 +2349,6 @@ export function Composer({
 		const sourceBridgeTarget = bridgeTargetsByDraftRef.current[sourceDraftKey] ?? bridgeTarget;
 		const task = (async () => {
 			setDragOver(false);
-			if (!attachmentInputEnabled) return;
 			const attachmentSubmit = await loadAttachmentSubmit();
 			const target = await attachmentSubmit.captureAttachmentTarget(app, sourceBridgeTarget, ["AttachDroppedForTarget"]);
 			try {
@@ -2407,9 +2383,8 @@ export function Composer({
   };
 
   useEffect(() => {
-    if (!attachmentInputEnabled) return;
     return onFilesDropped((paths) => void attachDroppedPaths(paths, activeDraftKeyRef.current));
-  }, [attachmentInputEnabled, bridgeTargetKey]);
+  }, [bridgeTargetKey]);
 
   const onPaste = (e: ClipboardEvent<HTMLTextAreaElement | HTMLDivElement>) => {
     clearNativeClipboardPasteTimer();
@@ -2418,7 +2393,7 @@ export function Composer({
     const files = clipboardFiles(e.clipboardData);
     if (files.length > 0) {
       e.preventDefault();
-      if (attachmentInputEnabled) attachFiles(files);
+      attachFiles(files);
       return;
     }
 
@@ -2426,7 +2401,7 @@ export function Composer({
     const hasImageHint = clipboardHasImageHint(e.clipboardData);
     if (hasImageHint || pasted === "") {
       e.preventDefault();
-      if (attachmentInputEnabled) void attachNativeClipboardImage(hasImageHint, activeDraftKeyRef.current);
+      void attachNativeClipboardImage(hasImageHint, activeDraftKeyRef.current);
       return;
     }
 
@@ -2716,7 +2691,7 @@ export function Composer({
     try {
       const items = await navigator.clipboard.read();
       if (owner?.isCurrent && !owner.isCurrent(owner.draftId, owner.generation)) return;
-      if (attachmentInputEnabled && items.some((item) => item.types.some((t) => t.startsWith("image/")))) {
+      if (items.some((item) => item.types.some((t) => t.startsWith("image/")))) {
         void attachNativeClipboardImage(true, sourceDraftKey);
         return;
       }
@@ -2741,7 +2716,7 @@ export function Composer({
         if (sourceDraftKey === activeDraftKeyRef.current) {
           focusInputRange(selection.from, selection.to, selection.afterInvocationId);
         }
-        if (attachmentInputEnabled) void attachNativeClipboardImage(false, sourceDraftKey);
+        void attachNativeClipboardImage(false, sourceDraftKey);
         return;
       }
       insertPastedText(
@@ -2801,11 +2776,6 @@ export function Composer({
   const onFileDropCapture = (e: DragEvent<HTMLDivElement>) => {
     if (hasWorkspaceReferenceDrag(e.dataTransfer) || !hasFileDrag(e.dataTransfer)) return;
     e.preventDefault();
-    if (!attachmentInputEnabled) {
-      stopNativeFileDrop(e);
-      setDragOver(false);
-      return;
-    }
     if (!hasPathlessFileDrop(e.dataTransfer)) return;
     const files = Array.from(e.dataTransfer.files);
     if (files.length === 0) return;
@@ -2819,7 +2789,6 @@ export function Composer({
     if (droppedWorkspaceRef) {
       e.preventDefault();
       setDragOver(false);
-      if (!attachmentInputEnabled) return;
       addWorkspaceReference(droppedWorkspaceRef);
       return;
     }
@@ -2835,8 +2804,8 @@ export function Composer({
   const onDragOver = (e: DragEvent<HTMLDivElement>) => {
     if (!hasWorkspaceReferenceDrag(e.dataTransfer) && !hasFileDrag(e.dataTransfer)) return;
     e.preventDefault(); // required for the drop event to fire
-    e.dataTransfer.dropEffect = attachmentInputEnabled ? "copy" : "none";
-    setDragOver(attachmentInputEnabled);
+    e.dataTransfer.dropEffect = "copy";
+    setDragOver(true);
   };
 
   const onDragLeave = () => setDragOver(false);
@@ -3274,7 +3243,6 @@ export function Composer({
 
   const chooseAttachmentFiles = () => {
     setContentMenuOpen(false);
-    if (!attachmentInputEnabled) return;
     fileInputRef.current?.click();
   };
 
@@ -3406,7 +3374,7 @@ export function Composer({
     if (e.key === "Enter" && composing) return;
     if (fnKey) return;
 
-    if (attachmentInputEnabled && isPasteShortcut(e) && !composing) {
+    if (isPasteShortcut(e) && !composing) {
       clearNativeClipboardPasteTimer();
       const sourceDraftKey = activeDraftKeyRef.current;
       const owner = persistentTargetsByDraftRef.current[sourceDraftKey];
@@ -3954,7 +3922,7 @@ export function Composer({
         decisionPending ? "composer-wrap--decision-pending" : "",
         heroMode ? "composer-wrap--hero" : "",
       ].filter(Boolean).join(" ")}
-      data-native-drop-target={attachmentInputEnabled ? "" : undefined}
+      data-native-drop-target=""
       onDropCapture={onFileDropCapture}
     >
       <ComposerModelApplicationRecovery tabId={tabId} local={savedInput} remote={remoteApplication} setRemote={setRemoteApplication} draftKey={draftKey} text={followupDraftFingerprint(draftKey)} running={running} onUseApplied={choice=>trackPersistentTask(activeDraftKeyRef.current,performSubmit(false,choice))}/>
@@ -3964,7 +3932,6 @@ export function Composer({
         className="composer-content-file-input"
         type="file"
         multiple
-        disabled={!attachmentInputEnabled}
         tabIndex={-1}
         aria-hidden="true"
         onChange={(event) => {
@@ -3982,7 +3949,6 @@ export function Composer({
         align="start"
       >
         <ComposerContentMenuActions
-          attachmentInputEnabled={attachmentInputEnabled}
           textPresent={text.trim().length > 0}
           onChooseAttachment={chooseAttachmentFiles}
           onInsertTrigger={insertContentTrigger}
