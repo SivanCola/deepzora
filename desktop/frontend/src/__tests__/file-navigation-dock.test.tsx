@@ -40,7 +40,7 @@ const paint = (visible: boolean) => act(async () => root.render(
 const record = () => fileNavigationOwner().getSnapshot(fileNavigationKey({ sessionTabId, dockTabId }));
 const paths = () => record()?.entries.map((entry) => entry.resource.path) ?? [];
 const open = async (path: string, action: "preview" | "source" | "reveal-tree" = "preview") => {
-  await act(async () => performResourceAction({ hostId: "local", tabId: sessionTabId, path, source: "presented", toolCallId: "call" }, action));
+  await act(async () => performResourceAction({ tabId: sessionTabId, path, source: "presented", toolCallId: "call" }, action));
   await paint(true);
 };
 await paint(true);
@@ -94,7 +94,7 @@ assert.equal(record(), null, "a closed dock tab keeps no record");
 await act(async () => useActivityBarStore.getState().reopenTab(dockTabId));
 assert.equal(useActivityBarStore.getState().activeTabId, dockTabId, "the reopened tab reuses its id");
 await paint(true);
-await act(async () => performResourceAction({ hostId: "local", tabId: "navigation-session", path: "h.txt", source: "presented", toolCallId: "call" }, "preview"));
+await act(async () => performResourceAction({ tabId: "navigation-session", path: "h.txt", source: "presented", toolCallId: "call" }, "preview"));
 await paint(true);
 const reopened = record()!;
 assert(reopened.generation > closedGeneration, "a reopened dock tab starts a new lifecycle generation");

@@ -1,7 +1,7 @@
 # Dock 文件导航
 
 右侧 Dock 如何打开一个文件、结果归谁所有，以及为什么一次点击不再引发渲染
-循环。改动 `WorkspaceDockRegion`、`WorkspacePanel`、`RemotePanel` 或
+循环。改动 `WorkspaceDockRegion`、`WorkspacePanel` 或
 `lib/fileNavigation*` 之前请先读本文。
 
 ## 契约
@@ -56,7 +56,7 @@
 | 发往其他 Dock 的命令 | 无影响：面板之间不互相取消 |
 | Dock 标签关闭或移出当前工作区 | `retain` 删除记录并中止其生命周期 |
 | 同一项目内切换会话 | `bindScope` 保留条目与选择，并把访问上下文替换为当前会话的 workspace 权限 |
-| 项目或远程主机资源空间变化 | `bindScope` 重建记录：条目清空、代数递增、旧生命周期中止 |
+| 项目资源空间变化 | `bindScope` 重建记录：条目清空、代数递增、旧生命周期中止 |
 | Dock 折叠（`workspacePanelOpen` 为 false） | 无影响：展开时正是靠该记录恢复 |
 | 运行实例卸载 | `dispose` 中止全部记录与一次性操作 |
 | 关闭后复用同一标签 ID | 使用新的生命周期代数；记忆中的路径仅以 workspace 访问权限恢复 |
@@ -77,10 +77,9 @@ provider 请求字节，对提示缓存无影响。
 | 导航实例 | `file-navigation-owner.test.ts` |
 | 命令顺序与取消 | `file-navigation-races.test.ts` |
 | 验证回答引用的读取与源码切换 | `workspace-reference-reader.test.tsx` |
-| 真实 Dock 链路（本地与远程） | `dock-file-navigation.test.tsx` |
+| 真实 Dock 链路 | `dock-file-navigation.test.tsx` |
 | 预览标签、上限、源码模式、定位、代数 | `file-navigation-dock.test.tsx` |
 | 渲染循环缺陷、StrictMode、重渲染、重挂载 | `file-navigation-lifecycle.test.tsx` |
-| 远程读取、保存隔离、断连 | `remote-file-navigation-races.test.tsx` |
 | Dock 请求投递 | `dock-navigation.test.ts`、`dock-view-requests.test.tsx` |
 | 真实 DOM 与 Electron | `bench/dock-file-navigation.mjs`（`test:app-browser`、`test:dock-electron`） |
 | 回答引用点击进入运行实例 Owner | `bench/chat-file-reference.mjs`（`test:chat-file-browser`） |

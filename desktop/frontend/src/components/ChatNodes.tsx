@@ -71,7 +71,7 @@ export type ChatActions = {
   openTurnChanges?: (summary: WireCompletionSummary, initialPath?: string) => void;
 };
 const ChatForkContext = createContext<ChatForkAction | undefined>(undefined);
-type SeatProps = { source: ChatSource; nodeKey: string; loader: ChatContentLoader; scroll: ChatScrollController; actions: ChatActions; tabId?: string; hostId?: string };
+type SeatProps = { source: ChatSource; nodeKey: string; loader: ChatContentLoader; scroll: ChatScrollController; actions: ChatActions; tabId?: string };
 
 export const ChatNodeList = memo(function ChatNodeList(props: Omit<SeatProps, "nodeKey"> & { mounts: ChatMountedOrder }) {
   const { openDetails, recover, openTurnChanges, fork } = props.actions;
@@ -110,10 +110,10 @@ export const ChatNodeList = memo(function ChatNodeList(props: Omit<SeatProps, "n
     return () => cancelAnimationFrame(frame);
   }, [order]);
   return <ChatForkContext.Provider value={fork}>{rendered.map(key => <ChatNodeSeat key={key} source={props.source} loader={props.loader} scroll={props.scroll}
-    actions={actions} tabId={props.tabId} hostId={props.hostId} nodeKey={key} />)}</ChatForkContext.Provider>;
+    actions={actions} tabId={props.tabId} nodeKey={key} />)}</ChatForkContext.Provider>;
 });
 
-const ChatNodeSeat = memo(function ChatNodeSeat({ source, nodeKey, loader, scroll, actions, tabId, hostId }: SeatProps) {
+const ChatNodeSeat = memo(function ChatNodeSeat({ source, nodeKey, loader, scroll, actions, tabId }: SeatProps) {
   const node = useChatNode(source, nodeKey);
   const visibility = useProcessVisibility(source, node);
   const t = useT();
@@ -121,7 +121,7 @@ const ChatNodeSeat = memo(function ChatNodeSeat({ source, nodeKey, loader, scrol
   let body;
   switch (node.kind) {
     case "user": body = <ChatUser node={node} loader={loader} />; break;
-    case "assistant": body = node.item.text || node.item.searchSources?.length || node.item.memoryCitations?.length || loader.needsFullContent(node.item, "content") ? <ChatAnswer node={node} loader={loader} source={source} tabId={tabId} hostId={hostId} /> : null; break;
+    case "assistant": body = node.item.text || node.item.searchSources?.length || node.item.memoryCitations?.length || loader.needsFullContent(node.item, "content") ? <ChatAnswer node={node} loader={loader} source={source} tabId={tabId} /> : null; break;
     case "reasoning": body = node.item.reasoning || loader.needsFullContent(node.item, "reasoning") ? <ChatReasoning node={node} loader={loader} source={source} scroll={scroll} /> : null; break;
     case "process": body = <TurnProcessNodeView node={node} onToggle={() => { scroll.beforeChange(); source.toggleProcess(node.turnKey); }} />; break;
     case "tool": body = <ChatTool node={node} loader={loader} actions={actions} scroll={scroll} />; break;
@@ -130,7 +130,7 @@ const ChatNodeSeat = memo(function ChatNodeSeat({ source, nodeKey, loader, scrol
     case "compaction": body = <ChatCompaction node={node} loader={loader} />; break;
     case "extension": body = node.item.card.actions?.length ? <ExtensionCard item={node.item} tabId={tabId} /> :
       <ChatDisclosure label={node.item.card.title || node.item.pluginId}><ExtensionCard item={node.item} tabId={tabId} /></ChatDisclosure>; break;
-    case "tail": body = <ChatTurnTail node={node} source={source} actions={actions} loader={loader} tabId={tabId} hostId={hostId} />; break;
+    case "tail": body = <ChatTurnTail node={node} source={source} actions={actions} loader={loader} tabId={tabId} />; break;
   }
   return <div className="chat-node" data-chat-anchor-key={node.key} data-chat-turn={node.turnKey} data-chat-kind={node.kind}
     data-turn-process-answer={visibility === "answer" || undefined}>{body}</div>;
@@ -217,7 +217,7 @@ function ChatUser({ node, loader }: { node: Extract<ChatNode, { kind: "user" }>;
     {node.item.submissionState === "unknown" && !node.item.messageId && <span role="status">{t("chat.submissionUnknown")}</span>}
     <BodyLoadError item={node.item} loader={loader} /></>;
 }
-function ChatAnswer({ node, loader, source, tabId, hostId }: { node: Extract<ChatNode, { kind: "assistant" }>; loader: ChatContentLoader; source: ChatSource; tabId?: string; hostId?: string }) {
+function ChatAnswer({ node, loader, source, tabId }: { node: Extract<ChatNode, { kind: "assistant" }>; loader: ChatContentLoader; source: ChatSource; tabId?: string }) {
   const tail = useChatNode(source, `${node.turnKey}:tail`);
   const presentedFiles = tail?.kind === "tail" ? tail.presentedFiles : [];
   const modifiedFiles = tail?.kind === "tail" ? tail.modifiedFiles : [];
@@ -226,7 +226,7 @@ function ChatAnswer({ node, loader, source, tabId, hostId }: { node: Extract<Cha
   // worth asking about again.
   const factsVersion = presentedFiles.length + modifiedFiles.length;
   return <><AssistantMessage item={node.item} presentedFiles={presentedFiles} modifiedFiles={modifiedFiles}
-    turnKey={node.turnKey} factsVersion={factsVersion} tabId={tabId} hostId={hostId} /><BodyLoadError item={node.item} loader={loader} /></>;
+    turnKey={node.turnKey} factsVersion={factsVersion} tabId={tabId} /><BodyLoadError item={node.item} loader={loader} /></>;
 }
 
 function ChatReasoning({ node, loader, source, scroll }: { node: Extract<ChatNode, { kind: "reasoning" }>; loader: ChatContentLoader; source: ChatSource; scroll: ChatScrollController }) {
@@ -265,7 +265,7 @@ function ChatReasoning({ node, loader, source, scroll }: { node: Extract<ChatNod
   </div></ReasoningRow></div>;
 }
 
-function ChatTurnTail({ node, source, actions, loader, tabId, hostId }: { node: Extract<ChatNode, { kind: "tail" }>; source: ChatSource; actions: ChatActions; loader: ChatContentLoader; tabId?: string; hostId?: string }) {
+function ChatTurnTail({ node, source, actions, loader, tabId }: { node: Extract<ChatNode, { kind: "tail" }>; source: ChatSource; actions: ChatActions; loader: ChatContentLoader; tabId?: string }) {
   const answer = useChatNode(source, node.answerKey ?? "");
   const fork = useContext(ChatForkContext);
   const t = useT();
@@ -279,11 +279,11 @@ function ChatTurnTail({ node, source, actions, loader, tabId, hostId }: { node: 
   const create = fork?.create;
   return <div className="chat-turn-tail">
     {(node.modifiedFiles.length > 0 || hasRecordedChanges) && <Suspense fallback={null}>
-      <ModifiedFiles files={node.modifiedFiles} summary={node.completionSummary} tabId={tabId} hostId={hostId}
+      <ModifiedFiles files={node.modifiedFiles} summary={node.completionSummary} tabId={tabId}
         onOpenReview={actions.openTurnChanges} />
     </Suspense>}
     {node.presentedFiles.length > 0 && <Suspense fallback={null}>
-      <PresentedFiles files={node.presentedFiles} tabId={tabId} hostId={hostId} />
+      <PresentedFiles files={node.presentedFiles} tabId={tabId} />
     </Suspense>}
     {hasAnswer && <div className="chat-actions" data-actions-reveal={node.latest ? "always" : "hover"}><CopyButton getText={async () => {
     const text = answer.item.streaming ? answer.item.text : await loader.load(answer.item, "content");

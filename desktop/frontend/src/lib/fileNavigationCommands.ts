@@ -26,8 +26,8 @@ const asError = (reason: unknown): Error => (reason instanceof Error ? reason : 
 const isNavigation = (action: FileAction): action is FileNavigationParams["action"] =>
   action === "preview" || action === "source" || action === "reveal-tree";
 
-export const isHTMLResource = (ref: Pick<FileResourceRef, "hostId" | "path">): boolean =>
-  ref.hostId === "local" && (pathExtension(ref.path) === "html" || pathExtension(ref.path) === "htm");
+export const isHTMLResource = (ref: Pick<FileResourceRef, "path">): boolean =>
+  pathExtension(ref.path) === "html" || pathExtension(ref.path) === "htm";
 
 let previewOperationSequence = 0;
 function previewOperationID(ref: FileResourceRef): string {
@@ -88,9 +88,6 @@ async function releaseBrowserPreview(url: string): Promise<void> {
 }
 
 async function openBrowserPreview(ref: FileResourceRef, userInitiated = false): Promise<FileNavigationOutcome> {
-  if (ref.hostId !== "local") {
-    return { status: "failed", error: new Error("Remote file browser preview is unavailable; save a copy to this device first") };
-  }
   const operation = fileNavigationOwner().beginOperation({
     sessionTabId: ref.tabId,
     dockTabId: revealBrowserDock(),
@@ -166,7 +163,6 @@ export function refreshBrowserResource(ref: FileResourceRef): Promise<FileNaviga
 
 /** A direct-action receipt; dock navigation resolves identity before storing it. */
 const resourceOf = (ref: FileResourceRef): ResolvedFileResource => ({
-  hostId: ref.hostId,
   path: ref.path,
   identityPath: ref.path.replace(/\\/g, "/"),
   requestedPath: ref.path,
@@ -179,7 +175,7 @@ const resourceOf = (ref: FileResourceRef): ResolvedFileResource => ({
  */
 export async function performResourceAction(ref: FileResourceRef, action: FileAction): Promise<FileNavigationOutcome> {
   if (isNavigation(action)) {
-    // The remote tree resolves a workspace path before it can reveal it, so the
+    // A workspace path is resolved before it can be revealed, so the
     // resolution that guards this command lives in the owner's open command.
     return Promise.resolve(fileNavigationOwner().open({ ref, params: { action, view: "files" } }));
   }
@@ -188,7 +184,6 @@ export async function performResourceAction(ref: FileResourceRef, action: FileAc
       case "browser":
         return openBrowserPreview(ref);
       case "open-native":
-        if (ref.hostId !== "local") return { status: "failed", error: new Error("This remote host does not expose a desktop opener") };
         if (ref.source === "reference") await app.OpenReferencePathForTab(ref.tabId, ref.path);
         else if (ref.source === "presented") await app.OpenPresentedPathForTab(ref.tabId, ref.toolCallId, ref.path);
         else await app.OpenWorkspacePathForTab(ref.tabId, ref.path);

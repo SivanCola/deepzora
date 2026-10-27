@@ -45,7 +45,7 @@ export type FileNavigationIntent = Readonly<{
 
 /**
  * What a dock currently shows, in two parts. `resource` names the space the
- * paths belong to (a project, a remote host): another one replaces the record.
+ * paths belong to (a project): another one replaces the record.
  * `session` names the credentials the space is read with (a topic, a session
  * generation): another one keeps what is on screen but drops the access
  * contexts captured under it.
@@ -89,7 +89,6 @@ export type FileNavigationPorts = {
 export type FileNavigationRestore = Readonly<{
   paths: readonly string[];
   selectedPath: string | null;
-  hostId: string;
 }>;
 
 /** A one-shot operation in a dock instance, e.g. creating a browser preview. */
@@ -105,12 +104,10 @@ type Record = {
   /** Lifetime of this dock instance's record; a reset aborts it. */
   lifetime: AbortController;
   /** Open command still resolving; a newer one supersedes it. */
-  pending: { controller: AbortController; resource: string | null } | null;
+  pending: { controller: AbortController } | null;
 };
 
 const SUPERSEDED: FileNavigationOutcome = { status: "cancelled", reason: "superseded" };
-/** The resource space a command moves its dock to, when the dock is host-scoped. */
-const resourceOf = (ref: FileResourceRef): string | null => (ref.hostId === "local" ? null : ref.hostId);
 const asError = (reason: unknown): Error => (reason instanceof Error ? reason : new Error(String(reason)));
 const isPromise = <T>(value: T | Promise<T>): value is Promise<T> =>
   typeof (value as { then?: unknown } | null)?.then === "function";
@@ -165,11 +162,7 @@ export class FileNavigationOwner {
       return;
     }
     if (current.resource !== key.resource) {
-      // A command that is moving this dock to another resource space is still
-      // resolving: it owns the dock now, so the bind drops the previous space's
-      // previews instead of cancelling the command that caused the switch.
-      if (record.pending && record.pending.resource === key.resource) this.replaceResource(record, key);
-      else this.reset(scope, key);
+      this.reset(scope, key);
       return;
     }
     this.rebind(scope, record, key);
@@ -239,7 +232,7 @@ export class FileNavigationOwner {
     if (this.disposed) return { status: "cancelled", reason: "disposed" };
     const key = fileNavigationKey(scope);
     const record = this.ensure(scope);
-    const operation = this.begin(record, resourceOf(command.ref));
+    const operation = this.begin(record);
     let resolved: ResolvedFileResource | Promise<ResolvedFileResource>;
     try {
       resolved = this.ports.resolve(command.ref);
@@ -286,18 +279,10 @@ export class FileNavigationOwner {
   selectPath(scope: FileNavigationScope, resource: FileResourceIdentityInput): FileNavigationOutcome | Promise<FileNavigationOutcome> | void {
     const record = this.records.get(fileNavigationKey(scope));
     if (!record) return;
-    if (resource.hostId === "local") {
-      return this.openIn(scope, {
-        ref: { source: "workspace", hostId: resource.hostId, tabId: scope.sessionTabId, path: resource.path },
-        params: { action: "preview", view: "files" },
-      });
-    }
-    // Remote tree paths come from ListRemoteDir and are already host coordinates;
-    // resolving them as derived artifacts would require a tool-call grant they do
-    // not carry.
-    this.supersede(record);
-    this.commitNavigation(record, workspaceResource(resource, scope.sessionTabId), { action: "preview", view: "files" });
-    return { status: "opened", resource: record.snapshot.selected!.resource };
+    return this.openIn(scope, {
+      ref: { source: "workspace", tabId: scope.sessionTabId, path: resource.path },
+      params: { action: "preview", view: "files" },
+    });
   }
 
   /** Switch an open tab between its preview and its source, reusing the tab. */
@@ -355,7 +340,6 @@ export class FileNavigationOwner {
       try {
         return this.ports.resolve({
           source: "workspace",
-          hostId: state.hostId,
           tabId: scope.sessionTabId,
           path,
         });
@@ -419,19 +403,6 @@ export class FileNavigationOwner {
     return record;
   }
 
-  /** Enter another resource space, keeping an operation that is moving the dock. */
-  private replaceResource(record: Record, key: FileNavigationScopeKey): void {
-    this.apply(record, (current) => ({
-      ...current,
-      scope: key,
-      entries: [],
-      selected: null,
-      sourcePaths: [],
-      revision: current.revision + 1,
-      contentRevision: current.contentRevision + 1,
-    }));
-  }
-
   private reset(scope: FileNavigationScope, key: FileNavigationScopeKey): void {
     const recordKey = fileNavigationKey(scope);
     const previous = this.records.get(recordKey);
@@ -472,10 +443,10 @@ export class FileNavigationOwner {
     record.pending = null;
   }
 
-  private begin(record: Record, resource: string | null): AbortController {
+  private begin(record: Record): AbortController {
     record.pending?.controller.abort();
     const operation = new AbortController();
-    record.pending = { controller: operation, resource };
+    record.pending = { controller: operation };
     return operation;
   }
 
@@ -555,22 +526,10 @@ export class FileNavigationOwner {
   }
 }
 
-export type FileResourceIdentityInput = Readonly<{ hostId: string; path: string }>;
-
-function workspaceResource(resource: FileResourceIdentityInput, sessionTabId: string): ResolvedFileResource {
-  const access: FileAccessContext = { source: "workspace", tabId: sessionTabId };
-  return {
-    hostId: resource.hostId,
-    path: resource.path,
-    identityPath: resource.path.replace(/\\/g, "/"),
-    requestedPath: resource.path,
-    access,
-  };
-}
+export type FileResourceIdentityInput = Readonly<{ path: string }>;
 
 function sameResource(left: ResolvedFileResource, right: ResolvedFileResource): boolean {
-  return left.hostId === right.hostId
-    && left.identityPath === right.identityPath
+  return left.identityPath === right.identityPath
     && left.path === right.path
     && sameAccessContext(left.access, right.access);
 }

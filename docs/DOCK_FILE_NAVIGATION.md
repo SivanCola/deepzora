@@ -2,7 +2,7 @@
 
 How the right dock opens a file, who owns the result, and why a click can no
 longer start a render loop. Read this before changing
-`WorkspaceDockRegion`, `WorkspacePanel`, `RemotePanel` or anything under
+`WorkspaceDockRegion`, `WorkspacePanel` or anything under
 `lib/fileNavigation*`.
 
 ## Contract
@@ -64,7 +64,7 @@ internal to navigation).
 | Another command to a different dock | Nothing: panels never cancel each other |
 | Dock tab closed or removed from the active workspace | `retain` drops the record and aborts its lifetime |
 | Session changes inside the same project | `bindScope` keeps entries and selection, then replaces their access contexts with current-session workspace access |
-| Project/remote-host resource space changes | `bindScope` rebuilds the record: empty entries, advanced generation, previous lifetime aborted |
+| Project resource space changes | `bindScope` rebuilds the record: empty entries, advanced generation, previous lifetime aborted |
 | Dock collapsed (`workspacePanelOpen` false) | Nothing: the record is what re-expanding restores |
 | Runtime unmounted | `dispose` aborts every record and every one-shot operation |
 | Dock tab id reused after close | A new generation; remembered paths come back with workspace access only |
@@ -87,10 +87,9 @@ provider request byte changes, so prompt caching is unaffected.
 | Navigation instance | `file-navigation-owner.test.ts` |
 | Command ordering and cancellation | `file-navigation-races.test.ts` |
 | Verified answer-reference reader and source toggle | `workspace-reference-reader.test.tsx` |
-| Dock chain (local and remote) | `dock-file-navigation.test.tsx` |
+| Dock chain | `dock-file-navigation.test.tsx` |
 | Preview tabs, cap, source mode, reveal, generations | `file-navigation-dock.test.tsx` |
 | Render-loop defect, StrictMode, re-renders, remount | `file-navigation-lifecycle.test.tsx` |
-| Remote reads, save isolation, disconnect | `remote-file-navigation-races.test.tsx` |
 | Dock request delivery | `dock-navigation.test.ts`, `dock-view-requests.test.tsx` |
 | Real DOM and Electron | `bench/dock-file-navigation.mjs` (`test:app-browser`, `test:dock-electron`) |
 | Answer-reference click into the running owner | `bench/chat-file-reference.mjs` (`test:chat-file-browser`) |

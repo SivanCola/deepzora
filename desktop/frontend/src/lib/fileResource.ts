@@ -4,9 +4,9 @@ import { pathExtension } from "./filePaths";
 /** Where a file reference came from: an agent presentation, the workspace, or verified answer text. */
 export type FileResourceSource = "presented" | "workspace" | "reference";
 
-type ResourceBase = { hostId: string; tabId: string; path: string; sessionGeneration?: number };
+type ResourceBase = { tabId: string; path: string; sessionGeneration?: number };
 
-/** What a caller knows about a file: host, session, path, origin and tool call. */
+/** What a caller knows about a file: session, path, origin and tool call. */
 export type FileResourceRef =
   | (ResourceBase & { source: "presented"; toolCallId: string })
   | (ResourceBase & { source: "workspace"; toolCallId?: string })
@@ -30,7 +30,6 @@ export type FileAccessContext = Readonly<{
 
 /** A file the backend entry point confirmed, with the context that reads it. */
 export type ResolvedFileResource = Readonly<{
-  hostId: string;
   /** Path the read entry points accept. */
   path: string;
   /** Stable backend-resolved coordinate used only for resource identity. */
@@ -52,14 +51,13 @@ export const sameAccessContext = (left: FileAccessContext, right: FileAccessCont
  * Resolve a caller spelling into the stable coordinate that identifies the
  * file. The original local spelling remains the read path because it may be an
  * external-folder token or a presented path whose access must be revalidated by
- * its scoped read entry point. Remote reads accept the resolved host coordinate.
+ * its scoped read entry point.
  */
 export async function resolveFileResource(ref: FileResourceRef): Promise<ResolvedFileResource> {
   const access = fileAccessContext(ref);
   const identityPath = await resolveFileResourcePath(ref);
   return {
-    hostId: ref.hostId,
-    path: ref.hostId === "local" ? ref.path : identityPath,
+    path: ref.path,
     identityPath,
     requestedPath: ref.path,
     access,
@@ -90,11 +88,11 @@ export interface FileResourceCapabilities {
   saveCopy: boolean;
 }
 
-/** Identity-only view of a file: capabilities depend on the host and the name. */
-export type FileResourceIdentity = Readonly<{ hostId: string; path: string }>;
+/** Identity-only view of a file: capabilities depend on its name. */
+export type FileResourceIdentity = Readonly<{ path: string }>;
 
 export const fileResourceIdentity = (resource: FileResourceIdentity): FileResourceIdentity =>
-  ({ hostId: resource.hostId, path: resource.path });
+  ({ path: resource.path });
 
 /** Maps the host's verified action list onto the menu capability shape. */
 export function capabilityActions(actions: readonly string[]): FileResourceCapabilities {
@@ -114,16 +112,15 @@ export function capabilityActions(actions: readonly string[]): FileResourceCapab
 /** The host still revalidates every action; this snapshot only controls honest UI affordances. */
 export function fileResourceCapabilities(resource: FileResourceIdentity, verified?: readonly string[]): FileResourceCapabilities {
   if (verified) return capabilityActions(verified);
-  const remote = resource.hostId !== "local";
   const ext = pathExtension(resource.path);
   return {
     preview: true,
     source: !BINARY.has(ext),
-    browser: !remote && MEDIA.has(ext),
+    browser: MEDIA.has(ext),
     revealTree: true,
     copyPath: true,
-    openNative: !remote,
-    revealNative: !remote,
+    openNative: true,
+    revealNative: true,
     saveCopy: true,
   };
 }

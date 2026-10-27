@@ -45,13 +45,13 @@ assert.deepEqual(deriveTurnFiles(calls), [
   { path: "new.txt", toolCallId: "move", operation: "written" },
 ]);
 assert.equal(fileIdentity("a/./b/../c.txt"), "a/c.txt");
-// Capabilities answer for a caller-shaped reference, and read only its host and
-// name: the origin and the tool call never change what the row may offer.
-const remoteReportRef: FileResourceRef = { source: "workspace", hostId: "remote-a", tabId: "tab", toolCallId: "write", path: "report.md" };
-assert.deepEqual(fileResourceCapabilities(remoteReportRef), {
-  preview: true, source: true, browser: false, revealTree: true, copyPath: true, openNative: false, revealNative: false, saveCopy: true,
+// Capabilities answer for a caller-shaped reference, and read only its name:
+// the origin and the tool call never change what the row may offer.
+const reportRef: FileResourceRef = { source: "workspace", tabId: "tab", toolCallId: "write", path: "report.md" };
+assert.deepEqual(fileResourceCapabilities(reportRef), {
+  preview: true, source: true, browser: false, revealTree: true, copyPath: true, openNative: true, revealNative: true, saveCopy: true,
 });
-const localPresentedRef: FileResourceRef = { source: "presented", hostId: "local", tabId: "tab", toolCallId: "present", path: "app.html" };
+const localPresentedRef: FileResourceRef = { source: "presented", tabId: "tab", toolCallId: "present", path: "app.html" };
 assert.equal(fileResourceCapabilities(localPresentedRef).browser, true);
 
 console.log("chat tool presentation: trusted renderer matching, shell labels and file facts passed");

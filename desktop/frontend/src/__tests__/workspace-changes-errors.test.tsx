@@ -488,7 +488,7 @@ console.log("\nworkspace changes git errors");
     },
   );
   await act(async () => {
-    await performResourceAction({ source: "workspace", hostId: "local", tabId: "tab-a", path: "app.ts" }, "preview");
+    await performResourceAction({ source: "workspace", tabId: "tab-a", path: "app.ts" }, "preview");
     await flushPromises();
   });
 

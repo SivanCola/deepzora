@@ -38,7 +38,7 @@ let paints = 0;
 function Lifecycle({ generation }: { generation: number }) {
   paints += 1;
   return <>
-    <PresentedFiles tabId="tab-a" hostId="local" files={[{ path: "app.ts", toolCallId: "call", description: "d" }]} />
+    <PresentedFiles tabId="tab-a" files={[{ path: "app.ts", toolCallId: "call", description: "d" }]} />
     <span data-generation={generation} />
     <WorkspaceDockRegion {...props} />
   </>;

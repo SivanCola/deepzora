@@ -50,10 +50,7 @@ export class ChatFileReferenceStore {
   private disposed = false;
   private attachments = 0;
 
-  constructor(private readonly tabId: string, private readonly hostId: string = "local") {}
-
-  /** Only the local host can verify a path today; a remote host degrades to text. */
-  get supported(): boolean { return this.hostId === "local"; }
+  constructor(private readonly tabId: string) {}
 
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
@@ -69,7 +66,7 @@ export class ChatFileReferenceStore {
    * because a tool that just succeeded can turn a missing file into a real one.
    */
   report(turnKey: string, factsVersion: number, candidates: readonly ChatFileReferenceRequest[]): void {
-    if (this.disposed || !this.supported || !candidates.length) return;
+    if (this.disposed || !candidates.length) return;
     const state = this.turnState(turnKey, factsVersion);
     if (state.factsVersion !== factsVersion) {
       state.factsVersion = factsVersion;

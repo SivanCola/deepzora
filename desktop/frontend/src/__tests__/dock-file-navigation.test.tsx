@@ -35,10 +35,9 @@ const committed = (dockTabId: string | null | undefined) => dockTabId
 await act(async () => { useActivityBarStore.setState({ workspaceRoot: "/repo", tabs: [], activeTabId: null }); });
 await paint(false);
 {
-  const hostId = "local";
   for (const action of ["preview", "source", "reveal-tree"] as const) {
-    const path = `${hostId}-${action}.txt`;
-    await act(async () => performResourceAction({ hostId, tabId: "navigation-session", path, source: "presented", toolCallId: "call" }, action));
+    const path = `local-${action}.txt`;
+    await act(async () => performResourceAction({ tabId: "navigation-session", path, source: "presented", toolCallId: "call" }, action));
     await paint(true);
     await waitFor(path, () => document.body.textContent?.includes(`content ${path}`) === true);
     const record = committed(useActivityBarStore.getState().activeTabId);
@@ -47,7 +46,7 @@ await paint(false);
     assert.equal(record?.selected?.resource.access.toolCallId, "call");
     await paint(true);
     assert(document.body.textContent?.includes(`content ${path}`));
-    console.log("PASS real dock", hostId, action);
+    console.log("PASS real dock", action);
   }
   {
     const original = useActivityBarStore.getState().activeTabId!;
@@ -55,8 +54,8 @@ await paint(false);
     await act(async () => useActivityBarStore.getState().activateTab(original));
     await waitFor("restored presented resource", () => document.body.textContent?.includes("content local-reveal-tree.txt") === true);
     console.log("PASS presented resource identity survives view remount without replay");
-    await act(async () => performResourceAction({ hostId, tabId: "navigation-session", path: "src/alias.ts", source: "workspace" }, "preview"));
-    await act(async () => performResourceAction({ hostId, tabId: "navigation-session", path: "/repo/src/alias.ts", source: "workspace" }, "preview"));
+    await act(async () => performResourceAction({ tabId: "navigation-session", path: "src/alias.ts", source: "workspace" }, "preview"));
+    await act(async () => performResourceAction({ tabId: "navigation-session", path: "/repo/src/alias.ts", source: "workspace" }, "preview"));
     const aliasRecord = committed(useActivityBarStore.getState().activeTabId)!;
     assert.equal(aliasRecord.entries.filter((entry) => entry.resource.identityPath === "/repo/src/alias.ts").length, 1,
       "canonical identity deduplicates relative and absolute spellings through the real command path");
@@ -65,7 +64,7 @@ await paint(false);
 // A workspace path the host refuses reports its failure to the row that
 // asked, and commits nothing the dock could render.
 await paint(false);
-const denied = await performResourceAction({ hostId: "local", tabId: "navigation-session", path: "denied.txt", source: "workspace", toolCallId: "call" }, "preview");
+const denied = await performResourceAction({ tabId: "navigation-session", path: "denied.txt", source: "workspace", toolCallId: "call" }, "preview");
 assert.equal(denied.status, "failed");
 assert.match((denied as { error: Error }).error.message, /permission denied/);
 assert(!committed(useActivityBarStore.getState().activeTabId)?.entries.some(entry => entry.resource.path === "denied.txt"),

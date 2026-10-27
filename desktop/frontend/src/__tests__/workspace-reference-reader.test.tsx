@@ -24,7 +24,7 @@ const { dom, root, dockTabId } = await renderFilesWorkspace({
 const scope = { sessionTabId: "tab-a", dockTabId };
 await act(async () => {
   await fileNavigationOwner().openIn(scope, {
-    ref: { source: "workspace", hostId: "local", tabId: "tab-a", path: "docs/note.md" },
+    ref: { source: "workspace", tabId: "tab-a", path: "docs/note.md" },
     params: { action: "preview", view: "files" },
   });
   await flushPromises();
@@ -35,7 +35,7 @@ await waitFor("workspace read", () => document.body.textContent?.includes("WORKS
 // Same path, now owned by a verified answer reference.
 await act(async () => {
   await fileNavigationOwner().openIn(scope, {
-    ref: { source: "reference", hostId: "local", tabId: "tab-a", path: "docs/note.md" },
+    ref: { source: "reference", tabId: "tab-a", path: "docs/note.md" },
     params: { action: "preview", view: "files" },
   });
   await flushPromises();

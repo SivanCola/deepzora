@@ -271,36 +271,6 @@ gate?.();
 await flush();
 ok(lateStore.getTurnSnapshot("turn-a").size === 0, "a reply from a replaced session never reaches the new one");
 
-// ── A remote transcript never resolves through the local host ───────────────
-let remoteCalls = 0;
-desktopStub.replaceCommands(({
-  main: {
-    App: {
-      ResolveChatFileReferencesForTab: async (_tabId: string, turnKey: string, candidates: Array<{ key: string; path: string }>) => {
-        remoteCalls += 1;
-        return { turnKey, references: candidates.map(candidate => ({ key: candidate.key, path: candidate.path, status: "resolved", displayPath: candidate.path, actions: ["preview"] })) };
-      },
-    } as Partial<AppBindings> as AppBindings,
-  },
-}).main.App);
-
-const remoteBlocks = parseMarkdownToBlocks("Wrote `/srv/app/out/remote.svg` on the server.");
-await act(async () => {
-  root.render(<LocaleProvider>
-    <ChatFileScopeProvider scopeKey="session-r" tabId="tab-r" hostId="remote-test">
-      <ChatFileTurnProvider turnKey="turn-r" factsVersion={0} presentedFiles={[]} modifiedFiles={[]} tabId="tab-r" hostId="remote-test">
-        <Reporter blocks={remoteBlocks} />
-        {remoteBlocks.map(block => <Fragment key={block.key}>{hastBlockToJsx(block, components)}</Fragment>)}
-      </ChatFileTurnProvider>
-    </ChatFileScopeProvider>
-  </LocaleProvider>);
-});
-await act(async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); });
-ok(remoteCalls === 0, "a remote answer is never verified against the local filesystem");
-ok(document.querySelectorAll("button.md-code--presented-file").length === 0,
-  "an unverified remote path stays ordinary text rather than opening locally");
-ok((rootEl.textContent ?? "").includes("/srv/app/out/remote.svg"), "the remote answer text is untouched");
-
 // ── A StrictMode mount replay must not kill the session store ───────────────
 let strictCalls = 0;
 desktopStub.replaceCommands(({

@@ -37,7 +37,7 @@ export async function openAutomaticPresentedHTML(
   if (!claim) return null;
   const { openResource } = await import("./fileNavigationCommands");
   const outcome = await openResource({
-    source: "presented", hostId: "local", tabId: input.tabId,
+    source: "presented", tabId: input.tabId,
     toolCallId: claim.toolCallId, path: claim.file.path,
     sessionGeneration: input.sessionGeneration,
   }, { view: "preview" });
