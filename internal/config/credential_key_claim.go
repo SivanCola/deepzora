@@ -18,8 +18,6 @@ type CredentialKeyHolder uint8
 const (
 	// CredentialKeyHeldByProvider: another provider entry references the variable.
 	CredentialKeyHeldByProvider CredentialKeyHolder = iota + 1
-	// CredentialKeyHeldBySetting: a bot or remote-host setting reads the variable.
-	CredentialKeyHeldBySetting
 	// CredentialKeyHeldByStore: the credential store already has a value or tombstone for it.
 	CredentialKeyHeldByStore
 	// CredentialKeyHeldByEnvironment: the process environment sets it from outside the store.
@@ -36,8 +34,6 @@ func (e *CredentialKeyInUseError) Error() string {
 	switch e.Holder {
 	case CredentialKeyHeldByProvider:
 		return fmt.Sprintf("%s is referenced by provider %q", e.Key, e.Provider)
-	case CredentialKeyHeldBySetting:
-		return fmt.Sprintf("%s is read by a remote-host setting", e.Key)
 	case CredentialKeyHeldByEnvironment:
 		return fmt.Sprintf("%s is already set in the environment", e.Key)
 	default:
@@ -76,13 +72,6 @@ func (c *Config) CredentialKeyClaimable(key, provider string) error {
 	for _, p := range c.Providers {
 		if p.Name != provider && sameCredentialName(strings.TrimSpace(p.APIKeyEnv), key) {
 			return &CredentialKeyInUseError{Key: key, Holder: CredentialKeyHeldByProvider, Provider: p.Name}
-		}
-	}
-	others := *c
-	others.Providers = nil
-	for _, name := range credentialEnvNamesFromConfig(&others) {
-		if sameCredentialName(name, key) {
-			return &CredentialKeyInUseError{Key: key, Holder: CredentialKeyHeldBySetting}
 		}
 	}
 	if credentialCurrentStoreHasKey(key) || credentialCurrentStoreClearedKey(key) {

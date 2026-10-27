@@ -63,7 +63,7 @@ export default async function handleAutomaticPresentedHTML(
   try {
     const activeTabId = activeTab.current;
     const state = states.current.get(tabId);
-    if (!state?.meta || state.meta.remote) return;
+    if (!state?.meta) return;
     const error = await openAutomaticPresentedHTML(automaticGate, event, {
       tabId,
       activeTabId,

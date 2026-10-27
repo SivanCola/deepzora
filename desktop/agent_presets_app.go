@@ -31,9 +31,6 @@ func desktopAgentPresetNeedsRefresh(ctrl control.SessionAPI) bool {
 // ListAgentPresets also works before a provider is configured, so authoring a
 // persona does not require creating a runnable conversation first.
 func (a *App) ListAgentPresets(tabID string) (control.AgentPresetList, error) {
-	if a.isRemoteTab(tabID) {
-		return a.remoteAgentPresets(tabID)
-	}
 	tab, ctrl := a.tabAndCtrlByID(tabID)
 	if presets, ok := ctrl.(control.AgentPresets); ok {
 		return presets.ListAgentPresets()
@@ -64,9 +61,6 @@ func (a *App) ListAgentPresets(tabID string) (control.AgentPresetList, error) {
 // SaveAgentPreset saves a definition for the next session build. Running
 // conversations retain their assembled prompt and tool schemas.
 func (a *App) SaveAgentPreset(tabID, scope, id, content string) (agentpreset.Preset, error) {
-	if a.isRemoteTab(tabID) {
-		return a.saveRemoteAgentPreset(tabID, scope, id, content)
-	}
 	tab, ctrl := a.tabAndCtrlByID(tabID)
 	if a.tabIsReadOnly(tab) {
 		return agentpreset.Preset{}, readOnlyChannelErr()
@@ -82,9 +76,6 @@ func (a *App) SaveAgentPreset(tabID, scope, id, content string) (agentpreset.Pre
 }
 
 func (a *App) DeleteAgentPreset(tabID, scope, id string) error {
-	if a.isRemoteTab(tabID) {
-		return a.deleteRemoteAgentPreset(tabID, scope, id)
-	}
 	tab, ctrl := a.tabAndCtrlByID(tabID)
 	if a.tabIsReadOnly(tab) {
 		return readOnlyChannelErr()
@@ -114,9 +105,6 @@ func (a *App) agentPresetWorkspace(tabID string, tab *WorkspaceTab) (string, err
 // SetAgentPresetForTab replaces a blank session's assembled runtime. The
 // candidate carries the durable selection in its staged session transaction.
 func (a *App) SetAgentPresetForTab(tabID, id string) error {
-	if a.isRemoteTab(tabID) {
-		return a.setRemoteAgentPreset(tabID, id)
-	}
 	tab, ctrl := a.tabAndCtrlByID(tabID)
 	if a.tabIsReadOnly(tab) {
 		return readOnlyChannelErr()

@@ -1,15 +1,9 @@
-import { CommandCancelled } from "../lib/commandOutcome";
-import type { RemoteSessionView } from "../lib/remoteTypes";
 import type { SessionOperationAuthority } from "./useResourceOperations";
 import type { SessionSelector } from "../generated/desktopContract.generated";
 
-export type TopicRenameTarget =
-  | { kind: "local"; topicId: string; selector: SessionSelector }
-  | { kind: "remote"; hostId: string; workspace: string; sessionId: string };
+export type TopicRenameTarget = { kind: "local"; topicId: string; selector: SessionSelector };
 export type ProjectTopicPorts = {
   renameLocal: (selector: SessionSelector, title: string) => Promise<unknown>;
-  listRemote: (host: string, workspace: string) => Promise<RemoteSessionView[]>;
-  renameRemote: (host: string, workspace: string, name: string, title: string) => Promise<void>;
   markChanged: (update: (value: number) => number) => void;
   refreshTabs: (apply?: () => boolean, options?: { afterMutation?: boolean }) => Promise<readonly { id: string }[]>;
   syncActive: (rebuild: boolean) => Promise<unknown>;
@@ -29,16 +23,7 @@ export async function refreshProjectTopics(input: ProjectRefreshInput, authority
 export async function renameProjectTopic(input: ProjectRefreshInput & { target: TopicRenameTarget; title: string }, authority: SessionOperationAuthority) {
   const { target, title, ports } = input;
   authority.checkpoint();
-  if (target.kind === "local") await ports.renameLocal(target.selector, title);
-  else {
-    const sessions = await ports.listRemote(target.hostId, target.workspace);
-    authority.checkpoint();
-    // `current` is a navigation snapshot, not the identity of the rename target.
-    const matches = sessions.filter(session => Boolean(target.sessionId) && session.sessionId === target.sessionId);
-    if (matches.length === 0) throw new CommandCancelled("superseded");
-    if (matches.length !== 1) throw new Error("The remote service returned duplicate session IDs.");
-    await ports.renameRemote(target.hostId, target.workspace, matches[0].sessionId, title);
-  }
+  await ports.renameLocal(target.selector, title);
   authority.checkpoint();
   await refreshProjectTopics(input, authority);
 }

@@ -33,7 +33,7 @@ let rejectAdmission: ((reason: Error) => void) | undefined;
 const noop = () => {};
 // The Composer captures the real submission target before asynchronous preparation.
 installDesktopHostStub({
-  CaptureInboxTarget: (tabId: string, sessionPath: string) => ({ tabId, sessionPath, generation: 1, selection: 0, remote: false }),
+  CaptureInboxTarget: (tabId: string, sessionPath: string) => ({ tabId, sessionPath, generation: 1, selection: 0 }),
   Commands: () => [], Models: () => [], ModelsForTab: () => [],
   SessionHistoryOutlineForTab: () => ({ status: "ready", generation: "cut", snapshotSequence: 0, coverageSequence: 0, totalTurns: 0, entries: [], nextTurn: 0, done: true }),
 });
@@ -57,7 +57,7 @@ async function send(display: string, input = display, tab = active) {
 function paint() {
   runtimeStateStore.commit({ epoch: "fixture", revision: ++revision, topics: [], sessions: [...states.entries()].map(([tabId, state]) => ({
     tabId, scope: "global", workspaceRoot: "", topicId: "", sessionPath: `fixture-${tabId}`, sessionGeneration: 1,
-    open: true, remote: false, freshness: "synced", state: state.runtimeStateSnapshot ?? runtime(0),
+    open: true, freshness: "synced", state: state.runtimeStateSnapshot ?? runtime(0),
   })) });
   const state = states.get(active)!;
   flushSync(() => root.render(<LocaleProvider><ToastProvider>

@@ -15,39 +15,7 @@ func (c *Config) RemovePluginModelRefs(pluginID string) bool {
 	if pluginID == "" {
 		return false
 	}
-	ownedByPlugin := func(ref string) bool {
+	return c.retargetModelRefs(func(ref string) bool {
 		return protocol.PluginRefOwner(strings.TrimSpace(ref)) == pluginID
-	}
-
-	defaultOwned := ownedByPlugin(c.DefaultModel)
-	plannerOwned := ownedByPlugin(c.Agent.PlannerModel)
-	subagentOwned := ownedByPlugin(c.Agent.SubagentModel)
-	subagentModelsOwned := map[string]bool{}
-	for skill, ref := range c.Agent.SubagentModels {
-		if ownedByPlugin(ref) {
-			subagentModelsOwned[skill] = true
-		}
-	}
-	if !defaultOwned && !plannerOwned && !subagentOwned && len(subagentModelsOwned) == 0 {
-		return false
-	}
-
-	fallback := c.providerRemovalFallback("")
-	if defaultOwned {
-		c.DefaultModel = fallback
-	}
-	if plannerOwned {
-		c.Agent.PlannerModel = fallback
-	}
-	if subagentOwned {
-		c.Agent.SubagentModel = fallback
-	}
-	for skill := range subagentModelsOwned {
-		if fallback != "" {
-			c.Agent.SubagentModels[skill] = fallback
-		} else {
-			delete(c.Agent.SubagentModels, skill)
-		}
-	}
-	return true
+	}, c.providerRemovalFallback(""))
 }

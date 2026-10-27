@@ -54,7 +54,7 @@ func newHostShellBridgeForTest(t *testing.T, replies map[string]any) (*App, *hos
 	shell := &fakeShell{conn: shellConn, replies: replies}
 	for _, method := range []string{
 		"host/tray.ensure", "host/tray.destroy", "host/window.show", "host/window.maximise", "host/window.unminimise",
-		"host/remoteWindow.open", "host/remoteWindow.close", "host/app.relaunch", "host/app.quit",
+		"host/app.relaunch", "host/app.quit",
 	} {
 		shell.handle(method)
 	}
@@ -128,39 +128,6 @@ func TestHostShellTrayUnavailableWhenTheShellHasNone(t *testing.T) {
 	if state != "unavailable" || reason != "platform_no_tray" || tray != nil {
 		t.Fatalf("tray state %q/%q tray=%v", state, reason, tray)
 	}
-}
-
-func TestHostShellRemoteWindowsTrackShellClosure(t *testing.T) {
-	a, bridge, shell := newHostShellBridgeForTest(t, nil)
-	launch := remoteWindowLaunch{URL: "http://127.0.0.1:1/", Title: "box", HostKey: remoteWindowHostKey("box")}
-	if err := a.openRemoteWindowForHost("box", "/srv", launch.URL); err != nil {
-		t.Fatal(err)
-	}
-	if !a.hasRemoteWindow("box") {
-		t.Fatal("window must be tracked after open")
-	}
-	payload, _ := json.Marshal(map[string]string{"hostKey": launch.HostKey})
-	if err := bridge.handleHostEvent(context.Background(), "remoteWindow.closed", payload); err != nil {
-		t.Fatal(err)
-	}
-	if a.hasRemoteWindow("box") {
-		t.Fatal("a window the user closed must be forgotten")
-	}
-	a.closeRemoteWindowForHost("box")
-	if calls := shell.methods(); len(calls) != 1 || calls[0] != "host/remoteWindow.open" {
-		t.Fatalf("closing a forgotten window must not reach the shell: %v", calls)
-	}
-	if err := a.openRemoteWindowForHost("box", "/srv", launch.URL); err != nil {
-		t.Fatal(err)
-	}
-	a.closeAllRemoteWindows()
-	if a.hasRemoteWindow("box") {
-		t.Fatal("closeAll must drop every window")
-	}
-	waitFor(t, "close request", func() bool {
-		calls := shell.methods()
-		return len(calls) == 3 && calls[2] == "host/remoteWindow.close"
-	})
 }
 
 func TestHostShellQuitReasonBypassesBackgroundClose(t *testing.T) {

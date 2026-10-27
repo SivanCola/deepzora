@@ -18,7 +18,6 @@ Provider model capability metadata is documented in
 - [Billing and display currency](./BILLING.md)
 - [CLI reference](./CLI.md)
 - [Environment variables](#environment-variables)
-- [Serve](#serve)
 - [Configuration paths](./CONFIG_PATHS.md)
 - [Reasoning language](./REASONING_LANGUAGE.md)
 - [Task contracts and pause policy](./TASK_CONTRACT.md)
@@ -112,11 +111,6 @@ allow = ["Bash(go test:*)"]                  # never prompted
 # allow_write    = ["/tmp"]    # extra dirs write_file/edit_file/multi_edit/move_file may touch
 # forbid_read    = ["${HOME}/.ssh"]   # paths the agent must not read or list
 
-[serve]
-auth_mode = "none"             # none|token; use token auth before binding beyond localhost
-# token = ""                   # optional fixed token; empty token mode generates one at startup
-# behind_proxy = false         # true only behind a trusted reverse proxy
-
 [[plugins]]
 name    = "example"
 command = "deepzora-plugin-example"
@@ -209,65 +203,6 @@ these separately reviewed reports. Runtime fatal throws, operating-system kills,
 and panics in unwrapped background goroutines cannot be recovered by Go and do
 not produce this local report.
 
-## Serve
-
-`deepzora serve` runs the engine behind an HTTP+SSE API. Its main job is the
-backend for desktop remote workspaces: the desktop bootstraps
-`deepzora serve --auth token --token-file ...` on the SSH host and opens a
-window on the forwarded loopback port. It does not open a browser. It listens on
-`127.0.0.1:8787` by default and stays attached to the terminal; stop it with
-Ctrl-C.
-
-Without authentication (`auth_mode = "none"`, the `serve` default) reads stay
-open on the listener, but every state-changing request, approvals included,
-needs the launch token:
-
-- Serve writes the token to a 0600 file under `<Deepzora home>/remote/` and
-  prints only its path next to an `approvals:` link; append
-  `#token=<file contents>` to open it in a browser. A managed launch with
-  `--token-file` names that file instead. Token mode prints its `share:` link
-  the same way.
-- Send it as `Authorization: Bearer <token>`, or open the link once so the page
-  sets its cookie. Without it the request answers 403 `launch_token_required`.
-- Prefer `--token-file` over `--token`: argv is visible to other processes,
-  sandboxed ones included. A plaintext `[serve].token` in the global
-  config is readable from inside the sandbox; keep the secret in a file.
-- On macOS and Linux the OS sandbox denies the remote state directory and any
-  `--token-file`. Windows has no bash sandbox, so there nothing keeps an agent
-  command from reading the file.
-- `[serve]` is read from the user config only; a project `deepzora.toml`
-  cannot set it.
-
-If you bind Serve outside loopback, expose it through a tunnel, or put it behind
-a reverse proxy, enable token authentication before sharing the URL:
-
-```bash
-deepzora serve --auth token
-deepzora serve --addr 0.0.0.0:8787 --auth token
-```
-
-Token mode prints a share URL with `#token=...`; the page exchanges the
-fragment for an HttpOnly cookie before starting API or SSE requests, keeping the
-token out of request URLs, browser history, referrers, and access logs. Pass
-`--token-file`, `--token`, or set `[serve].token` to reuse a stable token. Set
-`behind_proxy = true` only behind a trusted reverse proxy.
-
-Serve can keep several sessions active at once: creating or resuming another
-session detaches a busy turn instead of cancelling it, and the session list
-continues to report that background activity. Run `/reload` while idle to
-fail-atomically reload extension sidecars and the runtime generation without
-restarting Serve. Use `--model`, `--max-steps`, or `--resume` for one-off
-launches; otherwise `serve` uses the user-global `default_model`.
-
-If the selected Provider has no saved API key, a loopback-bound Serve still
-starts and shows a Provider setup page instead of failing before the window can
-connect. After authentication, enter the key there; Deepzora writes it to this
-host's global credential file with restricted permissions, rebuilds the active
-controller in the same process, and opens the normal UI. The credential-writing
-endpoint is disabled for non-loopback listeners. For a remote SSH window,
-"this host" means the remote host reached through the SSH tunnel; the key is
-not copied from the desktop machine.
-
 ## Editor integrations over ACP
 
 `deepzora acp` exposes Deepzora as an ACP v1 stdio agent for editors and other
@@ -275,22 +210,6 @@ host clients. The dedicated **[ACP editor integration](./ACP.md)** guide covers
 startup, capability negotiation, session lifecycle, independent model/work/
 collaboration/approval controls, client filesystem and terminal capabilities,
 MCP servers, permission requests, and the Deepzora mid-turn steering extension.
-
-## Remote SSH
-
-The remote module runs Deepzora on a remote host and reaches it over your own
-SSH connection — VS Code Remote-SSH style. It bootstraps a persistent headless
-`deepzora serve` on the remote host, forwards a local loopback port to it, and
-opens the existing serve web client through that tunnel. The agent, its tools,
-and its files all live on the remote host at full fidelity; nothing runs through
-a lossy file proxy. V1 supports Linux and macOS remote hosts.
-
-The dedicated **[Remote sessions](./REMOTE_SESSIONS.md)** guide covers host
-configuration (`[remote]` in `config.toml`), SSH-config resolution and import,
-the `deepzora remote` CLI, the remote serve bootstrap and its install ladder,
-the remote session lifecycle and takeover, the desktop remote workspace, the
-`remote` and `local-proxy` credential modes, connection failure semantics, and
-troubleshooting.
 
 ## Custom OpenAI-compatible providers
 
@@ -968,8 +887,8 @@ Markdown files under `.deepzora/commands/` (project) or `~/.deepzora/commands/`
 (`git/commit.md` → `/git:commit`). The body is a prompt template; invoking the
 command sends it as a turn.
 
-`/compact [focus]` runs as a session maintenance operation. Desktop and remote
-clients show one recoverable progress card and keep Stop available while the
+`/compact [focus]` runs as a session maintenance operation. Desktop clients
+show one recoverable progress card and keep Stop available while the
 summary request can still be cancelled. Messages sent during compaction remain
 in the existing session inbox and run in order after compaction finishes or
 stops. Stopping compaction does not withdraw those queued messages. If a
@@ -978,7 +897,7 @@ result cannot be saved safely, the session enters an explicit recovery state
 instead of accepting a late summary or reporting idle.
 
 Compaction and ordinary turns share one foreground admission gate, including
-direct CLI, ACP, Bot, inbox, desktop, and remote entry points. In the terminal
+direct CLI, ACP, Bot, inbox, and desktop entry points. In the terminal
 UI, `Esc` stops a cancellable compaction without clearing the current draft.
 An empty history or empty selected range completes as “No history to compact”
 without calling the summary model. The operation card keeps its error, applied
@@ -1075,8 +994,7 @@ The desktop Context Center shows the same provenance, conflicts, revision
 history, recall trace, and recovery actions. Opening its Suggestions tab scans
 recent local user turns automatically; candidates are deduplicated against both
 memory scopes and instruction bodies, but nothing is saved until the user
-accepts it. Remote workspaces never fall back to local desktop memory or
-sessions.
+accepts it.
 
 For the current memory behavior and cache/privacy contract, see [Context Engine](SESSION_MEMORY_RETRIEVAL.md).
 
@@ -1124,8 +1042,7 @@ tool automatically. Existing custom commands and compatible plugin or skill
 aliases keep ownership of `/docs`; when that happens, CLI and Desktop normally
 expose the built-in corpus as `/deepzora:docs` instead. If that qualified name is
 also already owned, Deepzora selects the next free `deepzora:`-qualified fallback
-without displacing it. A remote Desktop uses the host's resolved command catalog,
-so the displayed entry always matches what that host will execute.
+without displacing it.
 
 Pull requests that change user-visible CLI, Desktop, configuration, provider,
 permission, or tool behavior must declare whether embedded documentation was

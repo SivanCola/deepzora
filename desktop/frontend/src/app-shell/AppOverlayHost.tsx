@@ -1,6 +1,4 @@
 import { lazy, Suspense, type ComponentProps } from "react";
-import { RemoteHostKeyDialog } from "../components/RemoteHostKeyDialog";
-import { RemoteSecretDialog } from "../components/RemoteSecretDialog";
 import { ShortcutsCheatsheet } from "../components/ShortcutsCheatsheet";
 import { StartupSplash } from "../components/StartupSplash";
 import { ManagementSurface } from "../components/ManagementSurface";
@@ -40,8 +38,6 @@ export function AppOverlayHost({ history, settings, trash, automation, palette, 
         surfaceProps={{ ...automation.view, ...automation.commands }} />}
       {settings && <ManagementSurface loader={loadSettingsPage} active onBack={settings.commands.onClose}
         surfaceProps={{ ...settings.view, ...settings.commands }} />}
-      <RemoteHostKeyDialog />
-      <RemoteSecretDialog />
       {palette && <Suspense fallback={null}><CommandPalette {...palette.view} {...palette.commands} /></Suspense>}
       <ShortcutsCheatsheet {...shortcuts.view} {...shortcuts.commands} />
       {startup && <StartupSplash {...startup.view} {...startup.commands} />}

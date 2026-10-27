@@ -61,7 +61,7 @@ type Checkpoint struct {
 
 ## Controller API：两个前端共用的统一入口
 
-Checkpoint 位于 `control.Controller`，与 `SetPlanMode`、`Compact`、`NewSession` 并列。终端 TUI、桌面 WebView 和 HTTP/SSE server 都通过同一入口触发 rewind，不在各自前端重复实现逻辑。
+Checkpoint 位于 `control.Controller`，与 `SetPlanMode`、`Compact`、`NewSession` 并列。终端 TUI 和桌面 WebView 都通过同一入口触发 rewind，不在各自前端重复实现逻辑。
 
 ```go
 type RewindScope int // Code | Conversation | Both

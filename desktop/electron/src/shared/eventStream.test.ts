@@ -9,14 +9,14 @@ test("missed dynamic subscriptions have bounded retention and overflow still req
   assert.equal(missed.consume("agent:event"), true);
   assert.equal(missed.consume("agent:event"), false, "normal recovery consumes the pending name");
   for (let index = 0; index < 10000; index++) {
-    missed.add(`remote-tab:closed-${index}:event`);
+    missed.add(`tab:closed-${index}:event`);
     assert.ok(missed.size <= 64);
   }
   assert.equal(missed.size, 0, "overflow retains no closed-tab event names");
-  assert.equal(missed.consume("remote-tab:closed-0:event"), true, "an evicted name still triggers read-side repair");
-  assert.equal(missed.consume("remote-tab:closed-9999:event"), true);
+  assert.equal(missed.consume("tab:closed-0:event"), true, "an evicted name still triggers read-side repair");
+  assert.equal(missed.consume("tab:closed-9999:event"), true);
   missed.clear();
-  assert.equal(missed.consume("remote-tab:closed-0:event"), false, "a new generation drops old pending state");
+  assert.equal(missed.consume("tab:closed-0:event"), false, "a new generation drops old pending state");
   missed.add("agent:event");
   assert.equal(missed.size, 1);
 });

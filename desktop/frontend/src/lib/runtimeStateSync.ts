@@ -29,7 +29,7 @@ export function startRuntimeStateSync(ports: RuntimeSyncPorts, store = runtimeSt
       const result = acceptRuntimeState(store, snapshot, before === store.getSnapshot());
       if (result === "stale") { stale++; note("stale-read", snapshot.revision); }
       if (result === "conflict") { conflicts++; throw new Error("Runtime snapshot version conflict"); }
-      failures = snapshot.sessions.some(session => session.remote && session.freshness !== "synced") ? failures + 1 : 0;
+      failures = 0;
     } catch {
       if (!disposed && version === recoveryVersion) { failures++; store.fail(); note(reason); }
     } finally {
@@ -70,14 +70,9 @@ export function startAppRuntimeStateSync() {
       clearTimer: timer => { if (timer !== undefined) window.clearTimeout(timer as number); },
       recover: callback => desktopHost().events.on("desktop:resync", callback),
       focus: callback => {
-        const connections = new Map<string, string>();
-        const off = desktopHost().events.on("remote-tab:updated", (payload: unknown) => {
-          const tab = payload as { id?: string; remoteState?: string };
-          if (tab.id && connections.get(tab.id) !== tab.remoteState) { connections.set(tab.id, tab.remoteState ?? ""); callback(); }
-        });
         window.addEventListener("focus", callback);
         window.addEventListener("online", callback);
-        return () => { off?.(); window.removeEventListener("focus", callback); window.removeEventListener("online", callback); };
+        return () => { window.removeEventListener("focus", callback); window.removeEventListener("online", callback); };
       },
       });
 }

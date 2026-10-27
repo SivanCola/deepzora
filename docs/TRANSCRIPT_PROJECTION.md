@@ -2,7 +2,7 @@
 
 [简体中文](TRANSCRIPT_PROJECTION.zh-CN.md)
 
-Local Desktop and current Serve sessions share `internal/transcript`. The
+Desktop sessions use `internal/transcript`. The
 controller appends each durable envelope, commits its display projection, then
 publishes the event outside the commit lock. Planner output, executor output,
 prompts and terminal events use this boundary. Provider history remains the
@@ -55,8 +55,7 @@ request ownership separately controls runtime state. Only a new explicit send
 advances the scroll submission revision.
 Snapshots retain unresolved submissions for the same canonical session ID;
 a different snapshot owner clears echoes and handoffs and advances the session
-generation. Remote callbacks read the state owned by their tab, never another
-tab's last rendered state.
+generation.
 
 History window and body I/O load on demand. Their routing identity is captured
 before the deferred import, and Store generation checks still discard stale
@@ -91,9 +90,7 @@ outside the projection lock.
 ## Snapshot protocol
 
 Desktop exposes `TranscriptSnapshotForTab`, `TranscriptPageForTab`,
-`TranscriptContentForTab`, and `TranscriptReplayForTab`. Serve exposes GET
-`/transcript/snapshot`, `/transcript/page`, `/transcript/content`, and
-`/transcript/replay` behind its existing authentication and host checks.
+`TranscriptContentForTab`, and `TranscriptReplayForTab`.
 
 `ResumeTranscriptSessionForTab` and `OpenChannelTranscriptSessionForTab` return
 switch-phase diagnostics after adoption, without building a legacy history page.
@@ -108,7 +105,7 @@ identity, projection revision, covered-through sequence, records, active owners,
 and pending runtime prompts. Page and content requests carry the same snapshot
 ID. Replay carries the identity and the last committed sequence. An expired cut
 returns `stale`; a replay identity or retained-range mismatch requires a new
-snapshot. Tab and remote-client generations are checked after asynchronous reads.
+snapshot. Tab generations are checked after asynchronous reads.
 
 The frontend suspends ordered ingress before requesting the snapshot. Mutable
 owners' referenced prefixes resolve before rows, runtime and attempt state commit
@@ -144,23 +141,19 @@ record cache. Active/running tabs are pinned. Inactive caches have a three-tab,
 32 MiB budget. Live gap buffers have a 1,024-event/8 MiB bound; overflow retains
 the high-water mark and recovers the suffix from the ledger.
 
-An old Serve returning an unsupported endpoint/protocol or its HTML index stays
-connected through the legacy path. The UI states that synchronization is limited
-and reconnects may have missing or repeated content. Capability discovery never
-upgrades or restarts Serve. Modern hydration uses metadata-only ancillary reads,
-so it does not also download the old full `/history` payload.
+Hydration uses metadata-only ancillary reads, so it does not also download the
+full history payload.
 
 ## Validation
 
 Root-module tests cover attempt identity, checkpoint write failure, autosave
-recovery, immutable cuts, nested content references, large sessions, and HTTP
-session binding. Desktop tests cover planner cancellation, old-Serve discovery,
-late remote responses, and metadata-only reads. The frontend snapshot client
+recovery, immutable cuts, nested content references, and large sessions.
+Desktop tests cover planner cancellation and metadata-only reads. The frontend snapshot client
 tests exercise prefix/suffix races, optimistic keys, page ordering, tool pairs,
 discard tombstones, and stale content writes through the real reducer.
 
 Run the root and Desktop Go suites separately. Run frontend `test:typecheck`,
-`test:transcript`, `test:remote`, `test:stream`, and the production build. Browser
+`test:transcript`, `test:stream`, and the production build. Browser
 transcript and app-memory checks, together with native Electron replay,
 remain separate acceptance gates; unit tests or cross-compilation do not replace
 native evidence.

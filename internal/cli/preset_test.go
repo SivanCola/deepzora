@@ -273,7 +273,7 @@ func TestPresetCrossCatalogResumeUsesSourceAndRetainsCreationService(t *testing.
 					t.Fatal(err)
 				}
 				t.Cleanup(resumed.Close)
-				if err := commitStartupResume(nil, resumed, cliResumeTarget{ref: ref, service: service}, flagTakeoverApproval(false)); err != nil {
+				if err := commitStartupResume(resumed, cliResumeTarget{ref: ref, service: service}); err != nil {
 					t.Fatal(err)
 				}
 			} else {
@@ -305,7 +305,7 @@ func TestPresetCrossCatalogResumeUsesSourceAndRetainsCreationService(t *testing.
 
 func TestPresetFlagsRegisteredOnEveryEntry(t *testing.T) {
 	isolateCLIConfigHome(t)
-	for _, command := range []string{"chat", "run", "serve"} {
+	for _, command := range []string{"chat", "run"} {
 		var rc int
 		out := captureStdout(t, func() { rc = Run([]string{command, "--preset", "review", "--help"}, "test") })
 		if rc != 0 || !strings.Contains(out, "preset") {

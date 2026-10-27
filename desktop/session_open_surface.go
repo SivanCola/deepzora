@@ -10,7 +10,7 @@ import (
 )
 
 // surfaceForCanonicalSession returns the tab OpenSession installs ref into.
-// The active tab wins. Without one (fresh start, remote-only layout, or the
+// The active tab wins. Without one (fresh start, or the
 // last visible session was archived), a visible tab that already runs ref is
 // activated, then a dormant local tab is reused, and otherwise an empty
 // surface is created for ref's workspace and bound by the caller. Opening a
@@ -31,8 +31,7 @@ func (a *App) surfaceForCanonicalSession(ref session.SessionRef, workspace works
 	a.mu.Unlock()
 
 	if tab, ctrl := a.firstResolvableLocalTab(); tab != nil {
-		// A remote-only layout keeps one dormant local tab for local work;
-		// opening a session there beats creating a second surface.
+		// A dormant local tab is reused before creating a second surface.
 		a.mu.Lock()
 		if a.tabs[tab.ID] == tab && !tab.removed {
 			a.activeTabID = tab.ID

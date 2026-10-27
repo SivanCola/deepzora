@@ -326,12 +326,6 @@ type chatTUI struct {
 	// resumePick is the interactive "/resume" session picker overlay. Non-nil
 	// while the user browses saved sessions with ↑/↓ and confirms with Enter.
 	resumePick *resumePicker
-	// reclaimState groups the flags a remote take-back sets and clears together.
-	reclaimState
-	// pendingTakeoverTarget remembers the last /resume target refused because a
-	// resident serve on this machine holds its lease; "/takeover" force-takes
-	// that session back.
-	pendingTakeoverTarget cliResumeTarget
 	// quickPick owns searchable single-choice overlays such as /model and
 	// /provider. It never invokes a raw-mode prompt inside Bubble Tea.
 	quickPick *quickPicker
@@ -400,10 +394,6 @@ type chatTUI struct {
 	pendingReload bool
 	modelRef      string
 	effortLevel   string // "" when the current provider/model has no configurable effort
-
-	// takeover mirrors a session acquired from a resident Serve and blocks
-	// admission while that Serve is reclaiming it.
-	takeover *cliTakeoverManager
 
 	// outputStyle is the active output-style name (config agent.output_style),
 	// shown as the current entry in the /output-style listing. "" = default.
@@ -1746,9 +1736,6 @@ func (m chatTUI) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if line == "exit" || line == "quit" || line == ":q" {
 				return m, shutdownNow
 			}
-			if m.reclaimBlocksInput(line) {
-				return m, finalize(m, cmds)
-			}
 			// /queue and /steer are local even when idle (never model-prompted).
 			if handled, msg := m.handleQueueSlash(line); handled {
 				m.notice(msg)
@@ -1875,9 +1862,6 @@ func (m chatTUI) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tuiShutdownMsg:
 		return m.shutdownAndQuit(msg)
-
-	case tuiSessionReclaimedMsg:
-		return m.completeSessionReclaim()
 
 	case turnModelSettingsMsg:
 		return m, m.handleTurnModelSettings(msg)
@@ -3642,7 +3626,6 @@ func approvalSubjectBody(full, preview string, width int) string {
 // MCP tools are advertised as mcp__<server>__<tool>; showing the short tool name
 // first keeps the approval prompt readable while preserving the source.
 func approvalToolDetails(toolName string) (name, detail string) {
-
 	if toolName == control.SandboxEscapeApprovalTool {
 		return i18n.M.ApprovalToolLabelSandboxEscape, fmt.Sprintf(i18n.M.ToolApprovalSourceFmt, i18n.M.ToolApprovalBuiltIn)
 	}
@@ -4002,10 +3985,6 @@ func elapsedTick(generation uint64) tea.Cmd {
 // output to scrollback; MCP prompt / custom commands resolve to a model turn.
 func (m *chatTUI) runSlashCommand(input string) tea.Cmd {
 	typedCmd := strings.TrimSpace(strings.SplitN(input, " ", 2)[0])
-	if notice := m.slashInputBlockedNotice(typedCmd); notice != "" {
-		m.notice(notice)
-		return nil
-	}
 
 	if strings.HasPrefix(typedCmd, "/mcp__") {
 		return m.runMCPPrompt(input)
@@ -4030,7 +4009,6 @@ func (m *chatTUI) runSlashCommand(input string) tea.Cmd {
 			m.notice(fmt.Sprintf("%s: %v", i18n.M.SlashNewFailed, err))
 			return nil
 		}
-		m.syncTakeoverIdentity()
 		// Native scrollback keeps the old transcript; mark the fork with a fresh banner.
 		m.resetFreshContextView(false)
 		m.notice(i18n.M.SlashNewDone)
@@ -4054,8 +4032,6 @@ func (m *chatTUI) runSlashCommand(input string) tea.Cmd {
 		m.notice(i18n.M.SlashClsDone)
 	case "/resume":
 		m.runResumeCommand(input)
-	case "/takeover":
-		m.runTakeoverCommand(input)
 	case "/status":
 		m.echoLocalCommand(input)
 		m.showStatusDetails()
@@ -4096,9 +4072,6 @@ func (m *chatTUI) runSlashCommand(input string) tea.Cmd {
 	case "/mcp":
 		m.echoLocalCommand(input)
 		m.runMCPSubcommand(input)
-	case "/remote":
-		m.echoLocalCommand(input)
-		m.showRemoteHosts()
 	case "/plugin", "/plugins":
 		m.echoLocalCommand(input)
 		m.runPluginSubcommand(input)
@@ -4532,34 +4505,6 @@ func (m *chatTUI) showMCPStatus() {
 // notice queues a dim informational line to scrollback.
 func (m *chatTUI) notice(note string) {
 	m.commitLine(dim("  · " + note))
-}
-
-// showRemoteHosts renders a read-only summary of configured remote hosts. The
-// remote session lives in a `deepzora serve` on the remote host, so connecting
-// happens from a terminal (`deepzora remote connect`), not inside this chat.
-func (m *chatTUI) showRemoteHosts() {
-	cfg, err := config.Load()
-	if err != nil {
-		m.notice(err.Error())
-		return
-	}
-	if len(cfg.Remote.Hosts) == 0 {
-		m.notice(i18n.M.RemoteNoHostsHint)
-		return
-	}
-	var b strings.Builder
-	for _, h := range cfg.Remote.Hosts {
-		target := h.Host
-		if h.User != "" {
-			target = h.User + "@" + target
-		}
-		if h.Port != 0 && h.Port != 22 {
-			target = fmt.Sprintf("%s:%d", target, h.Port)
-		}
-		fmt.Fprintf(&b, "  · %s  %s\n", h.Name, target)
-	}
-	fmt.Fprintf(&b, "  run `deepzora remote connect <name>` in a terminal to open the remote workspace")
-	m.commitLine(dim(b.String()))
 }
 
 // resolveRefs resolves a line's @references off the event loop via the

@@ -158,43 +158,6 @@ func recordedSessionPresets(t *testing.T) map[string]string {
 	return file.Sessions
 }
 
-func TestNewSessionInTabDoesNotInheritSourcePreset(t *testing.T) {
-	presetHost(t)
-	app, tab, _, _, _ := canonicalWorkspaceOpenFixture(t)
-	refA := session.SessionRef{HostID: localDesktopHostID, SessionID: tab.SessionID}
-	_, fresh := desktopNewSessionDefaults("project", tab.WorkspaceRoot)
-	if fresh == control.ToolApprovalDangerFullAccess {
-		t.Fatalf("new-session default %q must differ from the source preset", fresh)
-	}
-
-	choosePreset(t, app, tab, control.ToolApprovalDangerFullAccess)
-	if err := app.NewSessionForTab(tab.ID); err != nil {
-		t.Fatal(err)
-	}
-	app.mu.RLock()
-	fresher := tab.SessionID
-	app.mu.RUnlock()
-	if fresher == "" || fresher == refA.SessionID {
-		t.Fatalf("New Session did not rotate the tab: %q", fresher)
-	}
-	requireTabPreset(t, app, tab, fresher, fresh)
-	app.saveTabsFromRemote()
-	if preset, ok := recordedSessionPresets(t)[fresher]; ok {
-		t.Fatalf("new session %s was recorded as %q without a choice made in it", fresher, preset)
-	}
-
-	app, tab = restartDesktopFromTabsFile(t, app, tab)
-	requireTabPreset(t, app, tab, fresher, fresh)
-	if _, err := app.OpenSession(refA); err != nil {
-		t.Fatal(err)
-	}
-	requireTabPreset(t, app, tab, refA.SessionID, control.ToolApprovalDangerFullAccess)
-	if _, err := app.OpenSession(session.SessionRef{HostID: localDesktopHostID, SessionID: fresher}); err != nil {
-		t.Fatal(err)
-	}
-	requireTabPreset(t, app, tab, fresher, fresh)
-}
-
 func TestNewSessionOnBlankTabDropsItsEarlierChoice(t *testing.T) {
 	presetHost(t)
 	app, tab, _, _, _ := canonicalWorkspaceOpenFixture(t)
@@ -217,46 +180,6 @@ func TestNewSessionOnBlankTabDropsItsEarlierChoice(t *testing.T) {
 	requireTabPreset(t, app, tab, reused, fresh)
 	if preset, ok := recordedSessionPresets(t)[reused]; ok {
 		t.Fatalf("session %s handed out as new still carries %q", reused, preset)
-	}
-}
-
-func TestForkStartsAtNewSessionDefault(t *testing.T) {
-	presetHost(t)
-	app, tab, _, _, _ := canonicalWorkspaceOpenFixture(t)
-	_, fresh := desktopNewSessionDefaults("project", tab.WorkspaceRoot)
-	child, err := app.desktopSessionService("").Create(t.Context(), session.CreateOptions{SessionID: "session-fork", CWD: tab.WorkspaceRoot, Origin: session.SessionOriginNew})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := app.workspaceRegistry().AttachSession(t.Context(), "", tab.SessionWorkspace.ID, child.Ref().SessionID, ""); err != nil {
-		t.Fatal(err)
-	}
-
-	choosePreset(t, app, tab, control.ToolApprovalDangerFullAccess)
-	opened, err := app.openForkedSessionTabWithWorkspace(tab, forkedSessionLocator{SessionID: child.Ref().SessionID}, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	app.mu.RLock()
-	forked := app.tabs[opened.tab.ID]
-	app.mu.RUnlock()
-	if forked == nil {
-		t.Fatal("fork tab was not opened")
-	}
-	t.Cleanup(func() {
-		if live := app.controllerForTab(forked); live != nil {
-			live.Close()
-		}
-	})
-	app.mu.RLock()
-	got, mode := forked.toolApprovalMode, forked.mode
-	app.mu.RUnlock()
-	if got != fresh || mode != tabModeForPlan(false) {
-		t.Fatalf("fork preset = %q (mode %q), want %q", got, mode, fresh)
-	}
-	app.saveTabsFromRemote()
-	if preset, ok := recordedSessionPresets(t)[child.Ref().SessionID]; ok {
-		t.Fatalf("fork %s was recorded as %q without a choice made in it", child.Ref().SessionID, preset)
 	}
 }
 
@@ -366,4 +289,81 @@ func TestSnapshotBeforeBlankSessionReuseIsRefused(t *testing.T) {
 	if got, ok := recordedSessionPresets(t)[seen.SessionID]; ok {
 		t.Errorf("session %s handed out as new was recorded as %q from an earlier snapshot", seen.SessionID, got)
 	}
+}
+
+func TestForkStartsAtNewSessionDefault(t *testing.T) {
+	presetHost(t)
+	app, tab, _, _, _ := canonicalWorkspaceOpenFixture(t)
+	_, fresh := desktopNewSessionDefaults("project", tab.WorkspaceRoot)
+	child, err := app.desktopSessionService("").Create(t.Context(), session.CreateOptions{SessionID: "session-fork", CWD: tab.WorkspaceRoot, Origin: session.SessionOriginNew})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := app.workspaceRegistry().AttachSession(t.Context(), "", tab.SessionWorkspace.ID, child.Ref().SessionID, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	choosePreset(t, app, tab, control.ToolApprovalDangerFullAccess)
+	opened, err := app.openForkedSessionTabWithWorkspace(tab, forkedSessionLocator{SessionID: child.Ref().SessionID}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	app.mu.RLock()
+	forked := app.tabs[opened.tab.ID]
+	app.mu.RUnlock()
+	if forked == nil {
+		t.Fatal("fork tab was not opened")
+	}
+	t.Cleanup(func() {
+		if live := app.controllerForTab(forked); live != nil {
+			live.Close()
+		}
+	})
+	app.mu.RLock()
+	got, mode := forked.toolApprovalMode, forked.mode
+	app.mu.RUnlock()
+	if got != fresh || mode != tabModeForPlan(false) {
+		t.Fatalf("fork preset = %q (mode %q), want %q", got, mode, fresh)
+	}
+	app.saveTabs()
+	if preset, ok := recordedSessionPresets(t)[child.Ref().SessionID]; ok {
+		t.Fatalf("fork %s was recorded as %q without a choice made in it", child.Ref().SessionID, preset)
+	}
+}
+
+func TestNewSessionInTabDoesNotInheritSourcePreset(t *testing.T) {
+	presetHost(t)
+	app, tab, _, _, _ := canonicalWorkspaceOpenFixture(t)
+	refA := session.SessionRef{HostID: localDesktopHostID, SessionID: tab.SessionID}
+	_, fresh := desktopNewSessionDefaults("project", tab.WorkspaceRoot)
+	if fresh == control.ToolApprovalDangerFullAccess {
+		t.Fatalf("new-session default %q must differ from the source preset", fresh)
+	}
+
+	choosePreset(t, app, tab, control.ToolApprovalDangerFullAccess)
+	if err := app.NewSessionForTab(tab.ID); err != nil {
+		t.Fatal(err)
+	}
+	app.mu.RLock()
+	fresher := tab.SessionID
+	app.mu.RUnlock()
+	if fresher == "" || fresher == refA.SessionID {
+		t.Fatalf("New Session did not rotate the tab: %q", fresher)
+	}
+	requireTabPreset(t, app, tab, fresher, fresh)
+	app.saveTabs()
+	if preset, ok := recordedSessionPresets(t)[fresher]; ok {
+		t.Fatalf("new session %s was recorded as %q without a choice made in it", fresher, preset)
+	}
+
+	app, tab = restartDesktopFromTabsFile(t, app, tab)
+	requireTabPreset(t, app, tab, fresher, fresh)
+	if _, err := app.OpenSession(refA); err != nil {
+		t.Fatal(err)
+	}
+	requireTabPreset(t, app, tab, refA.SessionID, control.ToolApprovalDangerFullAccess)
+	if _, err := app.OpenSession(session.SessionRef{HostID: localDesktopHostID, SessionID: fresher}); err != nil {
+		t.Fatal(err)
+	}
+	requireTabPreset(t, app, tab, fresher, fresh)
 }

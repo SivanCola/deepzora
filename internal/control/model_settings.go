@@ -65,10 +65,6 @@ func (c *Controller) ModelSettingsState() (applied, desired string, err error) {
 	return c.modelSettings.revision, desired, err
 }
 
-// ModelSettingsSourceRevision identifies an immutable Desktop resolver bundle.
-// It is transport bookkeeping only, never part of the conversation.
-func (c *Controller) ModelSettingsSourceRevision() string { return c.modelSettings.sourceRevision }
-
 // controllerModelSettings keeps the immutable snapshot and its host admission
 // callback together for the lifetime of one controller. The callback is guarded
 // by Controller.mu; snapshot fields are immutable after construction.
@@ -77,7 +73,6 @@ type controllerModelSettings struct {
 	identity            string
 	continuation        func() error
 	revision            string
-	sourceRevision      string
 	current             func() (string, error)
 	beforeInboxDispatch func(*Controller) (func(), error)
 }
@@ -88,7 +83,6 @@ func newControllerModelSettings(opts Options) controllerModelSettings {
 		identity:            rand.Text(),
 		continuation:        opts.ModelSettingsContinuation,
 		revision:            opts.ModelSettingsRevision,
-		sourceRevision:      opts.ModelSettingsSourceRevision,
 		current:             opts.ModelSettingsCurrent,
 		beforeInboxDispatch: opts.BeforeInboxDispatch,
 	}

@@ -28,8 +28,6 @@ func (m *chatTUI) handleModelSwitch(msg modelSwitchMsg) []tea.Cmd {
 			prefix = "model"
 		}
 		m.notice(prefix + ": " + msg.err.Error())
-		// A failed candidate leaves the current identity and its mirror intact.
-		m.syncTakeoverIdentity()
 	} else {
 		if err := control.ActivateSessionAPIReplacement(msg.oldCtrl, msg.ctrl); err != nil {
 			if concrete, ok := msg.ctrl.(*control.Controller); ok {
@@ -38,15 +36,11 @@ func (m *chatTUI) handleModelSwitch(msg modelSwitchMsg) []tea.Cmd {
 				msg.ctrl.Close()
 			}
 			m.notice("runtime activation: " + err.Error())
-			m.syncTakeoverIdentity()
 			return cmds
 		}
 		m.ctrl = activateGoalDriverAfterRebuild(msg.ctrl)
 		if err := m.ctrl.Snapshot(); err != nil {
 			m.notice("runtime snapshot: " + err.Error())
-		}
-		if m.takeover != nil {
-			m.takeover.AttachController(msg.ctrl)
 		}
 		m.updateWatchdogStatusProvider()
 		m.label = msg.label
@@ -59,8 +53,6 @@ func (m *chatTUI) handleModelSwitch(msg modelSwitchMsg) []tea.Cmd {
 		if msg.oldCtrl != nil && msg.oldCtrl != msg.ctrl {
 			m.oldControllers = append(m.oldControllers, msg.oldCtrl)
 		}
-		// Preserve a mirror only while its captured identity is still current.
-		m.syncTakeoverIdentity()
 		if msg.successNotice != "" {
 			m.notice(msg.successNotice)
 		} else {

@@ -188,9 +188,6 @@ func (a *App) inboxCtrl(tabID string) (control.SessionAPI, error) {
 
 // InboxSnapshot returns durable inbox metadata for a tab (no bodies).
 func (a *App) InboxSnapshot(tabID string) (InboxSnapshotView, error) {
-	if a.isRemoteTab(tabID) {
-		return a.remoteInboxSnapshot(tabID)
-	}
 	ctrl, err := a.inboxCtrl(tabID)
 	if err != nil {
 		return InboxSnapshotView{}, err
@@ -241,20 +238,6 @@ func (a *App) CancelTabWithInboxItemsResult(tabID string, itemIDs []string) (Inb
 	view.Warning = result.Warning
 	a.emitInboxChanged(tabID)
 	return view, nil
-}
-
-func (a *App) enqueueInbox(tabID string, intent sessioninbox.InboxIntent, display, submit string, invocations []InvocationRequest, idempotency string, trySteer bool) (InboxReceiptView, error) {
-	a.remoteTabMu.Lock()
-	remote := a.remoteTabs[tabID] != nil
-	a.remoteTabMu.Unlock()
-	if remote && !trySteer {
-		return a.enqueueRemoteFollowup(tabID, display, submit, invocations, idempotency)
-	}
-	ctrl, err := a.inboxCtrl(tabID)
-	if err != nil {
-		return InboxReceiptView{}, err
-	}
-	return a.enqueueInboxWithController(tabID, ctrl, intent, display, submit, invocations, idempotency, trySteer, "", "")
 }
 
 func (a *App) enqueueInboxWithController(tabID string, ctrl control.SessionAPI, intent sessioninbox.InboxIntent, display, submit string, invocations []InvocationRequest, idempotency string, trySteer bool, turnID, expectedPath string) (InboxReceiptView, error) {

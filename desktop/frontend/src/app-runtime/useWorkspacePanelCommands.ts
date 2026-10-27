@@ -5,7 +5,6 @@ import { resolveLauncherCardState, type SpaceMode } from "../lib/launcherCardSta
 import type { Translator } from "../lib/i18n";
 import { loadWorkspacePanelOpen, saveWorkspacePanelOpen, useLayoutStore } from "../store/layout";
 import { dockModeForTab, selectRightDockMode, useActivityBarStore, type RightDockMode, type TabType } from "../store/activityBar";
-import { useRemoteStore } from "../store/remote";
 
 type Input = {
   sessionId: string;
@@ -25,16 +24,13 @@ function tabForDockMode(mode: RightDockMode): TabType {
   switch (mode) {
     case "context": return "context";
     case "changed": return "changed";
-    case "remote": return "remote";
     case "browser": return "browser";
     default: return "file";
   }
 }
 
-// Remote and browser tabs have no launcher entry, so they carry their own
-// label keys; every other tab type is labelled by its DOCK_ENTRIES entry.
+// Browser tabs have no launcher entry, so they carry their own label key; every other tab type is labelled by its DOCK_ENTRIES entry.
 function labelKeyForTab(type: TabType): string {
-  if (type === "remote") return "rightDock.remote";
   if (type === "browser") return "rightDock.browser";
   return DOCK_ENTRIES.find(entry => entry.defaultTab === type)?.labelKey ?? "workspace.filesTab";
 }
@@ -47,9 +43,6 @@ export function useWorkspacePanelCommands(input: Input) {
   const noteLayoutChoice = () => {
     if (input.globalWorkspace && !input.workspaceRoot) unboundLayoutTouched.current = true;
   };
-  const mode = useActivityBarStore(selectRightDockMode);
-  const explorerOpen = useRemoteStore(state => state.explorerOpen);
-  const hostCount = useRemoteStore(state => state.hosts.length);
   // The floating launcher card is on screen only while the dock column is
   // collapsed, the surface is wide enough and the user has not dismissed it —
   // one shared decision for the card's render condition and the toggle's
@@ -149,12 +142,6 @@ export function useWorkspacePanelCommands(input: Input) {
     input.closeOverlays();
     layout.setWorkspacePreviewActive(active);
   });
-  const openRemoteDock = useCommittedCommand(() => {
-    const remote = useRemoteStore.getState();
-    const fallback = remote.hosts.find(host => ["connected", "degraded"].includes(remote.statuses[host.id]?.state)) ?? remote.hosts[0];
-    const hostId = remote.hosts.some(host => host.id === remote.explorerHostId) ? remote.explorerHostId : fallback?.id;
-    if (hostId) remote.openExplorer(hostId);
-  });
   const restoreWorkspaceDockWidths = useCommittedCommand((treeWidth: number, _previewWidth: number) => {
     // Restore the preference, not its temporary narrow-window rendering.
     input.setTreeWidth(treeWidth);
@@ -191,18 +178,10 @@ export function useWorkspacePanelCommands(input: Input) {
     if (activity.activeTabId) return;
     activity.openEntry("context", t(labelKeyForTab("context") as never));
   }, [input.sessionId, input.visible, input.workspaceRoot, t]);
-  useEffect(() => {
-    if (!explorerOpen) return;
-    openRightDockMode("remote");
-    useRemoteStore.getState().closeExplorer();
-  }, [explorerOpen, openRightDockMode]);
-  useEffect(() => {
-    if (hostCount === 0 && mode === "remote") useActivityBarStore.getState().openEntry("file", t("workspace.filesTab"));
-  }, [hostCount, mode, t]);
   return {
     openRightDockMode, closeWorkspacePanel, prepareBlankWorkspace, openDockEntry,
     toggleWorkspacePanel, toggleWorkspaceMaximized, handleWorkspacePreviewModeChange,
-    openRemoteDock, restoreWorkspaceDockWidths,
+    restoreWorkspaceDockWidths,
     launcherCard, launcherCardMounted, launcherCardOverlay: input.gridOpen,
     toggleLauncherCard, setLauncherSpaceMode,
   };

@@ -107,10 +107,6 @@ func cloneRuntimeTopics(topics []ProjectRuntimeTopic) []ProjectRuntimeTopic {
 		for i, child := range node.Children {
 			next.Children[i] = cloneNode(child)
 		}
-		if node.Remote != nil {
-			remote := *node.Remote
-			next.Remote = &remote
-		}
 		return next
 	}
 	result := make([]ProjectRuntimeTopic, len(topics))
@@ -224,7 +220,6 @@ func (a *App) emitRuntimeProjection(snapshot RuntimeStateProjection) {
 	r.mu.Unlock()
 	a.emitRuntimeEvent("project-tree:runtime-changed", ProjectTreeRuntimeSnapshot{Revision: snapshot.Revision, Topics: snapshot.Topics})
 	a.emitRuntimeEvent("runtime-state:changed", snapshot)
-
 }
 
 func (a *App) emitRuntimeEvent(name string, payload ...any) {

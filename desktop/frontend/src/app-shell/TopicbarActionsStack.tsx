@@ -30,7 +30,7 @@ export function buildTopicbarView(input: {
   const topicbarWorkspacePath = activeTab?.scope === "project" ? activeTab.workspaceRoot || input.cwd : "";
   const topicbarSubtitleVisible = Boolean(activeTab?.isolatedWorktree);
   const topicbarSubtitleTitle = topicbarWorkspacePath || topicbarWorkspaceLabel;
-  const topicbarCanRename = !input.draft && (Boolean(activeTab?.topicId) || Boolean(activeTab?.remote));
+  const topicbarCanRename = !input.draft && Boolean(activeTab?.topicId);
   return {
     automationReturn: input.automationReturn,
     automationReturnLabel: locale === "en" ? "Back to automation" : "返回自动化",

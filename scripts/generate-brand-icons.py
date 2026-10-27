@@ -94,7 +94,6 @@ def main():
     wordmark_image.thumbnail((1536, 512), LANCZOS)
     wordmark = svg_image(wordmark_image)
     (FRONTEND / "src/assets/logo-wordmark.svg").write_text(wordmark)
-    (ROOT / "internal/serve/logo-wordmark.svg").write_text(wordmark)
 
     plate = icon_artwork()
     app = canvas(plate, 1024, 24)

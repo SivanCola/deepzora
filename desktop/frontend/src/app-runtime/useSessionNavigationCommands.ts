@@ -18,7 +18,7 @@ export type SessionNavigationCommandsInput = {
   showToast: (message: string, level: "error") => void;
   closeTransientOverlays: () => void;
   prepareBlankWorkspace: (workspaceRoot?: string) => void;
-  navigation: Pick<ReturnType<typeof useDesktopNavigation>, "enqueueNavigation" | "enqueueNavigationWithIntent" | "openRemoteProject">;
+  navigation: Pick<ReturnType<typeof useDesktopNavigation>, "enqueueNavigation" | "enqueueNavigationWithIntent">;
   noteNavigationIntent: () => number;
   beginNavigationSurface: (seq: number) => void;
   settleNavigationSurface: (seq: number) => void;
@@ -39,14 +39,14 @@ export type SessionNavigationCommandsInput = {
 /**
  * Owns explicit local creation and session navigation. Each creation is an
  * independent mutation; only its selection follows the shared navigation
- * epoch. Remote routing retains its own commands. Navigation never reads or
+ * epoch. Navigation never reads or
  * waits for the retired workspace-draft store.
  */
 export function useSessionNavigationCommands(input: SessionNavigationCommandsInput) {
-  const { activeTab, showToast, navigation, ports } = input;
+  const { activeTab, navigation, ports } = input;
   const lastLocalTarget = useRef(sessionCreationTargetForTab(activeTab));
   const [creation, setCreation] = useState<(ManualCreationObservation & { seq: number }) | null>(null);
-  if (activeTab && !activeTab.remote) lastLocalTarget.current = sessionCreationTargetForTab(activeTab);
+  if (activeTab) lastLocalTarget.current = sessionCreationTargetForTab(activeTab);
 
   const blankSessionTarget = useCommittedCommand(() => lastLocalTarget.current);
 
@@ -92,19 +92,11 @@ export function useSessionNavigationCommands(input: SessionNavigationCommandsInp
 
   const handleNewTab = useCommittedCommand(async () => {
     input.closeTransientOverlays();
-    if (activeTab?.remote) {
-      const navigationIntentSeq = input.noteNavigationIntent();
-      if (!input.isNavigationIntentCurrent(navigationIntentSeq)) return;
-      input.prepareBlankWorkspace();
-      const outcome = await navigation.openRemoteProject(activeTab.remote, { newSession: true });
-      if (outcome.status === "failed") showToast(outcome.error instanceof Error ? outcome.error.message : String(outcome.error), "error");
-      return;
-    }
     const target = blankSessionTarget();
     await openBlankSession(target.scope, target.workspaceRoot);
   });
   const startInitialConversation = useCommittedCommand(async () => {
-    if (activeTab?.session || activeTab?.remote) { input.enterConversation(); return; }
+    if (activeTab?.session) { input.enterConversation(); return; }
     const target = blankSessionTarget();
     await openBlankSession(target.scope, target.workspaceRoot, true);
   });

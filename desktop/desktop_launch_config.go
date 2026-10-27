@@ -17,8 +17,7 @@ const (
 // The main window is frameless on Windows and draws its own chrome: the
 // frontend supplies the drag rail (the shell rewrites the drag-region marker
 // to -webkit-app-region) and the minimise/maximise/close buttons via the App
-// bindings. Remote Serve windows are shell BrowserWindows with the native
-// frame and never consult this function.
+// bindings.
 func desktopWindowFrameless(goos string) bool {
 	return goos == "windows"
 }

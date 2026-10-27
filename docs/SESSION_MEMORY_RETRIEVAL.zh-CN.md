@@ -218,13 +218,12 @@ archive entry，拒绝符号链接和路径逃逸，拒绝 ID/name 冲突，也�
 - 从重复工作流模式中提取的 Skill 候选。
 
 扫描使用原始用户内容，并与两个 scope 的 facts 和已加载指令正文去重；扫描本身绝不写入。
-每个候选都展示 evidence，必须由用户显式接受。远程 workspace 会 fail closed：远端不提供
-能力时，Deepzora 不会回退读取桌面机器的本地 session 或 memory。
+每个候选都展示 evidence，必须由用户显式接受。
 
 ## 管理界面
 
 直接运行 `/memory` 会显示两个 scope 的全部 active facts，包括 ID、revision、type、
-scope、freshness 与存储来源。CLI、Desktop 和 remote workspace 都提供结构化补全。
+scope、freshness 与存储来源。CLI 和 Desktop 都提供结构化补全。
 
 | 命令 | 结果 |
 | --- | --- |
@@ -250,6 +249,5 @@ Context Center 用图形界面展示同一模型，还会显示冲突和 project
 - diagnostics 不进入 provider request。
 - 自动召回不暴露 fact storage path，并替换 snippet 中的 home directory 前缀。
 - 外部审批通知只收到工具名，不收到记忆正文。
-- 远程管理只使用远程 controller 的 memory catalog，绝不回退读取桌面本机 store。
 
 这样既保持 provider-visible prefix 稳定，也让动态上下文可解释、可恢复。

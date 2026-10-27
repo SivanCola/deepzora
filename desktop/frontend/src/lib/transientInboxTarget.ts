@@ -1,5 +1,5 @@
-// A transient inbox-target fence: the remote tab is switching, reconnecting or
-// re-aiming its route. The bridge marks it with a code and RPCErrorData
+// A transient inbox-target fence: the tab is switching or re-aiming its
+// route. The bridge marks it with a code and RPCErrorData
 // {"transient": true}; the composer holds the message and retries it briefly
 // instead of surfacing a failure the user cannot act on.
 

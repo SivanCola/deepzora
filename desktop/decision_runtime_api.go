@@ -37,8 +37,6 @@ type InteractionTargetView struct {
 	Kind              string `json:"kind"`
 }
 
-type RemotePromptTarget = InteractionTargetView
-
 func (a *App) PendingPromptIdentitiesForTab(tabID string) ([]PromptIdentityView, error) {
 	tab, ctrl := a.tabAndCtrlByID(tabID)
 	if ctrl == nil {

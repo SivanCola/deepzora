@@ -42,6 +42,9 @@ func (e *sessionLocatorError) Error() string {
 	return fmt.Sprintf("invalid session identity: %s", e.reason)
 }
 
+// sessionIDRoutePrefix marks a canonical session identity route.
+const sessionIDRoutePrefix = "session-id:"
+
 // classifySessionLocator is deliberately path-I/O free. A value with the
 // canonical route prefix is always a route candidate: malformed IDs never
 // fall through to filesystem interpretation.
@@ -50,7 +53,7 @@ func classifySessionLocator(raw string) sessionLocator {
 	if value == "" {
 		return sessionLocator{kind: sessionLocatorEmpty}
 	}
-	if id, route := strings.CutPrefix(value, remoteSessionIDRoutePrefix); route {
+	if id, route := strings.CutPrefix(value, sessionIDRoutePrefix); route {
 		id = strings.TrimSpace(id)
 		if err := session.ValidateSessionID(id); err != nil {
 			return sessionLocator{kind: sessionLocatorInvalid, reason: "invalid_canonical_route"}

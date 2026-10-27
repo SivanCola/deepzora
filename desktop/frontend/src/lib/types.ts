@@ -12,15 +12,13 @@ export type { ProviderProtocolEndpoint, ProviderCatalog, ProviderPresetView } fr
 import type { WireReadStatus } from "./readStatus";
 export type { WireReadStatus } from "./readStatus";
 import type { RecoveryEventFields } from "./recoveryStatus";
-// Wire contract: one discriminated event channel mirrors desktop/wire.go and internal/serve/wire.go.
+// Wire contract: one discriminated event channel mirrors desktop/wire.go.
 import type { HistoryServerSearch } from "./searchSources";
 import type { Todo } from "./tools";
 import type { ContextBudgetInfo, ContextMaintenanceInfo, WireContextMaintenance } from "./contextMaintenanceTypes";
 import type { WireApproval } from "./approvalTypes";
-import type { RemoteSessionMetaFields, RemoteTabMetaFields } from "./remoteTypes";
 import type { PinnedFileInfo } from "./pinnedContextBridge";
 import type { SessionRef, SessionRuntimeIssue } from "./sessionRef";
-export * from "./remoteTypes";
 export type { ContextBudgetInfo, ContextMaintenanceInfo, ContextMaintenanceReceipt, WireContextMaintenance } from "./contextMaintenanceTypes";
 export type { HistoryContentChunk, HistoryContentRef, HistoryEntry, HistorySlice, HistorySliceRequest, HistoryWindowPageView, HistoryWindowRequestView, HistoryWindowStatus, MessageFieldView, SessionClearResult } from "./historyTypes";
 export type { ProjectRuntimeTopic, ProjectTopicKey, ProjectTopicPage, ProjectTopicPageRequest, ProjectTreeChangedV2, ProjectTreeOrganizationBindings, ProjectTreeRuntimeSnapshot, ProjectTreeSnapshot, SessionCatalogBindings, SessionCatalogStatus, SessionGroup, SessionReference } from "./sessionCatalogTypes";
@@ -482,20 +480,9 @@ export interface SessionRuntimeView {
   issue?: SessionRuntimeIssue;
 }
 
-/** Occupancy report for a session a local serve holds; drives the takeover dialog. */
-export interface SessionTakeoverView {
-  available: boolean;
-  reason?: string;
-  sessionPath?: string;
-  holder?: "serve" | "external" | "other" | "free";
-  remoteAttached?: boolean;
-  running?: boolean;
-  mirrored?: boolean;
-}
-
 
 // Tab management types (desktop/tabs.go).
-export interface TabMeta extends RemoteTabMetaFields {
+export interface TabMeta {
   id: string;
   tabType?: "session" | "file";
   scope: string;
@@ -513,8 +500,6 @@ export interface TabMeta extends RemoteTabMetaFields {
   sessionDigest?: string;
   sessionGeneration?: number;
   readOnly?: boolean;
-  /** Remote tab whose session a local runtime on the serve host took over. */
-  takenOver?: boolean;
   filePath?: string;
   projectColor?: string;
   label: string;
@@ -838,7 +823,7 @@ export interface ContextInfo {
   contextBudget?: ContextBudgetInfo;
 }
 
-export interface Meta extends RemoteSessionMetaFields {
+export interface Meta {
   label: string;
   ready: boolean;
   runtime?: SessionRuntimeView;
@@ -1425,7 +1410,7 @@ export interface MemoryView {
 }
 
 // SettingsTab is the top-level navigation item in the Settings Centre modal.
-export type SettingsTab = "general" | "models" | "model-stats" | "providers" | "mcp" | "remote" | "skills" | "agent-presets" | "subagents" | "plugins" | "memory" | "hooks" | "diagnostics" | "shortcuts" | "permissions" | "sandbox" | "network" | "browser" | "appearance" | "storage" | "updates";
+export type SettingsTab = "general" | "models" | "model-stats" | "providers" | "mcp" | "skills" | "agent-presets" | "subagents" | "plugins" | "memory" | "hooks" | "diagnostics" | "shortcuts" | "permissions" | "sandbox" | "network" | "browser" | "appearance" | "storage" | "updates";
 
 export type { RuntimeDoctorReport } from "./runtimeDoctorTypes";
 

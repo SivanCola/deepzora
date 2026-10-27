@@ -10,7 +10,7 @@ installBridgeApp({...makeSessionUIMock(async()=>{})});
 let applied=false;
 let editor!:ReturnType<typeof useSessionComposerPersistence>,router!:ReturnType<typeof useComposerRouter>;
 const noop=()=>{};
-const ports:ComposerRouterInput["ports"]={runShellForTab:async()=>{},switchModel:async()=>applied,newSession:async()=>{},setSettingsTarget:noop,setClearContextPending:noop,clearWorkspaceConflict:noop,setWorkspaceConflict:noop,setPendingClose:noop,submitComposerTurn:async()=>{throw Error("must not dispatch a model command to provider");},steerForTab:async()=>{},isRemoteTab:()=>false};
+const ports:ComposerRouterInput["ports"]={runShellForTab:async()=>{},switchModel:async()=>applied,newSession:async()=>{},setSettingsTarget:noop,setClearContextPending:noop,clearWorkspaceConflict:noop,setWorkspaceConflict:noop,setPendingClose:noop,submitComposerTurn:async()=>{throw Error("must not dispatch a model command to provider");},steerForTab:async()=>{}};
 function Probe(){editor=useSessionComposerPersistence({hostId:"local",sessionId:"command"},"command-tab");router=useComposerRouter({activeTabId:"command-tab",goalDraftActive:false,t:key=>key,notice:noop,showToast:noop,ports});return null;}
 const root=createRoot(document.getElementById("root")!);
 try {

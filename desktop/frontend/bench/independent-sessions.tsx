@@ -116,7 +116,6 @@ const host = installDesktopHostStub({ ...fallback,
   ResolvePromptForTab: async (tabId: string, promptId: string, turnId: string, epoch: string) => { runtimeCalls.push({ method: "approve", tabId, promptId, turnId, epoch }); },
   CancelSessionForTab: async (tabId: string) => { runtimeCalls.push({ method: "stop", tabId }); return { accepted: true, alreadyIdle: false, recoveryRequired: false }; },
   ListTabs: async () => [],
-  RemoteConnectionStatuses: async () => [],
   ListSessions: async () => sessions(),
   ListHistorySessions: async () => ({ items: sessions(), nextCursor: "", revision, partial: false }),
   GetSessionRecoveryVersions: async () => ({ items: [] }),
@@ -150,17 +149,17 @@ function Fixture() {
   const target = { tabId: `tab-${selected}`, sessionKey: selected };
   const resources = (largeWindow ? ["0"] : ["a", "b"]).map(id => ({ tabId: `tab-${id}`, sessionKey: id }));
   const operations = useSessionOperations({ visible: target, resources });
-  const promptCommands = useSessionPromptCommands({ target, session: { hostId: "local", sessionId: selected }, sessionGeneration: 1, approval: { id: `approval-${selected}`, tool: "bash" }, remote: false, goal: "", toolApprovalMode: "read-only", operations,
+  const promptCommands = useSessionPromptCommands({ target, session: { hostId: "local", sessionId: selected }, sessionGeneration: 1, approval: { id: `approval-${selected}`, tool: "bash" }, goal: "", toolApprovalMode: "read-only", operations,
     reportError: error => { throw error; }, ports: {
       isPromptCurrentForTab: target => target.promptId === `approval-${target.tabId.replace("tab-", "")}`,
       approveForTab: async (target, allow, session, persist) => { await resolvePromptForTab(app, target.tabId, target.promptId, "approval", { allow, session, persist }, `turn-${target.tabId}`, `epoch-${target.tabId}`); setShowApproval(false); },
       resolvePlanForTab: () => {}, resolveRecoveryForTab: () => {}, answerQuestionForTab: async () => {}, answerMCPForTab: () => {},
-      setCollaborationModeForTab: async () => {}, clearGoalForTab: async () => {}, setRemoteComposerProfile: async () => [],
-      patchComposerProfile: () => {}, notePlanMode: () => {}, drainRemoteApprovals: () => {}, rememberRevision: () => {},
+      setCollaborationModeForTab: async () => {}, clearGoalForTab: async () => {},
+      patchComposerProfile: () => {}, notePlanMode: () => {}, rememberRevision: () => {},
     } });
   const controlCommands = useSessionControlCommands({ activeTabId: target.tabId, resources, operations, showToast: message => { throw new Error(message); }, clearWorkspaceConflict: () => {}, ports: {
     cancel: async () => { throw new Error("stop must retain its source tab"); }, cancelForTab: (tab, items) => requestSessionCancel(app, tab, items),
-    acceptDelivery: async () => {}, disconnectRemote: async () => {}, cancelJobForTab: async () => false, refreshBackgroundRuntimes: async () => {},
+    acceptDelivery: async () => {}, cancelJobForTab: async () => false, refreshBackgroundRuntimes: async () => {},
   } });
   const row = rows.find(row => row.session?.sessionId === selected)!;
   const commands = useProjectTopicCommands({

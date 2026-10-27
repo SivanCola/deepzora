@@ -58,13 +58,10 @@ export function manualTopicOrder(a: ProjectNode, b: ProjectNode): number {
 }
 
 export function projectTreeOrganizationKey(node: ProjectNode): string {
-  const remote = node.remote ?? node.remoteSession;
-  if (remote) return `remote|${JSON.stringify([remote.hostId, remote.workspace])}`;
   return node.kind === "global_folder" || node.kind === "global_topic" ? "global|" : `project|${node.root ?? ""}`;
 }
 
-function splitOrganizationKey(key: string): { scope: "global" | "project"; root: string; hostId?: string } {
-  if (key.startsWith("remote|")) { const [hostId, root] = JSON.parse(key.slice(7)) as [string,string]; return { scope: "project", root, hostId }; }
+function splitOrganizationKey(key: string): { scope: "global" | "project"; root: string } {
   return key === "global|" ? { scope: "global", root: "" } : { scope: "project", root: key.slice("project|".length) };
 }
 
@@ -172,7 +169,7 @@ export function useProjectTreeOrganization({
   const [ordersByKey, setOrdersByKey] = useState<Record<string, string[]>>({});
   const [dragTopicID, setDragTopicID] = useState<string | null>(null);
   const [dropTopic, setDropTopic] = useState<{ topicID: string; position: ProjectDropPosition } | null>(null);
-  const dragContextRef = useRef<{ scope: "global" | "project"; root: string; hostId?: string; key?: string } | null>(null);
+  const dragContextRef = useRef<{ scope: "global" | "project"; root: string; key?: string } | null>(null);
   const [groupsByKey, setGroupsByKey] = useState<Record<string, SessionGroup[]>>({});
   const groupsRef = useRef(groupsByKey);
   const mountedRef = useRef(false);
@@ -200,8 +197,8 @@ export function useProjectTreeOrganization({
     groupLoadSequencesRef.current[key] = sequence;
     const mutationVersion = groupMutationVersionsRef.current[key] ?? 0;
     loadingGroupsRef.current.add(key);
-    const { scope, root, hostId } = splitOrganizationKey(key);
-    const read = bindings.GetSessionOrganization({ scope, workspaceRoot: root, hostId });
+    const { scope, root } = splitOrganizationKey(key);
+    const read = bindings.GetSessionOrganization({ scope, workspaceRoot: root });
     void read.then((snapshot) => {
       if (!mountedRef.current || groupLoadSequencesRef.current[key] !== sequence) return;
       if ((groupMutationVersionsRef.current[key] ?? 0) !== mutationVersion) return;
@@ -231,10 +228,10 @@ export function useProjectTreeOrganization({
     groupMutationVersionsRef.current[key] = (groupMutationVersionsRef.current[key] ?? 0) + 1;
     loadedGroupsRef.current.add(key);
     setKeyGroups(key, next);
-    const { scope, root, hostId } = splitOrganizationKey(key);
+    const { scope, root } = splitOrganizationKey(key);
     const previous = groupSaveChainsRef.current.get(key) ?? Promise.resolve();
     const pending = previous.catch(() => {}).then(async () => {
-      const saved = await mutateSessionOrganization(bindings, { scope, workspaceRoot: root, hostId }, mutation);
+      const saved = await mutateSessionOrganization(bindings, { scope, workspaceRoot: root }, mutation);
       if (mountedRef.current) {
         setKeyGroups(key, asArray(saved.groups));
         setOrdersByKey(current => ({ ...current, [key]: saved.manualOrderEnabled ? asArray(saved.order) : [] }));
@@ -308,7 +305,7 @@ export function useProjectTreeOrganization({
         if (dragged && targetGroup && !projectTreeGroupContainsNode(targetGroup, dragged)) {
           mutateGroups(key, (groups) => moveNodeToGroup(groups, dragged, targetGroup.id), { kind: "set-group", target: projectNodeSelector(dragged), groupId: targetGroup.id });
         } else if (dragged) {
-          void mutateSessionOrganization(bindings, { scope: context.scope, workspaceRoot: context.root, hostId: splitOrganizationKey(key).hostId },
+          void mutateSessionOrganization(bindings, { scope: context.scope, workspaceRoot: context.root },
             { kind: "move", target: projectNodeSelector(dragged), anchor: projectNodeSelector(node), position, sortMode: sortModeRef.current })
             .then(saved => { setOrdersByKey(current => ({ ...current, [key]: saved.order })); return refresh({ reloadAllTopics: true }); })
             .then(() => onTopicsChanged?.()).catch(error => { showToast(String(error), "error"); loadGroups(key, true); return refresh({ reloadAllTopics: true }); });
@@ -393,7 +390,6 @@ export function ProjectTreeGroupRows({
   renderNode,
   t,
   queryActive,
-  remote,
   activeTopicId,
   isActive,
   listState,
@@ -412,7 +408,6 @@ export function ProjectTreeGroupRows({
   renderNode: (node: ProjectNode, depth: number, section: "pinned" | "projects", visible: boolean) => ReactNode;
   t: Translator;
   queryActive: boolean;
-  remote: boolean;
   activeTopicId?: string;
   isActive: (node: ProjectNode) => boolean;
   listState: (groupID: string) => ProjectTreeListPageState | undefined;
@@ -443,12 +438,12 @@ export function ProjectTreeGroupRows({
     if (activeGroup && organization.groupCollapsed(key, activeGroup.id)) organization.toggleGroup(key, activeGroup.id);
   }, [activeTopicId, children, groupIDs, groups, isActive, key, organization]);
   useEffect(() => {
-    if (!visible || queryActive || remote) return;
+    if (!visible || queryActive) return;
     onEnsureList("");
     for (const groupID of expandedGroupIDs.split("\u001f")) {
       if (groupID) onEnsureList(groupID);
     }
-  }, [expandedGroupIDs, onEnsureList, queryActive, remote, visible]);
+  }, [expandedGroupIDs, onEnsureList, queryActive, visible]);
 
   const renderWindowControls = (groupID: string, label: string, loadedCount: number, hasHiddenLoadedRows: boolean) => {
     if (queryActive) return null;
@@ -468,11 +463,6 @@ export function ProjectTreeGroupRows({
   };
 
   const scopedRows = (groupID: string, members: ProjectNode[]) => {
-    if (remote) {
-      const order = organization.orderFor?.(folder) ?? [];
-      const ranks = new Map(order.map((key, index) => [key, index]));
-      return [...members].sort((a,b) => (ranks.get(projectSessionIdentity(a)) ?? Number.MAX_SAFE_INTEGER) - (ranks.get(projectSessionIdentity(b)) ?? Number.MAX_SAFE_INTEGER));
-    }
     const state = listState(queryActive ? "" : groupID);
     const accepted = new Set(state?.itemKeys ?? []);
     const rows = members.filter((member) => accepted.has(member.key));
@@ -576,7 +566,6 @@ export function ProjectTreeFolderActivity({ folder }: { folder: ProjectNode }) {
   return <Suspense fallback={null}><FolderActivity target={{
     scope: folder.kind === "global_folder" ? "global" : "project",
     root: folder.root ?? "",
-    remote: folder.remote,
     topics: asArray(folder.children),
     fallbackActive: projectTreeFolderHasActiveRuntime(folder),
   }} /></Suspense>;

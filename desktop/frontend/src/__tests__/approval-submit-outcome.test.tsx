@@ -36,14 +36,14 @@ const ports: PromptPorts = {
   resolvePlanForTab: () => submit(),
   answerQuestionForTab: async () => {}, answerMCPForTab: () => {},
   setCollaborationModeForTab: async () => {}, clearGoalForTab: async () => {},
-  setRemoteComposerProfile: async () => [], patchComposerProfile: () => {}, notePlanMode: () => {},
-  drainRemoteApprovals: () => {}, rememberRevision: () => {},
+  patchComposerProfile: () => {}, notePlanMode: () => {},
+  rememberRevision: () => {},
 };
 function Probe({ ready, resourceKey }: { ready: boolean; resourceKey: string }) {
   const operations = useSessionOperations({ visible: target, resources: [{ ...target, sessionKey: resourceKey }] });
   commands = useSessionPromptCommands({ target, session: ready ? meta.session : undefined,
     sessionGeneration: ready ? meta.sessionGeneration : undefined, approval,
-    remote: false, goal: "", toolApprovalMode: "workspace-write", ports, operations,
+    goal: "", toolApprovalMode: "workspace-write", ports, operations,
     reportError: error => { throw error; } });
   return null;
 }

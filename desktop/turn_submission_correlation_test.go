@@ -65,16 +65,20 @@ func (c *expiredTurnFinishingController) TurnFinishingDone() (<-chan struct{}, b
 }
 
 type turnFanoutGate struct {
-	sink    *tabEventSink
-	mirror  *takeoverMirror
-	entered chan struct{}
+	sink     *tabEventSink
+	entered  chan struct{}
+	released chan struct{}
+	once     sync.Once
 }
 
+// Emit holds the controller's TurnDone fan-out open after the tab sink has
+// published it, so the test can probe admission while fan-out is in flight.
 func (g *turnFanoutGate) Emit(e event.Event) {
-	if e.Kind == event.TurnDone {
-		g.sink.setTakeoverMirror(g.mirror)
-	}
 	g.sink.Emit(e)
+	if e.Kind == event.TurnDone {
+		g.once.Do(func() { close(g.entered) })
+		<-g.released
+	}
 }
 
 func (g *turnFanoutGate) wait(t *testing.T) {
@@ -86,32 +90,15 @@ func (g *turnFanoutGate) wait(t *testing.T) {
 	}
 }
 
-// Arm before submitting; attach the locked mirror only for TurnDone so earlier
-// events can finish. Runtime publication then proves the real sink is in fan-out.
+// Arm before submitting; the gate blocks only after TurnDone so earlier
+// events can finish.
 func holdTabFanout(t *testing.T, sink *tabEventSink) (*turnFanoutGate, func()) {
 	t.Helper()
-	gate := &turnFanoutGate{sink: sink, mirror: &takeoverMirror{}, entered: make(chan struct{})}
-	gate.mirror.mu.Lock()
-	var enteredOnce, releaseOnce sync.Once
-	release := func() { releaseOnce.Do(gate.mirror.mu.Unlock) }
+	gate := &turnFanoutGate{sink: sink, entered: make(chan struct{}), released: make(chan struct{})}
+	var releaseOnce sync.Once
+	release := func() { releaseOnce.Do(func() { close(gate.released) }) }
 	t.Cleanup(release)
-	sink.runtimeEvents.emit = func(_ context.Context, _ string, payload ...any) {
-		if len(payload) != 1 {
-			return
-		}
-		var wire wireEventTab
-		switch typed := payload[0].(type) {
-		case wireEventTab:
-			wire = typed
-		case correlatedWireEventTab:
-			wire = typed.wireEventTab
-		default:
-			return
-		}
-		if wire.Kind == "turn_done" {
-			enteredOnce.Do(func() { close(gate.entered) })
-		}
-	}
+	sink.runtimeEvents.emit = func(context.Context, string, ...any) {}
 	return gate, release
 }
 

@@ -4,7 +4,7 @@ import { sessionIdentityKey } from "./sessionTarget";
 import type { SessionOperationAuthority, SessionResource } from "./useSessionOperations";
 
 export type ControllerProfile = { collaboration: CollaborationMode; approval: ToolApprovalMode; goal: string };
-export type ControllerProfileResource = { target: SessionResource; profile: ControllerProfile; remote: boolean };
+export type ControllerProfileResource = { target: SessionResource; profile: ControllerProfile };
 export type ControllerProfilePorts = {
   model(tabId: string, name: string): Promise<boolean>;
   profile(tabId: string, collaboration: CollaborationMode, approval: ToolApprovalMode, goal: string, options: { propagateError: boolean }): Promise<boolean>;
@@ -15,13 +15,13 @@ const runtimeProfile = (profile: ComposerProfile): ControllerProfile => ({
 
 /** A display-free read projection, not a second profile store. */
 export function projectControllerProfiles(tabs: readonly TabMeta[], profiles: Readonly<Record<string, ComposerProfile>>,
-  active: { target: SessionResource; profile: ComposerProfile; remote: boolean }): ControllerProfileResource[] {
-  return [{ target: active.target, profile: runtimeProfile(active.profile), remote: active.remote },
+  active: { target: SessionResource; profile: ComposerProfile }): ControllerProfileResource[] {
+  return [{ target: active.target, profile: runtimeProfile(active.profile) },
     ...tabs.filter(tab => tab.id !== active.target.tabId).map(tab => ({
       target: { tabId: tab.id, sessionKey: sessionIdentityKey({ tabId: tab.id, sessionPath: tab.sessionPath,
-        session: tab.session, sessionId: tab.sessionId, remote: tab.remote, sessionGeneration: tab.sessionGeneration,
+        session: tab.session, sessionId: tab.sessionId, sessionGeneration: tab.sessionGeneration,
         scope: tab.scope, workspaceRoot: tab.workspaceRoot, topicId: tab.topicId }) },
-      profile: runtimeProfile(composerProfileForOwner(profiles[tab.id], composerProfileOwner(tab)) ?? composerProfileFromTab(tab)), remote: Boolean(tab.remote),
+      profile: runtimeProfile(composerProfileForOwner(profiles[tab.id], composerProfileOwner(tab)) ?? composerProfileFromTab(tab)),
     }))];
 }
 
@@ -34,8 +34,6 @@ export type ControllerProfileInput = {
 /** Rebuild and ordinary readiness restoration use the same source-profile application. */
 export async function executeControllerProfile(input: ControllerProfileInput, authority: SessionOperationAuthority): Promise<boolean> {
   authority.checkpoint();
-  const resource = input.read(input.target);
-  if (resource.remote) return false;
   // Rebuilding may outlive a profile commit. Read only this resource's committed
   // values, never the render captured before rebuilding or the active tab.
   const { collaboration, approval, goal } = input.read(input.target).profile;
@@ -45,20 +43,15 @@ export async function executeControllerProfile(input: ControllerProfileInput, au
 }
 
 export async function executeControllerModel(input: ControllerProfileInput & {
-  name: string; remote?: (name: string) => Promise<void>;
+  name: string;
   restore(target: SessionResource): Promise<boolean>;
 }, authority: SessionOperationAuthority): Promise<boolean> {
   authority.checkpoint();
-  if (input.read(input.target).remote) {
-    if (!input.remote) return false;
-    await input.remote(input.name);
-  } else {
-    if (!await input.ports.model(input.target.tabId, input.name)) return false;
-    authority.checkpoint();
-    // Startup, explicit send readiness and post-model restoration share one
-    // request channel. A coalesced Controller failure has only one UI owner.
-    if (!await input.restore(input.target)) return false;
-  }
+  if (!await input.ports.model(input.target.tabId, input.name)) return false;
+  authority.checkpoint();
+  // Startup, explicit send readiness and post-model restoration share one
+  // request channel. A coalesced Controller failure has only one UI owner.
+  if (!await input.restore(input.target)) return false;
   authority.checkpoint();
   return authority.ownsUI();
 }

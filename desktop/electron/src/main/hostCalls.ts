@@ -37,13 +37,6 @@ export interface TrayHostApi {
   destroy(): void;
 }
 
-export interface RemoteWindowHostApi {
-  open(input: { hostKey: string; url: string; title: string }): { windowId: string };
-  navigate(input: { hostKey: string; url: string; title: string }): void;
-  focus(hostKey: string): void;
-  close(hostKey: string): void;
-}
-
 export interface LifecycleHostApi {
   approve(): void;
   relaunch(args: string[], execPath?: string): void;
@@ -65,7 +58,6 @@ export interface HostCallDeps {
   window: WindowHostApi;
   dialogs: DialogHostApi;
   tray: TrayHostApi;
-  remote: RemoteWindowHostApi;
   lifecycle: LifecycleHostApi;
   openExternal(url: string): Promise<void>;
   hideApp(): void;
@@ -73,7 +65,6 @@ export interface HostCallDeps {
   browser?: HostCallTable;
 }
 
-const remoteInput = (params: Params) => ({ hostKey: str(params, "hostKey"), url: str(params, "url"), title: str(params, "title") });
 const EXTERNAL_PROTOCOLS = new Set(["http:", "https:", "mailto:"]);
 
 function externalURL(value: string): string {
@@ -133,19 +124,6 @@ export function buildHostCallTable(deps: HostCallDeps): HostCallTable {
       return {};
     },
     "host/devtools.toggle": done(() => deps.window.toggleDevTools()),
-    "host/remoteWindow.open": (params) => deps.remote.open(remoteInput(params)),
-    "host/remoteWindow.navigate": (params) => {
-      deps.remote.navigate(remoteInput(params));
-      return {};
-    },
-    "host/remoteWindow.focus": (params) => {
-      deps.remote.focus(str(params, "hostKey"));
-      return {};
-    },
-    "host/remoteWindow.close": (params) => {
-      deps.remote.close(str(params, "hostKey"));
-      return {};
-    },
     "host/tray.ensure": (params) => deps.tray.ensure({
       openTitle: str(params, "openTitle", "Open"),
       openTooltip: str(params, "openTooltip"),

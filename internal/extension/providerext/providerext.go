@@ -4,8 +4,7 @@
 // host only ever sees the credential-free wire DTOs. The Resolver merges the
 // base resolver's catalog with every sidecar's declared catalog and routes
 // plugin-namespaced refs (plugin/<plugin>/<provider>/<model>) to the owning
-// sidecar's Provider. It mirrors the Remote broker's host-side semantics
-// (internal/remote/broker) exactly: 1-based contiguous seq buffering, a
+// sidecar's Provider. It uses 1-based contiguous seq buffering, a
 // bounded delivery queue, a gap timer on stream end, cancellation through
 // stream/cancel, and interruption via StreamInterruptedError. A selected
 // sidecar's crash fails its streams — the adapter never falls back to a

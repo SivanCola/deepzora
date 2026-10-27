@@ -200,43 +200,6 @@ func providerAccessFallbackRef(c *config.Config, names []string) string {
 	return ""
 }
 
-func providerRefMatchesAny(c *config.Config, ref string, names []string) bool {
-	for _, name := range names {
-		if desktopModelRefsProvider(c, ref, name) {
-			return true
-		}
-	}
-	return false
-}
-
-func retargetProviderReferences(c *config.Config, names []string, fallbackRef string) {
-	fallbackRef = strings.TrimSpace(fallbackRef)
-	if providerRefMatchesAny(c, c.DefaultModel, names) {
-		c.DefaultModel = fallbackRef
-	}
-	if providerRefMatchesAny(c, c.Agent.PlannerModel, names) {
-		c.Agent.PlannerModel = fallbackRef
-	}
-	if providerRefMatchesAny(c, c.Agent.VisionModel, names) {
-		c.Agent.VisionModel = ""
-	}
-	if providerRefMatchesAny(c, c.Agent.GuardianModel, names) {
-		c.Agent.GuardianModel = fallbackRef
-	}
-	if providerRefMatchesAny(c, c.Agent.SubagentModel, names) {
-		c.Agent.SubagentModel = fallbackRef
-	}
-	for skill, ref := range c.Agent.SubagentModels {
-		if providerRefMatchesAny(c, ref, names) {
-			if fallbackRef == "" {
-				delete(c.Agent.SubagentModels, skill)
-			} else {
-				c.Agent.SubagentModels[skill] = fallbackRef
-			}
-		}
-	}
-}
-
 func (a *App) planProviderRemoval(names []string, official bool) (providerRemovalPlan, error) {
 	root := a.activeWorkspaceRoot()
 	unlock, err := lockProviderRemovalState()
@@ -303,7 +266,7 @@ func (a *App) commitOfficialProviderRemoval(plan providerRemovalPlan, names []st
 	}
 	baseline := fresh.ModelSettingsBaseline()
 	fallbackRef := providerAccessFallbackRef(fresh, plan.targets)
-	retargetProviderReferences(fresh, plan.targets, fallbackRef)
+	fresh.RetargetProviderRefs(plan.targets, fallbackRef)
 	removeProviderAccess(fresh, plan.targets...)
 	return fallbackRef, fresh.SaveModelSettingsTo(path, baseline)
 }
@@ -333,7 +296,7 @@ func (a *App) commitCustomProviderRemovals(plan providerRemovalPlan) (string, er
 	baseline := fresh.ModelSettingsBaseline()
 	fallbackRef := providerAccessFallbackRef(fresh, plan.targets)
 	// Retarget before removal so hidden providers cannot become the default.
-	retargetProviderReferences(fresh, plan.targets, fallbackRef)
+	fresh.RetargetProviderRefs(plan.targets, fallbackRef)
 	for _, name := range plan.targets {
 		if err := fresh.RemoveProvider(name); err != nil {
 			return "", err

@@ -27,10 +27,9 @@ const stub = installDesktopHostStub({
 });
 
 let exportSession!: (format: SessionExportFormat) => Promise<void> | undefined;
-function Probe({ remote }: { remote: boolean }) {
+function Probe() {
   exportSession = useSessionExportCommands({
     tabId: "tab-export",
-    remote,
     sessionTitle: "Bounded session",
     items: [{ kind: "user", id: "u1", text: "resident projection" }],
     live: undefined,
@@ -43,15 +42,11 @@ function Probe({ remote }: { remote: boolean }) {
 
 const root = createRoot(document.getElementById("root")!);
 try {
-  await act(async () => root.render(<Probe remote={false} />));
+  await act(async () => root.render(<Probe />));
   await act(async () => { await exportSession("markdown"); });
   assert.deepEqual(hostExports, [{ tabId: "tab-export", format: "markdown", title: "Bounded session" }]);
   assert.deepEqual(finishes, ["export-1"]);
-  await act(async () => root.render(<Probe remote />));
-  await act(async () => { await exportSession("markdown"); });
-  assert.equal(hostExports.length, 2, "remote export uses the same authoritative host API");
-  assert.deepEqual(finishes, ["export-1", "export-2"]);
-  console.log("session export routing: both sources use fixed host snapshots");
+  console.log("session export routing: exports use fixed host snapshots");
 } finally {
   await act(async () => root.unmount());
   stub.uninstall();

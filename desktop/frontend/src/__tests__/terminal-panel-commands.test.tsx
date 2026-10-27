@@ -6,9 +6,8 @@ import { useTerminalPanelCommands } from "../app-runtime/useTerminalPanelCommand
 import { useLayoutStore } from "../store/layout";
 import { useAppNavigationStore } from "../store/appNavigation";
 import { useTerminalStore } from "../store/terminal";
-import { AppBottomRegions } from "../app-shell/AppBottomRegions";
 import { TopicbarSessionActions } from "../components/TopicbarSessionActions";
-import { LocaleProvider, useT } from "../lib/i18n";
+import { LocaleProvider } from "../lib/i18n";
 import { ToastProvider } from "../lib/toast";
 
 const dom = new JSDOM("<div id='root'></div>", { url: "http://localhost" });
@@ -20,20 +19,15 @@ const calls: string[] = [];
 useTerminalStore.setState({ createSession: async (tab, path) => { calls.push(`${tab}:${path}`); return null; } });
 let commands!: ReturnType<typeof useTerminalPanelCommands>;
 const noop = () => {};
-function Probe({ remote }: { remote: boolean }) {
+function Probe({ disabled }: { disabled: boolean }) {
   const page = useAppNavigationStore(state => state.page);
-  commands = useTerminalPanelCommands({ tabId: "A", enabled: !remote, shortcutsEnabled: page.kind === "workspace" });
-  const t = useT();
+  commands = useTerminalPanelCommands({ tabId: "A", enabled: !disabled, shortcutsEnabled: page.kind === "workspace" });
   return <>
     <TopicbarSessionActions sessionHasContent={false} getSessionMarkdown={() => ""} exportSession={noop}
-      toggleTerminal={commands.toggleTerminalPanel} terminalEnabled={!remote} terminalOpen={false} openSessionSummary={noop} tasksOpen={false} />
-    {remote && <AppBottomRegions terminal={{ open: false, contentVisible: true, remoteSurface: true, t,
-      panel: { tabId: "A", open: false, onClose: commands.closeTerminalPanel },
-      resizer: { min: 100, max: 400, value: 200, onPointerDown: noop, onKeyDown: noop, onReset: noop },
-    }} />}
+      toggleTerminal={commands.toggleTerminalPanel} terminalEnabled={!disabled} terminalOpen={false} openSessionSummary={noop} tasksOpen={false} />
   </>;
 }
-const paint = (remote: boolean) => act(async () => root.render(<LocaleProvider><ToastProvider><Probe remote={remote} /></ToastProvider></LocaleProvider>));
+const paint = (disabled: boolean) => act(async () => root.render(<LocaleProvider><ToastProvider><Probe disabled={disabled} /></ToastProvider></LocaleProvider>));
 const key = (shiftKey = false) => document.dispatchEvent(new KeyboardEvent("keydown", { key: "`", ctrlKey: true, shiftKey, bubbles: true }));
 try {
   useLayoutStore.getState().setTerminalPanelOpen(false);
@@ -42,10 +36,9 @@ try {
     ?? [...document.querySelectorAll("button")].find(button => button.getAttribute("aria-label") === "Terminal");
   assert.ok(terminalButton);
   assert.equal(terminalButton.disabled, true);
-  assert.equal(document.querySelector(".terminal-drawer")?.childElementCount, 0, "remote surface cannot mount a warm local TerminalPanel");
-  await act(async () => { key(); key(true); commands.openTerminalForPath("remote-path"); });
+  await act(async () => { key(); key(true); commands.openTerminalForPath("disabled-path"); });
   assert.equal(useLayoutStore.getState().terminalPanelOpen, false);
-  assert.deepEqual(calls, [], "remote shortcut and direct commands share one local-tool capability gate");
+  assert.deepEqual(calls, [], "shortcut and direct commands share one local-tool capability gate");
   await paint(false);
   await act(async () => useAppNavigationStore.getState().openPage({ kind: "automation" }));
   await act(async () => key());
@@ -61,5 +54,5 @@ try {
   await act(async () => root.unmount());
   commands.openTerminalForPath("stale"); key(true);
   assert.deepEqual(calls, ["A:."], "unmount revokes commands and removes shortcut listeners");
-  console.log("terminal commands: remote capability, warm mount exclusion, native key routing and disposal passed");
+  console.log("terminal commands: capability gate, native key routing and disposal passed");
 } finally { useTerminalStore.setState({ createSession: originalCreate }); dom.window.close(); }

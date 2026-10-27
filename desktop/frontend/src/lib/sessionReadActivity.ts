@@ -20,7 +20,6 @@ export function markSessionRead(store: ReadStore, node: ProjectNode, now = Date.
   const key = projectTreeReadActivityKey(node);
   if (!key) return store;
   const metric = topicUsesResultSequence(node) ? "result" : "time";
-  if (node.remoteSession && metric === "result" && node.turnsState !== "ready") return store;
   const value = metric === "result" ? topicReadRevision(node) : Math.max(topicReadRevision(node), now);
   const previous = store.records[key];
   if (previous?.metric === "result" && metric === "time") return store;
@@ -49,8 +48,8 @@ export function seedSessionReads(store: ReadStore, nodes: readonly ProjectNode[]
   const visit = (node: ProjectNode) => {
     const key = projectTreeReadActivityKey(node);
     const previous = key ? next.records[key] : undefined;
-    if (key && topicUsesResultSequence(node) && node.turnsState === "ready" && (!previous || node.remoteSession && previous.metric === "time")) {
-      next = { ...next, records: { ...next.records, [key]: { metric: "result", value: topicReadRevision(node), revision: (previous?.revision ?? 0) + 1 } } };
+    if (key && topicUsesResultSequence(node) && node.turnsState === "ready" && !previous) {
+      next = { ...next, records: { ...next.records, [key]: { metric: "result", value: topicReadRevision(node), revision: 1 } } };
     }
     node.children?.forEach(visit);
   };

@@ -40,7 +40,7 @@ deepzora --dir /path/to/project
 
 ## 角色与工具预设
 
-交互式 `deepzora`/`chat`、`run`、`serve` 和 `web` 都接受 `--preset ID`。
+交互式 `deepzora`/`chat` 和 `run` 都接受 `--preset ID`。
 预设选择角色提示词和准入工具；模型与权限设置独立。内置 `default` 预设为只读。
 
 ```sh
@@ -83,7 +83,6 @@ edit/copy 时省略参数会保留已保存的值；用 `--complete=false` 或
 deepzora preset new reviewer --prompt "仔细审查变更" --tools 'read_file,mcp:docs'
 deepzora --preset reviewer
 deepzora run --preset reviewer "审查当前 diff"
-deepzora serve --preset reviewer
 ```
 
 空白会话中，`/preset list` 列出定义，`/preset current`（或 `/preset`）显示当前选择，
@@ -482,7 +481,6 @@ SSH 下远端进程无法读取本机剪贴板，请使用终端粘贴快捷键�
 | `/provider` | 选择 provider，再选择该 provider 下的模型。 |
 | `/preset [list\|current\|select <id>]` | 查看角色/工具预设，或在空白会话中选择并重建代理。 |
 | `/resume` | 搜索最近会话并切换。 |
-| `/takeover` | 从本机常驻 serve 接管上一次被拒绝的会话（或列表项）：本 CLI 成为写入方，远端观看者变为只读旁观者直至取回。桌面端取回后可直接再次接管原会话；若已无任何运行时持有该会话，则直接恢复它。 |
 | `/status` | 显示模型、effort、cache、Git、后台任务和余额信息。 |
 | `/theme [auto\|light\|dark\|style]` | 查看或切换 CLI 背景模式和强调色。 |
 | `/currency [auto\|CNY\|USD]` | 查看或切换用户全局费用展示币种，并刷新当前运行时。 |
@@ -578,9 +576,7 @@ deepzora catalogs reindex tasks [--project PATH ...] [--json]
 | `/memory archived` | 列出 archive facts 及其受管路径。 |
 | `/memory recover <archive-path>` | 不覆盖 active data，把 archive 恢复为新 revision。 |
 
-这些命令始终作用于当前 session controller。当会话位于远端主机上（`deepzora remote
-connect` 或桌面的远程网页窗口）时，它们使用远程 memory catalog，绝不回退读取桌面本机
-记忆。权限、自动召回、写入确认和迁移行为见
+这些命令始终作用于当前 session controller。权限、自动召回、写入确认和迁移行为见
 [Context Engine v2](./SESSION_MEMORY_RETRIEVAL.zh-CN.md)。
 
 契约见 [Session Catalog and Desktop Startup](./SESSION_CATALOG.md)。

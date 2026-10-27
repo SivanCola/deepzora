@@ -1,13 +1,11 @@
 import { ChatPaneRegion } from "../app-shell/ChatPaneRegion";
-import { RemoteSessionSurface } from "../components/RemoteSessionSurface";
 import { Transcript } from "../components/Transcript";
 import { initialState, type Item } from "../lib/useController";
-import type { RemoteSessionApi } from "../lib/useRemoteSession";
 import type { SessionAvailability } from "../lib/sessionAvailability";
 import { useT } from "../lib/i18n";
 
 export type LoadingFixtureInput = {
-  surface: "local" | "remote" | "transcript";
+  surface: "local" | "transcript";
   identity: string;
   generation?: number;
   phase: "loading" | "ready" | "error";
@@ -24,19 +22,9 @@ export function SessionLoadingFixture({ surface, identity, generation = 1, phase
   const availability: SessionAvailability = { kind: phase, source, detail: phase === "error" ? "Fixture read failed" : undefined };
   if (surface === "transcript") return <Transcript items={items} tabId={identity} geometrySessionKey={`${identity}:${generation}`}
     hydrating={phase === "loading"} onPrompt={() => {}} />;
-  if (surface === "remote") {
-    const session = {
-      state: phase === "loading" && source === "connection" ? "connecting" : "ready",
-      hydrated: phase === "ready", error: phase === "error" ? "Fixture read failed" : "",
-      transcript: state, surfaceGeneration: generation, retryHydration: onRetry,
-    } as RemoteSessionApi;
-    return <RemoteSessionSurface tab={{ id: identity, scope: "project", workspaceRoot: "/fixture", workspaceName: "Fixture",
-      topicId: identity, topicTitle: identity, label: "Fixture", ready: true, running: false, mode: "normal", active: true, cwd: "/fixture",
-      remote: { hostId: "fixture", workspace: "/fixture" } }} session={session} />;
-  }
-  return <ChatPaneRegion transitioning={false} remote={undefined} t={t}
+  return <ChatPaneRegion t={t}
     transcript={{ state, items, tabId: identity, geometrySessionKey: `${identity}:${generation}`,
-      footerHeight: 100, transcriptHydrating: state.hydrating, navigationDataReady: phase === "ready",
+      footerHeight: 100, transcriptHydrating: state.hydrating,
       readOnly: false, controllerReady: phase === "ready", hydratePlaceholderActive: cached && phase === "loading",
       clearContextPending: false, availability, rewind: { stateActive: false, committing: false },
       invocationMetadata: undefined, surfaceCommitToken: undefined, liveStore: undefined }}

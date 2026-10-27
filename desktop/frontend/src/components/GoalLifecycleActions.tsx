@@ -60,7 +60,7 @@ export function GoalLifecycleActions({
         <label>
           {t("composer.goalEditObjective")}
           <textarea
-            className="remote-secret-dialog__input"
+            className="goal-lifecycle__input"
             rows={2}
             data-goal-edit-objective=""
             autoFocus
@@ -71,7 +71,7 @@ export function GoalLifecycleActions({
         <label>
           {t("composer.goalEditMaxRounds")}
           <input
-            className="remote-secret-dialog__input"
+            className="goal-lifecycle__input"
             data-goal-edit-rounds=""
             inputMode="numeric"
             value={draft.rounds}

@@ -10,16 +10,11 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
-	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"sync"
 
 	"deepzora/internal/control"
-	"deepzora/internal/servecontract"
 	"deepzora/internal/session"
 	"deepzora/internal/sessionexport"
 )
@@ -54,11 +49,8 @@ type sessionExportJob struct {
 	cancel         context.CancelFunc
 	dir, path      string
 	workspaceRoot  string
-	sourceHostID   string
 	query          *session.Query
 	controller     *control.Controller
-	client         *http.Client
-	base, route    string
 	observation    json.RawMessage
 	browserScope   string // Fixed with the export source, before the save dialog.
 	prepared       bool
@@ -95,7 +87,7 @@ func (a *App) BeginSessionExportForTarget(selector SessionSelector, tabID, forma
 			}
 		}
 	}()
-	if len(observation) > 64<<10 || (observation != "" && !json.Valid(job.observation)) {
+	if len(observation) > 64<<10 || observation != "" && !json.Valid(job.observation) {
 		return SessionExportHandle{}, errors.New("invalid export observation")
 	}
 	if err := a.captureSessionExportSource(job, selector, tabID, format); err != nil {
@@ -158,48 +150,18 @@ func (a *App) prepareSessionExport(job *sessionExportJob) error {
 		return nil
 	}
 	a.exportProgress(job, "reading")
-	if job.client != nil {
-		format := job.handle.Format
-		if format == "clipboard" {
-			format = "markdown"
+
+	doc, err := sessionexport.Build(job.ctx, job.query, job.handle.Snapshot, job.dir, func(count int) {
+		job.records = count
+		if count%100 == 0 {
+			a.exportProgress(job, "reading")
 		}
-		if format == "pdf" || format == "image" {
-			format = "blocks"
-		}
-		request, _ := json.Marshal(map[string]any{"snapshot": job.handle.Snapshot, "format": format})
-		resp, err := serveDoForSession(job.ctx, job.client, http.MethodPost, sessionExportURL(job.base, "/session-export/document", job.handle.Snapshot.Ref.SessionID, false), request, job.route)
-		if err != nil {
-			return err
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			return errors.New("remote export failed or source changed; upgrade the remote service if the session was switched or taken over")
-		}
-		job.records, err = strconv.Atoi(resp.Header.Get("X-Deepzora-Export-Records"))
-		if err != nil || job.records < 0 {
-			return errors.New("remote export record count is invalid")
-		}
-		file, err := os.OpenFile(filepath.Join(job.dir, format), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-		if err != nil {
-			return err
-		}
-		_, copyErr := io.Copy(file, resp.Body)
-		closeErr := file.Close()
-		if err = errors.Join(copyErr, closeErr); err != nil {
-			return err
-		}
-	} else {
-		doc, err := sessionexport.Build(job.ctx, job.query, job.handle.Snapshot, job.dir, func(count int) {
-			job.records = count
-			if count%100 == 0 {
-				a.exportProgress(job, "reading")
-			}
-		})
-		if err != nil {
-			return err
-		}
-		job.records = doc.Records
+	})
+	if err != nil {
+		return err
 	}
+	job.records = doc.Records
+
 	job.prepared = true
 	a.exportProgress(job, "rendering")
 	return nil
@@ -420,119 +382,45 @@ func copyExportContext(ctx context.Context, dst io.Writer, src io.Reader) (int64
 }
 
 func (a *App) validateSessionExportSource(job *sessionExportJob) error {
-	if job.client == nil {
-		return job.query.ValidateExportSource(job.handle.Snapshot)
-	}
-	body, _ := json.Marshal(job.handle.Snapshot)
-	response, err := serveDoForSession(job.ctx, job.client, http.MethodPost, sessionExportURL(job.base, "/session-export/validate", job.handle.Snapshot.Ref.SessionID, false), body, job.route)
-	if err != nil {
-		return err
-	}
-	response.Body.Close()
-	if response.StatusCode != http.StatusNoContent {
-		return errors.New("export source changed or is unavailable; upgrade the remote service if the session was switched or taken over")
-	}
-	return nil
+	return job.query.ValidateExportSource(job.handle.Snapshot)
 }
 
 func (a *App) captureSessionExportSource(job *sessionExportJob, selector SessionSelector, tabID, format string) error {
 	ctx := job.ctx
-	if a.isRemoteTab(tabID) {
-		a.remoteTabMu.Lock()
-		tab := a.remoteTabs[tabID]
-		if tab == nil || !tab.capabilities[servecontract.SessionExportV1] {
-			a.remoteTabMu.Unlock()
-			return errors.New("remote service does not support session-export-v1; upgrade it to export the complete session")
+
+	if selector.Ref == nil && selector.SessionPath == "" && selector.TopicID == "" {
+		a.mu.RLock()
+		tab := a.tabByIDLocked(tabID)
+		if tab != nil {
+			selector.SessionPath = tab.currentSessionIdentity()
+			if tab.SessionID != "" {
+				selector.Ref = &session.SessionRef{HostID: localDesktopHostID, SessionID: tab.SessionID}
+			}
 		}
-		if !remoteExportSelectorMatches(selector, tab) {
-			a.remoteTabMu.Unlock()
-			return errors.New("export target changed")
-		}
-		job.sourceHostID, job.workspaceRoot = tab.ref.HostID, tab.ref.Workspace
-		job.client, job.base, job.route = tab.client, tab.base, tab.routing.currentPath
-		a.remoteTabMu.Unlock()
-		if job.client == nil || job.route == "" {
-			return errors.New("remote session is unavailable")
-		}
-		sessionID, ok := strings.CutPrefix(job.route, remoteSessionIDRoutePrefix)
-		if !ok || sessionID == "" {
-			return errors.New("remote session has no canonical identity")
-		}
-		resp, err := serveDoForSession(ctx, job.client, http.MethodGet, sessionExportURL(job.base, "/session-export/snapshot", sessionID, format == "diagnostic"), nil, job.route)
+		a.mu.RUnlock()
+	}
+	target, err := a.resolveSessionTargetWithArchived(selector, true)
+	if err != nil {
+		return err
+	}
+	if target.SessionRef.SessionID == "" {
+		return newSessionOperationError("unsupported", "This historical format cannot guarantee a complete export.")
+	}
+	job.query = a.desktopSessionService("").Query()
+	job.controller = target.Controller
+	job.browserScope = browserDiagnosticScope(localDesktopHostID, target.SessionRef.SessionID)
+	job.workspaceRoot = target.WorkspaceRoot
+	if format == "diagnostic" {
+		job.handle.Snapshot, err = job.query.CaptureDiagnosticSnapshot(ctx, target.SessionRef)
 		if err != nil {
 			return err
 		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			return errors.New("unable to capture remote export snapshot")
-		}
-		if err = json.NewDecoder(io.LimitReader(resp.Body, 64<<10)).Decode(&job.handle.Snapshot); err != nil {
-			return err
-		}
-		if selector.Ref != nil && selector.Ref.SessionID != job.handle.Snapshot.Ref.SessionID {
-			return errors.New("export target changed")
-		}
-		job.browserScope = browserDiagnosticScope(job.sourceHostID, job.handle.Snapshot.Ref.SessionID)
 	} else {
-		if selector.Ref == nil && selector.SessionPath == "" && selector.TopicID == "" {
-			a.mu.RLock()
-			tab := a.tabByIDLocked(tabID)
-			if tab != nil {
-				selector.SessionPath = tab.currentSessionIdentity()
-				if tab.SessionID != "" {
-					selector.Ref = &session.SessionRef{HostID: localDesktopHostID, SessionID: tab.SessionID}
-				}
-			}
-			a.mu.RUnlock()
-		}
-		target, err := a.resolveSessionTargetWithArchived(selector, true)
+		job.handle.Snapshot, err = job.query.CaptureExportSnapshot(ctx, target.SessionRef)
 		if err != nil {
 			return err
-		}
-		if target.SessionRef.SessionID == "" {
-			return newSessionOperationError("unsupported", "This historical format cannot guarantee a complete export.")
-		}
-		job.query = a.desktopSessionService("").Query()
-		job.controller = target.Controller
-		job.browserScope = browserDiagnosticScope(localDesktopHostID, target.SessionRef.SessionID)
-		job.workspaceRoot = target.WorkspaceRoot
-		if format == "diagnostic" {
-			job.handle.Snapshot, err = job.query.CaptureDiagnosticSnapshot(ctx, target.SessionRef)
-			if err != nil {
-				return err
-			}
-		} else {
-			job.handle.Snapshot, err = job.query.CaptureExportSnapshot(ctx, target.SessionRef)
-			if err != nil {
-				return err
-			}
 		}
 	}
 
 	return nil
-}
-
-func sessionExportURL(base, path, sessionID string, diagnostic bool) string {
-	endpoint, err := url.Parse(serveURL(base, path))
-	if err != nil {
-		return serveURL(base, path)
-	}
-	query := endpoint.Query()
-	if sessionID != "" {
-		query.Set("sessionId", sessionID)
-	}
-	if diagnostic {
-		query.Set("diagnostic", "1")
-	}
-	endpoint.RawQuery = query.Encode()
-	return endpoint.String()
-}
-
-// Called under remoteTabMu before any remote read or save dialog.
-func remoteExportSelectorMatches(selector SessionSelector, tab *remoteTab) bool {
-	if selector.Ref != nil {
-		return selector.Ref.HostID == tab.ref.HostID && remoteSessionIDRoutePrefix+selector.Ref.SessionID == tab.routing.currentPath
-	}
-
-	return selector.SessionPath == "" || selector.SessionPath == tab.session.path || selector.SessionPath == tab.routing.currentPath
 }

@@ -7,6 +7,4 @@ import type {
 export interface ExactInteractionBindings {
   ResolvePromptForSession?(target: InteractionTargetView, answer: PromptAnswerView): Promise<void>;
   SubmitExtensionFormExact(target: ExtensionFormTarget, values: Record<string, unknown>): Promise<void>;
-  ResolveRemoteTabPromptExact(target: InteractionTargetView, answer: PromptAnswerView): Promise<void>;
-  SubmitRemoteTabExtensionFormExact(target: ExtensionFormTarget, values: Record<string, unknown>): Promise<void>;
 }

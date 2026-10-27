@@ -3,11 +3,10 @@
 [English](BROWSER_CDP.md)
 
 [桌面浏览器](DESKTOP_BROWSER.zh-CN.md)由 Electron 外壳提供，用户和 agent 共用同一个
-Chromium 界面。CLI、`deepzora serve` 和 headless 会话背后没有外壳，于是同一批
+Chromium 界面。CLI 和 headless 会话背后没有外壳，于是同一批
 `browser_*` 工具注册之后无人应答，只能失败关闭。
 
-这个后端是宿主中立的 `browser.Executor` 的第三个实现（前两个是 Electron 外壳和
-SSH broker）：它通过 DevTools 协议驱动一个外部 Chrome。工具、描述和 schema 都没有
+这个后端是宿主中立的 `browser.Executor` 的第二个实现（第一个是 Electron 外壳）：它通过 DevTools 协议驱动一个外部 Chrome。工具、描述和 schema 都没有
 变化，变化的只是谁来应答。
 
 ## 启用

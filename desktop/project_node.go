@@ -32,7 +32,6 @@ type ProjectNode struct {
 	Pinned              bool                `json:"pinned,omitempty"`
 	SortOrder           int                 `json:"sortOrder"` // manual topic order index (0-based); -1 when unknown
 	IsolatedWorktree    bool                `json:"isolatedWorktree,omitempty"`
-	Remote              *RemoteTabRef       `json:"remote,omitempty"`
 	RuntimeOnly         bool                `json:"runtimeOnly,omitempty"`
 	Children            []ProjectNode       `json:"children,omitempty"`
 }

@@ -162,3 +162,11 @@ type ambiguousSessionQueryError struct {
 func (e *ambiguousSessionQueryError) Error() string {
 	return fmt.Sprintf("session query %q is ambiguous (%d matches)", e.query, len(e.matches))
 }
+
+// cliCanonicalRoutePrefix marks a session identity, as opposed to a search
+// query, wherever the CLI prints or accepts one.
+const cliCanonicalRoutePrefix = "session-id:"
+
+func cliCanonicalRoute(sessionID string) string {
+	return cliCanonicalRoutePrefix + strings.TrimSpace(sessionID)
+}

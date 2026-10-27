@@ -44,9 +44,9 @@ const CHAT_COMFORT_MIN_WIDTH = 560;
 
 console.log("\nworkspace dock layout");
 eq(
-  /readOnly:\s*Boolean\(activeTab\?\.readOnly\s*&&\s*!activeTab\.takenOver\)/.test(appRuntimeViewSource),
+  /readOnly:\s*Boolean\(activeTab\?\.readOnly\)/.test(appRuntimeViewSource),
   true,
-  "takeover spectators keep the terminal interactive while ordinary read-only tabs stay locked",
+  "read-only tabs keep the terminal locked",
 );
 eq(/\.app__dock-toggle/.test(stylesSource), false, "the workspace toggle is a bar action button, not a fixed overlay the bar must dodge");
 // Tabs size to their label and the strip to its tabs, so the add button sits

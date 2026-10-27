@@ -91,8 +91,8 @@ type Checkpoint struct {
 ## Controller API (the one seam both frontends drive)
 
 Checkpoints live on `control.Controller`, beside `SetPlanMode` / `Compact` /
-`NewSession`, so the terminal TUI, the desktop webview, and the HTTP/SSE server
-drive rewind identically and none re-implement it.
+`NewSession`, so the terminal TUI and the desktop webview drive rewind
+identically and none re-implement it.
 
 ```go
 type RewindScope int // Code | Conversation | Both

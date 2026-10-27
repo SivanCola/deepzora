@@ -125,9 +125,7 @@ func TestClaimableRefusesNamesOtherReadersHold(t *testing.T) {
 	isolateUserConfigHome(t)
 	t.Setenv("OPENAI_API_KEY", "sk-shell")
 	cfg := Default()
-	cfg.Remote.Hosts = append(cfg.Remote.Hosts, RemoteHostEntry{PasswordEnv: "BOX_PASSWORD"})
 	cases := map[string]CredentialKeyHolder{
-		"BOX_PASSWORD":   CredentialKeyHeldBySetting,
 		"PATH":           CredentialKeyHeldByEnvironment,
 		"OPENAI_API_KEY": CredentialKeyHeldByEnvironment,
 	}

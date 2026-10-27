@@ -331,7 +331,7 @@ ok(
 );
 
 ok(/const transcriptHydrating = input\.hydrating && !input\.hydrateHistoryLoaded;/.test(transcriptSurfaceSource) &&
-    /hydrating=\{transcript\.transcriptHydrating \|\| \(transitioning && !transcript\.navigationDataReady\)\}/.test(chatPaneSource) &&
+    /hydrating=\{transcript\.transcriptHydrating\}/.test(chatPaneSource) &&
     /surfaceCommitToken=\{transcript\.surfaceCommitToken\}/.test(chatPaneSource) && /onSurfacePaintReady=\{commands\.onSurfacePaintReady\}/.test(chatPaneSource),
   "Welcome stays suppressed through target data commit and navigation settles only after paint readiness",
 );

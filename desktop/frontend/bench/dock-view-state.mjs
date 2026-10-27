@@ -74,10 +74,6 @@ try {
   assert.equal(await page.getByPlaceholder("Filter files…", { exact: true }).inputValue(), "mod", "restart restores filtering");
   await tabs.nth(0).click();
   assert.equal(await page.evaluate(selected), "README.md", "restart keeps the other view independent");
-  await page.locator('.project-tree__folder-main:has(svg.lucide-cloud)').click();
-  await page.locator('.project-tree__topic-main:has-text("Remote demo session")').click();
-  await page.locator(".remote-surface--ready").waitFor();
-  assert.equal(await tabs.count(), 0, "other project does not inherit local dock tabs");
   await selectSession(page, "bench:small-6t");
   await page.locator('[data-workspace-path="README.md"]').waitFor();
   assert.equal(await tabs.count(), 2);

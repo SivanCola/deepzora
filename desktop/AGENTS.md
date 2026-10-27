@@ -15,7 +15,7 @@ Other Desktop work does not require the scroll-specific procedure.
 ## Natural-flow chat
 
 The transcript uses ChatSource and ChatScrollController. It has one natural-flow
-implementation for local and remote sessions. Do not restore the retired
+implementation. Do not restore the retired
 window adapter, measurement ledger, geometry revision loop or logical selection.
 
 - Stable node keys derive from message/call identities, never array positions.

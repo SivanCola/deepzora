@@ -17,7 +17,6 @@ type Input = {
   approval?: WireApproval;
   question?: WireAsk;
   mcpInteraction?: WireMCPInteraction;
-  remote: boolean;
   goal: string;
   toolApprovalMode: ToolApprovalMode;
   ports: PromptPorts;
@@ -80,9 +79,9 @@ export function useSessionPromptCommands(input: Input) {
     if (result.status === "cancelled") throw new CommandCancelled(result.reason);
   }, [operations, ports, sessionTarget, session, sessionGeneration]);
   const plan = useCallback((action: "start_execution" | "revise_plan" | "exit_plan", revision?: string) => run(approvalTarget, "approval", {
-    kind: "plan", action, leavePlanMode: action !== "revise_plan", remote: input.remote,
+    kind: "plan", action, leavePlanMode: action !== "revise_plan",
     goal: input.goal, toolApprovalMode: input.toolApprovalMode, revision,
-  }), [approvalTarget, input.remote, input.goal, input.toolApprovalMode, run]);
+  }), [approvalTarget, input.goal, input.toolApprovalMode, run]);
   const report = useCommittedCommand(input.reportError);
   const handleApprovalAnswer = useCallback((allow: boolean, session: boolean, persist: boolean) => (
     input.approval?.tool === "exit_plan_mode"

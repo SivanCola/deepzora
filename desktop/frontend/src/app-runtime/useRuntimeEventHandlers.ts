@@ -6,14 +6,9 @@ import { asArray } from "../lib/array";
 import { createBoundedRefreshCoordinator, sameTabMetaLists, seedActiveTabMetaList, shouldRefreshTabMetaForEvent, TAB_META_MAX_IN_FLIGHT } from "../lib/tabMetaRefresh";
 import { useRuntimeNotifications } from "./useRuntimeNotifications";
 import { composerProfileFromTab, defaultComposerProfile, patchComposerProfile, resolvePlanRestoreTabId, shouldRestoreUserPlanModeForProfile, updateUserPlanModeIntent, type ComposerProfile, type UserPlanModeIntents } from "../lib/composerProfile";
-import { useRemoteTabOpened } from "../lib/useRemoteTabOpened";
 import { recordFrontendDiagnostic } from "../lib/frontendDiagnosticBridge";
-import { useRemoteStore } from "../store/remote";
 import type { TabMeta } from "../lib/types";
 import type {
-  RemoteForwardsListener,
-  RemoteServerListener,
-  RemoteStatusListener,
   RuntimeEventListener,
   RuntimeReadyListener,
   RuntimeRebuiltListener,
@@ -34,10 +29,9 @@ export type RuntimeEventHandlersInput = {
 };
 
 /**
- * Owns the runtime event surface: tab-meta registry refresh/seed/remote
- * registration with its single-flight coordinator, the runtime
+ * Owns the runtime event surface: tab-meta registry refresh/seed with its single-flight coordinator, the runtime
  * event/ready/rebuilt listeners (chimes, plan-mode restore, workspace-scope
- * epochs), the remote status/forwards/server listeners, and the workspace
+ * epochs), and the workspace
  * focus reconciliation that refreshes tab metas when the project tree changes.
  */
 export function useRuntimeEventHandlers(input: RuntimeEventHandlersInput) {
@@ -69,16 +63,6 @@ export function useRuntimeEventHandlers(input: RuntimeEventHandlersInput) {
   // Authentication changes belong to the current backend generation. Refresh
   // the registry rather than granting a local, tab-id-only send bypass.
   useEffect(() => onTabMeta(() => { void refreshTabMetas(undefined, { afterMutation: true }); }), [refreshTabMetas]);
-  const updateRemoteTabMeta = useCommittedCommand((tab: TabMeta): void => {
-    input.setTabMetas((current) => current.map((existing) => existing.id === tab.id
-      ? { ...existing, ...tab, active: existing.active }
-      : existing));
-  });
-
-  const registerRemoteTabMeta = useCommittedCommand((tab: TabMeta) => {
-    input.setTabMetas(current => current.some(existing => existing.id === tab.id) ? current : [...current, { ...tab, active: false }]);
-  });
-  useRemoteTabOpened(registerRemoteTabMeta, updateRemoteTabMeta);
 
   const handleRuntimeEvent = useCommittedCommand<RuntimeEventListener>((event) => {
     recordFrontendDiagnostic("runtime", "runtime.event", { action: event.kind, status: event.err ? "error" : "ok" });
@@ -142,27 +126,11 @@ export function useRuntimeEventHandlers(input: RuntimeEventHandlersInput) {
     };
   }, [activeTabId, refreshTabMetas, setProjectRevision, workspaceScopeKey]);
 
-  const handleRemoteStatus = useCommittedCommand<RemoteStatusListener>((status) => {
-    useRemoteStore.getState().applyStatus(status);
-    if (status.state === "stopped" && status.error) useRemoteStore.getState().requestStatusPopover(status.hostId);
-  });
-  const handleRemoteForwards = useCommittedCommand<RemoteForwardsListener>((event) => useRemoteStore.getState().setForwards(event.hostId, event.forwards));
-  const handleRemoteServer = useCommittedCommand<RemoteServerListener>((server) => useRemoteStore.getState().setServer(server));
-  const handleInitialRemoteHosts = useCommittedCommand((hosts: Awaited<ReturnType<typeof app.RemoteHosts>>) => useRemoteStore.getState().setHosts(hosts));
-  const handleInitialRemoteStatuses = useCommittedCommand((statuses: Awaited<ReturnType<typeof app.RemoteConnectionStatuses>>) => useRemoteStore.getState().hydrateStatuses(statuses));
-
   return {
     refreshTabMetas,
     seedActiveTabMeta,
-    registerRemoteTabMeta,
-    updateRemoteTabMeta,
     handleRuntimeEvent,
     handleRuntimeReady,
     handleRuntimeRebuilt,
-    handleRemoteStatus,
-    handleRemoteForwards,
-    handleRemoteServer,
-    handleInitialRemoteHosts,
-    handleInitialRemoteStatuses,
   };
 }

@@ -31,7 +31,7 @@ func TestResumeTargetModelUsesSavedSelectionAndExplicitOverride(t *testing.T) {
 }
 
 func TestCanonicalResumeRefusalPreservesSourceBinding(t *testing.T) {
-	m, ctrl, source, _ := newCanonicalTakeoverTUI(t)
+	m, ctrl, source, _ := newCanonicalSessionTUI(t)
 	before, _ := ctrl.SessionRef()
 	dir := filepath.Join(t.TempDir(), "sessions")
 	owner, err := session.NewService("local", session.NewFilesystemPersistence(session.RootForSessionDir(dir)))
@@ -58,7 +58,7 @@ func TestCanonicalResumeRefusalPreservesSourceBinding(t *testing.T) {
 }
 
 func TestResumeAcrossCatalogsKeepsCanonicalIdentity(t *testing.T) {
-	m, ctrl, original, _ := newCanonicalTakeoverTUI(t)
+	m, ctrl, original, _ := newCanonicalSessionTUI(t)
 	originalRef, _ := ctrl.SessionRef()
 	dir := filepath.Join(t.TempDir(), "sessions")
 	foreign := testCLISessionService(t, dir)
@@ -75,27 +75,6 @@ func TestResumeAcrossCatalogsKeepsCanonicalIdentity(t *testing.T) {
 	}
 	if ctrl.SessionService() != original {
 		t.Fatal("return did not restore the original catalog")
-	}
-}
-
-func TestTakeoverRetainsSelectedForeignCatalog(t *testing.T) {
-	m, ctrl, _, _ := newCanonicalTakeoverTUI(t)
-	dir := filepath.Join(t.TempDir(), "sessions")
-	foreign := testCLISessionService(t, dir)
-	// Release the controller's foreign binding before the catalog shuts down.
-	t.Cleanup(func() { _ = ctrl.ReleaseSessionRuntimeBinding() })
-	createCanonicalTestSession(t, session.RootForSessionDir(dir), "foreign-takeover", "foreign history")
-	target := cliResumeTarget{ref: session.SessionRef{HostID: foreign.HostID(), SessionID: "foreign-takeover"}, service: foreign}
-	m.pendingTakeoverTarget = target
-	previous := discoverCLIServesForTakeover
-	discoverCLIServesForTakeover = func() []cliServeRecord { return nil }
-	t.Cleanup(func() { discoverCLIServesForTakeover = previous })
-	m.runTakeoverCommand("/takeover")
-	if ref, bound := ctrl.SessionRef(); !bound || ref != target.ref || ctrl.SessionService() != foreign {
-		t.Fatalf("takeover lost selected catalog: %+v, %v", ref, bound)
-	}
-	if !m.pendingTakeoverTarget.empty() {
-		t.Fatal("completed takeover retained pending target")
 	}
 }
 

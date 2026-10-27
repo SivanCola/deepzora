@@ -5,7 +5,7 @@
 The production chat path adopts the content layering, compact process rows, call inspection, and file-artifact interactions of DeepSeek Harness `c291e7961a515f6d7af9304e7fd1d257929aef26`, while retaining Deepzora session protocols, permissions, the built-in `present` tool, resource APIs, and Electron workspace.
 
 ```text
-controller / history / LiveStream / remote events
+controller / history / LiveStream
                        ↓
           ChatSource turn projection
                        ↓
@@ -63,7 +63,6 @@ resolveFileResourcePath(ref)
 
 Browser navigation waits on a cancellable host subscription instead of polling animation frames. A newer request or session switch invalidates the old intent and revokes an unused preview URL.
 
-Remote presented files still require `present-files-v1` and a trusted history declaration. Remote modified files are accepted only when the current tab, host, client, generation, session, successful native tool result, and workspace-confined path all match. Remote paths are never passed to local operating-system openers.
 
 ## Preview and lifecycle
 
@@ -92,4 +91,4 @@ Frontend type checks, lint, build, bundle budgets, the single-scroll-writer guar
 
 Raw data and screenshots are under [evidence/chat-content-host-2026-09-13](evidence/chat-content-host-2026-09-13).
 
-Not verified in this run: a live remote-server replay; native Windows and Linux openers, encoders, and IMEs; WebKit long-task metrics; a signed release build; and an hours-long macOS native-IME soak in an isolated graphics environment. Browser results are not substituted for those platform checks.
+Not verified in this run: native Windows and Linux openers, encoders, and IMEs; WebKit long-task metrics; a signed release build; and an hours-long macOS native-IME soak in an isolated graphics environment. Browser results are not substituted for those platform checks.

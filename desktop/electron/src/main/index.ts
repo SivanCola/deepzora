@@ -39,7 +39,6 @@ import { createLogger, errorText, RotatingFile } from "./log.js";
 import { installApplicationMenu } from "./menu.js";
 import { record } from "./params.js";
 import { APP_INDEX_URL, APP_SCHEME, registerAppProtocol, resolveDistRoot } from "./protocol.js";
-import { RemoteWindowHost } from "./remoteWindows.js";
 import { ServiceSupervisor } from "./service.js";
 import { ShellLifecycle } from "./shellLifecycle.js";
 import { resolveServiceBinary } from "./serviceBinary.js";
@@ -294,12 +293,6 @@ function bootstrap(dataHome: string): void {
   const documents = new DocumentRegistry();
   const actions = new ActionExecutor({ surfaces: browser, documents });
 
-  const remote = new RemoteWindowHost({
-    platform: process.platform,
-    icon: windowIcon,
-    log,
-    onClosed: (hostKey) => void service.hostEvent("remoteWindow.closed", { hostKey }),
-  });
   const tray = new TrayHost({
     platform: process.platform,
     iconPath: firstExisting(icons.tray),
@@ -363,7 +356,6 @@ function bootstrap(dataHome: string): void {
     onCloseAllowed: () => mainWindow.allowClose(),
     cleanup: [
       { name: "browser views", run: async () => { await browserRecorder.close(); stopBrowserRecovery(); browserRecovery.save(browser.recoveryTabs()); browser.destroyAll(); browserDiagnosticExport.dispose(); } },
-      { name: "remote windows", run: () => remote.closeAll() },
       { name: "main window", run: () => mainWindow.close() },
       { name: "tray", run: () => tray.destroy() },
       { name: "startup deadline", run: () => clearTimeout(startupTimer) },
@@ -377,7 +369,6 @@ function bootstrap(dataHome: string): void {
     window: mainWindow,
     dialogs,
     tray,
-    remote,
     lifecycle,
     openExternal: (url) => {
       new URL(url);

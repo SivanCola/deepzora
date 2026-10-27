@@ -15,11 +15,11 @@ function bindProfileRead(slot: CommittedSlot<readonly ControllerProfileResource[
 }
 
 export function useControllerProfileCommands(options: {
-  target: SessionResource; profiles: readonly ControllerProfileResource[]; ready: boolean; remote: boolean; runtimeEpoch?: string;
-  ports: ControllerProfilePorts; remoteModel(name: string): Promise<void>;
+  target: SessionResource; profiles: readonly ControllerProfileResource[]; ready: boolean; runtimeEpoch?: string;
+  ports: ControllerProfilePorts;
   operations: ReturnType<typeof useSessionOperations>; report(error: unknown): void;
 }) {
-  const { target, profiles, ready, remote, runtimeEpoch, operations, ports, remoteModel, report } = options;
+  const { target, profiles, ready, runtimeEpoch, operations, ports, report } = options;
   const slot = useCommittedSlot(profiles);
   const read = useMemo(() => bindProfileRead(slot), [slot]);
   const restore = useCommittedCommand(async (source: SessionResource): Promise<boolean> => {
@@ -37,9 +37,9 @@ export function useControllerProfileCommands(options: {
   });
   const switchModel = useCommittedCommand(async (name: string, tabId = target.tabId): Promise<boolean> => {
     const source = profiles.find(value => value.target.tabId === tabId);
-    if (!source || (source.remote && tabId !== target.tabId)) return false;
+    if (!source) return false;
     const result = await operations(source.target, "model", { target: source.target, read, ports, restore,
-      name, remote: source.remote ? remoteModel : undefined }, executeControllerModel);
+      name }, executeControllerModel);
     if (result.status === "failed") throw result.error;
     return result.status === "completed" && result.value;
   });
@@ -49,7 +49,7 @@ export function useControllerProfileCommands(options: {
   });
   const active = profiles.find(value => value.target.tabId === target.tabId)?.profile;
   useEffect(() => {
-    if (ready && target.tabId && !remote) void applyProfile().catch(reportError);
-  }, [ready, remote, runtimeEpoch, target.tabId, target.sessionKey, active?.collaboration, active?.approval, active?.goal, applyProfile, reportError]);
+    if (ready && target.tabId) void applyProfile().catch(reportError);
+  }, [ready, runtimeEpoch, target.tabId, target.sessionKey, active?.collaboration, active?.approval, active?.goal, applyProfile, reportError]);
   return { applyProfile, switchModel, switchModelFromUi };
 }

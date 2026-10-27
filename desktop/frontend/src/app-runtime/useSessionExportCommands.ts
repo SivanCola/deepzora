@@ -18,7 +18,6 @@ export type SessionExportFormat = "markdown" | "json" | "pdf" | "image" | "diagn
 export function useSessionExportCommands(input: {
   tabId?: string;
   selector?: SessionSelector;
-  remote: boolean;
   sessionTitle: string;
   items: readonly Item[];
   live: LiveStream | undefined;
@@ -26,7 +25,7 @@ export function useSessionExportCommands(input: {
   t: Translator;
   showToast: (message: string, kind: "info" | "warn" | "error", options?: { durationMs?: number }) => void;
 }) {
-  const { tabId, remote, sessionTitle, items, live, hasContent, t, showToast } = input;
+  const { tabId, sessionTitle, items, live, hasContent, t, showToast } = input;
   const topicExportOpen = useOverlayStore((state) => state.topicExportOpen);
   const setTopicExportOpen = useOverlayStore((state) => state.setTopicExportOpen);
 
@@ -46,7 +45,7 @@ export function useSessionExportCommands(input: {
   }, [setTopicExportOpen, topicExportOpen]);
 
   const run = useCommittedCommand(async (format: SessionExportFormat | "clipboard") => (await import("../lib/sessionExportOperation")).runSessionExport({
-    selector: input.selector ?? {}, tabId: tabId ?? "", format, title: sessionTitle, remote,
+    selector: input.selector ?? {}, tabId: tabId ?? "", format, title: sessionTitle,
     residentItems: items.length, runningStream: Boolean(live), unresolvedTools: items.filter(item => item.kind === "tool" && item.resultMissing).length,
   }));
   const getSessionMarkdown = useCommittedCommand(async () => {

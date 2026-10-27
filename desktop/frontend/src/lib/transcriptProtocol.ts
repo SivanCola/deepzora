@@ -33,9 +33,7 @@ export interface TranscriptContentChunk { data: string; nextOffset: number; done
 
 export interface TranscriptProtocolBindings {
   TranscriptFollowForTab(tabId: string, request: import("../generated/desktopContract.generated").FollowRequest): Promise<import("../generated/desktopContract.generated").TranscriptFollowResponse>;
-  RemoteTranscriptFollowForTab(tabId: string, request: import("../generated/desktopContract.generated").FollowRequest): Promise<import("../generated/desktopContract.generated").TranscriptFollowResponse>;
   TranscriptContentForTab?(tabId: string, request: TranscriptContentRef & { offset: number }): Promise<TranscriptContentChunk>;
-  RemoteTranscriptContentForTab?(tabId: string, request: TranscriptContentRef & { offset: number }): Promise<TranscriptContentChunk>;
   ResumeTranscriptSessionForTab?(tabID: string, path: string): Promise<HistorySwitchPhases | void>;
   OpenChannelTranscriptSessionForTab?(tabID: string, path: string): Promise<HistorySwitchPhases | void>;
 }

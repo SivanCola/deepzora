@@ -1,4 +1,3 @@
-import type { RemoteTabRefView } from "../lib/types";
 import type { ShortcutPlatform } from "../lib/keyboardShortcuts";
 import type { TopicShortcutEntry } from "../lib/topicShortcuts";
 import type { ProjectTreeVariant } from "../lib/projectTreeTopic";
@@ -9,7 +8,6 @@ export interface ProjectTreeProps {
   activeTopicId?: string;
   activeSessionPath?: string;
   activeSession?: import("../lib/sessionRef").SessionRef;
-  activeRemote?: RemoteTabRefView;
   variant?: ProjectTreeVariant;
   onOpenTopic: (scope: string, workspaceRoot: string, topicId: string, sessionPath?: string) => Promise<void> | void;
   onAddProject: (path?: string) => Promise<void>;

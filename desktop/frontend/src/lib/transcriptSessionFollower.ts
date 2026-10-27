@@ -29,7 +29,7 @@ export class TranscriptFollowerLifecycle {
     this.stop(tabId);
     const owner: FollowerOwner = {
       key, connection: "syncing",
-      follower: new TranscriptSessionFollower(tabId, path, false, action => {
+      follower: new TranscriptSessionFollower(tabId, path, action => {
         if (this.owners.get(tabId) !== owner) return;
         if (action.type === "transcript_connection") owner.connection = action.status;
         dispatch(action);

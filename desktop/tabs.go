@@ -68,7 +68,6 @@ type WorkspaceTab struct {
 	persistenceExtra         map[string]json.RawMessage // unknown desktop-tabs.json fields retained across rewrites
 	SessionGeneration        uint64                     // bumps on session rotation (clear/new); frontend hydrate identity
 	ReadOnly                 bool                       // true for external channel transcripts opened for browsing
-	Takeover                 struct{ Spectator bool }   // handoff state grouped by its cross-runtime lifetime
 	Ctrl                     control.SessionAPI         // nil while booting / on error
 	Label                    string                     // model label (for the tab badge)
 	Ready                    bool                       // true once boot.Build completes
@@ -693,10 +692,6 @@ func (a *App) attachExistingSessionRuntimeCore(tab *WorkspaceTab, path string, a
 	attachedSink := tab.sink
 	attachedEpoch := a.runtimeEpochForTabLocked(tab)
 	a.mu.Unlock()
-	if path != "" && !tab.ReadOnly {
-		a.attachTakeoverMirror(tab.ID, path)
-		go a.adoptSessionFromLocalServe(tab.ID, path)
-	}
 
 	a.replayPendingPromptsAfterRuntimeAttach(tab.ID, attachedSink, attachedCtrl, attachedEpoch)
 	return true
@@ -982,18 +977,6 @@ type tabEventSink struct {
 	sessionGeneration uint64 // source session binding generation
 	runtimeEvents     asyncRuntimeEmitter
 	turn              turnSubmissionState // stays reserved through the end of TurnDone fan-out
-	// takeoverMirror, when set, forwards every event to the serve that used to
-	// own this session so the remote tab keeps rendering after a local
-	// takeover. Atomic so Emit reads it without the sink lock.
-	takeoverMirror atomic.Pointer[takeoverMirror]
-}
-
-// setTakeoverMirror installs (or clears) the session-takeover frame mirror.
-func (s *tabEventSink) setTakeoverMirror(m *takeoverMirror) {
-	if s == nil {
-		return
-	}
-	s.takeoverMirror.Store(m)
 }
 
 // binding snapshots the sink's current tab routing under the sink lock.
@@ -1048,9 +1031,6 @@ func (s *tabEventSink) Emit(e event.Event) {
 		}
 	}
 	s.emitRuntimeEvent(eventChannel, toWireTabWithSubmission(e, tabID, s.runtimeEpochSnapshot(), s.submissionIDSnapshot(), turnStartedAt, s.sessionGenerationSnapshot()))
-	if m := s.takeoverMirror.Load(); m != nil {
-		m.forwardEvent(e)
-	}
 	if app != nil {
 		if status, update := topicActivityStatusFromEvent(e); update {
 			changed := app.setTabActivityStatus(tabID, status)
@@ -1504,15 +1484,6 @@ func enrichTabMeta(meta TabMeta) TabMeta {
 	return meta
 }
 
-func enrichTabMetas(metas []TabMeta) []TabMeta {
-	for i := range metas {
-		if metas[i].Active {
-			metas[i].GitBranch = workspaceGitBranchForMeta(metas[i].WorkspaceRoot, metas[i].repo)
-		}
-	}
-	return metas
-}
-
 func (a *App) tabMeta(tab *WorkspaceTab, active bool) TabMeta {
 	runtimeView := a.sessionRuntimeViewLocked(tab)
 	sessionRevision, sessionDigest, _ := a.canonicalTabHistoryFingerprint(tab)
@@ -1531,7 +1502,6 @@ func (a *App) tabMeta(tab *WorkspaceTab, active bool) TabMeta {
 		SessionDigest:     sessionDigest,
 		SessionGeneration: tab.SessionGeneration,
 		ReadOnly:          tab.ReadOnly,
-		TakenOver:         tab.Takeover.Spectator,
 		Label:             tab.Label,
 		Ready:             runtimeView.Phase == sessionRuntimeReady && tab.Ctrl != nil,
 		Runtime:           runtimeView,
@@ -1588,7 +1558,7 @@ func (a *App) ListTabs() []TabMeta {
 	}
 	a.mu.RUnlock()
 	if !needsRepair {
-		return a.listTabsWithRemote(out)
+		return out
 	}
 
 	a.mu.Lock()
@@ -1599,7 +1569,7 @@ func (a *App) ListTabs() []TabMeta {
 		}
 	}
 	a.mu.Unlock()
-	return a.listTabsWithRemote(out)
+	return out
 }
 
 // syncTabWorkspaceRootSpellings repoints visible and detached project runtimes
@@ -2163,54 +2133,27 @@ func (a *App) indexedBlankTopicIDLocked(scope, workspaceRoot string) (string, *c
 	return "", nil, nil
 }
 
-// ReorderTabs persists the full local+remote strip while keeping each
-// registry's internal order independent.
+// ReorderTabs persists the tab strip order.
 func (a *App) ReorderTabs(tabIDs []string) error {
-	a.remoteTabMu.Lock()
-	remoteCount := len(a.remoteTabs)
-	a.remoteTabMu.Unlock()
 	a.mu.Lock()
-	if len(tabIDs) != len(a.tabs)+remoteCount {
+	if len(tabIDs) != len(a.tabs) {
 		a.mu.Unlock()
 		return fmt.Errorf("tab order length mismatch")
 	}
 	seen := make(map[string]bool, len(tabIDs))
 	next := make([]string, 0, len(a.tabs))
-	nextRemote := make([]string, 0, remoteCount)
 	for _, id := range tabIDs {
 		if seen[id] {
 			a.mu.Unlock()
 			return fmt.Errorf("duplicate tab %q", id)
 		}
 		seen[id] = true
-		if _, ok := a.tabs[id]; ok {
-			next = append(next, id)
-		} else {
-			nextRemote = append(nextRemote, id)
+		if _, ok := a.tabs[id]; !ok {
+			a.mu.Unlock()
+			return fmt.Errorf("tab order is missing local tabs")
 		}
+		next = append(next, id)
 	}
-	if len(next) != len(a.tabs) {
-		a.mu.Unlock()
-		return fmt.Errorf("tab order is missing local tabs")
-	}
-	a.remoteTabMu.Lock()
-	remoteOK := len(nextRemote) == len(a.remoteTabs)
-	if remoteOK {
-		for _, id := range nextRemote {
-			if a.remoteTabs[id] == nil {
-				remoteOK = false
-				break
-			}
-		}
-	}
-	if !remoteOK {
-		a.remoteTabMu.Unlock()
-		a.mu.Unlock()
-		return fmt.Errorf("tab order is missing remote tabs")
-	}
-	a.remoteTabLayout.order = append([]string(nil), nextRemote...)
-	a.remoteTabLayout.stripOrder = append([]string(nil), tabIDs...)
-	a.remoteTabMu.Unlock()
 	a.tabOrder = next
 	dir, entries, activeID, version := a.saveTabsCollectLocked()
 	a.mu.Unlock()
@@ -2254,11 +2197,6 @@ func (a *App) closeTabRuntime(tabID string, allowDetach bool) error {
 	if a.terminals != nil {
 		a.terminals.closeForTab(tabID)
 	}
-
-	// Claim the mirror's farewell while this tab still owns its writer; a close
-	// that returns early keeps the writer and hands the claim back.
-	closingMirror, releaseMirrorClaim := a.claimTakeoverMirrorFarewell(a.currentSessionPathFor(tab))
-	defer releaseMirrorClaim()
 
 	a.mu.Lock()
 	if current := a.tabs[tabID]; current != tab {
@@ -2324,9 +2262,6 @@ func (a *App) closeTabRuntime(tabID string, allowDetach bool) error {
 		// on the last release the host is closed and its subprocesses exit.
 		a.releaseTabSharedHost(tab)
 	}
-	// The writer is released: tell Serve now so it hands the session straight
-	// back instead of waiting for the writer to drop.
-	a.endTakeoverMirrorForClosedTab(closingMirror)
 	if closeSink != nil {
 		closeSink.clearContext() // stop further emissions (nil ctx -> Emit becomes no-op)
 	}
@@ -2658,7 +2593,6 @@ func (a *App) buildTabControllerWithContextCore(tab *WorkspaceTab, loadedSession
 		if view, openErr := service.OpenSession(buildCtx, ref); openErr == nil && strings.TrimSpace(view.Recent.ModelRef) != "" {
 			model = strings.TrimSpace(view.Recent.ModelRef)
 		}
-
 	}
 	if model == "" {
 		if def := strings.TrimSpace(cfg.DefaultModel); providerext.PluginRefOwner(def) != "" {
@@ -2796,7 +2730,7 @@ func (a *App) buildTabControllerWithContextCore(tab *WorkspaceTab, loadedSession
 		// preset store. OpenSession publishes the session default, so restore the
 		// selected preset after binding the target identity.
 		applyTabToolApprovalModeToController(ctrl, buildRuntime.toolApprovalMode)
-		tab.replaceTelemetry(loadTelemetryFor(sessionRoute(bound.ref.SessionID)), sessionRuntimeKey(remoteSessionIDRoutePrefix+bound.ref.SessionID))
+		tab.replaceTelemetry(loadTelemetryFor(sessionRoute(bound.ref.SessionID)), sessionRuntimeKey(sessionIDRoutePrefix+bound.ref.SessionID))
 	}
 
 	// Lifecycle admission protects only the compare-and-publish boundary. Slow
@@ -3895,13 +3829,6 @@ type ChangedFileInfo struct {
 // ContextPanel returns the context usage, read files, and changed files for a
 // specific tab.
 func (a *App) ContextPanel(tabID string) ContextPanelInfo {
-	if a.isRemoteTab(tabID) {
-		used, window, ok := a.remoteContextSnapshot(tabID)
-		if ok {
-			return ContextPanelInfo{UsedTokens: used, WindowTokens: window, ReadFiles: []readFileRecord{}, ChangedFiles: []ChangedFileInfo{}}
-		}
-		return ContextPanelInfo{ReadFiles: []readFileRecord{}, ChangedFiles: []ChangedFileInfo{}}
-	}
 	read := a.captureContextRead(tabID)
 	ctrl, telemetry := read.ctrl, read.telemetry
 	if read.tab == nil {

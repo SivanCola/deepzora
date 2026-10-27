@@ -19,13 +19,6 @@ composer. After the first turn starts, the selection is locked. Start another
 conversation to choose a different preset. Saving a definition does not change a
 running conversation's prompt or tools.
 
-Remote tabs use the remote workspace's preset files. The remote service must
-advertise `agent-preset-v1`; older services show an unavailable message for this
-feature. Saving a preset with `complete: true` or `include-runtime-context: false`
-also requires `agent-preset-complete-v1`. Hosts that advertise only
-`agent-preset-v1` still support saving normal presets with complete mode off and
-runtime context enabled.
-
 ## Terminal
 
 ```sh
@@ -122,21 +115,3 @@ If a recorded definition is deleted, the session keeps the ID, reports a warning
 and runs the default agent until the file is restored. An explicit request to
 start with an unknown ID fails. A malformed existing definition reports an error
 so it can be corrected.
-
-## HTTP
-
-Authenticated Serve clients can use these additive endpoints:
-
-| Request | Body or response |
-| --- | --- |
-| `GET /agent-presets` | Returns `{presets, problems, current, locked}`; definitions include their bodies and scopes. |
-| `PUT /agent-presets/{id}` | JSON `{ "scope": "user", "content": "<Markdown definition>" }`; returns the saved definition. |
-| `DELETE /agent-presets/{id}` | JSON `{ "scope": "user" }`; deletes that scope's file. |
-| `POST /agent-preset` | JSON `{ "agentPreset": "reviewer" }`; switches an empty conversation. |
-| `POST /new` | Optional JSON `{ "agentPreset": "reviewer" }`; starts a new conversation using that preset. |
-
-Use `project` instead of `user` for workspace definitions. Omitting `agentPreset`
-from `/new` retains the current preset ID and loads its latest definition; pass
-`"default"` to start with the standard agent. Session-changing requests use Serve's
-existing expected-session identity fence. Locked selection returns HTTP 409.
-`/status` includes `agentPreset` and `agentPresetLocked`.

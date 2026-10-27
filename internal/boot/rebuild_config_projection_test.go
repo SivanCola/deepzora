@@ -36,7 +36,6 @@ func TestRuntimeConfigFingerprintIgnoresPresentation(t *testing.T) {
 		{"notifications", func(c *config.Config) { c.Notifications.Enabled = !c.Notifications.Enabled }},
 		{"telemetry", func(c *config.Config) { c.Telemetry.CLIMetrics = "off" }},
 		{"status line", func(c *config.Config) { c.Statusline.Command = "printf test" }},
-		{"serve transport", func(c *config.Config) { c.Serve.BehindProxy = !c.Serve.BehindProxy }},
 		{"provider label", func(c *config.Config) { c.Providers[0].DisplayName = "Renamed" }},
 		{"provider preset", func(c *config.Config) { c.Providers[0].PresetID = "preset"; c.Providers[0].PresetVersion++ }},
 		{"model discovery URL", func(c *config.Config) { c.Providers[0].ModelsURL = "https://example.invalid/models" }},
@@ -82,9 +81,6 @@ func TestRuntimeConfigFingerprintRetainsRuntimeDependencies(t *testing.T) {
 		{"sandbox network", func(c *config.Config) { c.Sandbox.Network = !c.Sandbox.Network }},
 		{"subprocess filtering", func(c *config.Config) { c.Secrets.FilterSubprocessEnv = !c.Secrets.FilterSubprocessEnv }},
 		{"sensitive files", func(c *config.Config) { c.Secrets.ProtectSensitiveFiles = !c.Secrets.ProtectSensitiveFiles }},
-		{"remote credential protection", func(c *config.Config) {
-			c.Remote.Hosts = append(c.Remote.Hosts, config.RemoteHostEntry{Name: "fixture", PasswordEnv: "FIXTURE_BOX_PASSWORD"})
-		}},
 		{"proxy", func(c *config.Config) { c.Network.ProxyMode = "off" }},
 		{"offline tools", func(c *config.Config) { c.Environment.Offline = !c.Environment.Offline }},
 		{"skills", func(c *config.Config) { c.Skills.DisabledSkills = []string{"fixture"} }},
@@ -185,26 +181,5 @@ func TestRuntimeConfigFingerprintUsesWorkspacePrompt(t *testing.T) {
 	}
 	if after := runtimeConfigFingerprint(cfg, root); before == "" || after == "" || after == before {
 		t.Fatal("changed workspace prompt did not invalidate runtime reuse")
-	}
-}
-
-func TestRuntimeConfigFingerprintIncludesCredentialProxy(t *testing.T) {
-	isolateConfigHome(t)
-	root := t.TempDir()
-	cfg := projectionConfig(t)
-	settings := config.ModelRuntimeSettings{
-		ProxyURL: "http://127.0.0.1:1234", Providers: cfg.Providers,
-		Credentials: map[string]string{"fixture": "fixture-tunnel-token"},
-	}
-	if err := settings.Apply(cfg, root); err != nil {
-		t.Fatal(err)
-	}
-	before := runtimeConfigFingerprint(cfg, root)
-	settings.ProxyURL = "http://127.0.0.1:1235"
-	if err := settings.Apply(cfg, root); err != nil {
-		t.Fatal(err)
-	}
-	if after := runtimeConfigFingerprint(cfg, root); before == "" || after == "" || after == before {
-		t.Fatal("changed private credential proxy route did not invalidate runtime reuse")
 	}
 }

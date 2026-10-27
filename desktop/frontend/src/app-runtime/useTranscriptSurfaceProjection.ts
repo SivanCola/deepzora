@@ -14,13 +14,8 @@ export type TranscriptSurfaceProjectionInput = {
   hydratePlaceholderActive: boolean;
   items: Item[];
   guidanceConsumed?: State["guidanceConsumed"];
-  remote: boolean;
-  remoteItems: Item[];
   activeTabId: string | undefined;
   geometrySessionKey: string;
-  transitioning: boolean;
-  navigationDataReady: boolean;
-  preserved: NavigationSurfaceApi["preserved"];
   controllerReady: boolean;
   availability: SessionAvailability;
   sessionActivity: boolean;
@@ -44,7 +39,7 @@ export type TranscriptSurfaceProjectionInput = {
  * consumed guidance entry and the transcript prompt/load-older commands.
  */
 export function useTranscriptSurfaceProjection(input: TranscriptSurfaceProjectionInput) {
-  const { activeTabId, transitioning, ports } = input;
+  const { activeTabId, ports } = input;
   const transcriptHydrating = input.hydrating && !input.hydrateHistoryLoaded;
   // Show the hero only after history hydration settles on a truly empty session.
   // Avoid flash while switching tabs: items may be empty while placeholders show.
@@ -52,7 +47,6 @@ export function useTranscriptSurfaceProjection(input: TranscriptSurfaceProjectio
   const emptyHero =
     input.availability.kind === "ready" &&
     !input.sessionActivity &&
-    !transitioning &&
     !input.sessionHasContent &&
     !transcriptHydrating &&
     !input.hydratePlaceholderActive;
@@ -64,31 +58,27 @@ export function useTranscriptSurfaceProjection(input: TranscriptSurfaceProjectio
     return activeTabId ? ports.loadNewerHistory(activeTabId, latest, current) : Promise.resolve("empty" as const);
   });
   const handleNavigateToTurn = useCommittedCommand((target: TurnNavigationTarget, current: () => boolean) => {
-    return activeTabId && !transitioning && ports.navigateToTurn ? ports.navigateToTurn(activeTabId, target, current) : Promise.resolve("cancelled" as const);
+    return activeTabId && ports.navigateToTurn ? ports.navigateToTurn(activeTabId, target, current) : Promise.resolve("cancelled" as const);
   });
 
   // Display items: backend history is authoritative after immediate commit.
   // rewindState only drives the undo banner, not optimistic truncation.
   const displayItems = transcriptItems;
-  const committedSurfaceItems = input.remote ? input.remoteItems : displayItems;
-  const committedGeometryKey = input.remote ? `tab:${activeTabId ?? "preview"}` : input.geometrySessionKey;
+  const committedSurfaceItems = displayItems;
+  const committedGeometryKey = input.geometrySessionKey;
   // Only committed presentation can become a future retained source surface.
   // A suspended or abandoned render must never become navigation authority.
   const commitRendered = input.commitRendered;
   useLayoutEffect(() => {
-    if (transitioning) return;
     commitRendered({
       tabId: activeTabId,
       items: committedSurfaceItems,
       geometrySessionKey: committedGeometryKey,
     });
-  }, [activeTabId, commitRendered, committedSurfaceItems, transitioning, committedGeometryKey]);
-  const visibleTranscriptSurface = transitioning && !input.navigationDataReady && input.preserved
-    ? input.preserved
-    : null;
-  const visibleTranscriptItems = visibleTranscriptSurface?.items ?? displayItems;
-  const visibleTranscriptTabId = visibleTranscriptSurface?.tabId ?? activeTabId;
-  const visibleTranscriptGeometryKey = visibleTranscriptSurface?.geometrySessionKey ?? input.geometrySessionKey;
+  }, [activeTabId, commitRendered, committedSurfaceItems, committedGeometryKey]);
+  const visibleTranscriptItems = displayItems;
+  const visibleTranscriptTabId = activeTabId;
+  const visibleTranscriptGeometryKey = input.geometrySessionKey;
   const handleSurfacePaintReady = useCommittedCommand((token: string, outcome: "ready" | "degraded") => {
     const receipt = input.commitPaint(token, outcome);
     if (receipt) input.commitSingleSurface(receipt.targetTabId);

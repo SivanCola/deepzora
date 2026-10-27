@@ -2,7 +2,7 @@
 
 [English](TRANSCRIPT_PROJECTION.md)
 
-本地 Desktop 与当前 Serve 共享 `internal/transcript`。控制器先持久化事件，
+Desktop 会话使用 `internal/transcript`。控制器先持久化事件，
 再提交显示投影，最后在提交锁外发布事件。规划器、执行器、交互提示和终态都经过
 这个边界。模型请求仍只使用规范历史，显示记录不会回流到模型上下文。
 
@@ -37,7 +37,7 @@ Desktop 使用 Electron 宿主契约。新增方法与所有权元数据一起�
 RPC 接受、失败和未知结果属于本地提交，运行态另由请求归属控制。
 只有显式新发送才增加滚动使用的提交 revision。
 同一正式会话 ID 的恢复快照保留未结算回显；快照所属会话改变时清理回显与交接映射，
-并推进会话 generation。远程回调始终读取所属标签的状态，不能沿用上一个标签的渲染状态。
+并推进会话 generation。
 
 历史窗口和正文读取按需加载，在异步模块加载前捕获路由身份，Store 的 generation
 检查继续丢弃失效结果。首屏代码保持在原有包体预算内。
@@ -64,9 +64,7 @@ Electron 脚本输入不能充当操作系统原生输入
 ## 快照协议
 
 Desktop 提供 `TranscriptSnapshotForTab`、`TranscriptPageForTab`、
-`TranscriptContentForTab` 和 `TranscriptReplayForTab`。Serve 在现有认证和
-主机检查下提供对应的 GET `/transcript/snapshot`、`/transcript/page`、
-`/transcript/content`、`/transcript/replay`。
+`TranscriptContentForTab` 和 `TranscriptReplayForTab`。
 
 `ResumeTranscriptSessionForTab` 和 `OpenChannelTranscriptSessionForTab` 在绑定后
 返回切换阶段诊断，不生成旧历史页。前端只在对应快照提交后记录这些数据，并单独统计
@@ -77,7 +75,7 @@ Desktop 提供 `TranscriptSnapshotForTab`、`TranscriptPageForTab`、
 快照携带协议版本、快照 ID、会话／会话头／重写代次／运行时代次、投影修订号、
 已覆盖事件序号、显示记录、活动记录及待处理提示。分页和正文请求绑定同一个
 快照 ID；回放绑定完整身份和最后提交的序号。快照被回收时返回 `stale`，身份或
-保留范围不匹配时要求重新安装快照。异步读取结束后还会复查标签页及远程连接代次。
+保留范围不匹配时要求重新安装快照。异步读取结束后还会复查标签页代次。
 
 前端在发起读取前暂停有序事件入口。活动记录引用的完整前缀解析后，一次 reducer
 事务安装显示、运行态和采样状态，再推进覆盖序号。实时队列与回放使用同一提交入口。
@@ -103,18 +101,15 @@ UTF-8 边界切分的 64 KiB 正文块；读取块时直接访问字段，不序
 保留；非活动缓存限制为三个标签页、32 MiB。实时缺口队列限制为 1,024 个事件和
 8 MiB，溢出保留最高接收序号，由 WAL 回补。
 
-旧 Serve 的端点或协议不支持、或返回旧 HTML 首页时，继续使用旧路径，并在界面
-明确提示同步受限、重连可能缺失或重复内容。能力探测不会升级或重启 Serve。
-现代路径仅获取附属元数据，不再同时下载旧版完整 `/history`。
+水合仅获取附属元数据，不再同时下载完整历史。
 
 ## 验证
 
-根模块测试覆盖采样身份、检查点落盘失败、自动保存恢复、不可变快照、嵌套正文引用、
-超大会话及 HTTP 会话绑定。Desktop 测试覆盖规划阶段取消、旧 Serve 探测、远程
-迟到响应及纯元数据读取。前端通过真实 reducer 验证前后缀交错、乐观气泡键、分页
+根模块测试覆盖采样身份、检查点落盘失败、自动保存恢复、不可变快照、嵌套正文引用及
+超大会话。Desktop 测试覆盖规划阶段取消及纯元数据读取。前端通过真实 reducer 验证前后缀交错、乐观气泡键、分页
 顺序、工具配对、丢弃记录及过期正文写入。
 
 根模块和 Desktop Go 测试须分别运行。前端运行 `test:typecheck`、
-`test:transcript`、`test:remote`、`test:stream` 和生产构建。浏览器会话与
+`test:transcript`、`test:stream` 和生产构建。浏览器会话与
 App 内存检查、原生 Electron 回放是独立验收项；单元测试或交叉编译
 不能替代原生证据。

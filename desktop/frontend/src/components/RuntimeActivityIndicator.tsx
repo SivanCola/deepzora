@@ -13,7 +13,6 @@ import type { ProjectNode } from "../lib/types";
 export type RuntimeActivityTarget = {
   scope: "global" | "project";
   root: string;
-  remote?: { hostId: string; workspace: string };
   topics?: ProjectNode[];
   fallbackActive?: boolean;
 };
@@ -22,10 +21,9 @@ export default function RuntimeActivityIndicator({ target }: { target: RuntimeAc
   const snapshot = useSyncExternalStore(runtimeStateStore.subscribe, runtimeStateStore.getSnapshot);
   const failed = useSyncExternalStore(runtimeStateStore.subscribe, runtimeStateStore.getFailed);
   const t = useT();
-  const matched = snapshot?.sessions.filter(session => target.remote
-    ? session.remote && session.hostId === target.remote.hostId && session.workspaceRoot === target.remote.workspace
-    : session.scope === target.scope && (target.scope === "global" || session.workspaceRoot === target.root));
-  const sessions = matched && [...new Map(matched.map(session => [`${session.hostId ?? "local"}\0${session.workspaceRoot}\0${session.sessionPath}`, session])).values()];
+  const matched = snapshot?.sessions.filter(session =>
+    session.scope === target.scope && (target.scope === "global" || session.workspaceRoot === target.root));
+  const sessions = matched && [...new Map(matched.map(session => [`${session.workspaceRoot}\0${session.sessionPath}`, session])).values()];
   if (sessions) {
     const active = sessions.filter(session => {
       const view = selectRuntime(session, failed);

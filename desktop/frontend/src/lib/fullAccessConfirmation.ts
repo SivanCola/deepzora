@@ -35,17 +35,15 @@ function normalizeWorkspacePath(value: string): string {
 }
 
 /**
- * Identifies the folder whose Full access warning has been acknowledged.
- * Remote hosts are deliberately isolated even when their workspace paths match.
+ * Identifies the folder whose Full access warning has been acknowledged. The
+ * "local" host prefix keeps keys stored by earlier versions valid.
  */
 export function fullAccessProjectConfirmationKey(input: {
   workspacePath?: string;
-  remoteHostId?: string;
 }): string {
   const workspacePath = normalizeWorkspacePath(input.workspacePath ?? "");
   if (!workspacePath) return "";
-  const remoteHostId = input.remoteHostId?.trim();
-  return JSON.stringify([remoteHostId ? `remote:${remoteHostId}` : "local", workspacePath]);
+  return JSON.stringify(["local", workspacePath]);
 }
 
 export function hasConfirmedFullAccessForProject(projectKey: string): boolean {

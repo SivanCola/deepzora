@@ -1,7 +1,6 @@
 package main
 
 import (
-	"net/http"
 	"testing"
 
 	"deepzora/internal/control"
@@ -101,39 +100,5 @@ func TestInboxReceiptRejectsLocalOwnerChangedDuringRead(t *testing.T) {
 				t.Fatal("receipt read did not reach the ownership change")
 			}
 		})
-	}
-}
-
-func TestInboxReceiptRebindsRemoteTabWithoutReplaying(t *testing.T) {
-	isolateDesktopUserDirs(t)
-	reads := 0
-	client := &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-		if req.Method != http.MethodGet || req.URL.Query().Get("session") != runtimeRemoteTestPath || req.URL.Query().Get("key") != "original" {
-			t.Errorf("wrong receipt route: %s %s", req.Method, req.URL.Path)
-		}
-		reads++
-		return remoteRuntimeTestResponse(req, 200, `{"itemId":"original","position":0,"disposition":"idempotent_hit","paused":false}`), nil
-	})}
-	a, tab := remoteRuntimeTestApp(client)
-	target, err := a.CaptureInboxTarget(tab.id, runtimeRemoteTestPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	delete(a.remoteTabs, tab.id)
-	tab.id = "reopened"
-	tab.gen++
-	a.remoteTabs[tab.id] = tab
-	if got, err := a.LookupInboxFollowupForTarget(target, "original"); err != nil || got.ItemID != "original" {
-		t.Fatalf("lookup = %+v %v", got, err)
-	}
-	if reads != 1 {
-		t.Fatalf("reads = %d", reads)
-	}
-	if _, err := a.EnqueueInboxFollowupForTarget(target, "repeat", "repeat", nil, "repeat"); err == nil {
-		t.Fatal("old write target was rebound")
-	}
-	tab.ref.Workspace = "different-workspace"
-	if _, err := a.LookupInboxFollowupForTarget(target, "original"); err == nil || reads != 1 {
-		t.Fatal("receipt crossed workspace identity")
 	}
 }

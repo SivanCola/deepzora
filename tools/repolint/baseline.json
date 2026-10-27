@@ -177,25 +177,6 @@
     "desktop/provider_access_removal.go": {
       "essay": 3
     },
-    "desktop/remote_app.go": {
-      "file-size": 1035
-    },
-    "desktop/remote_serve.go": {
-      "essay": 3
-    },
-    "desktop/remote_tab.go": {
-      "essay": 8,
-      "file-size": 301
-    },
-    "desktop/remote_tab_commands.go": {
-      "essay": 1
-    },
-    "desktop/remote_tab_multisession.go": {
-      "essay": 2
-    },
-    "desktop/remote_tab_review_regressions_test.go": {
-      "test-file-size": 7
-    },
     "desktop/session_catalog_app_test.go": {
       "essay": 1
     },
@@ -213,12 +194,6 @@
     },
     "desktop/session_runtime.go": {
       "essay": 2
-    },
-    "desktop/session_takeover.go": {
-      "complexity": 9,
-      "essay": 20,
-      "file-size": 511,
-      "function-size": 19
     },
     "desktop/sessions.go": {
       "essay": 4,
@@ -666,11 +641,6 @@
     "internal/cli/select.go": {
       "complexity": 60,
       "function-size": 153
-    },
-    "internal/cli/session_takeover_cli.go": {
-      "complexity": 1,
-      "essay": 2,
-      "file-size": 195
     },
     "internal/cli/setup_manager.go": {
       "essay": 1,
@@ -1156,27 +1126,6 @@
     "internal/provider/schema_validate.go": {
       "essay": 2
     },
-    "internal/remote/auth.go": {
-      "essay": 1
-    },
-    "internal/remote/client_test.go": {
-      "essay": 1
-    },
-    "internal/remote/dial.go": {
-      "essay": 1
-    },
-    "internal/remote/knownhosts.go": {
-      "essay": 1
-    },
-    "internal/remote/remote.go": {
-      "essay": 4
-    },
-    "internal/remote/sftpfs/sftpfs_test.go": {
-      "essay": 2
-    },
-    "internal/remote/sshconfig.go": {
-      "essay": 2
-    },
     "internal/repair/config.go": {
       "complexity": 12
     },
@@ -1227,27 +1176,6 @@
     },
     "internal/secrets/redact.go": {
       "complexity": 9
-    },
-    "internal/serve/auth.go": {
-      "essay": 2
-    },
-    "internal/serve/provider_setup.go": {
-      "essay": 1
-    },
-    "internal/serve/runtime_http.go": {
-      "essay": 3
-    },
-    "internal/serve/serve.go": {
-      "essay": 18,
-      "file-size": 933,
-      "function-size": 8
-    },
-    "internal/serve/serve_test.go": {
-      "test-file-size": 396
-    },
-    "internal/serve/session_ownership.go": {
-      "essay": 17,
-      "file-size": 309
     },
     "internal/session/history_index.go": {
       "essay": 4
@@ -1300,9 +1228,6 @@
     },
     "internal/stats/record.go": {
       "essay": 7
-    },
-    "internal/store/remote.go": {
-      "essay": 3
     },
     "internal/store/session.go": {
       "essay": 6

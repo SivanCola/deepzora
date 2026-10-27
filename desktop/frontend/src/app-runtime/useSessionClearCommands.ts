@@ -6,15 +6,12 @@ import type { useSessionOperations } from "./useSessionOperations";
 export type SessionClearCommandsInput = {
   activeTabId: string | undefined;
   activeSessionIdentity: string;
-  remote: boolean;
   t: Translator;
   notice: (text: string, level?: "info" | "warn") => void;
   operations: ReturnType<typeof useSessionOperations>;
   refreshDock(): void;
   ports: {
     clearSession(): Promise<void>;
-    clearRemoteSession(tabId: string): Promise<void>;
-    retryRemoteHydration(): Promise<void>;
   };
 };
 
@@ -38,8 +35,8 @@ export function useSessionClearCommands(input: SessionClearCommandsInput) {
     const target = activeTabId ? { tabId: activeTabId, sessionKey: activeSessionIdentity } : null;
     if (!target) return;
     setClearContextPending(false);
-    const outcome = await operations(target, "clear-context", { remote: input.remote }, async (operationInput, authority) =>
-      (await import("./sessionRuntimeOwner")).executeClearSession(target, operationInput, ports, authority),
+    const outcome = await operations(target, "clear-context", {}, async (_operationInput, authority) =>
+      (await import("./sessionRuntimeOwner")).executeClearSession(ports, authority),
     );
     if (outcome.status === "completed") {
       input.refreshDock();

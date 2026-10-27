@@ -4,7 +4,7 @@
 
 桌面浏览器是 Deepzora 窗口内由用户与 Agent 共同操作的原生 Chromium 表面。网站在壳
 拥有的 Electron `WebContentsView` 中渲染；Agent 的每项能力都经过 Go 桌面服务，因此
-本地与远程 Agent、审批、取消、证据与操作记录共享同一实现。本文是浏览器面板、壳的
+Agent、审批、取消、证据与操作记录共享同一实现。本文是浏览器面板、壳的
 表面管理器、Go `BrowserExecutor` 与 Agent 可见工具之间的契约。背后没有壳的会话由
 [CDP 后端](BROWSER_CDP.zh-CN.md)提供同一批工具。
 
@@ -21,7 +21,7 @@ Agent 工具调用 ─▶ Go BrowserExecutor ─▶ ledger.reserve ─▶ host/b
   integration，无应用 preload，不能访问 `deepzora://`。它们唯一的 preload 只观察可信
   用户输入以请求接管，不向页面暴露任何东西。
 - 分区：`persist:browser` 是同一 Deepzora 数据目录下共享的登录分区；`temp:<id>` 分区
-  只存在于内存，最后一个标签关闭即丢弃。远程 Serve 窗口与 MCP App 框架使用各自分区，
+  只存在于内存，最后一个标签关闭即丢弃。MCP App 框架使用各自分区，
   从不与浏览器分区共享。
 - 壳中的 `BrowserSurfaceManager` 拥有创建、可见性、边界、焦点与销毁。React 面板提交
   布局矩形，壳按窗口校验后应用。任何应用覆盖层（对话框、菜单、命令面板）设置单一
@@ -50,7 +50,7 @@ Agent 工具调用 ─▶ Go BrowserExecutor ─▶ ledger.reserve ─▶ host/b
 
 这条文件链路服务于单文件和受现有静态预览策略支持的资源。需要模块构建、客户端路由或
 本地 API 的项目继续由 Agent 通过终端启动或复用项目声明的开发服务器，再用
-`browser_open` 打开已确认的地址。SSH 文件首期仍使用原文件预览。
+`browser_open` 打开已确认的地址。
 
 ## 浏览器控制设置
 
@@ -62,7 +62,7 @@ Agent 工具调用 ─▶ Go BrowserExecutor ─▶ ledger.reserve ─▶ host/b
   启动时的工具集。
 - **忽略证书校验**（`ignoreCertificateErrors`，默认关闭）。只对访客会话放宽
   `setCertificateVerifyProc`：访客视图工厂准备分区时应用，开关变化时对全部存活的访客
-  会话重新应用，无需重启。应用窗口与远程窗口仍使用 Chromium 默认校验。
+  会话重新应用，无需重启。应用窗口仍使用 Chromium 默认校验。
 - **清除内置浏览器缓存**：清除 `persist:browser` 的 HTTP 缓存以及 Cache Storage、
   Service Worker 和着色器缓存，保留 Cookie 与本地站点数据。
 - **清除全部浏览器数据**：额外清空所有存储类型，内置浏览器中的所有站点都会退出登录；
@@ -105,8 +105,7 @@ Agent 工具调用 ─▶ Go BrowserExecutor ─▶ ledger.reserve ─▶ host/b
 自定义控件与动态页面的行为与真实用户一致。
 
 截图与下载从不经过控制帧：壳把它们写入 Go 在请求中指定的任务临时目录并返回路径；
-Go 通过现有通道把文件转成图像或文件结果。上传只读取任务拥有的文件；远程任务通过
-现有 SFTP 传输与任务临时目录中转，远程路径永远不会被当作本机路径。
+Go 通过现有通道把文件转成图像或文件结果。上传只读取任务拥有的文件。
 
 ## 所有权、接管与未知写入
 
@@ -140,24 +139,6 @@ Go 通过现有通道把文件转成图像或文件结果。上传只读取任�
 壳发出的事件：`browser:tabs`（标签列表变化）、`browser:takeover`（`{tabID, epoch, reason}`）、
 `browser:download`（进度）、`browser:crash`。
 
-## 远程 Agent
-
-远程 Deepzora Agent 通过现有 SSH 连接与转发管理器，以承载同一 `BrowserExecutor` 契约的
-受限 Host RPC 使用本机浏览器。授权绑定远程连接世代、会话与任务；断线、重连或切换会话
-即撤销。浏览器授权与 provider 代理凭据分开；没有共享 token。旧的远程 Serve 构建通过
-能力协商不宣告浏览器，保留全部现有远程功能。
-
-线上形态是每台桌面一个 loopback HTTP broker。全新 Serve 的 bootstrap 把
-`DEEPZORA_BROWSER_BROKER` / `DEEPZORA_BROWSER_TOKEN`（仅进程环境）指向经反向转发的
-broker；被复用的 Serve 在桌面轮换路由后通过 `POST /browser/broker` 重新指向。broker 为
-每个主机连接世代铸一个随机 bearer token——注册新世代即替换主机旧 token——鉴权后才把
-`/v1/browser/<method>` 派发给 `browser.Executor`。每个请求携带
-`X-Deepzora-Browser-Session`；broker 把它解析到唯一展示该会话的桌面标签，其余一律以
-`no_grant` 拒绝。壳在桌面写出的截图与下载经现有 SFTP 通道中转进远程主机的每工作区
-暂存目录（`~/.deepzora/browser-relay/<workspace>/`），serve 侧工具只读对它们而言是
-本机的路径。带 broker 启动的 Serve 在 `/auth/token` 握手的
-`X-Deepzora-Serve-Capabilities` 响应头中宣告 `browser`。
-
 ## 验收
 
 ### 右侧面板尺寸
@@ -181,6 +162,6 @@ broker；被复用的 Serve 在桌面轮换路由后通过 `POST /browser/broker
 这些尺寸检查不覆盖 Agent 操作 HTML 页面本身的执行闭环。
 
 iframe、动态 DOM、受控输入、弹窗、上传与下载、导航历史、临时分区、共享与隔离登录；
-审批前接管、审批后派发前接管、执行后回执丢失、崩溃后重启、重复 operation ID；远程
-SSH 断连、世代变化、过期授权、跨会话误路由。[架构契约](DESKTOP_ARCHITECTURE.zh-CN.md#验证)
+审批前接管、审批后派发前接管、执行后回执丢失、崩溃后重启、重复 operation ID；
+世代变化、过期授权、跨会话误路由。[架构契约](DESKTOP_ARCHITECTURE.zh-CN.md#验证)
 中的真实任务关闭本阶段。

@@ -28,19 +28,19 @@ const ports = {
   },
 };
 let commands!: ReturnType<typeof useControllerProfileCommands>;
-function Probe({ tab, generation, plan, ready, epoch, remote }: { tab: string; generation: number; plan: boolean; ready: boolean; epoch: string; remote: boolean }) {
+function Probe({ tab, generation, plan, ready, epoch }: { tab: string; generation: number; plan: boolean; ready: boolean; epoch: string }) {
   const profiles: ControllerProfileResource[] = ["A", "B"].map(tabId => ({
-    target: { tabId, sessionKey: tabId + generation }, remote: remote && tabId === "A",
+    target: { tabId, sessionKey: tabId + generation },
     profile: { collaboration: tabId === "A" && plan ? "plan" : "normal", approval: "workspace-write", goal: tabId === "B" ? "B goal" : "" },
   }));
   const target = profiles.find(value => value.target.tabId === tab)!.target;
   const operations = useSessionOperations({ visible: target, resources: profiles.map(value => value.target) });
-  commands = useControllerProfileCommands({ target, profiles, ready, runtimeEpoch: epoch, remote: remote && tab === "A", operations, ports,
-    remoteModel: async name => { calls.push(`remote:${tab}:${name}`); await pending.promise; }, report: error => errors.push(error) });
+  commands = useControllerProfileCommands({ target, profiles, ready, runtimeEpoch: epoch, operations, ports,
+    report: error => errors.push(error) });
   return null;
 }
-const paint = (tab = "A", plan = true, generation = 1, ready = false, epoch = "runtime-1", remote = false) => act(async () => root.render(
-  <Probe tab={tab} generation={generation} plan={plan} ready={ready} epoch={epoch} remote={remote} />));
+const paint = (tab = "A", plan = true, generation = 1, ready = false, epoch = "runtime-1") => act(async () => root.render(
+  <Probe tab={tab} generation={generation} plan={plan} ready={ready} epoch={epoch} />));
 try {
   await paint();
   const change = commands.switchModel("first");
@@ -103,12 +103,6 @@ try {
     assert.deepEqual(errors, [sharedError], "model and readiness observers share one failure owner in either completion order");
     profileGate = undefined;
   }
-
-  calls.length = 0; pending = deferred(); await paint("A", true, 1, true, "runtime-1", true);
-  const remote = commands.switchModel("remote-model");
-  await paint("B", true, 1, false, "runtime-1", true);
-  pending.resolve(true); assert.equal(await remote, false);
-  assert.deepEqual(calls, ["remote:A:remote-model"], "remote model stays source-bound and never uses local profile restoration");
 
   await paint(); calls.length = 0; pending = deferred();
   const disposed = commands.switchModel("disposed");

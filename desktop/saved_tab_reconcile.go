@@ -259,7 +259,6 @@ func savedTabHasRecoveryOwner(entry desktopTabEntry, evidence savedTabReconcileE
 		if sessionID != "" && slices.Contains(operation.SessionIDs, sessionID) {
 			return true
 		}
-
 	}
 
 	return false
@@ -288,21 +287,17 @@ func savedTabMatchesWorkspace(entry desktopTabEntry, workspace workspacestate.Wo
 
 func repairReconciledTabSelection(file *desktopTabsFile, removed map[string]bool) {
 	local := make(map[string]bool, len(file.Tabs))
-	remote := make(map[string]bool, len(file.RemoteTabs))
 	for _, entry := range file.Tabs {
 		local[entry.ID] = true
 	}
-	for _, entry := range file.RemoteTabs {
-		remote[entry.ID] = true
-	}
 	order := make([]string, 0, len(file.TabOrder))
 	for _, id := range file.TabOrder {
-		if !removed[id] && (local[id] || remote[id]) {
+		if !removed[id] && local[id] {
 			order = append(order, id)
 		}
 	}
 	file.TabOrder = order
-	if local[file.ActiveTab] || remote[file.ActiveTab] {
+	if local[file.ActiveTab] {
 		return
 	}
 	file.ActiveTab = ""
@@ -310,8 +305,6 @@ func repairReconciledTabSelection(file *desktopTabsFile, removed map[string]bool
 		file.ActiveTab = order[0]
 	} else if len(file.Tabs) > 0 {
 		file.ActiveTab = file.Tabs[0].ID
-	} else if len(file.RemoteTabs) > 0 {
-		file.ActiveTab = file.RemoteTabs[0].ID
 	}
 }
 

@@ -11,9 +11,9 @@
 
 import { create } from "zustand";
 
-export type TabType = "file" | "changed" | "context" | "remote" | "browser";
+export type TabType = "file" | "changed" | "context" | "browser";
 
-export type RightDockMode = "context" | "files" | "changed" | "remote" | "browser";
+export type RightDockMode = "context" | "files" | "changed" | "browser";
 
 export function dockModeForTab(type: TabType): RightDockMode {
   return type === "file" ? "files" : type;

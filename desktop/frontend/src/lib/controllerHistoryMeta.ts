@@ -6,9 +6,9 @@ export function runtimeReadyForSubmit(meta?: Meta): boolean {
 }
 
 // A local durable identity remains readable when execution cannot acquire a
-// lease or finish recovery. Remote tabs keep their negotiated reader route.
+// lease or finish recovery.
 export function needsColdHistory(meta?: Meta | TabMeta): boolean {
-  return Boolean(meta && !meta.remote && (!meta.ready || meta.startupErr)
+  return Boolean(meta && (!meta.ready || meta.startupErr)
     && (meta.sessionPath || meta.session?.sessionId));
 }
 

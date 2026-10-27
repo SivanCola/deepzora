@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  AI coding in your desktop, terminal and remote workspace.<br />
+  AI coding in your desktop and terminal.<br />
   Read code, make changes and run tests with the model you choose.
 </p>
 
@@ -38,9 +38,9 @@
 
 Deepzora is derived from the **Reasonix 1.x series** (`main-v2`), with its own brand, maintenance and release channels. **Reasonix Mini** is a way to understand its positioning, not a separate official Reasonix edition. It does not belong to the Reasonix Studio 2.x release line.
 
-Describe a task, choose a project, and let the agent read files, edit code and run commands and tests. Use the Electron desktop app, work directly in the terminal, or connect to a remote workspace through SSH. DeepSeek presets and custom OpenAI-compatible or Anthropic-compatible providers let you choose the model connection.
+Describe a task, choose a project, and let the agent read files, edit code and run commands and tests. Use the Electron desktop app or work directly in the terminal. DeepSeek presets and custom OpenAI-compatible or Anthropic-compatible providers let you choose the model connection.
 
-The agent runs on your computer or the remote host you select. Your configured model provider receives the context used for requests; see the [privacy policy](PRIVACY.md) for storage, network access and optional diagnostics.
+The agent runs on your computer. Your configured model provider receives the context used for requests; see the [privacy policy](PRIVACY.md) for storage, network access and optional diagnostics.
 
 ## What you can do
 
@@ -57,7 +57,6 @@ Checkpoints cover supported file-edit tools; shell-command side effects are outs
 | --- | --- | --- |
 | **Desktop** | A visual workspace for conversations, files, changes and tools | [Download the Electron app](#desktop-downloads) |
 | **Terminal** | Interactive coding and scripted tasks | `deepzora` · `deepzora run "task"` |
-| **Remote** | Code on a remote SSH host from the desktop app | [Remote sessions](docs/REMOTE_SESSIONS.md) |
 | **Editor** | Connecting an ACP-compatible editor to the agent | `deepzora acp` · [ACP guide](docs/ACP.md) |
 
 ## Quick start
@@ -103,7 +102,7 @@ For supported data formats and compatibility, see the [current baseline](docs/cu
 | --- | --- | --- |
 | [User guide](docs/GUIDE.md) | [Model settings](docs/MODEL_SETTINGS.md) | [Contributing](CONTRIBUTING.md) |
 | [CLI reference](docs/CLI.md) | [Configuration paths](docs/CONFIG_PATHS.md) | [Architecture & spec](docs/SPEC.md) |
-| [Plans & goals](docs/COLLABORATION_MODES.md) | [Remote sessions](docs/REMOTE_SESSIONS.md) | [Desktop development](desktop/README.md) |
+| [Plans & goals](docs/COLLABORATION_MODES.md) | [Plugin packages](docs/PLUGIN_PACKAGES.md) | [Desktop development](desktop/README.md) |
 | [Permissions & sandbox](docs/TOOL_APPROVAL_MODES.md) | [ACP editor integration](docs/ACP.md) | [Extension protocol](docs/EXTENSION_PROTOCOL.md) |
 | [Checkpoints & rewind](docs/CHECKPOINTS.md) | [Extensions & MCP](docs/EXTENSIONS.md) | [Release candidates](docs/RELEASE_CANDIDATES.md) |
 | [Context & memory](docs/SESSION_MEMORY_RETRIEVAL.md) | [Theme packs](docs/THEME_PACK.md) | [Optional feedback backend (中文)](supabase/README.md) |

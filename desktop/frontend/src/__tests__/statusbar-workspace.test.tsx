@@ -68,50 +68,6 @@ console.log("\nstatus bar workspace");
 }
 
 {
-  const remoteHosts = [
-    { id: "demo", label: "demo", host: "192.0.2.10", port: 22, user: "dev", identityFile: "", proxyJump: "", defaultWorkspace: "~/app", serveInstall: "auto", credentialMode: "remote", useSSHConfig: false },
-  ];
-  const stopped = renderStatusBar({ workspacePath: "/workspace/repo", workspaceName: "repo", remoteHosts });
-  ok(stopped.includes("SSH · Disconnected"), "disconnected SSH entry keeps its full accessible status");
-  ok(stopped.includes('statusbar__remote--idle'), "disconnected SSH entry uses the compact idle treatment");
-  ok(stopped.includes('<span class="statusbar__remote-label">SSH</span>'), "disconnected SSH entry renders only the compact SSH label");
-  ok(stopped.indexOf("SSH · Disconnected") < stopped.indexOf("workspace/repo"), "window-level SSH entry leads the status bar");
-
-  const connected = renderStatusBar({
-    workspacePath: "/workspace/repo",
-    workspaceName: "repo",
-    remoteHosts,
-    remoteStatuses: { demo: { hostId: "demo", state: "connected" } },
-  });
-  ok(connected.includes("demo · Connected"), "SSH entry includes host and connected state text");
-  ok(connected.includes('statusbar__remote-state-dot'), "connected SSH entry renders a state dot");
-  ok(connected.includes('<span class="statusbar__remote-label">demo</span>'), "connected SSH entry renders the host without redundant state text");
-
-  const failed = renderStatusBar({
-    workspacePath: "/workspace/repo",
-    remoteHosts,
-    remoteStatuses: { demo: { hostId: "demo", state: "stopped", error: "handshake failed" } },
-  });
-  ok(failed.includes("demo · Connection failed"), "SSH entry keeps a recoverable failure summary visible");
-  ok(failed.includes('<span class="statusbar__remote-label">demo · Connection failed</span>'), "failed SSH entry keeps the failure visible in the status bar");
-  ok(!failed.includes("handshake failed"), "status entry keeps raw connection diagnostics out of primary chrome");
-
-  const degraded = renderStatusBar({
-    workspacePath: "/workspace/repo",
-    remoteHosts,
-    remoteStatuses: {
-      demo: {
-        hostId: "demo",
-        state: "degraded",
-        error: "forward attach failed",
-      },
-    },
-  });
-  ok(degraded.includes("demo · Degraded"), "degraded SSH remains connected with a warning state");
-  ok(!degraded.includes("demo · Connection failed"), "degraded SSH is not mislabeled as a failed connection");
-}
-
-{
   const propsWithLegacySandbox = {
     workspacePath: "/workspace/repo",
     workspaceName: "repo",

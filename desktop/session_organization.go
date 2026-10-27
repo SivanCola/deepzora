@@ -13,7 +13,6 @@ import (
 type SessionOrganizationWorkspace struct {
 	Scope         string `json:"scope"`
 	WorkspaceRoot string `json:"workspaceRoot,omitempty"`
-	HostID        string `json:"hostId,omitempty"`
 }
 type SessionOrganizationSnapshot struct {
 	Revision           uint64         `json:"revision"`
@@ -120,17 +119,11 @@ func sourceAliases(state workspacestate.State, workspaceID, sessionID string) []
 }
 
 func (a *App) GetSessionOrganization(workspace SessionOrganizationWorkspace) (SessionOrganizationSnapshot, error) {
-	if workspace.HostID != "" && workspace.HostID != localDesktopHostID {
-		return a.remoteSessionOrganization(workspace, nil, nil)
-	}
 	_, o, err := a.ensureSessionOrganization(workspace.Scope, workspace.WorkspaceRoot)
 	return organizationSnapshot(o, err == nil), err
 }
 
 func (a *App) UpdateSessionOrganization(workspace SessionOrganizationWorkspace, expectedRevision uint64, mutation SessionOrganizationMutation) (SessionOrganizationSnapshot, error) {
-	if workspace.HostID != "" && workspace.HostID != localDesktopHostID {
-		return a.remoteSessionOrganization(workspace, &expectedRevision, &mutation)
-	}
 	// Group edits address either a group or one explicit source. Only moving
 	// in a manual order needs the complete relative order of other sources.
 	id, current, err := a.ensureSessionOrganization(workspace.Scope, workspace.WorkspaceRoot)

@@ -3,13 +3,13 @@ import { mock } from "node:test";
 import { register } from "node:module";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
-import { installRemoteSurfaceDom } from "./helpers/remoteSurfaceDom";
+import { installSurfaceDom } from "./helpers/surfaceDom";
 import { LocaleProvider } from "../lib/i18n";
 import type { LoadingFixtureInput } from "../test-support/sessionLoadingFixture";
 
 register(new URL("../../scripts/svg-loader.mjs", import.meta.url));
 register(new URL("../../scripts/css-loader.mjs", import.meta.url));
-const dom = installRemoteSurfaceDom();
+const dom = installSurfaceDom();
 globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver;
 const { SessionLoadingFixture } = await import("../test-support/sessionLoadingFixture");
 const root = createRoot(document.getElementById("root")!);
@@ -22,7 +22,7 @@ const noRecovery = () => assert.equal(document.querySelector(".session-recovery,
   "normal loading never presents recovery or retry language");
 mock.timers.enable({ apis: ["setTimeout"] });
 try {
-  for (const surface of ["local", "remote", "transcript"] as const) {
+  for (const surface of ["local", "transcript"] as const) {
     const input: LoadingFixtureInput = { surface, identity: `${surface}-A`, phase: "loading" };
     await paint(input);
     await tick(249);
@@ -68,7 +68,7 @@ try {
     assert.equal(indicator(), null, "replacement generation owns a fresh deadline");
     await paint({ ...input, generation: 2, phase: "ready" });
   }
-  for (const surface of ["local", "remote"] as const) {
+  for (const surface of ["local"] as const) {
     let retries = 0;
     const input: LoadingFixtureInput = { surface, identity: `${surface}-error`, phase: "loading", onRetry: async () => { retries++; } };
     await paint(input);
@@ -90,13 +90,13 @@ try {
   await tick(2000);
   assert.equal(indicator(), null, "runtime activation does not obscure already readable history");
   assert.match(document.body.textContent!, /Content readable-runtime/);
-  await paint({ surface: "remote", identity: "connecting", phase: "loading", source: "connection" });
+  await paint({ surface: "local", identity: "slow", phase: "loading" });
   await tick(2000);
   assert.ok(indicator());
   noRecovery();
   await act(async () => root.unmount());
   await tick(3000);
-  console.log("PASS session loading: quiet fast loads, staged slow loads, cache continuity, retry, and identity-fenced timers on local/remote/standalone surfaces");
+  console.log("PASS session loading: quiet fast loads, staged slow loads, cache continuity, retry, and identity-fenced timers on local/standalone surfaces");
 } finally {
   mock.timers.reset();
   dom.window.close();

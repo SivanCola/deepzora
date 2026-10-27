@@ -35,15 +35,6 @@ func (a *App) recordModelSwitchTiming(tabID string, timing *modelSwitchTiming, s
 }
 
 func (a *App) ModelsForTab(tabID string) []ModelInfo {
-	if cur, ok := a.remoteTabCurrentModel(tabID); ok {
-		if !a.remoteTabLocalProxy(tabID) {
-			if infos, err := a.remoteServeModelsForTab(tabID, cur); err == nil {
-				return infos
-			}
-			return []ModelInfo{}
-		}
-		return a.remoteProxyModelCatalog(cur)
-	}
 	a.mu.RLock()
 	curModel := ""
 	workspaceRoot := ""
@@ -55,29 +46,6 @@ func (a *App) ModelsForTab(tabID string) []ModelInfo {
 	}
 	a.mu.RUnlock()
 	return a.desktopModelCatalog(curModel, workspaceRoot, ctrl)
-}
-
-func (a *App) remoteProxyModelCatalog(curModel string) []ModelInfo {
-	cfg, err := config.Load()
-	if err != nil {
-		return []ModelInfo{}
-	}
-	canonical := curModel
-	if current, ok := cfg.ResolveModel(curModel); ok {
-		canonical = current.Name + "/" + current.Model
-	}
-	out := []ModelInfo{}
-	for i := range cfg.Providers {
-		entry := &cfg.Providers[i]
-		if !modelProviderAccessAllowed(cfg.Desktop.ProviderAccess, entry.Name) || !entry.Configured() {
-			continue
-		}
-		for _, model := range entry.ChatModelList() {
-			ref := entry.Name + "/" + model
-			out = append(out, configuredModelInfo(cfg, entry.Name, model, ref == canonical))
-		}
-	}
-	return out
 }
 
 func (a *App) desktopModelCatalog(curModel, workspaceRoot string, ctrl control.SessionAPI) []ModelInfo {

@@ -5,7 +5,7 @@ This is the sole production chat renderer, replacing TranscriptKernel, the windo
 ## Ownership
 
 ```text
-Local / remote Follow v2 → shared consumer and bounded record store
+Follow v2 → shared consumer and bounded record store
                                ↓
                      Transcript session adapter
                                ↓
@@ -21,7 +21,7 @@ Markdown source → shared worker → stable prefix blocks + mutable streaming t
 ```
 
 - `src/lib/chatViewSource.ts` owns a reconstructable projection, not another event log. Keys derive from existing message, call and user-turn identities. Unchanged order/node snapshots retain references. Structural publication coalesces in a microtask; stream updates use existing controller frame batching and match the live ID. Settlement replaces the same assistant host.
-- `src/components/Transcript.tsx` adapts local and remote hosts. Lists subscribe only to order; seats subscribe to themselves and their process disclosure. Status/timers, navigation and drawer have separate subscriptions. Session replacement disposes subscriptions, queued publications, loader leases and observers.
+- `src/components/Transcript.tsx` adapts the session host. Lists subscribe only to order; seats subscribe to themselves and their process disclosure. Status/timers, navigation and drawer have separate subscriptions. Session replacement disposes subscriptions, queued publications, loader leases and observers.
 - `src/components/ChatNodes.tsx` renders messages, thought/process disclosures, compact tools, notices, compaction, extensions and turn actions. Closed heavy bodies are not mounted.
 - Loaded history remains in natural flow. There is no chat virtual window, absolute row positioning, resident/cold handoff, size ledger, geometry-state feedback, logical selection overlay, renderer override or safe-mode remount. TanStack remains for unrelated consumers.
 
@@ -69,7 +69,7 @@ Worker clients are leased by mounted sessions. Last release terminates pending t
 
 ## Compatibility and verification
 
-The current Desktop/Serve protocol boundary is `transcript-v2`; compatibility and derived-index changes are described in [Transcript v2](TRANSCRIPT_V2.md#compatibility-and-change-notes--兼容与变更说明). Persisted session-log encoding, provider messages, tool schemas and prompt-cache bytes remain unchanged. Old persisted display preferences cannot select an old renderer. Any rollback must keep Desktop and Serve protocol-compatible; a frontend-only rollback is not a general compatibility guarantee.
+The current Desktop protocol boundary is `transcript-v2`; compatibility and derived-index changes are described in [Transcript v2](TRANSCRIPT_V2.md#compatibility-and-change-notes--兼容与变更说明). Persisted session-log encoding, provider messages, tool schemas and prompt-cache bytes remain unchanged. Old persisted display preferences cannot select an old renderer.
 
 Run from `desktop/frontend`:
 
@@ -77,7 +77,6 @@ Run from `desktop/frontend`:
 pnpm test:transcript
 pnpm test:stream
 pnpm test:composer
-pnpm test:remote
 pnpm test:app-lifecycle
 pnpm test:motion
 pnpm test:typecheck

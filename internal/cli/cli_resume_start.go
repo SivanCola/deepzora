@@ -10,7 +10,6 @@ import (
 
 	"deepzora/internal/control"
 	"deepzora/internal/i18n"
-	"deepzora/internal/session"
 )
 
 // headlessResumeTarget resolves --resume/--continue for the non-interactive
@@ -154,27 +153,12 @@ func copySessionExitCode(copySession bool, target cliResumeTarget) int {
 	return 2
 }
 
-// commitStartupResume opens the chosen identity; takeover requires the caller's
-// explicit flag or interactive answer after writer ownership refuses the open.
-func commitStartupResume(manager *cliTakeoverManager, ctrl *control.Controller, target cliResumeTarget, approve func(error) bool) error {
+// commitStartupResume opens the chosen identity. A session another Deepzora
+// process writes is refused; --copy is the escape hatch.
+func commitStartupResume(ctrl *control.Controller, target cliResumeTarget) error {
 	if target.empty() {
 		return nil
 	}
-	service := resumeTargetService(target)
-	_, err := ctrl.OpenSessionFromService(context.Background(), service, target.ref)
-	if err == nil || !errors.Is(err, session.ErrWriterOwned) || !approve(err) {
-		return err
-	}
-	return cliStartupCanonicalTakeover(ctrl, manager, target)
-}
-
-// flagTakeoverApproval answers for --takeover, which commits before the
-// conflict is known.
-func flagTakeoverApproval(enabled bool) func(error) bool {
-	return func(error) bool { return enabled }
-}
-
-// promptTakeoverApproval asks on the terminal; a non-interactive start declines.
-func promptTakeoverApproval(_ error) bool {
-	return isInteractive() && promptSessionTakeover()
+	_, err := ctrl.OpenSessionFromService(context.Background(), resumeTargetService(target), target.ref)
+	return err
 }

@@ -264,10 +264,6 @@ func (a *App) mergeCanonicalWorkspaceShellsFromProjection(projects []ProjectNode
 	present := map[string]bool{}
 	visible := make([]ProjectNode, 0, len(projects))
 	for _, project := range projects {
-		if project.Remote != nil {
-			visible = append(visible, project)
-			continue
-		}
 		scope := "project"
 		if project.Kind == "global_folder" {
 			scope = "global"
@@ -301,9 +297,6 @@ func (a *App) mergeCanonicalWorkspaceShellsFromProjection(projects []ProjectNode
 	// for sessions whose registry lifecycle is already archived.
 	for index := range projects {
 		project := &projects[index]
-		if project.Remote != nil {
-			continue
-		}
 		scope, root := "project", project.Root
 		if project.Kind == "global_folder" {
 			scope, root = "global", ""

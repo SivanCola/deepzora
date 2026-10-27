@@ -36,14 +36,14 @@ export async function* exportBlocks(handle: SessionExportHandle): AsyncGenerator
 }
 
 export async function runSessionExport(input: {
-  selector: SessionSelector; tabId: string; format: string; title: string; remote: boolean;
+  selector: SessionSelector; tabId: string; format: string; title: string;
   residentItems: number; runningStream: boolean; unresolvedTools: number;
 }): Promise<{ text?: string; files: number; cancelled: boolean }> {
   let handle: SessionExportHandle | undefined;
   const off = onSessionExportProgress(value => { if (handle?.exportId === value.exportId && !cancelled.has(value.exportId)) publish(value); });
   try {
     const route = input.selector.ref ? `session-id:${input.selector.ref.sessionId}` : input.selector.sessionPath ?? "";
-    const observation = JSON.stringify({ binding: getTranscriptStore().exportObservation(input.tabId, route), lifecycleDiagnostics: sessionObservationDiagnostics(route, input.tabId), readDiagnostics: sessionPipelineDiagnostics(), capturedAt: new Date().toISOString(), tabId: input.tabId, remote: input.remote, residentItems: input.residentItems, runningStream: input.runningStream, unresolvedTools: input.unresolvedTools });
+    const observation = JSON.stringify({ binding: getTranscriptStore().exportObservation(input.tabId, route), lifecycleDiagnostics: sessionObservationDiagnostics(route, input.tabId), readDiagnostics: sessionPipelineDiagnostics(), capturedAt: new Date().toISOString(), tabId: input.tabId, residentItems: input.residentItems, runningStream: input.runningStream, unresolvedTools: input.unresolvedTools });
     handle = await app.BeginSessionExportForTarget(input.selector, input.tabId, input.format, input.title, observation);
     if (!handle.exportId) return { files: 0, cancelled: true };
     publish({ exportId: handle.exportId, title: input.title, phase: "preparing", records: 0, pages: 0 });
