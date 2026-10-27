@@ -7,56 +7,23 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
-	"syscall"
 	"testing"
 	"time"
-	"unsafe"
-
-	"golang.org/x/sys/windows"
 
 	"deepzora/desktop/internal/instanceidentity"
 )
 
-// This worker uses the real message-only window and mutex contract from Wails.
+// This worker owns the same named-pipe endpoint the desktop service exposes.
 func TestInstanceEndpointWorker(t *testing.T) {
 	id := os.Getenv("DEEPZORA_TEST_ENDPOINT")
 	if id == "" {
 		t.Skip("subprocess fixture")
 	}
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-	name := "wails-app-" + id
-	mutexName, _ := windows.UTF16PtrFromString(name + "sim")
-	mutex, err := windows.CreateMutex(nil, false, mutexName)
+	stop, err := instanceidentity.ListenEndpoint(id)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer windows.CloseHandle(mutex)
-	class, _ := windows.UTF16PtrFromString(name + "-sic")
-	title, _ := windows.UTF16PtrFromString(name + "-siw")
-	def := handoffUser32.NewProc("DefWindowProcW")
-	callback := syscall.NewCallback(func(hwnd uintptr, msg uint32, w, l uintptr) uintptr {
-		r, _, _ := def.Call(hwnd, uintptr(msg), w, l)
-		return r
-	})
-	wc := struct {
-		Size, Style                        uint32
-		Proc                               uintptr
-		ClassExtra, WindowExtra            int32
-		Instance, Icon, Cursor, Background uintptr
-		Menu, Class                        *uint16
-		SmallIcon                          uintptr
-	}{Proc: callback, Class: class}
-	wc.Size = uint32(unsafe.Sizeof(wc))
-	if r, _, err := handoffUser32.NewProc("RegisterClassExW").Call(uintptr(unsafe.Pointer(&wc))); r == 0 {
-		t.Fatal(err)
-	}
-	hwnd, _, err := handoffUser32.NewProc("CreateWindowExW").Call(0, uintptr(unsafe.Pointer(class)), uintptr(unsafe.Pointer(title)), 0, 0, 0, 0, 0, ^uintptr(2), 0, 0, 0)
-	if hwnd == 0 {
-		t.Fatal(err)
-	}
-	defer handoffUser32.NewProc("DestroyWindow").Call(hwnd)
+	defer stop()
 	marker := os.Getenv("DEEPZORA_TEST_MARKER")
 	if err := os.WriteFile(marker, []byte("ready"), 0600); err != nil {
 		t.Fatal(err)

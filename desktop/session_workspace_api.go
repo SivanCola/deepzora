@@ -57,9 +57,6 @@ type SessionArchitectureDiagnostics struct {
 	SessionHeadersTotal     int                      `json:"session_headers_total"`
 	WorkspaceMembersTotal   int                      `json:"workspace_members_total"`
 	UnassignedSessions      int                      `json:"unassigned_sessions"`
-	MigrationPending        int                      `json:"migration_pending"`
-	MigrationFailed         int                      `json:"migration_failed"`
-	MigrationCompleted      int                      `json:"migration_completed"`
 	ProjectionPending       int                      `json:"projection_pending"`
 	ProjectionFailed        int                      `json:"projection_failed"`
 	PendingCreateRecovered  uint64                   `json:"pending_create_recovered"`

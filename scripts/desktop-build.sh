@@ -34,7 +34,7 @@ arch="${PLATFORM#*/}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APPNAME="Deepzora"            # Electron productName -> Deepzora.app / Deepzora.exe
 BINNAME="deepzora-desktop"    # Go desktop service (and the active version entry the launcher starts)
-CLINAME="deepzora"            # bundled CLI sidecar used for remote serve upload
+CLINAME="deepzora"            # bundled CLI sidecar beside the service
 WINDOWS_CLINAME="deepzora-cli" # Windows cannot store Deepzora.exe and deepzora.exe separately
 WINDOWS_CLI_ENTRY="deepzora-cli-launcher.exe"
 LAYOUT_INSTALLER="deepzora-layout-installer"
@@ -193,16 +193,12 @@ darwin)
 	staging=$(mktemp -d)
 	app="$staging/${APPNAME}.app"
 	cp -R "build/electron/${os}-${arch}/${APPNAME}.app" "$app"
-	# The bundle's main executable is Electron. Keep one Go service payload under
-	# Resources and a relative compatibility symlink in MacOS for older launchers.
+	# The bundle's main executable is Electron; the Go service payload lives
+	# only under Resources/service.
 	bundle_executable=$(/usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" "$app/Contents/Info.plist")
 	[ "$bundle_executable" = "$APPNAME" ] || { echo "macOS bundle executable is $bundle_executable, want $APPNAME" >&2; exit 1; }
 	mkdir -p "$app/Contents/Resources/service"
 	cp "$service_out" "$app/Contents/Resources/service/$BINNAME"
-	rm -f "$app/Contents/MacOS/$BINNAME"
-	ln -s "../Resources/service/$BINNAME" "$app/Contents/MacOS/$BINNAME"
-	[ "$(readlink "$app/Contents/MacOS/$BINNAME")" = "../Resources/service/$BINNAME" ] || { echo "macOS service compatibility link is invalid" >&2; exit 1; }
-	[ -x "$app/Contents/MacOS/$BINNAME" ] || { echo "macOS service compatibility link is broken" >&2; exit 1; }
 	# Contents/MacOS already holds the Electron executable "Deepzora"; on
 	# case-insensitive APFS a "deepzora" sibling would overwrite it, so the
 	# CLI sidecar ships next to the service copy the shell actually launches

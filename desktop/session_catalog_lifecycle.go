@@ -35,6 +35,12 @@ func (a *App) runSessionCatalog(ctx context.Context, initialized chan struct{}, 
 			return
 		case <-requests:
 			refreshRoots()
+			// CatalogChanges only reports metadata health. Session creation,
+			// titles and ordering arrive as sync requests, and the sidebar
+			// reloads its topic pages only on project-tree:changed-v2.
+			if ctx.Err() == nil {
+				a.emitProjectTreeChangedV2(service.Query().CatalogState().Revision, nil, "metadata")
+			}
 		case <-service.Query().CatalogChanges():
 			if ctx.Err() == nil {
 				a.emitProjectTreeChangedV2(service.Query().CatalogState().Revision, nil, "metadata")

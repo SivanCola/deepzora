@@ -7,8 +7,7 @@
 //
 // Desktop UI language is intentionally separate from the CLI/kernel `language`
 // config for prompts and terminal text. The desktop preference is persisted in
-// the user-level [desktop] config; localStorage is only read once for legacy
-// migration from older desktop builds.
+// the user-level [desktop] config.
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";

@@ -9,7 +9,7 @@ import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { readLinuxArchiveMember } from "./linux-members.mjs";
-import { ARTIFACT_KINDS, WINDOWS_PORTABLE_LAYOUTS, LINUX_GO_MEMBERS, checkEntryModes, checkMembers, staticGoMemberError, normalizeEntry, inferArtifactKind, isDirectory, listZipEntries, readZipMember, parseVerboseListing, validateMacServiceLink, walkFiles } from "./lib.mjs";
+import { ARTIFACT_KINDS, WINDOWS_PORTABLE_LAYOUTS, LINUX_GO_MEMBERS, checkEntryModes, checkMembers, staticGoMemberError, normalizeEntry, inferArtifactKind, isDirectory, listZipEntries, readZipMember, parseVerboseListing, walkFiles } from "./lib.mjs";
 
 const args = process.argv.slice(2);
 const artifactArg = args.find((arg) => !arg.startsWith("--"));
@@ -44,7 +44,7 @@ const kind = kindArg ?? inferArtifactKind(artifact, directory, directory ? readd
 const { entries, rows } = listingOf(artifact);
 if (args.includes("--list")) for (const entry of entries) console.log(entry);
 const { missing, forbidden } = checkMembers(entries, kind, portableLayout);
-const layoutErrors = kind === "darwin-app-dir" ? validateMacServiceLink(artifact) : [];
+const layoutErrors = [];
 if (kind === "windows-portable-zip" && missing.length === 0 && forbidden.length === 0) {
   const readMember = name => directory ? readFileSync(join(artifact, name)) : readZipMember(artifact, name);
   const gui = readMember("Deepzora.exe");

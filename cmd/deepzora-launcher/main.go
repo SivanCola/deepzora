@@ -1,10 +1,7 @@
 // Command deepzora-launcher is the permanent thin desktop entry point for the
-// versioned install layout (v1.20+). It reads InstallRoot/current.json, starts
+// versioned install layout. It reads InstallRoot/current.json, starts
 // the active deepzora-desktop binary, and exits. It never counts crashes,
 // chooses previous versions, or enters a product safe mode.
-//
-// Migration compatibility: old shortcuts may still pass "launch", "--detach",
-// or "--safe-mode". Those tokens are stripped and ignored.
 package main
 
 import (

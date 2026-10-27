@@ -2915,7 +2915,8 @@ func (a *App) tabSnapshotLoop(tab *WorkspaceTab) {
 		if ctrl != nil {
 			if err := a.snapshotTab(tab); err == nil {
 				a.lifecycleCheckpoint("before-autosave-publish")
-				a.emitProjectTreeChangedEvent()
+				a.refreshAutoSessionTitle(tab)
+				a.emitProjectTreeMetadataChanged()
 			} else {
 				snapshotErr = err
 			}

@@ -187,7 +187,7 @@ func migrateRuntimeState(ctrl, old *control.Controller, m runtimeMigration) erro
 	}
 
 	// Rebuilds preserve the live frontend mode, including a transient TUI
-	// downgrade inside a session that once stored a remote Serve preset.
+	// downgrade of the session's stored preset.
 	ctrl.SetToolApprovalMode(m.toolApprovalMode)
 	ctrl.SetPlanMode(m.planMode)
 	if m.goalRunning && strings.TrimSpace(m.goal) != "" && strings.TrimSpace(ctrl.Goal()) == "" {

@@ -590,7 +590,7 @@ export interface AppBindings extends AttachmentBindings, SessionExportBindings, 
   SetTrayLocale(locale: "en" | "zh"): Promise<void>;
   Version(): Promise<string>;
   CheckUpdate(channel: string): Promise<UpdateInfo | null>;
-  /** v1.20+ single-action update: download, verify, install, relaunch. */
+  /** Single-action update: download, verify, install, relaunch. */
   ApplyUpdateRequest(channel: string, expectedVersion: string, requestId: string): Promise<void>;
   /** Discard a stuck previous update transaction so the next install can proceed. */
   AbandonPendingUpdate?(): Promise<void>;
@@ -2519,7 +2519,6 @@ function makeMockApp(): MockAppBindings {
         pending_operations: 0, missing_members: 0, identity_mismatches: 0,
         source_conflicts: 0, recovery_entries: 0,
         session_headers_total: 0, workspace_members_total: 0, unassigned_sessions: 0,
-        migration_pending: 0, migration_failed: 0, migration_completed: 0,
         projection_pending: 0, projection_failed: 0, pending_create_recovered: 0,
         prune_blocked_persistence: 0,
       };

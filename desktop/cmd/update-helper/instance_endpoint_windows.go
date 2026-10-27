@@ -4,7 +4,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"unsafe"
 
@@ -12,69 +11,19 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-var errEndpointStarting = errors.New("instance mutex exists without an identifiable endpoint")
+var errEndpointStarting = errors.New("instance endpoint is busy without an identifiable owner")
 
 var handoffUser32 = windows.NewLazySystemDLL("user32.dll")
-var findInstanceWindow = handoffUser32.NewProc("FindWindowExW")
-var instanceWindowPID = handoffUser32.NewProc("GetWindowThreadProcessId")
 
-// These names match the retired Wails v2 single-instance backend so an
-// update helper can still find a running pre-Electron app. HWND_MESSAGE
-// is required: ordinary top-level window enumeration does not include them.
+// desktopEndpointImage resolves the executable that owns this data home's
+// Electron service endpoint. A busy pipe means an owner exists but is between
+// clients, so the caller may wait instead of treating the home as free.
 func desktopEndpointImage(id string) (string, error) {
 	image, err := instanceidentity.EndpointImage(id)
 	if errors.Is(err, windows.ERROR_PIPE_BUSY) {
 		return "", errEndpointStarting
 	}
-	if err != nil || image != "" {
-		return image, err
-	}
-	name := "wails-app-" + id
-	class, err := windows.UTF16PtrFromString(name + "-sic")
-	if err != nil {
-		return "", err
-	}
-	title, err := windows.UTF16PtrFromString(name + "-siw")
-	if err != nil {
-		return "", err
-	}
-	hwnd, _, _ := findInstanceWindow.Call(^uintptr(2), 0, uintptr(unsafe.Pointer(class)), uintptr(unsafe.Pointer(title)))
-	if hwnd == 0 {
-		mutexName, _ := windows.UTF16PtrFromString(name + "sim")
-		mutex, err := windows.OpenMutex(windows.SYNCHRONIZE, false, mutexName)
-		if errors.Is(err, windows.ERROR_FILE_NOT_FOUND) {
-			return "", nil
-		}
-		if err != nil {
-			return "", err
-		}
-		_ = windows.CloseHandle(mutex)
-		return "", errEndpointStarting
-	}
-	var pid uint32
-	if result, _, err := instanceWindowPID.Call(hwnd, uintptr(unsafe.Pointer(&pid))); result == 0 || pid == 0 {
-		return "", fmt.Errorf("identify instance owner: %w", err)
-	}
-	handle, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION|windows.SYNCHRONIZE, false, pid)
-	if err != nil {
-		return "", err
-	}
-	defer windows.CloseHandle(handle)
-	var owner uint32
-	instanceWindowPID.Call(hwnd, uintptr(unsafe.Pointer(&owner)))
-	if owner != pid {
-		return "", fmt.Errorf("instance owner changed during inspection")
-	}
-	size := uint32(32768)
-	buffer := make([]uint16, size)
-	if err := windows.QueryFullProcessImageName(handle, 0, &buffer[0], &size); err != nil {
-		return "", err
-	}
-	result, err := windows.WaitForSingleObject(handle, 0)
-	if err != nil || result != uint32(windows.WAIT_TIMEOUT) {
-		return "", fmt.Errorf("instance exited during inspection")
-	}
-	return windows.UTF16ToString(buffer[:size]), nil
+	return image, err
 }
 
 func notifyHandoffBlocked(installed bool) {

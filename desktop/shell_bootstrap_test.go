@@ -18,8 +18,8 @@ func writeShellBootstrapFixture(t *testing.T, goos string) (exe, shell string) {
 	root := t.TempDir()
 	name := installlayout.ShellExecutableNameFor(goos)
 	if goos == "darwin" {
-		dir := filepath.Join(root, "Deepzora.app", "Contents", "MacOS")
-		exe, shell = filepath.Join(dir, "deepzora-desktop"), filepath.Join(dir, name)
+		contents := filepath.Join(root, "Deepzora.app", "Contents")
+		exe, shell = filepath.Join(contents, "Resources", "service", "deepzora-desktop"), filepath.Join(contents, "MacOS", name)
 	} else {
 		exe, shell = filepath.Join(root, "deepzora-desktop"), filepath.Join(root, installlayout.AppShellDirName, name)
 	}
@@ -53,13 +53,12 @@ func TestBootstrapShellExecutableBesideResolvesPerPlatform(t *testing.T) {
 
 func TestMacBundleContentsRecognizesSupportedServiceLayouts(t *testing.T) {
 	app := filepath.Join(t.TempDir(), "parent.app cache", "应用.app", "Contents")
-	for _, relative := range []string{"MacOS/deepzora-desktop", "Resources/service/deepzora-desktop"} {
-		exe := filepath.Join(app, filepath.FromSlash(relative))
-		if got, ok := macAppContentsForExecutable(exe); !ok || got != app {
-			t.Fatalf("%s: contents = %q ok=%v, want %q", relative, got, ok, app)
-		}
+	exe := filepath.Join(app, "Resources", "service", "deepzora-desktop")
+	if got, ok := macAppContentsForExecutable(exe); !ok || got != app {
+		t.Fatalf("contents = %q ok=%v, want %q", got, ok, app)
 	}
 	for _, exe := range []string{
+		filepath.Join(app, "MacOS", "deepzora-desktop"),
 		filepath.Join(app, "Resources", "deepzora-desktop"),
 		filepath.Join(t.TempDir(), "deepzora-desktop"),
 		"relative/deepzora-desktop",

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -30,7 +30,6 @@ import {
   shellIgnore,
   signingFileList,
   versionTag,
-  validateMacServiceLink,
   WINDOWS_FLAT_PAYLOAD,
 } from "./lib.mjs";
 
@@ -171,8 +170,9 @@ test("required members cover every artifact and the checks report gaps", () => {
   assert.deepEqual(checkMembers([...macEntries, "Deepzora.app/", "Deepzora.app/Contents/"], "darwin-zip"), { missing: [], forbidden: [] });
   assert.deepEqual(checkMembers(macEntries.slice(1), "darwin-zip").missing, [macEntries[0]]);
   assert.deepEqual(checkMembers([...macEntries, "Deepzora.app/Contents/MacOS/deepzora-guard"], "darwin-zip").forbidden, ["Deepzora.app/Contents/MacOS/deepzora-guard"]);
+  assert.deepEqual(checkMembers([...macEntries, "Deepzora.app/Contents/MacOS/deepzora-desktop"], "darwin-zip").forbidden, ["Deepzora.app/Contents/MacOS/deepzora-desktop"]);
   assert.deepEqual(checkMembers([...macEntries, "Deepzora.app/Contents/Resources/main.cjs.map"], "darwin-zip").forbidden, [String(/(^|\/)(?:[^/]+\.map|__tests__|testdata|\.cache|coverage|npm-debug\.log|pnpm-debug\.log|yarn-error\.log)(?:$|\/)/)]);
-  assert.ok(macEntries.includes("Deepzora.app/Contents/MacOS/deepzora-desktop"));
+  assert.ok(!macEntries.includes("Deepzora.app/Contents/MacOS/deepzora-desktop"));
   assert.ok(macEntries.includes("Deepzora.app/Contents/Resources/service/deepzora"));
   assert.ok(macEntries.includes("Deepzora.app/Contents/Resources/service/deepzora-desktop"));
   assert.deepEqual(checkMembers(requiredMembers("darwin-app-dir").map(String), "darwin-app-dir").missing, []);
@@ -201,23 +201,6 @@ test("required members cover every artifact and the checks report gaps", () => {
   assert.deepEqual(checkMembers([...deb, "./usr/bin/deepzora-guard"], "linux-deb").forbidden, ["usr/bin/deepzora-guard"]);
   assert.deepEqual(checkMembers(requiredMembers("linux-app-dir").map(String), "linux-app-dir").missing, []);
   assert.throws(() => checkMembers([], "nope"), /unknown artifact kind/);
-});
-
-test("macOS service compatibility link stays relative, internal and live", (t) => {
-  const root = mkdtempSync(join(tmpdir(), "deepzora-link-"));
-  t.after(() => rmSync(root, { recursive: true, force: true }));
-  const app = join(root, "Deepzora.app");
-  const macOS = join(app, "Contents", "MacOS");
-  const service = join(app, "Contents", "Resources", "service");
-  mkdirSync(macOS, { recursive: true });
-  mkdirSync(service, { recursive: true });
-  writeFileSync(join(service, "deepzora-desktop"), "service");
-  symlinkSync("../Resources/service/deepzora-desktop", join(macOS, "deepzora-desktop"));
-  assert.deepEqual(validateMacServiceLink(app), []);
-
-  rmSync(join(macOS, "deepzora-desktop"));
-  symlinkSync("../../../../outside", join(macOS, "deepzora-desktop"));
-  assert.match(validateMacServiceLink(app).join("\n"), /does not resolve|dangling/);
 });
 
 test("artifact kinds are inferred from release names and bundle shapes", () => {

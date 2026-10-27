@@ -44,6 +44,29 @@ func (a *App) canonicalTabTitleWithPresentation(ctx context.Context, presentatio
 	return sessionDisplayTitle(info, presentation)
 }
 
+// refreshAutoSessionTitle replaces the creation default once an untitled
+// session has saved its first user turn. Only renames publish titles, so
+// without this the open row and topicbar keep the default while the catalog
+// already projects the preview name.
+func (a *App) refreshAutoSessionTitle(tab *WorkspaceTab) {
+	a.mu.RLock()
+	id := strings.TrimSpace(tab.SessionID)
+	stale := id != "" && tab.topicTitleSource == topicTitleSourceAuto && isDefaultTopicTitle(tab.TopicTitle)
+	a.mu.RUnlock()
+	if !stale {
+		return
+	}
+	ctx := a.bootContext()
+	state, err := a.workspaceRegistry().Load(ctx)
+	if err != nil {
+		return
+	}
+	ref := session.SessionRef{HostID: localDesktopHostID, SessionID: id}
+	if title, source := a.canonicalTabTitle(ctx, state, ref); !isDefaultTopicTitle(title) {
+		a.updateCanonicalSessionTitle(ref, title, source)
+	}
+}
+
 // publishCanonicalSessionTitle is the single exit of every canonical rename.
 // It mirrors the committed log title into each local reader that still
 // caches a name: the presentation row (cold binds, trash rows, fork labels),
