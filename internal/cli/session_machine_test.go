@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -73,6 +74,51 @@ func TestSessionMachineProjectRootUsesProjectStore(t *testing.T) {
 	}
 	if len(response.Sessions) != 1 || response.Sessions[0].ID != machineSessionIDWithKey("project", identityKey) {
 		t.Fatalf("sessions = %+v, want project session", response.Sessions)
+	}
+}
+
+func TestSessionMachineScopeFollowsStoreForSessionsWithoutCWD(t *testing.T) {
+	installMachineTestIdentity(t)
+	projectRoot := t.TempDir()
+	saveMachineTestSessionWithCWD(t, config.ProjectSessionDir(projectRoot), "cli-run", "")
+	saveMachineTestSessionWithCWD(t, config.SessionDir(), "global-run", "")
+
+	for _, tc := range []struct {
+		args []string
+		want string
+	}{
+		{[]string{"list", "--json", "--project-root", projectRoot}, "project"},
+		{[]string{"list", "--json", "--dir", config.SessionDir()}, "global"},
+	} {
+		var out bytes.Buffer
+		if code := runSessionCommand(tc.args, &out); code != 0 {
+			t.Fatalf("%v exit code = %d, output = %s", tc.args, code, out.String())
+		}
+		var response machineSessionList
+		if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+			t.Fatalf("decode list: %v", err)
+		}
+		if len(response.Sessions) != 1 || response.Sessions[0].Scope != tc.want {
+			t.Fatalf("%v sessions = %+v, want one %s session", tc.args, response.Sessions, tc.want)
+		}
+	}
+}
+
+func TestMachineCommandsRejectMissingExplicitSessionDir(t *testing.T) {
+	installMachineTestIdentity(t)
+	missing := filepath.Join(t.TempDir(), "no-such-store")
+	var out bytes.Buffer
+	if code := runSessionCommand([]string{"list", "--json", "--dir", missing}, &out); code == 0 || !strings.Contains(out.String(), "session_dir_unavailable") {
+		t.Fatalf("session list on a missing --dir = %d %s, want session_dir_unavailable", code, out.String())
+	}
+	out.Reset()
+	if code := runTaskCommand([]string{"list", "--json", "--dir", missing}, &out); code == 0 || !strings.Contains(out.String(), "task_state_unavailable") {
+		t.Fatalf("task list on a missing --dir = %d %s, want task_state_unavailable", code, out.String())
+	}
+	// An existing but never-used directory is still a valid, empty store.
+	out.Reset()
+	if code := runSessionCommand([]string{"list", "--json", "--dir", t.TempDir()}, &out); code != 0 {
+		t.Fatalf("session list on an empty --dir = %d %s", code, out.String())
 	}
 }
 
@@ -160,8 +206,15 @@ func TestSessionMachineErrorsAreJSONAndNonZero(t *testing.T) {
 
 func saveMachineTestSession(t *testing.T, dir, id string) string {
 	t.Helper()
+	return saveMachineTestSessionWithCWD(t, dir, id, dir)
+}
+
+// saveMachineTestSessionWithCWD seeds one completed turn. An empty cwd matches
+// sessions the CLI creates, which do not record one.
+func saveMachineTestSessionWithCWD(t *testing.T, dir, id, cwd string) string {
+	t.Helper()
 	service := testCLISessionService(t, dir)
-	runtime, err := service.Create(t.Context(), session.CreateOptions{SessionID: id, CWD: dir})
+	runtime, err := service.Create(t.Context(), session.CreateOptions{SessionID: id, CWD: cwd})
 	if err != nil {
 		t.Fatal(err)
 	}

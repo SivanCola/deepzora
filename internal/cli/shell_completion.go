@@ -78,7 +78,7 @@ func cliCompletionRootSpec() cliCompletionSpec {
 		help,
 	}
 	// run/serve --resume require a value; only interactive root --resume [QUERY] is optional.
-	runResume := completionFlag("--resume", cliCompletionSessionValue)
+	runResume := completionFlag("--resume -r", cliCompletionSessionValue)
 	runFlags := []cliCompletionFlag{
 		preset,
 		model,

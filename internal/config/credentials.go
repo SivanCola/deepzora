@@ -388,6 +388,17 @@ func CredentialsTargetDescription() string {
 	return UserCredentialsPath()
 }
 
+// missingAPIKeyError names where the key must live. Exported shell variables
+// are deliberately not a runtime source, so pointing users at "env" sent them
+// to an export that can never satisfy the check.
+func missingAPIKeyError(model, keyName string) error {
+	target := CredentialsTargetDescription()
+	if target == "" {
+		target = "the Deepzora home .env"
+	}
+	return fmt.Errorf("provider %q: no API key; add %s=<key> to %s or run 'deepzora setup' (exported shell variables are not read)", model, keyName, target)
+}
+
 func parseCredentialLines(lines []string) map[string]string {
 	out := map[string]string{}
 	for _, raw := range lines {
