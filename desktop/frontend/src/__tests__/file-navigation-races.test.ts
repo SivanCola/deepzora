@@ -79,7 +79,7 @@ const host = {
   close: async (id: string) => { closed.push(id); },
 };
 useBrowserPanelStore.setState({ host: host as unknown as NonNullable<ReturnType<typeof useBrowserPanelStore.getState>["host"]> });
-const browser = performResourceAction({ hostId: "local", tabId: "session", source: "presented", toolCallId: "tool", path: "one.html" }, "browser");
+const browser = performResourceAction({ tabId: "session", source: "presented", toolCallId: "tool", path: "one.html" }, "browser");
 await opening.promise;
 owner.retain([]);
 opened.resolve({ id: "only-owned-tab" });
@@ -90,10 +90,10 @@ assert.deepEqual(closed, ["only-owned-tab"]);
 
 // A preview URL minted before its operation lost the dock is released too: a
 // second browser command supersedes the first while its creation is in flight.
-const slow = performResourceAction({ hostId: "local", tabId: "session", source: "presented", toolCallId: "tool", path: "slow.html" }, "browser");
+const slow = performResourceAction({ tabId: "session", source: "presented", toolCallId: "tool", path: "slow.html" }, "browser");
 for (let tick = 0; tick < 20 && !creations.has("slow.html"); tick += 1) await new Promise((resolve) => setTimeout(resolve, 0));
 assert(creations.has("slow.html"), "the first preview creation is in flight");
-const fast = performResourceAction({ hostId: "local", tabId: "session", source: "presented", toolCallId: "tool", path: "fast.html" }, "browser");
+const fast = performResourceAction({ tabId: "session", source: "presented", toolCallId: "tool", path: "fast.html" }, "browser");
 creations.get("slow.html")!.resolve("http://preview.test/slow");
 assert.deepEqual(await slow, { status: "cancelled", reason: "superseded" });
 assert.deepEqual(revoked, ["http://preview.test/one.html", "http://preview.test/slow"],
@@ -102,7 +102,7 @@ await fast.catch(() => undefined);
 
 // A host that never arrives must not open a page, and its URL is released.
 useBrowserPanelStore.setState({ host: null });
-const waiting = performResourceAction({ hostId: "local", tabId: "session", source: "presented", toolCallId: "tool", path: "two.html" }, "browser");
+const waiting = performResourceAction({ tabId: "session", source: "presented", toolCallId: "tool", path: "two.html" }, "browser");
 await new Promise((resolve) => setTimeout(resolve, 2200));
 assert.deepEqual(await waiting, { status: "failed", error: new Error("Built-in browser is not ready") });
 assert.deepEqual(revoked, ["http://preview.test/one.html", "http://preview.test/slow", "http://preview.test/two.html"], "every preview URL this session minted is released exactly once");
@@ -123,7 +123,7 @@ for (const [action, message] of [
   ["save-copy", "save denied"],
 ] as const) {
   const outcome = await performResourceAction(
-    { hostId: "local", tabId: "session", source: "workspace", path: "failed.txt" },
+    { tabId: "session", source: "workspace", path: "failed.txt" },
     action,
   );
   assert.equal(outcome.status, "failed");
@@ -173,7 +173,7 @@ useBrowserPanelStore.setState({
   } as unknown as NonNullable<ReturnType<typeof useBrowserPanelStore.getState>["host"]>,
   tabs: [], taskId: "session",
 });
-const htmlDefault = await openResource({ hostId: "local", tabId: "session", source: "workspace", path: "INDEX.HTML" }, { view: "preview" });
+const htmlDefault = await openResource({ tabId: "session", source: "workspace", path: "INDEX.HTML" }, { view: "preview" });
 assert.equal(htmlDefault.status, "opened");
 assert.deepEqual(sharedPreviewCalls, [{ tabId: "session", source: "workspace", path: "INDEX.HTML", userInitiated: false }]);
 assert.equal(useBrowserPanelStore.getState().activeTabId, taskTab.id);

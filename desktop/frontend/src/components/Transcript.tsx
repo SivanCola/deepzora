@@ -37,7 +37,6 @@ export type TranscriptProps = {
   live?: LiveStream;
   liveStore?: ControllerLiveStore;
   tabId?: string;
-  hostId?: string;
   geometrySessionKey?: string;
   footerHeight?: number;
   onPrompt: (displayText: string, submitText?: string) => void;
@@ -269,7 +268,7 @@ function ChatSession(props: TranscriptProps & { sessionKey: string }) {
   }, [jumpState.status, jumpState.reason]);
   return <InvocationMetadataContext.Provider value={props.invocationMetadata ?? {}}>
     <MarkdownImageTabContext.Provider value={tabId ?? ""}>
-      <ChatFileScopeProvider scopeKey={source.sessionKey} tabId={tabId} hostId={props.hostId}>
+      <ChatFileScopeProvider scopeKey={source.sessionKey} tabId={tabId}>
       <section className="chat-transcript">
         <SessionLoadingIndicator active={hydrating && props.showLoadingFeedback !== false} identity={sessionKey} />
         <div className="chat-surface" inert={Boolean(activeDetails)}>
@@ -306,7 +305,7 @@ function ChatSession(props: TranscriptProps & { sessionKey: string }) {
               {(olderHistoryError || pagingError) && <button className="btn" onClick={() => void loadOlder()}>{t("chat.loadFailed")}</button>}
               {selectionBlocked && <p className="chat-history-selection" role="status">{t("chat.historySelectionBlocked")}</p>}
               {!hydrating && items.length === 0 && !running && <Welcome onPrompt={onPrompt} />}
-              <ChatNodeList key={source.sessionKey} source={source} mounts={mounts} loader={loader} scroll={scroll} actions={actions} tabId={tabId} hostId={props.hostId} />
+              <ChatNodeList key={source.sessionKey} source={source} mounts={mounts} loader={loader} scroll={scroll} actions={actions} tabId={tabId} />
               <ChatRunning source={source} />
               {hasNewerHistory && <div className="chat-history-newer">
                 <button className="btn" disabled={loadingNewerHistory} onClick={() => void loadPage("newer")}>{t(loadingNewerHistory ? "chat.loading" : "chat.loadNewer")}</button>

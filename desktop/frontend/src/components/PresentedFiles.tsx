@@ -30,15 +30,15 @@ function iconFor(path: string) {
   return FileText;
 }
 
-export const PresentedFiles = memo(function PresentedFiles({ files, tabId, hostId }: { files: readonly PresentedFileView[]; tabId?: string; hostId?: string }) {
+export const PresentedFiles = memo(function PresentedFiles({ files, tabId }: { files: readonly PresentedFileView[]; tabId?: string }) {
   const t = useT();
   const [expanded, setExpanded] = useState(false);
   const shown = expanded ? files : files.slice(0, 4);
   if (!files.length) return null;
   return <section className="presented-files" aria-label={t("present.files")}>
     <div className="presented-files__grid">
-      {shown.map(file => <FileEntry key={JSON.stringify([hostId, tabId, file.toolCallId, file.path])} description={file.description}
-        refValue={{ source: "presented", hostId: hostId ?? "local", tabId: tabId ?? "", toolCallId: file.toolCallId, path: file.path }} />)}
+      {shown.map(file => <FileEntry key={JSON.stringify([tabId, file.toolCallId, file.path])} description={file.description}
+        refValue={{ source: "presented", tabId: tabId ?? "", toolCallId: file.toolCallId, path: file.path }} />)}
     </div>
     {files.length > 4 && <button type="button" className="presented-files__toggle" onClick={() => setExpanded(value => !value)}>
       {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -51,7 +51,6 @@ export const ModifiedFiles = memo(function ModifiedFiles({ files, summary, onOpe
   files: readonly TurnFileView[];
   summary?: WireCompletionSummary;
   tabId?: string;
-  hostId?: string;
   onOpenReview?: (summary: WireCompletionSummary, initialPath?: string) => void;
 }) {
   const t = useT();

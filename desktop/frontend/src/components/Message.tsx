@@ -243,9 +243,9 @@ export function UserMessage({
   );
 }
 
-export const AssistantMessage = memo(function AssistantMessage({ item, presentedFiles = [], modifiedFiles = [], turnKey, factsVersion = 0, tabId, hostId }: {
+export const AssistantMessage = memo(function AssistantMessage({ item, presentedFiles = [], modifiedFiles = [], turnKey, factsVersion = 0, tabId }: {
   item: AssistantItem; presentedFiles?: readonly PresentedFileView[]; modifiedFiles?: readonly TurnFileView[];
-  turnKey?: string; factsVersion?: number; tabId?: string; hostId?: string;
+  turnKey?: string; factsVersion?: number; tabId?: string;
 }) {
   const hasText = item.streaming || item.text.trim() !== "";
   const hasFootnotes = Boolean(item.searchSources?.length);
@@ -255,7 +255,7 @@ export const AssistantMessage = memo(function AssistantMessage({ item, presented
       {(hasText || hasFootnotes) && (
         <div className="msg__body" data-transcript-selectable="message">
           {hasText && (turnKey
-            ? <ChatFileTurnProvider turnKey={turnKey} factsVersion={factsVersion} presentedFiles={presentedFiles} modifiedFiles={modifiedFiles} tabId={tabId} hostId={hostId}>{body}</ChatFileTurnProvider>
+            ? <ChatFileTurnProvider turnKey={turnKey} factsVersion={factsVersion} presentedFiles={presentedFiles} modifiedFiles={modifiedFiles} tabId={tabId}>{body}</ChatFileTurnProvider>
             : body)}
           <Suspense fallback={null}><SearchSourcesPanel sources={item.searchSources} /></Suspense>
         </div>

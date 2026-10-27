@@ -20,12 +20,12 @@ installDesktopHostStub({
 useActivityBarStore.setState({ workspaceRoot: "/fixture", tabs: [], activeTabId: null });
 
 function Fixture() {
-  const hostId = "local";
+  const tabId = "local";
   return <LocaleProvider>
-    <PresentedFiles tabId={hostId} hostId={hostId} files={[{ path: `${hostId}.txt`, toolCallId: "present", description: "Navigation regression" }]} />
+    <PresentedFiles tabId={tabId} files={[{ path: `${tabId}.txt`, toolCallId: "present", description: "Navigation regression" }]} />
     <WorkspaceDockRegion visible overlay={false} mode="files" creation={false} showContext={false}
       t={key => key} onPickEntry={() => {}} context={{} as never}
-      workspace={{ open: true, tabId: hostId, cwd: "/fixture", maximized: false, onClose: () => {}, onToggleMaximized: () => {} }}
+      workspace={{ open: true, tabId, cwd: "/fixture", maximized: false, onClose: () => {}, onToggleMaximized: () => {} }}
       workspaceRoot="/fixture" workspaceKey="fixture" />
   </LocaleProvider>;
 }

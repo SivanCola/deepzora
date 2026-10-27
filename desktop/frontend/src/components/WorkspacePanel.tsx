@@ -580,7 +580,7 @@ export function WorkspacePanel({
    */
   const openFile = useCallback(
     (path: string, view: "files" | "changed" = "files") => {
-      const ref: FileResourceRef = { source: "workspace", hostId: "local", tabId: workspaceTabId, path };
+      const ref: FileResourceRef = { source: "workspace", tabId: workspaceTabId, path };
       if (isHTMLResource(ref)) return void openResource(ref, { view: "preview" });
       // This panel owns tree clicks, so it must not ask the activity bar which dock to open.
       void Promise.resolve(fileNavigation.openIn(fileScope, { ref, params: { action: "preview", view } }));
@@ -600,7 +600,6 @@ export function WorkspacePanel({
     void Promise.resolve(fileNavigation.restore(fileScope, {
       paths: remembered?.openTabs ?? [],
       selectedPath: remembered?.selectedFilePath ?? null,
-      hostId: "local",
     }));
     // The preview is left alone: its key carries the scope, path, mode and
     // access context, so a preview for anything else cannot render anyway, and
@@ -1778,7 +1777,7 @@ export function WorkspacePanel({
                   onClick={() => {
                     // A remembered path carries no presentation of its own: it
                     // opens as a workspace file under the current session scope.
-                    void Promise.resolve(fileNavigation.selectPath(fileScope, { hostId: "local", path }));
+                    void Promise.resolve(fileNavigation.selectPath(fileScope, { path }));
                     setRecentOpen(false);
                   }}
                 >

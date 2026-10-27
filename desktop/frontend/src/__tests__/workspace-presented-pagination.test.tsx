@@ -20,7 +20,7 @@ const { dom, root } = await renderFilesWorkspace({
 // commits a navigation record the mounted dock reads.
 await act(async () => {
   await performResourceAction({
-    source: "presented", hostId: "local", tabId: "tab-a", toolCallId: "present-1", path: "/tmp/large.txt",
+    source: "presented", tabId: "tab-a", toolCallId: "present-1", path: "/tmp/large.txt",
   }, "preview");
   await flushPromises();
 });

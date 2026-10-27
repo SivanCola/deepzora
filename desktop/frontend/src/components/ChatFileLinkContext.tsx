@@ -28,8 +28,8 @@ const ScopeContext = createContext<ChatFileReferenceStore | null>(null);
 const TurnContext = createContext<TurnValue | null>(null);
 
 /** Owns the session's reference store; it is disposed with the session. */
-export function ChatFileScopeProvider({ scopeKey, tabId, hostId, children }: { scopeKey: string; tabId?: string; hostId?: string; children: ReactNode }) {
-  const store = useMemo(() => new ChatFileReferenceStore(tabId ?? "", hostId ?? "local"), [scopeKey, tabId, hostId]);
+export function ChatFileScopeProvider({ scopeKey, tabId, children }: { scopeKey: string; tabId?: string; children: ReactNode }) {
+  const store = useMemo(() => new ChatFileReferenceStore(tabId ?? ""), [scopeKey, tabId]);
   // Attach/detach rather than dispose directly: a StrictMode mount replay runs
   // the cleanup without a re-render, and an unconditional dispose would leave
   // the session with a dead store.
@@ -75,18 +75,18 @@ export function useChatFileCandidateReport(blocks: readonly { children: readonly
   }, [blocks, report, revision]);
 }
 
-export function ChatFileTurnProvider({ turnKey, factsVersion, presentedFiles, modifiedFiles, tabId, hostId, children }: {
+export function ChatFileTurnProvider({ turnKey, factsVersion, presentedFiles, modifiedFiles, tabId, children }: {
   turnKey: string; factsVersion: number;
   presentedFiles: readonly PresentedFileView[]; modifiedFiles: readonly TurnFileView[];
-  tabId?: string; hostId?: string; children: ReactNode;
+  tabId?: string; children: ReactNode;
 }) {
   const store = useChatFileStore();
   const references = useChatFileReferences(store, turnKey);
   const value = useMemo<TurnValue>(() => ({
     turnKey,
     factsVersion,
-    links: buildLinks({ presentedFiles, modifiedFiles, references, tabId: tabId ?? "", hostId: hostId ?? "local" }),
-  }), [factsVersion, hostId, modifiedFiles, presentedFiles, references, tabId, turnKey]);
+    links: buildLinks({ presentedFiles, modifiedFiles, references, tabId: tabId ?? "" }),
+  }), [factsVersion, modifiedFiles, presentedFiles, references, tabId, turnKey]);
   return <TurnContext.Provider value={value}>{children}</TurnContext.Provider>;
 }
 
@@ -98,9 +98,9 @@ function useChatFileReferences(store: ChatFileReferenceStore | null, turnKey: st
   return useSyncExternalStore(subscribe, snapshot, snapshot);
 }
 
-function buildLinks({ presentedFiles, modifiedFiles, references, tabId, hostId }: {
+function buildLinks({ presentedFiles, modifiedFiles, references, tabId }: {
   presentedFiles: readonly PresentedFileView[]; modifiedFiles: readonly TurnFileView[];
-  references: ReadonlyMap<string, ChatFileReferenceView>; tabId: string; hostId: string;
+  references: ReadonlyMap<string, ChatFileReferenceView>; tabId: string;
 }): ReadonlyMap<string, ChatFileLink> {
   // One entry per file. A presented delivery is registered first and owns the
   // entry's resource ref, because it carries the authorization the host
@@ -123,16 +123,16 @@ function buildLinks({ presentedFiles, modifiedFiles, references, tabId, hostId }
     entries.push(entry);
   };
   for (const file of presentedFiles) {
-    define(file.path, { source: "presented", hostId, tabId, toolCallId: file.toolCallId, path: file.path });
+    define(file.path, { source: "presented", tabId, toolCallId: file.toolCallId, path: file.path });
   }
   for (const file of modifiedFiles) {
-    define(file.path, { source: "workspace", hostId, tabId, toolCallId: file.toolCallId, path: file.path });
+    define(file.path, { source: "workspace", tabId, toolCallId: file.toolCallId, path: file.path });
   }
   for (const reference of references.values()) {
     if (reference.status !== "resolved" || !reference.displayPath) continue;
     // The answer's own spelling is an alias: the host canonicalized the path,
     // but the reader must still be able to click the text they were shown.
-    define(reference.displayPath, { source: "reference", hostId, tabId, path: reference.displayPath },
+    define(reference.displayPath, { source: "reference", tabId, path: reference.displayPath },
       reference.actions, [reference.path]);
   }
 

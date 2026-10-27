@@ -41,7 +41,7 @@ const paint = () => act(async () => root.render(
 ));
 const record = () => fileNavigationOwner().getSnapshot(fileNavigationKey({ sessionTabId, dockTabId }));
 const open = async (path: string) => {
-  await act(async () => performResourceAction({ hostId: "local", tabId: sessionTabId, path, source: "presented", toolCallId: "call" }, "preview"));
+  await act(async () => performResourceAction({ tabId: sessionTabId, path, source: "presented", toolCallId: "call" }, "preview"));
 };
 await paint();
 
