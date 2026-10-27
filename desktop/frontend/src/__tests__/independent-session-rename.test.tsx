@@ -6,8 +6,6 @@ import { JSDOM } from "jsdom";
 import { desktopProjectAdapter } from "../app-runtime/desktopProjectAdapter";
 import { useHistoryCommands } from "../app-runtime/useHistoryCommands";
 import { useProjectTopicCommands } from "../app-runtime/useProjectTopicCommands";
-import { renameProjectTopic, type ProjectTopicPorts } from "../app-runtime/projectTopicOwner";
-import type { RemoteSessionView } from "../lib/remoteTypes";
 import type { HistoryViewState } from "../app-runtime/historyViewProjection";
 import type { SessionMeta } from "../lib/types";
 import type { SessionSelector } from "../generated/desktopContract.generated";
@@ -118,46 +116,4 @@ test("top title rename keeps B as its target when the active session changes to 
     assert.equal(commands.topicbarEditing, false);
     assert.equal(activeSyncs, 0, "B's completion cannot replace the newly selected A");
   } finally { complete(); await env.close(); }
-});
-
-function remoteRenameFixture(sessions: RemoteSessionView[]) {
-  const writes: { host: string; workspace: string; name: string; title: string }[] = [];
-  const ports: ProjectTopicPorts = {
-    renameLocal: async () => { throw new Error("remote targets must never reach the local owner"); },
-    listRemote: async () => sessions,
-    renameRemote: async (host, workspace, name, title) => { writes.push({ host, workspace, name, title }); },
-    markChanged: () => {}, refreshTabs: async () => [], syncActive: async () => {},
-  };
-  const authority = { checkpoint() {}, ownsUI: () => true };
-  return { writes, rename: (sessionId: string) => renameProjectTopic({
-    ports, title: "Only B", target: {
-      kind: "remote", hostId: "host-a", workspace: "/repo", sessionId,
-    },
-  }, authority) };
-}
-
-test("remote top rename resolves sessionId before an equal path on another session", async () => {
-  const fixture = remoteRenameFixture([
-    { sessionId: "a", title: "A", turns: 1 },
-    { sessionId: "b", title: "B", turns: 1 },
-  ]);
-  await fixture.rename("b");
-  assert.deepEqual(fixture.writes, [{ host: "host-a", workspace: "/repo", name: "b", title: "Only B" }]);
-});
-
-test("remote top rename rejects a missing explicit sessionId instead of falling back to its old path", async () => {
-  const fixture = remoteRenameFixture([
-    { sessionId: "a", title: "A", turns: 1 },
-  ]);
-  await assert.rejects(fixture.rename("b"));
-  assert.deepEqual(fixture.writes, []);
-});
-
-test("remote top rename rejects duplicate session IDs", async () => {
-  const fixture = remoteRenameFixture([
-    { sessionId: "b", title: "A", turns: 1 },
-    { sessionId: "b", title: "B", turns: 1 },
-  ]);
-  await assert.rejects(fixture.rename("b"));
-  assert.deepEqual(fixture.writes, [], "duplicate IDs cannot safely distinguish these rows");
 });

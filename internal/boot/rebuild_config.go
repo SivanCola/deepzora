@@ -73,8 +73,8 @@ type runtimeConfigDependencies struct {
 }
 
 type runtimeProviderMetadata struct {
-	BalanceURL, APIKeyEnv, CredentialProxyURL string
-	Authentication                            control.AuthenticationState
+	BalanceURL, APIKeyEnv string
+	Authentication        control.AuthenticationState
 }
 
 func runtimeConfigFingerprint(cfg *config.Config, roots ...string) string {
@@ -137,7 +137,7 @@ func projectRuntimeConfig(cfg *config.Config, root string) runtimeConfigDependen
 	for i := range cfg.Providers {
 		p := &cfg.Providers[i]
 		deps.Providers = append(deps.Providers, runtimeProviderMetadata{
-			BalanceURL: p.BalanceURL, APIKeyEnv: p.APIKeyEnv, CredentialProxyURL: p.CredentialProxyURL(),
+			BalanceURL: p.BalanceURL, APIKeyEnv: p.APIKeyEnv,
 			Authentication: authenticationStateForModelEntry(p, ""),
 		})
 	}

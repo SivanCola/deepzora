@@ -18,11 +18,7 @@ func (a *App) metaForTab(tabID string) Meta {
 		runtimeView := a.sessionRuntimeViewLocked(tab)
 		a.mu.RUnlock()
 		if tab == nil {
-			meta := Meta{EventChannel: eventChannel}
-			if ref, ok := a.remoteTabRefFor(tabID); ok {
-				meta.Remote = &ref
-			}
-			return meta
+			return Meta{EventChannel: eventChannel}
 		}
 		cwd := snap.workspaceRoot
 		if cwd == "" {

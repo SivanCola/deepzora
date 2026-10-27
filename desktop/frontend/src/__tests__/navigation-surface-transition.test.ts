@@ -115,20 +115,13 @@ const appViewSource = readFileSync(new URL("../app-shell/AppRuntimeView.tsx", im
 const sessionCompositionSource = readFileSync(new URL("../app-runtime/useAppSessionComposition.ts", import.meta.url), "utf8");
 const surfaceHookSource = readFileSync(new URL("../lib/useNavigationSurface.ts", import.meta.url), "utf8");
 const tabBarSource = readFileSync(new URL("../app-runtime/useTabBarCommands.ts", import.meta.url), "utf8");
-const stylesSource = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 ok(surfaceHookSource.includes("flushSync(() => {"), "navigation masking commits synchronously before the bridge await");
 ok(surfaceHookSource.includes("setPreserved(rendered?.items.length ? rendered : null)"), "the last stable transcript is retained during navigation");
 ok(sessionCompositionSource.includes("visibleTranscriptItems,") && appViewSource.includes("items: session.transcript.visibleTranscriptItems"), "the visible transcript is decoupled from the hydrating target");
-ok(chatPaneSource.includes("transcript-navigation-overlay"), "remote navigation retains its blocking transcript overlay");
-ok(/const presentationTransitioning = runtimeTransitioning && core\.remoteSurfaceActive;/.test(appViewSource)
-  && appViewSource.includes("transitioning={presentationTransitioning}"),
-"local navigation bypasses the blocking overlay while remote navigation keeps the existing behavior");
-ok(/\.transcript-navigation-overlay\s*\{[\s\S]*?background:\s*var\(--chat-bg, var\(--bg\)\)/.test(stylesSource), "the remote navigation overlay remains opaque while target rows settle");
-ok(chatPaneSource.includes("live={transitioning ? undefined : state.live}"), "App removes source live output during navigation");
+ok(!chatPaneSource.includes("transcript-navigation-overlay"), "navigation keeps the transcript visible instead of a blocking overlay");
 ok(!appSource.includes("hidden={composerSurfaceHidden || undefined}"), "navigation no longer collapses the composer footprint");
 // Masked Composer/Todo/rewind layout is exercised through the mounted production
 // DecisionFooterRegion in decision-footer-lifecycle.test.tsx, not App source text.
-ok(/\.footer--navigation-hidden\s*\{[\s\S]*?visibility:\s*hidden;[\s\S]*?pointer-events:\s*none;/.test(stylesSource), "masked target footer cannot paint or receive input");
 ok(appViewSource.includes('style={core.surface.surface?.phase === "source-retained"') && sessionCompositionSource.includes("const visibleDecisionSurface = decisionSurface"), "target-masked paint uses the target footer geometry");
 ok((tabBarSource.match(/guardBackendNavigationResult\(\{/g) ?? []).length === 2, "both Reveal paths guard stale backend activation results");
 ok(surfaceHookSource.includes("navigation.paint-ready"), "surface settlement is diagnosed only from target paint readiness");

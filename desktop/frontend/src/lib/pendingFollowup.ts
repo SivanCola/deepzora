@@ -2,7 +2,7 @@ import type { AppBindings } from "./bridge";
 import type { InvocationRequest, StructuredInvocationSubmit } from "./invocationDisplay";
 import { submissionOutcome } from "./modelApplication";
 
-export type InboxTarget = { tabId: string; sessionPath: string; generation: number; selection: number; remote: boolean; hostId?: string; workspace?: string };
+export type InboxTarget = { tabId: string; sessionPath: string; generation: number; selection: number };
 export type FollowupReceipt = { itemId: string; disposition: string; position: number; paused: boolean; idempotent?: boolean; error?: string };
 export interface FollowupBindings {
   CaptureInboxTarget(tabID: string, expectedPath: string): Promise<InboxTarget>;
@@ -16,10 +16,10 @@ export type PendingFollowup = {
 
 // TabMeta supplies the backend's session path. UI topic/draft keys and tab
 // generations are deliberately excluded from this durable request identity.
-export function followupSessionKey(sessionPath?: string, hostId?: string, workspace?: string): string {
+export function followupSessionKey(sessionPath?: string): string {
   const path = sessionPath?.trim();
-  if (!path || (hostId && !workspace)) return "";
-  return JSON.stringify(hostId ? ["remote", hostId, workspace, path] : ["local", path]);
+  if (!path) return "";
+  return JSON.stringify(["local", path]);
 }
 
 // Process-local draft ownership survives Composer remounts. Nothing here is

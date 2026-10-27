@@ -14,7 +14,6 @@ import type { useComposerProfileProjection } from "../app-runtime/useComposerPro
 import type { useComposerInsertCommands } from "../app-runtime/useComposerInsertCommands";
 import type { useComposerModeActions } from "../lib/useComposerModeActions";
 import type { useComposerGoalCommands } from "../app-runtime/useComposerGoalCommands";
-import type { useRemoteComposerRuntimeActions } from "../lib/useRemoteComposerIntegration";
 import type { useControllerProfileCommands } from "../lib/useControllerProfileCommands";
 import type {
   ApprovalProps,
@@ -245,7 +244,6 @@ export type ComposerSurfaceInput = {
     targetInputReady?: boolean;
     hero: boolean;
     headline: string;
-    remote: boolean;
     rewindCommitting: boolean;
     messageActionPending: boolean;
     decisionActive: boolean;
@@ -255,23 +253,16 @@ export type ComposerSurfaceInput = {
     submitDisabledReason?: string;
   };
   base: ComposerBase;
-  tab: { readOnly?: boolean; agentPreset?: string; agentPresetLocked?: boolean; session?: import("../lib/sessionRef").SessionRef | null; sessionPath?: string; workspaceRoot?: string; authentication?: ComposerProps["authentication"]; modelSettingsPending?: boolean; remote?: { hostId: string; workspace: string } } | undefined;
+  tab: { readOnly?: boolean; agentPreset?: string; agentPresetLocked?: boolean; session?: import("../lib/sessionRef").SessionRef | null; sessionPath?: string; workspaceRoot?: string; authentication?: ComposerProps["authentication"]; modelSettingsPending?: boolean } | undefined;
   tabId: string | undefined;
   profile: ReturnType<typeof useComposerProfileProjection>;
   router: { handleSend: ComposerProps["onSend"]; handleSteer: ComposerProps["onSteer"] };
   modes: ReturnType<typeof useComposerModeActions>;
   goals: ReturnType<typeof useComposerGoalCommands>;
-  remoteGoal: ReturnType<typeof useRemoteComposerRuntimeActions>;
+  goalActions: { pauseGoal: ComposerProps["onPauseGoal"]; resumeGoal: ComposerProps["onResumeGoal"]; setEffort: ComposerProps["onSetEffort"] };
   modelSwitch: Pick<ReturnType<typeof useControllerProfileCommands>, "switchModelFromUi">;
   inserts: Pick<ReturnType<typeof useComposerInsertCommands>, "composerInsertRequest" | "selectedTextRequest">;
   control: { handleCancelActive: ComposerProps["onCancel"] };
-  remoteComposer: {
-    send: ComposerProps["onSend"];
-    cancel: ComposerProps["onCancel"];
-    ready: boolean;
-    profileReady: boolean;
-    liveStore: ComposerProps["liveStore"];
-  };
   localLiveStore: ComposerProps["liveStore"];
   onInvocationMetadataChange: ComposerProps["onInvocationMetadataChange"];
   onCycleMode: ComposerProps["onCycleMode"];
@@ -284,57 +275,55 @@ export type ComposerSurfaceInput = {
 };
 
 export function buildComposerSurface(input: ComposerSurfaceInput): DecisionFooterRegionProps["composer"] {
-  const { base, view, profile, router, modes, goals, remoteGoal, modelSwitch, inserts, control, remoteComposer } = input;
+  const { base, view, profile, router, modes, goals, goalActions, modelSwitch, inserts, control } = input;
   const surface: DecisionFooterRegionProps["composer"] = {
     empty: !input.tabId ? input.empty : undefined,
     hidden: view.hidden,
     // A bound local session owns its saved input even while its runtime starts.
     // The old surface remains inert until navigation binds the new identity.
-    inert: view.inert && (view.remote || !view.targetInputReady),
+    inert: view.inert && !view.targetInputReady,
     hero: view.hero,
     headline: view.headline,
     props: {
       ...base,
-      running: base.running || (!view.remote && view.rewindCommitting),
+      running: base.running || view.rewindCommitting,
       collaborationMode: profile.collaborationMode,
       toolApprovalMode: profile.toolApprovalMode,
       goal: profile.goal,
       tabId: input.tabId,
       agentPreset: input.tab?.agentPreset,
       agentPresetLocked: input.tab?.agentPresetLocked,
-      formalSessionRef: view.remote ? undefined : input.tab?.session ?? undefined,
+      formalSessionRef: input.tab?.session ?? undefined,
       sessionIdentity: input.tab ? sessionIdentityFields(input.tab) : undefined,
       workspaceRoot: input.tab?.workspaceRoot,
-      onSend: view.remote ? remoteComposer.send : router.handleSend,
+      onSend: router.handleSend,
       onInvocationMetadataChange: input.onInvocationMetadataChange,
       onSteer: router.handleSteer,
-      onCancel: view.remote ? remoteComposer.cancel : control.handleCancelActive,
+      onCancel: control.handleCancelActive,
       onCycleMode: input.onCycleMode,
       onSetMode: modes.applyMode,
       onSetCollaborationMode: goals.setCollaborationModeFromUi,
       onSetToolApprovalMode: modes.applyToolApprovalMode,
       onClearGoal: goals.clearGoalFromUi,
       onEditGoal: goals.editGoalFromUi,
-      onPauseGoal: remoteGoal.pauseGoal,
-      onResumeGoal: remoteGoal.resumeGoal,
+      onPauseGoal: goalActions.pauseGoal,
+      onResumeGoal: goalActions.resumeGoal,
       onSwitchModel: modelSwitch.switchModelFromUi,
-      onSetEffort: remoteGoal.setEffort,
+      onSetEffort: goalActions.setEffort,
       insertRequest: inserts.composerInsertRequest,
       selectedTextRequest: inserts.selectedTextRequest,
       readOnly: Boolean(input.tab?.readOnly),
       disabled: view.runtimeTransitioning || view.rewindCommitting || view.messageActionPending || view.decisionActive,
-      submitDisabled: view.remote ? !remoteComposer.ready || !remoteComposer.profileReady : !modelSettingsAllowSubmission(view.controllerReady, input.tab),
+      submitDisabled: !modelSettingsAllowSubmission(view.controllerReady, input.tab),
       submitDisabledReason: view.submitDisabledReason,
-      authentication: view.remote ? undefined : input.tab?.authentication,
+      authentication: input.tab?.authentication,
       decisionPending: view.rewindCommitting || view.messageActionPending || view.decisionActive,
-      ready: view.remote ? remoteComposer.ready && remoteComposer.profileReady : view.controllerReady,
-      liveStore: view.remote ? remoteComposer.liveStore : input.localLiveStore,
+      ready: view.controllerReady,
+      liveStore: input.localLiveStore,
       suspendedByDecision: view.decisionActive,
       transientDismissSignal: input.transientDismissSignal,
       sessionKey: input.sessionKey,
       inboxSessionPath: sessionIdentityRoute(input.tab),
-      inboxHostId: input.tab?.remote?.hostId,
-      inboxWorkspace: input.tab?.remote?.workspace,
       workspaceScopeKey: input.workspaceScopeKey,
       // Match the workspace launcher's ownership boundary: project/branch
       // selection configures a new empty session. Once the transcript has

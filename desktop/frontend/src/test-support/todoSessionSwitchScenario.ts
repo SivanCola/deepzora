@@ -29,7 +29,7 @@ export async function runTodoSessionSwitchScenario(options: {
     };
     runtimeStateStore.commit({ epoch: "todo-app", revision, topics: [], sessions: [{
       tabId: "tab-switch", scope: "project", workspaceRoot: "/repo", topicId: "topic-a",
-      sessionPath, sessionGeneration: 1, open: true, remote: false, freshness: "synced", state,
+      sessionPath, sessionGeneration: 1, open: true, freshness: "synced", state,
     }] });
   };
   await act(async () => { const navigation = controller()?.resumeSession(sessionA, "tab-switch"); await navigation?.surfaceReady; publish(sessionA, pausedTodos); });

@@ -5,7 +5,7 @@
 ## 职责划分
 
 ```text
-本地 / 远程 Follow v2 → 共享消费器与有界记录存储
+Follow v2 → 共享消费器与有界记录存储
                               ↓
                     Transcript 会话适配入口
                               ↓
@@ -21,7 +21,7 @@ Markdown 源文 → 共享 Worker → 稳定前缀块与可变流式尾部
 ```
 
 - `src/lib/chatViewSource.ts` 仅维护可重建展示投影。key 来自消息、调用及用户轮次身份；无变化的顺序和节点保留引用。结构更新合并到微任务；流式复用 controller 按帧发布，按 LiveStream.id 定位，结束后仍使用同一助手宿主。
-- `src/components/Transcript.tsx` 统一适配本地和远程。列表只订阅顺序，各节点订阅自身及过程折叠；计时、导航和抽屉独立订阅。切换释放监听、待发布任务、全文租约和观察器。
+- `src/components/Transcript.tsx` 适配会话宿主。列表只订阅顺序，各节点订阅自身及过程折叠；计时、导航和抽屉独立订阅。切换释放监听、待发布任务、全文租约和观察器。
 - `src/components/ChatNodes.tsx` 展示用户、回答、思考、过程、工具、通知、压缩、扩展和轮次操作。收起的重内容不挂载。
 - 已加载历史全部使用普通块布局。聊天中不再有虚拟窗口、绝对定位行、冷热交接、尺寸账本、几何状态回路、逻辑选区、渲染模式切换或异常后重挂载。其他消费者使用的 TanStack 依赖保留。
 
@@ -69,9 +69,9 @@ Worker 由挂载会话租用，最后释放时结束待处理任务；累计诊�
 
 ## 兼容及验证
 
-当前 Desktop／Serve 协议边界为 `transcript-v2`，兼容性与派生索引变更见[会话同步 v2](TRANSCRIPT_V2.md#compatibility-and-change-notes--兼容与变更说明)。持久化会话日志编码、provider 消息、工具 schema 和 prompt-cache 字节保持不变。旧显示偏好不能选择旧渲染器。任何回退都必须保持 Desktop 与 Serve 协议兼容；仅回退前端不构成通用兼容保证。
+当前 Desktop 协议边界为 `transcript-v2`，兼容性与派生索引变更见[会话同步 v2](TRANSCRIPT_V2.md#compatibility-and-change-notes--兼容与变更说明)。持久化会话日志编码、provider 消息、工具 schema 和 prompt-cache 字节保持不变。旧显示偏好不能选择旧渲染器。
 
-[英文说明](TRANSCRIPT_ARCHITECTURE.md#compatibility-and-verification)列出可复现命令。覆盖 transcript、stream、composer、remote、app lifecycle、motion、类型检查、lint、构建、bundle 预算、全量测试发现及浏览器回放。
+[英文说明](TRANSCRIPT_ARCHITECTURE.md#compatibility-and-verification)列出可复现命令。覆盖 transcript、stream、composer、app lifecycle、motion、类型检查、lint、构建、bundle 预算、全量测试发现及浏览器回放。
 
 聊天回放在生产构建中使用真实 Transcript、Markdown、Composer；工作台基准使用真实应用装配与现有 mock transport。它们不代替真实后端或原生输入法长时测试。门槛仍为输入 P95 ≤200 ms、切换 P95 ≤300 ms、长任务 ≤500 ms、释放后堆增长 ≤20 MiB。
 

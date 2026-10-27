@@ -6,7 +6,7 @@ project contracts here; use the linked documents for task-specific procedures.
 ## Product and architecture
 
 - Shared behavior belongs in the transport-agnostic `control.Controller` behind
-  CLI, HTTP/SSE, and Desktop. Package ownership and import boundaries are enforced
+  CLI, ACP, and Desktop. Package ownership and import boundaries are enforced
   by `tools/repolint/layers.go`; package explanations belong in `doc.go`.
 - Subagent boundaries: profile = worker policy/ceilings, `TaskSpec` = this call,
   `CapabilityGrant` = permitted resources, `ContextRequest` = initial context,

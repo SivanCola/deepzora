@@ -213,26 +213,6 @@ func TestMetaForTabLeavesGitBranchEmptyOutsideGit(t *testing.T) {
 	}
 }
 
-// A config file written before the classic style was removed still holds the
-// retired value. It must read as workbench — not fail, and not resurrect the
-// multi-tab model that value used to select, which the UI can no longer show.
-func TestRetiredClassicLayoutReadsAsWorkbench(t *testing.T) {
-	isolateDesktopUserDirs(t)
-	if err := editUserConfig(func(c *config.Config) error {
-		c.Desktop.LayoutStyle = "workbench"
-		return nil
-	}); err != nil {
-		t.Fatalf("write the retired layout style: %v", err)
-	}
-	cfg, err := config.Load()
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
-	if got := cfg.DesktopLayoutStyle(); got != "workbench" {
-		t.Fatalf("retired classic reads as %q, want workbench", got)
-	}
-}
-
 // assertTabBuildSuperseded checks that the startup build registered before the
 // mutation (generation) can no longer install its controller and that its
 // build context was cancelled.
@@ -518,4 +498,24 @@ func activeTabIDForTest(app *App) string {
 	app.mu.RLock()
 	defer app.mu.RUnlock()
 	return app.activeTabID
+}
+
+// A config file written before the classic style was removed still holds the
+// retired value. It must read as workbench — not fail, and not resurrect the
+// multi-tab model that value used to select, which the UI can no longer show.
+func TestRetiredClassicLayoutReadsAsWorkbench(t *testing.T) {
+	isolateDesktopUserDirs(t)
+	path := config.UserConfigPath()
+	edit := config.LoadForEdit(path)
+	edit.Desktop.LayoutStyle = "workbench"
+	if err := edit.SaveTo(path); err != nil {
+		t.Fatalf("write the retired layout style: %v", err)
+	}
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if got := cfg.DesktopLayoutStyle(); got != "workbench" {
+		t.Fatalf("retired classic reads as %q, want workbench", got)
+	}
 }

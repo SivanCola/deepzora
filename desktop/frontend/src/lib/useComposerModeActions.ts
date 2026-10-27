@@ -6,7 +6,6 @@ import type { CollaborationMode, Mode, ToolApprovalMode } from "./types";
 
 type ComposerModeActionsOptions = {
   target: SessionResource;
-  remote: boolean;
   collaborationMode: CollaborationMode;
   toolApprovalMode: ToolApprovalMode;
   goal: string;
@@ -22,14 +21,14 @@ export function useComposerModeActions(options: ComposerModeActionsOptions) {
     options.planIntentsRef.current = updateUserPlanModeIntent(options.planIntentsRef.current, tabId, enabled);
   });
   const run = useCommittedCommand(async (request: ComposerModeRequest): Promise<void> => {
-    const { target, remote, collaborationMode, toolApprovalMode, goal, operations } = options;
+    const { target, collaborationMode, toolApprovalMode, goal, operations } = options;
     // All axes share the backend profile transaction; stop/send have other channels.
     const ports: ComposerModePorts = {
       ...options.ports,
       rememberPlan: notePlanModeForTab,
     };
     const result = await operations(target, "composer-profile", {
-      target, remote, collaborationMode, toolApprovalMode, goal, ports, request,
+      target, collaborationMode, toolApprovalMode, goal, ports, request,
     }, executeComposerMode);
     if (result.status === "failed") throw result.error;
   });

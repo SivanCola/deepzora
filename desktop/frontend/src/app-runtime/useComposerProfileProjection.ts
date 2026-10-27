@@ -1,6 +1,5 @@
 import { useMemo, type Dispatch, type SetStateAction } from "react";
 import { useCommittedCommand } from "../lib/useCommittedCommand";
-import { useRemoteComposerProfileSync } from "../lib/useRemoteComposerIntegration";
 import {
   composerProfileForOwner,
   composerProfileFromMeta,
@@ -16,7 +15,6 @@ import {
   type UserPlanModeIntents,
 } from "../lib/composerProfile";
 import type { Meta, TabMeta } from "../lib/types";
-import type { RemoteSessionApi } from "../lib/useRemoteSession";
 
 export type ComposerProfileProjectionInput = {
   activeTabId: string | undefined;
@@ -25,19 +23,17 @@ export type ComposerProfileProjectionInput = {
   profilesByTab: Record<string, ComposerProfile>;
   setProfilesByTab: Dispatch<SetStateAction<Record<string, ComposerProfile>>>;
   tabMetas: readonly TabMeta[];
-  remote: boolean;
-  remoteSession: RemoteSessionApi;
   planIntentsRef: { current: UserPlanModeIntents };
 };
 
 /**
  * Owns the active composer profile projection (UI override over the backend
- * profile, remote sync) and the profile patch commands: generic per-tab
+ * profile) and the profile patch commands: generic per-tab
  * patches and goal activation patches. Mode axis
  * changes stay in useComposerModeActions; this hook owns the profile record.
  */
 export function useComposerProfileProjection(input: ComposerProfileProjectionInput) {
-  const { activeTabId, activeTab, meta, profilesByTab, setProfilesByTab, tabMetas, remote, remoteSession } = input;
+  const { activeTabId, activeTab, meta, profilesByTab, setProfilesByTab, tabMetas } = input;
   const activeOwner = composerProfileOwner(activeTab);
   const activeComposerProfile = activeTabId ? composerProfileForOwner(profilesByTab[activeTabId], activeOwner) : undefined;
   const backendActiveComposerProfile = useMemo(() => {
@@ -52,12 +48,6 @@ export function useComposerProfileProjection(input: ComposerProfileProjectionInp
   const goal = composerProfile.goal;
   const collaborationMode = displayedComposerProfileCollaborationMode(composerProfile);
   const toolApprovalMode = composerProfile.toolApprovalMode;
-  const remoteSessionRoute = activeTab?.remote
-    ? (activeTab.sessionId ? `session-id:${activeTab.sessionId}` : activeTab.sessionPath ?? "")
-    : "";
-  const remoteComposerProfileReady = useRemoteComposerProfileSync({ activeTabId, sessionRoute: remoteSessionRoute, remote,
-    remoteProfile: remoteSession.composerProfile, collaborationMode, toolApprovalMode, goal,
-    pending: composerProfile.pending, setProfiles: setProfilesByTab });
 
   const patchActiveComposerProfile = useCommittedCommand((patch: Partial<Omit<ComposerProfile, "pending">>, pendingFields: ComposerProfileField[]) => {
     if (!activeTabId) return;
@@ -87,7 +77,6 @@ export function useComposerProfileProjection(input: ComposerProfileProjectionInp
     goal,
     collaborationMode,
     toolApprovalMode,
-    remoteComposerProfileReady,
     patchActiveComposerProfile,
     patchComposerProfileForTab,
     patchActivatedGoalForTab,

@@ -47,21 +47,12 @@ deepzora/
     ├── permission/          # per-call Policy: allow/ask/deny rules → Decision
     ├── command/             # custom slash commands loaded from .deepzora/commands/*.md
     ├── plugin/              # stdio JSON-RPC (MCP) client; adapts remote tools
-    ├── remote/              # SSH transport for the Remote-SSH module
-    │   ├── forward/         # -L / -R port-forward lifecycle
-    │   ├── sftpfs/          # SFTP file layer (quarantines pkg/sftp)
-    │   └── bootstrap/       # detached `deepzora serve` bootstrap over SSH
     └── agent/               # Session + harness loop
 ```
 
 Dependency direction (acyclic): `cli → {agent, plugin, config} → {tool, provider}`.
 Built-in subpackages (`provider/openai`, `tool/builtin`) import their parent to
-self-register; parents never import children. The Remote-SSH module layers
-`cli → remote/bootstrap → remote → {remote/forward, remote/sftpfs, config,
-netclient}`; `remote` and its subpackages never import `cli`, `agent`, or
-`serve`, and all interactivity flows through callbacks (host-key / secret
-prompts) so the desktop module consumes the same surface. See the
-[Remote sessions](./REMOTE_SESSIONS.md) guide.
+self-register; parents never import children.
 
 ## 3. Core Abstractions
 
@@ -1083,11 +1074,6 @@ ask   = []                                 # force a prompt even if otherwise al
 # allow_write    = ["/tmp"]    # extra dirs write_file/edit_file/multi_edit/move_file may modify
 # forbid_read    = ["${HOME}/.ssh"]   # paths read/list/search tools and sandboxed bash may not inspect
 
-[serve]
-auth_mode = "none"             # none|token; use token auth before binding beyond localhost
-# token = ""                   # optional fixed token; empty token mode generates one at startup
-# behind_proxy = false         # trust X-Forwarded-* only behind a trusted reverse proxy
-
 [[plugins]]
 name    = "example"            # type defaults to "stdio"
 command = "deepzora-plugin-example"
@@ -1127,16 +1113,6 @@ explicit controls for one-off and unattended execution; bot `0` means continuous
 unknown values fall back to `bar`. It applies to the Bubble Tea CLI/TUI
 textarea only, while desktop and browser inputs keep their platform-native
 cursor behavior.
-
-`[serve]` controls the HTTP frontend used by `deepzora serve`, the backend for
-desktop remote workspaces. The default `auth_mode = "none"` is intended for the
-loopback default `127.0.0.1:8787`; deployments reachable from another machine
-must use `token`. In `none` mode every state-changing request still needs the launch
-token, which Serve writes to a 0600 file under `<Deepzora home>/remote/` rather
-than to the terminal, and otherwise refuses with `launch_token_required`.
-`[serve]` is read from the user config only. `behind_proxy` must stay false
-unless the server is behind a trusted proxy that owns the `X-Forwarded-Proto`
-header.
 
 MCP servers may also be declared in a project-root `.mcp.json` using Claude
 Code's exact `mcpServers` schema (`command`/`args`/`env`, `type`/`url`/`headers`,

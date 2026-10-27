@@ -10,7 +10,6 @@ import { projectSessionAvailability, submitBlockReason, type SessionAvailability
 assert.deepEqual(projectSessionAvailability({empty:true}),{kind:"ready",source:"history"},"an empty welcome has no runtime to wait for");
 assert.equal(projectSessionAvailability({}).kind,"loading","an unresolved selected source still reports loading");
 import { useTranscriptSurfaceProjection, type TranscriptSurfaceProjectionInput } from "../app-runtime/useTranscriptSurfaceProjection";
-import { projectNavigationSurfaceTarget } from "../app-runtime/conversationProjection";
 import { SessionRecoveryBanner } from "../components/SessionRecoveryBanner";
 import { LocaleProvider, type Translator } from "../lib/i18n";
 
@@ -28,8 +27,7 @@ assert.equal(submitBlockReason(projectSessionAvailability({ local: readyLocal })
 const noop = () => {};
 const common: TranscriptSurfaceProjectionInput = {
   hydrating: false, hydrateHistoryLoaded: undefined, hydratePlaceholderItems: undefined, hydratePlaceholderActive: false,
-  items: [], remote: false, remoteItems: [], activeTabId: "A", geometrySessionKey: "A", transitioning: false,
-  navigationDataReady: true, preserved: null, controllerReady: true,
+  items: [], activeTabId: "A", geometrySessionKey: "A", controllerReady: true,
   availability: projectSessionAvailability({ local: readyLocal }), sessionActivity: false,
   sessionHasContent: false, commitRendered: noop, commitPaint: () => null, commitSingleSurface: noop,
   ports: { loadOlderHistory: async () => false, commitThenSend: async () => {} },
@@ -50,22 +48,9 @@ try {
   assert.equal(projection.latestGuidanceConsumed, guidance, "receipt survives without a newly appended display row");
   await paintProjection({ ...common, availability: projectSessionAvailability({ local: failedLocal }) });
   assert.equal(projection.emptyHero, false, "failed history is not a successful empty session");
-  for (const state of ["connecting", "reconnecting", "serve_down", "error", "disconnected", "ready"] as const) {
-    for (const hydrated of [false, true]) {
-      const remote = { state, hydrated, error: "", surfaceGeneration: 1 };
-      await paintProjection({ ...common, remote: true, availability: projectSessionAvailability({ local: readyLocal, remote }) });
-      assert.equal(projection.emptyHero, state === "ready" && hydrated, `${state}/${hydrated} uses remote readiness`);
-    }
-  }
-  const remoteHistoryFailure = { state: "ready" as const, hydrated: false, error: "snapshot failed", surfaceGeneration: 1 };
-  const failedTarget = projectNavigationSurfaceTarget({ activeTabId: "remote", sessionKey: "remote", local: readyLocal, remote: remoteHistoryFailure });
-  assert.equal(failedTarget.hydrating, false, "exhausted remote hydration releases the navigation overlay");
-  assert.equal(failedTarget.hydrateError, "snapshot failed");
-  await paintProjection({ ...common, remote: true, availability: projectSessionAvailability({ remote: remoteHistoryFailure }) });
-  assert.equal(projection.emptyHero, false);
-  for (const partial of [{ transitioning: true }, { sessionActivity: true }, { hydratePlaceholderActive: true, hydratePlaceholderItems: [] }, { sessionHasContent: true }]) {
+  for (const partial of [{ sessionActivity: true }, { hydratePlaceholderActive: true, hydratePlaceholderItems: [] }, { sessionHasContent: true }]) {
     await paintProjection({ ...common, ...partial });
-    assert.equal(projection.emptyHero, false, "navigation, decisions, running turns and content keep the main surface visible");
+    assert.equal(projection.emptyHero, false, "decisions, running turns and content keep the main surface visible");
   }
 
   let retries = 0;
@@ -94,7 +79,7 @@ try {
 
   await act(async () => root.render(<LocaleProvider><ChatPaneRegion transitioning={false} t={((key: string) => key) as Translator}
     transcript={{ state: failedLocal, items: [], tabId: "local", geometrySessionKey: "local", footerHeight: 140,
-      transcriptHydrating: false, navigationDataReady: true, readOnly: false, controllerReady: true, hydratePlaceholderActive: false,
+      transcriptHydrating: false, readOnly: false, controllerReady: true, hydratePlaceholderActive: false,
       clearContextPending: false, availability: projectSessionAvailability({ local: failedLocal }),
       rewind: { stateActive: false, committing: false, signal: undefined }, revealSignal: 0, invocationMetadata: undefined,
       surfaceCommitToken: undefined, liveStore: undefined }} onRetryHistory={async () => { retries++; }}

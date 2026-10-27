@@ -118,32 +118,6 @@ func TestRotationUsesAPrivateSlotFromAProjectFile(t *testing.T) {
 	}
 }
 
-func TestRotationUsesAPrivateSlotWhenAnotherReaderShares(t *testing.T) {
-	for name, share := range map[string]func(*Config){
-		"provider": func(c *Config) { c.Providers = append(c.Providers, teamProvider("q")) },
-		"setting":  func(c *Config) { c.Remote.Hosts = append(c.Remote.Hosts, RemoteHostEntry{PasswordEnv: "TEAM_KEY"}) },
-	} {
-		t.Run(name, func(t *testing.T) {
-			path := rotationFixture(t, teamProvider("p"))
-			cfg, err := LoadForEditReadOnlyStrict(path)
-			if err != nil {
-				t.Fatal(err)
-			}
-			share(cfg)
-			if err := cfg.SaveTo(path); err != nil {
-				t.Fatal(err)
-			}
-			_, slot := rotateAndStop(t, path, []string{"p"}, "sk-new")
-			if slot == "TEAM_KEY" {
-				t.Fatal("rotation rewrote a variable another reader resolves")
-			}
-			if value, _ := envFileValue(UserCredentialsPath(), "TEAM_KEY"); value != "sk-old" {
-				t.Fatalf("TEAM_KEY = %q, want the shared value untouched", value)
-			}
-		})
-	}
-}
-
 func TestRotationUsesAPrivateSlotForANameTheProviderOnlyNowReads(t *testing.T) {
 	path := rotationFixture(t, ProviderEntry{Name: "p", Kind: "openai", BaseURL: "https://p.invalid/v1", Model: "chat", APIKeyEnv: "P_KEY"})
 	var slot string
@@ -211,5 +185,30 @@ func TestRotationJournalHoldsNoCredentialValue(t *testing.T) {
 	}
 	if strings.Contains(string(raw), "sk-old") || strings.Contains(string(raw), "sk-new") {
 		t.Fatalf("journal carries a credential value: %s", raw)
+	}
+}
+
+func TestRotationUsesAPrivateSlotWhenAnotherReaderShares(t *testing.T) {
+	for name, share := range map[string]func(*Config){
+		"provider": func(c *Config) { c.Providers = append(c.Providers, teamProvider("q")) },
+	} {
+		t.Run(name, func(t *testing.T) {
+			path := rotationFixture(t, teamProvider("p"))
+			cfg, err := LoadForEditReadOnlyStrict(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			share(cfg)
+			if err := cfg.SaveTo(path); err != nil {
+				t.Fatal(err)
+			}
+			_, slot := rotateAndStop(t, path, []string{"p"}, "sk-new")
+			if slot == "TEAM_KEY" {
+				t.Fatal("rotation rewrote a variable another reader resolves")
+			}
+			if value, _ := envFileValue(UserCredentialsPath(), "TEAM_KEY"); value != "sk-old" {
+				t.Fatalf("TEAM_KEY = %q, want the shared value untouched", value)
+			}
+		})
 	}
 }

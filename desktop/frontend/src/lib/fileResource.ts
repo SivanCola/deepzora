@@ -68,12 +68,6 @@ export async function resolveFileResource(ref: FileResourceRef): Promise<Resolve
 
 /** Absolute path for copy-to-clipboard and save-a-copy, where display needs one. */
 export function resolveFileResourcePath(ref: FileResourceRef): Promise<string> {
-  if (ref.hostId !== "local") {
-    if (ref.source === "reference") return Promise.resolve(ref.path);
-    return ref.source === "presented"
-      ? app.ResolveRemotePresentedPathForTab(ref.tabId, ref.hostId, ref.toolCallId, ref.path)
-      : app.ResolveRemoteWorkspacePathForTab(ref.tabId, ref.hostId, ref.toolCallId ?? "", ref.path);
-  }
   if (ref.source === "reference") return app.ResolveReferencePathForTab(ref.tabId, ref.path);
   return ref.source === "presented"
     ? app.ResolvePresentedPathForTab(ref.tabId, ref.toolCallId, ref.path)

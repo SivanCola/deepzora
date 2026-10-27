@@ -145,25 +145,6 @@ func TestCanonicalOpenRejectsConflictingMembership(t *testing.T) {
 	}
 }
 
-func TestCanonicalStartupRejectsInconsistentPersistedWorkspace(t *testing.T) {
-	app, tab, target, _, _ := canonicalWorkspaceOpenFixture(t)
-	tab.Ctrl.Close()
-	tab.Ctrl, tab.Ready = nil, false
-	previousRoot, previousWorkspace := tab.WorkspaceRoot, tab.SessionWorkspace.ID
-	tab.SessionID = target.Ref().SessionID
-	tab.TopicID, tab.TopicTitle = "old-topic", "old title"
-	app.saveTabsFromRemote()
-	if app.prepareTabControllerWorkspace(tab, t.Context(), 0, app.ctx) {
-		t.Fatal("inconsistent historical binding was accepted")
-	}
-	if tab.WorkspaceRoot != previousRoot || tab.SessionWorkspace.ID != previousWorkspace || tab.TopicID != "old-topic" {
-		t.Fatalf("startup rewrote inconsistent binding: %+v", persistedDesktopTabEntry(tab))
-	}
-	if tab.Ctrl != nil || tab.StartupErr == "" {
-		t.Fatal("startup must report the conflict without constructing a controller")
-	}
-}
-
 func TestCanonicalOpenRecoversFailedSurface(t *testing.T) {
 	app, tab, target, rootB, _ := canonicalWorkspaceOpenFixture(t)
 	tab.Ctrl.Close()
@@ -203,5 +184,24 @@ func TestCanonicalOpenCommitsTargetWorkspace(t *testing.T) {
 	}
 	if root, ok := safeControllerWorkspaceRoot(tab.Ctrl); !ok || !sameDesktopPath(root, rootB) {
 		t.Fatalf("controller workspace = %q, available=%v", root, ok)
+	}
+}
+
+func TestCanonicalStartupRejectsInconsistentPersistedWorkspace(t *testing.T) {
+	app, tab, target, _, _ := canonicalWorkspaceOpenFixture(t)
+	tab.Ctrl.Close()
+	tab.Ctrl, tab.Ready = nil, false
+	previousRoot, previousWorkspace := tab.WorkspaceRoot, tab.SessionWorkspace.ID
+	tab.SessionID = target.Ref().SessionID
+	tab.TopicID, tab.TopicTitle = "old-topic", "old title"
+	app.saveTabs()
+	if app.prepareTabControllerWorkspace(tab, t.Context(), 0, app.ctx) {
+		t.Fatal("inconsistent historical binding was accepted")
+	}
+	if tab.WorkspaceRoot != previousRoot || tab.SessionWorkspace.ID != previousWorkspace || tab.TopicID != "old-topic" {
+		t.Fatalf("startup rewrote inconsistent binding: %+v", persistedDesktopTabEntry(tab))
+	}
+	if tab.Ctrl != nil || tab.StartupErr == "" {
+		t.Fatal("startup must report the conflict without constructing a controller")
 	}
 }

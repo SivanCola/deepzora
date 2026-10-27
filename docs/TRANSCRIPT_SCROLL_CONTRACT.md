@@ -6,7 +6,7 @@
 
 The transcript (`../desktop/frontend/src/components/Transcript.tsx`) renders
 through `ChatSource` and `ChatScrollController` in natural document flow. There
-is one implementation for local and remote sessions. The retired window
+is one implementation. The retired window
 adapter, measurement ledger, geometry-revision loop and logical selection are
 not coming back: do not reintroduce a second rendering stack, a nested virtual
 vertical scroller, or a platform-specific scroll compensation.
@@ -95,11 +95,9 @@ History is a bounded window, not an ever-growing list.
 
 ## Routing
 
-- History reads route by the tab's **binding identity**, resolved before the
-  request from the tab metadata the controller already loads. A failed local
-  call must never be answered by a remote service holding a different session.
-- Chat requires negotiated `transcript-v2` on Desktop and Serve. An older
-  service receives an upgrade error, without legacy chat fallback. Permission,
+- History reads go to the tab's own session service; a failed call is never
+  answered from another session.
+- Chat requires `transcript-v2`, without legacy chat fallback. Permission,
   corruption and network errors do not trigger a protocol downgrade.
 
 ## Generation fence

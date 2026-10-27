@@ -47,8 +47,8 @@ try {
   page.on("pageerror", error => { errors.push(error.message); console.error(error.message); });
   page.on("console", message => { if (message.type() === "error") { errors.push(message.text()); console.error(message.text()); } });
   await page.goto(url);
-  for (const host of ["local", "remote"]) {
-    if (host === "remote") await page.locator("#switch-host").click();
+  {
+    const host = "local";
     const card = page.locator(".presented-file");
     await card.locator(".presented-file__main").click();
     await page.getByText(`NAVIGATION CONTENT ${host}.txt`, { exact: false }).first().waitFor();
@@ -59,16 +59,6 @@ try {
     }
     console.log(`PASS ${electronEngine ? "Electron" : "browser"} ${host}: preview, source, reveal-tree`);
   }
-  await page.getByRole("treeitem", { name: "a.txt", exact: true }).click();
-  await page.locator(".remote-file-view__toolbar button").click();
-  await page.locator(".remote-file-view textarea").fill("DRAFT A");
-  await page.locator(".remote-file-view__toolbar button").click();
-  await page.getByRole("treeitem", { name: "b.txt", exact: true }).click();
-  await page.getByText("NAVIGATION CONTENT b.txt", { exact: false }).first().waitFor();
-  await page.locator("#finish-save").click();
-  assert.match(await page.locator(".remote-file-view").innerText(), /NAVIGATION CONTENT b.txt/);
-  assert.doesNotMatch(await page.locator(".remote-file-view").innerText(), /DRAFT A/);
-  console.log(`PASS ${electronEngine ? "Electron" : "browser"} old save receipt cannot overwrite replacement file`);
   assert.deepEqual(errors, []);
 } finally {
   await browser?.close();

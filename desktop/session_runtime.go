@@ -453,30 +453,3 @@ func (a *App) releaseSessionRuntimeLocked(tab *WorkspaceTab) {
 		tab.runtimeID = ""
 	}
 }
-
-// sessionParentLive reports whether a tab or detached runtime owns or is
-// building the requested session, including before runtime publication.
-func (a *App) sessionParentLive(sessionPath string) bool {
-	key := sessionRuntimeKey(sessionPath)
-	if a == nil || key == "" {
-		return false
-	}
-
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-	if rt := a.runtimeBySessionKey[key]; rt != nil && a.runtimeOwnerLiveLocked(rt) {
-		return true
-	}
-	liveTab := func(tab *WorkspaceTab) bool { return sessionRuntimeKeysOverlap(tab, sessionPath) }
-	for _, tab := range a.tabs {
-		if liveTab(tab) {
-			return true
-		}
-	}
-	for _, tab := range a.detachedSessions {
-		if liveTab(tab) {
-			return true
-		}
-	}
-	return false
-}

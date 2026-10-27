@@ -13,44 +13,6 @@ import (
 	"deepzora/internal/tool"
 )
 
-func TestSessionParentLive(t *testing.T) {
-	isolateDesktopUserDirs(t)
-	app := NewApp()
-	path := sessionRoute("rebuild-current")
-	otherPath := sessionRoute("other-current")
-	if app.sessionParentLive(path) {
-		t.Fatal("session without a tab or runtime reported live")
-	}
-
-	building := &WorkspaceTab{ID: "building", SessionID: "rebuild-current"}
-	app.tabs[building.ID] = building
-	if !app.sessionParentLive(path) {
-		t.Fatal("building tab session did not report live")
-	}
-	if app.sessionParentLive(otherPath) {
-		t.Fatal("unrelated session reported live")
-	}
-	delete(app.tabs, building.ID)
-
-	ctrl := newCurrentRebuildController(t, app, control.Options{Label: "ready"})
-	t.Cleanup(ctrl.Close)
-	ready := &WorkspaceTab{ID: "ready", Ctrl: ctrl, Ready: true}
-	app.tabs[ready.ID] = ready
-	if !app.sessionParentLive(path) {
-		t.Fatal("ready controller session did not report live")
-	}
-	delete(app.tabs, ready.ID)
-
-	detached := &WorkspaceTab{ID: "detached"}
-	app.detachedSessions["detached"] = detached
-	app.mu.Lock()
-	app.newSessionRuntimeLocked(detached, sessionRuntimeKey(path))
-	app.mu.Unlock()
-	if !app.sessionParentLive(path) {
-		t.Fatal("detached runtime session did not report live")
-	}
-}
-
 func TestCleanupStaleRunningWithCurrentParentWriter(t *testing.T) {
 	sessionDir := t.TempDir()
 	parentSession := "parent"

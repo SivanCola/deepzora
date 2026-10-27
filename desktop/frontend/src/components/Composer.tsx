@@ -504,8 +504,6 @@ export function Composer({
   transientDismissSignal,
   sessionKey,
   inboxSessionPath,
-  inboxHostId,
-  inboxWorkspace,
   workspaceScopeKey,
   fileRefRefreshKey,
   guidanceConsumedKey,
@@ -549,7 +547,7 @@ export function Composer({
   imageInputEnabled?: boolean;
   /** True when text-only image turns are preprocessed by a configured vision model. */
   imageUnderstandingEnabled?: boolean;
-  /** False for remote sessions because local filesystem paths are not portable to Serve. */
+  /** False when the surface cannot accept local file attachments. */
   attachmentInputEnabled?: boolean;
   tabId?: string; turnId?: string;
   agentPreset?: string;
@@ -561,7 +559,7 @@ export function Composer({
   onPrepareSubmit?: (capture: unknown) => Promise<void>;
   onInvocationMetadataChange?: (metadata: Record<string, { kind: "skill" | "subagent"; color?: string }>) => void;
   onSteer?: (submitText: string, tabId?: string) => void | Promise<void>;
-  /** False when the owning surface provides its own durable remote inbox. */
+  /** False when the owning surface provides its own durable inbox. */
   localDurableGuidance?: boolean;
   // Returns the un-sent text plus the exact durable queue IDs the backend
   // confirmed were withdrawn and are therefore safe to restore.
@@ -631,8 +629,6 @@ export function Composer({
   transientDismissSignal?: number;
   sessionKey?: string;
   inboxSessionPath?: string;
-  inboxHostId?: string;
-  inboxWorkspace?: string;
   workspaceScopeKey?: string;
   fileRefRefreshKey?: number | string;
   guidanceConsumedKey?: string;
@@ -666,8 +662,7 @@ export function Composer({
   const [agentPresetPending, setAgentPresetPending] = useState(false);
   submitDisabled = submitDisabled || agentPresetPending;
   const fullAccessConfirmationKey = fullAccessProjectConfirmationKey({
-    workspacePath: workspaceRoot || inboxWorkspace || cwd,
-    remoteHostId: inboxHostId,
+    workspacePath: workspaceRoot || cwd,
   });
   const savedInput = useSessionComposerPersistence(legacyPersistentDraft ? undefined : formalSessionRef, tabId);
   const persistentDraft = legacyPersistentDraft ?? savedInput.target;
@@ -689,7 +684,7 @@ export function Composer({
   const [queueEditingScope, setQueueEditingScope] = useState<string | null>(null);
   if (runtimeState.known) running = runtimeState.running ?? running;
   if (runtimeState.unknown) disabled = true;
-  const pendingKey = followupSessionKey(inboxSessionPath, inboxHostId, inboxWorkspace);
+  const pendingKey = followupSessionKey(inboxSessionPath);
   const pendingKeyRef = useRef(pendingKey);
   pendingKeyRef.current = pendingKey;
   const pendingFollowup = useSyncExternalStore(pendingFollowups.subscribe, () => pendingFollowups.get(pendingKey));
@@ -2126,7 +2121,7 @@ export function Composer({
         const guidanceText = displayText.trim() || (structured?.display.trim() ?? "");
         const guidanceSubmitText = submitText.trim();
         if (guidanceText) {
-          if (!queueOnly && !localDurableGuidance && (!target || target.remote) && onSteer) {
+          if (!queueOnly && !localDurableGuidance && !target && onSteer) {
             try {
               await onSteer(guidanceSubmitText, submitTabId);
               clearSubmittedDraft(submitDraftKey);

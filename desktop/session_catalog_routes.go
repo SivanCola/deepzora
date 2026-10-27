@@ -16,7 +16,7 @@ func sessionRoute(id string) string {
 	if id == "" {
 		return ""
 	}
-	return remoteSessionIDRoutePrefix + id
+	return sessionIDRoutePrefix + id
 }
 
 func parseSessionRoute(route string) (string, bool) {
@@ -25,12 +25,6 @@ func parseSessionRoute(route string) (string, bool) {
 		return "", false
 	}
 	return locator.ref.SessionID, true
-}
-
-func sameSessionRoute(left, right string) bool {
-	leftID, leftOK := parseSessionRoute(left)
-	rightID, rightOK := parseSessionRoute(right)
-	return leftOK && rightOK && leftID == rightID
 }
 
 // sessionToolScope uses the sidebar's current membership, including moves and

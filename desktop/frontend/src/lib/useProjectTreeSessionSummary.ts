@@ -17,10 +17,9 @@ export function useProjectTreeSessionSummary(input: {
   scope?: string;
   workspaceRoot?: string;
   session?: SessionRef;
-  remote: boolean;
   excluded: () => ReadonlySet<string>;
 }) {
-  const { tree, setTree, scope, workspaceRoot, session, remote } = input;
+  const { tree, setTree, scope, workspaceRoot, session } = input;
   const hostId = session?.hostId;
   const sessionId = session?.sessionId;
   const project = tree.find(node => scope === "global" ? node.kind === "global_folder"
@@ -29,7 +28,7 @@ export function useProjectTreeSessionSummary(input: {
   const present = Boolean(session && asArray(project?.children).some(row => row.session && sameProjectSession(row, { key: "", kind: "topic", label: "", session })));
   const excluded = useCommittedCommand(input.excluded);
   useEffect(() => {
-    if (remote || hostId !== "local" || !sessionId || !projectKey || present) return;
+    if (hostId !== "local" || !sessionId || !projectKey || present) return;
     let current = true;
     const ref = { hostId, sessionId };
     void app.GetSessionSummary(ref).then(summary => {
@@ -45,5 +44,5 @@ export function useProjectTreeSessionSummary(input: {
       });
     }).catch(() => {});
     return () => { current = false; };
-  }, [excluded, hostId, present, projectKey, remote, scope, sessionId, setTree, workspaceRoot]);
+  }, [excluded, hostId, present, projectKey, scope, sessionId, setTree, workspaceRoot]);
 }

@@ -6,7 +6,6 @@ import (
 	"deepzora/internal/control"
 	"deepzora/internal/session"
 	"errors"
-	"strings"
 )
 
 // Runtime settings belong to the runtime owner, including a detached owner.
@@ -97,33 +96,8 @@ func (a *App) rejectStaleStartupModelSettings(tab *WorkspaceTab, ctrl control.Se
 }
 
 func (a *App) finishStartupPublication(tab *WorkspaceTab, ctrl control.SessionAPI, ctx context.Context) {
-	// A directly-opened session announces itself to a resident serve so the
-	// remote side can watch it read-only and reclaim it (see
-	// adoptSessionFromLocalServe). First-open path of the takeover flow.
-	if path := strings.TrimSpace(tab.currentSessionIdentity()); path != "" && !tab.ReadOnly {
-		a.attachTakeoverMirror(tab.ID, path)
-		go a.adoptSessionFromLocalServe(tab.ID, path)
-	}
 	a.emitReady(ctx, tab.ID)
 	if inbox, ok := ctrl.(interface{ NotifyInboxRuntimeReady() }); ok {
 		go inbox.NotifyInboxRuntimeReady()
 	}
-}
-
-type tabStartupState struct {
-	err              string
-	leaseHeld        bool
-	ready            bool
-	modelApplication tabModelApplicationState
-}
-
-func (t *WorkspaceTab) startupState() tabStartupState {
-	return tabStartupState{t.StartupErr, t.StartupErrLeaseHeld, t.Ready, t.modelApplication}
-}
-
-func (t *WorkspaceTab) restoreStartupState(state tabStartupState) {
-	t.StartupErr = state.err
-	t.StartupErrLeaseHeld = state.leaseHeld
-	t.Ready = state.ready
-	t.modelApplication = state.modelApplication
 }

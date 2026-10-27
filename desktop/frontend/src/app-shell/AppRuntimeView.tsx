@@ -1,15 +1,12 @@
 import { lazy, Suspense, useMemo, useState, useLayoutEffect, type CSSProperties } from "react";
 import { DockNavigation } from "./dockNavigation";
 import { useFileNavigationRuntime } from "../app-runtime/useFileNavigationRuntime";
-import { useActiveRemoteRef } from "../app-runtime/useActiveRemoteRef";
 import { fileNavigationKey } from "../lib/fileNavigationOwner";
 import { useActivityBarStore } from "../store/activityBar";
 import { ShellExpandProvider } from "../lib/shellExpand";
-import { RemoteNavigationContext } from "../lib/remoteNavigationCommands";
 import { UpdaterProvider } from "../lib/useUpdater";
 import type { State } from "../lib/useController";
 import type { TabMeta } from "../lib/types";
-import type { RemoteSessionApi } from "../lib/useRemoteSession";
 import type { Translator } from "../lib/i18n";
 import type { useAppRuntimeAdapter } from "../app-runtime/useAppRuntimeAdapter";
 import type { useNavigationSurface } from "../lib/useNavigationSurface";
@@ -59,10 +56,6 @@ export type AppRuntimeViewProps = {
     activeTab: TabMeta | undefined;
     activeTabId: string | undefined;
     liveStore: LiveStore;
-    remoteSurfaceActive: boolean;
-    remoteSession: RemoteSessionApi;
-    remoteComposerReady: boolean;
-    remoteCancel: (queuedItemIDs?: string[]) => Promise<import("../lib/inboxCancel").CancelOutcome>;
     surface: ReturnType<typeof useNavigationSurface>;
     t: Translator;
     locale: string;
@@ -111,7 +104,6 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
   const { core, shell, session, navigation, runtime, local } = props;
   const { state, activeTab, activeTabId, t, locale } = core;
   const { windowsFramelessChrome, mainWindowMaximised } = shell;
-  const activeRemoteRef = useActiveRemoteRef(activeTab);
   const {
     conversationView, visibleRuntimeState,
     surfaceWorkspacePanelRenderable, surfaceWorkspacePanelGridOpen, surfaceWorkspacePanelOverlay, terminalSurfaceOpen,
@@ -120,12 +112,9 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
   } = session;
   const { chromeCommands, navigationCommands } = navigation;
   const runtimeTransitioning = core.surface.transitioning;
-  const presentationTransitioning = runtimeTransitioning && core.remoteSurfaceActive;
-  const showFirstLaunchWelcome = session.transcript.emptyHero && (shell.providerSetupNeeded || !activeTabId) && !core.remoteSurfaceActive;
+  const showFirstLaunchWelcome = session.transcript.emptyHero && (shell.providerSetupNeeded || !activeTabId);
   const browserPreviewChrome = navigation.browserPreviewChrome;
-  const workspaceContextProject = Boolean(
-    activeTab?.remote || (activeTab?.scope === "project" && activeTab.workspaceRoot),
-  );
+  const workspaceContextProject = Boolean(activeTab?.scope === "project" && activeTab.workspaceRoot);
   const workspaceContextRoot = workspaceContextProject
     ? (activeTab?.workspaceRoot ?? state.meta?.workspaceRoot ?? state.meta?.cwd ?? "")
     : "";
@@ -170,7 +159,7 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
     todos: session.todoPanel.todos,
     running: visibleRuntimeState.running,
     pendingPrompt: visibleRuntimeState.pendingPrompt,
-    continueReady: Boolean(activeTabId && !activeTab?.readOnly && (core.remoteSurfaceActive ? core.remoteComposerReady : controllerReady)),
+    continueReady: Boolean(activeTabId && !activeTab?.readOnly && controllerReady),
     onContinue: session.todoPanel.handleTodoContinue,
     onDismiss: session.todoPanel.dismissTodos,
   });
@@ -202,7 +191,6 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
 
   return (
     <ShellExpandProvider>
-    <RemoteNavigationContext.Provider value={session.desktopNavigation.openRemoteProject}>
     <UpdaterProvider>
     <ShellHotkeys />
     <TextSizeHotkeys />
@@ -213,11 +201,6 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
       onEvent={session.runtimeEventCommands.handleRuntimeEvent}
       onReady={session.runtimeEventCommands.handleRuntimeReady}
       onRebuilt={session.runtimeEventCommands.handleRuntimeRebuilt}
-      onRemoteStatus={session.runtimeEventCommands.handleRemoteStatus}
-      onRemoteForwards={session.runtimeEventCommands.handleRemoteForwards}
-      onRemoteServer={session.runtimeEventCommands.handleRemoteServer}
-      onInitialRemoteHosts={session.runtimeEventCommands.handleInitialRemoteHosts}
-      onInitialRemoteStatuses={session.runtimeEventCommands.handleInitialRemoteStatuses}
     />
       <div
         ref={appRef}
@@ -241,7 +224,6 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
           geometry: shellGeometry,
           projectTree: {
             activeTab: activeTab,
-            activeRemote: activeRemoteRef,
             refreshSignal: local.projectRevision,
             searchExpanded: true, searchFocusSignal: shell.sidebarSearchFocusSignal,
             showShortcutBadges: navigation.topicShortcuts.showTopicBadges, shortcutPlatform: shell.desktopPlatform,
@@ -277,7 +259,7 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
               dismissSignal={shell.transientOverlayDismissSignal}
               sessionHasContent={session.sessionHasContent}
               exportCommands={session.sessionExportCommands}
-              terminal={{ toggle: session.terminalPanelCommands.toggleTerminalPanel, enabled: !core.remoteSurfaceActive, open: shell.terminalPanelOpen && !core.remoteSurfaceActive, prefetch: local.prefetchTerminalPanel }}
+              terminal={{ toggle: session.terminalPanelCommands.toggleTerminalPanel, enabled: true, open: shell.terminalPanelOpen, prefetch: local.prefetchTerminalPanel }}
               tasksOpen={local.tasksOpen}
               setTasksOpen={local.setTasksOpen}
               onCloseTasks={() => local.setTasksOpen(false)}
@@ -308,16 +290,8 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
           />
 
           <ChatPaneRegion
-            // Local navigation is now history-first: keep the transcript
-            // mounted while the controller is rebuilt in the background.  The
-            // transcript's own hydrating/readiness state still reports progress
-            // and the controllerReady fence keeps writes disabled.  Remote
-            // surfaces retain their existing transition gate because they do
-            // not share the local runtime/cache ownership model.
-            transitioning={presentationTransitioning}
             t={t}
-            remote={activeTab?.remote ? { tab: activeTab, session: core.remoteSession } : undefined}
-            launcher={session.workspacePanelCommands.launcherCardMounted && !core.remoteSurfaceActive ? (
+            launcher={session.workspacePanelCommands.launcherCardMounted ? (
               <Suspense fallback={null}>
                 <DockLauncher
                   tabId={activeTabId ?? ""}
@@ -341,7 +315,6 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
               surfaceCommitToken: core.surface.surfaceCommitToken,
               liveStore: core.liveStore,
               transcriptHydrating: session.transcript.transcriptHydrating,
-              navigationDataReady: core.surface.dataReady,
               readOnly: Boolean(activeTab?.readOnly),
               controllerReady,
               hydratePlaceholderActive: session.hydratePlaceholderActive,
@@ -369,7 +342,7 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
               onConfigureProvider: shell.providerSetupNeeded ? navigation.onboardingCommands.chooseOnboardingProvider : () => void navigationCommands.startInitialConversation(),
               onChooseProject: () => void navigation.projectTopicCommands.onAddProject(),
             } : undefined}
-            creationNotice={!core.remoteSurfaceActive ? <Suspense fallback={null}>
+            creationNotice={<Suspense fallback={null}>
               <ManualSessionRecovery
                 key={`${runtime.navigation.currentNavigationIntent()}:${activeTab?.session?.sessionId ?? ""}`}
                 sessionId={core.surface.surface?.phase === "source-retained" ? undefined : activeTab?.session?.sessionId}
@@ -378,8 +351,8 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
                 onNew={navigationCommands.handleNewTab}
                 onChooseProject={navigation.projectTopicCommands.onAddProject}
               />
-            </Suspense> : null}
-            className={["footer", terminalSurfaceOpen ? "footer--compact" : "", visibleDecisionSurface ? "footer--decision" : "", presentationTransitioning ? "footer--navigation-hidden" : ""].filter(Boolean).join(" ")}
+            </Suspense>}
+            className={["footer", terminalSurfaceOpen ? "footer--compact" : "", visibleDecisionSurface ? "footer--decision" : "" ].filter(Boolean).join(" ")}
             footerRef={footerRef}
             style={core.surface.surface?.phase === "source-retained" && footerHeight > 0 ? { height: footerHeight, minHeight: footerHeight, boxSizing: "border-box" } : undefined}
             todo={footerTodo}
@@ -394,11 +367,10 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
                   && !state.backendActivationPending,
                 hero: session.transcript.emptyHero,
                 headline: t("welcome.setup.title"),
-                remote: core.remoteSurfaceActive,
                 rewindCommitting: session.sessionUndo.rewindCommitting,
                 messageActionPending: state.messageAction != null,
                 decisionActive: Boolean(decisionSurface),
-                runtimeTransitioning: presentationTransitioning,
+                runtimeTransitioning: false,
                 controllerReady: controllerReady && session.transcript.availability.kind === "ready",
                 submitDisabledReason: submitBlockReason(session.transcript.availability, t),
                 showContextWindowRing: false,
@@ -410,17 +382,10 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
               router: session.routerCommands,
               modes: session.modeActions,
               goals: session.goalCommands,
-              remoteGoal: session.remoteGoalActions,
+              goalActions: session.goalActions,
               modelSwitch: session.controllerProfileCommands,
               inserts: session.insertCommands,
               control: session.controlCommands,
-              remoteComposer: {
-                send: session.remoteComposerSend,
-                cancel: core.remoteCancel,
-                ready: core.remoteComposerReady,
-                profileReady: session.profileProjection.remoteComposerProfileReady,
-                liveStore: core.remoteSession.liveStore,
-              },
               localLiveStore: core.liveStore,
               onInvocationMetadataChange: session.invocation.handleInvocationMetadataChange,
               onCycleMode: session.cycleMode,
@@ -433,11 +398,10 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
                 workspaceName: workspaceContextProject
                   ? activeTab?.workspaceName ?? state.meta?.workspaceName
                   : undefined,
-                defaultWorkspaceName: activeTab?.scope === "global" && !activeTab.remote ? activeTab.workspaceName : undefined,
-                gitBranch: workspaceContextProject && !activeTab?.remote ? state.meta?.gitBranch : undefined,
+                defaultWorkspaceName: activeTab?.scope === "global" ? activeTab.workspaceName : undefined,
+                gitBranch: workspaceContextProject ? state.meta?.gitBranch : undefined,
                 tabId: activeTabId,
                 scopeKey: session.workspaceScopeKey,
-                remote: Boolean(activeTab?.remote),
                 onSwitchWorkspace: navigation.projectTopicCommands.onAddProject,
                 onWorkWithoutProject: () => navigationCommands.openBlankSession("global", ""),
                 onRefreshProjects: navigation.projectTopicCommands.refreshProjectsAndTabs,
@@ -451,7 +415,6 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
         <WorkspaceDockRegion navigation={dockNavigation} fileNavigation={fileNavigation} workspaceRoot={activeTab?.workspaceRoot ?? state.meta?.cwd ?? ""} {...buildWorkspaceDockProps({
           surface: { renderable: surfaceWorkspacePanelRenderable, overlay: surfaceWorkspacePanelOverlay, gridOpen: surfaceWorkspacePanelGridOpen },
           showContext: SHOW_CONTEXT_DOCK,
-          remote: core.remoteSurfaceActive,
           t,
           context: conversationView.context,
           sessionTurns: session.sessionTurns,
@@ -470,15 +433,14 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
           verification: session.turnVerificationCommands,
           onFileTreeRefresh: local.refreshComposerFileRefs,
           onSessionRevertCommitted: session.sessionUndo.handleSessionRevertCommitted,
-          onOpenInTerminal: core.remoteSurfaceActive ? undefined : session.terminalPanelCommands.openTerminalForPath,
+          onOpenInTerminal: session.terminalPanelCommands.openTerminalForPath,
         })} />
         <AppBottomRegions {...buildBottomRegionsProps({
           t,
           chatSurfaceVisible: session.chatSurfaceVisible,
           surfaceOpen: terminalSurfaceOpen,
           contentVisible: local.terminalContentVisible,
-          remote: core.remoteSurfaceActive,
-          readOnly: Boolean(activeTab?.readOnly && !activeTab.takenOver),
+          readOnly: Boolean(activeTab?.readOnly),
           tabId: activeTabId,
           meta: state.meta,
           fitEnabled: local.terminalFitEnabled,
@@ -496,16 +458,9 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
             labelStyle: shell.preferences.statusBarStyle,
             items: shell.preferences.statusBarItems,
             extensionStatuses: session.extensionStatusList,
-            remoteHosts: shell.remoteHosts,
-            remoteStatuses: shell.remoteStatuses,
-            onCancelJob: core.remoteSurfaceActive ? core.remoteSession.cancelJob : runtime.composer.cancelJob,
+            onCancelJob: runtime.composer.cancelJob,
             onCancelRuntimeJob: session.controlCommands.cancelRuntimeJob,
             onRevealRuntime: session.tabBarCommands.revealBackgroundRuntime,
-            onConnectRemote: session.remoteWorkspaceCommands.connectAndOpenRemoteWorkspace,
-            onDisconnectRemote: session.controlCommands.handleDisconnectRemote,
-            onManageRemote: () => shell.setSettingsTarget("remote"),
-            onOpenRemote: shell.requestRemoteExplorer,
-            onOpenRemoteWorkspace: session.remoteWorkspaceCommands.openRemoteWorkspaceFromStatus,
           },
         })} />
       </div>
@@ -543,7 +498,6 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
       )}
     </div>
     </UpdaterProvider>
-    </RemoteNavigationContext.Provider>
     </ShellExpandProvider>
   );
 }

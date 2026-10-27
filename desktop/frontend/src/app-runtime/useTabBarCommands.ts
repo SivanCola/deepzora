@@ -16,7 +16,7 @@ export type TabBarCommandsInput = {
   t: Translator;
   showToast(message: string, level: "error", options?: { durationMs?: number }): void;
   setTabMetas: Dispatch<SetStateAction<TabMeta[]>>;
-  // setTabOrderIds, ports.reorderTabs and ports.switchRemoteTab lost their only
+  // setTabOrderIds and ports.reorderTabs lost their only
   // reader with the app tab strip; they stay declared until the caller drops them.
   setTabOrderIds: Dispatch<SetStateAction<string[]>>;
   setComposerProfilesByTab: Dispatch<SetStateAction<Record<string, ComposerProfile>>>;
@@ -26,7 +26,6 @@ export type TabBarCommandsInput = {
     closeTab(id: string, policy: TabClosePolicy): Promise<boolean>;
     reorderTabs(ids: string[]): Promise<void>;
     switchTab(id: string, tab?: TabMeta, seq?: number): Promise<unknown>;
-    switchRemoteTab(tab: TabMeta, seq?: number): Promise<unknown>;
     refreshTabMetas(apply?: () => boolean, options?: { afterMutation?: boolean }): Promise<TabMeta[]>;
     refreshBackgroundRuntimes(): Promise<void>;
     cancelActive(): void;

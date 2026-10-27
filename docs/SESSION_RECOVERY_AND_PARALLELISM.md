@@ -21,7 +21,7 @@ old heads, or migrate earlier schema/storage revisions.
 
 ## Ownership and diagnostics
 
-Takeover uses the current writer protocol. Background jobs and subagents remain
+Background jobs and subagents remain
 scoped to their owning session during controller replacement and cancellation.
 Workspace lock coordination uses the current protocol across overlapping roots,
 path claims and case aliases; there is no old-binary lock bridge.

@@ -11,11 +11,6 @@ export function localSessionRefFromRoute(route: string | undefined): SessionRef 
 /** Stable row identity; topicId is only the last resort for an empty draft. */
 export function projectSessionIdentity(node: ProjectNode): string {
   if (node.session?.sessionId) return sessionIdentityBaseKey(node);
-  if (node.remoteSession) {
-    const remote = node.remoteSession;
-    if (remote.sessionId) return sessionIdentityBaseKey({ session: { hostId: remote.hostId, sessionId: remote.sessionId } });
-    return `draft\u0000${remote.hostId}\u0000${remote.workspace}`;
-  }
   const ref = localSessionRefFromRoute(node.sessionPath);
   if (ref) return sessionIdentityBaseKey({ session: ref });
   if (node.sessionPath) return `path\u0000${node.sessionPath.trim()}`;

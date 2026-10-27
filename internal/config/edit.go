@@ -460,7 +460,7 @@ func (c *Config) modelRefTargetsProvider(ref, name string) bool {
 // RemoveProvider deletes the named provider. References to the removed provider
 // are migrated to the first remaining configured provider when possible. The
 // default model is required, so removal is refused when no fallback exists;
-// optional planner/subagent refs are cleared instead of being left dangling.
+// optional refs are cleared instead of being left dangling.
 func (c *Config) RemoveProvider(name string) error {
 	name = strings.TrimSpace(name)
 	idx := -1
@@ -474,47 +474,59 @@ func (c *Config) RemoveProvider(name string) error {
 		return fmt.Errorf("remove provider: no provider %q", name)
 	}
 
-	defaultRefsProvider := c.modelRefTargetsProvider(c.DefaultModel, name)
-	plannerRefsProvider := c.modelRefTargetsProvider(c.Agent.PlannerModel, name)
-	subagentRefsProvider := c.modelRefTargetsProvider(c.Agent.SubagentModel, name)
-	subagentModelRefsProvider := map[string]bool{}
-	for skill, ref := range c.Agent.SubagentModels {
-		if c.modelRefTargetsProvider(ref, name) {
-			subagentModelRefsProvider[skill] = true
-		}
-	}
-
-	fallback := ""
-	visionRefsProvider := c.modelRefTargetsProvider(c.Agent.VisionModel, name)
-	if defaultRefsProvider || plannerRefsProvider || visionRefsProvider || subagentRefsProvider || len(subagentModelRefsProvider) > 0 {
-		fallback = c.providerRemovalFallback(name)
-	}
-	if defaultRefsProvider && fallback == "" {
+	// Match before removing the entry: a bare model name resolves only while
+	// its provider is still in the catalog.
+	matches := func(ref string) bool { return c.modelRefTargetsProvider(ref, name) }
+	fallback := c.providerRemovalFallback(name)
+	if matches(c.DefaultModel) && fallback == "" {
 		return fmt.Errorf("remove provider: %q is referenced by default_model and no other configured provider exists", name)
 	}
-
+	c.retargetModelRefs(matches, fallback)
 	c.Providers = append(c.Providers[:idx], c.Providers[idx+1:]...)
+	return nil
+}
 
-	if defaultRefsProvider {
-		c.DefaultModel = fallback
-	}
-	if plannerRefsProvider {
-		c.Agent.PlannerModel = fallback
-	}
-	if visionRefsProvider {
-		c.Agent.VisionModel = ""
-	}
-	if subagentRefsProvider {
-		c.Agent.SubagentModel = fallback
-	}
-	for skill := range subagentModelRefsProvider {
-		if fallback != "" {
-			c.Agent.SubagentModels[skill] = fallback
-		} else {
-			delete(c.Agent.SubagentModels, skill)
+// RetargetProviderRefs points every agent model ref served by one of names at
+// fallbackRef, so those providers can be removed without stranding a role.
+func (c *Config) RetargetProviderRefs(names []string, fallbackRef string) {
+	c.retargetModelRefs(func(ref string) bool {
+		for _, name := range names {
+			if c.modelRefTargetsProvider(ref, name) {
+				return true
+			}
+		}
+		return false
+	}, strings.TrimSpace(fallbackRef))
+}
+
+// retargetModelRefs is the one rule for moving agent model refs off a source
+// that is going away: required and role refs move to fallback, the optional
+// vision ref is cleared, and per-skill subagent refs are dropped when there is
+// no fallback. It reports whether any ref changed.
+func (c *Config) retargetModelRefs(matches func(string) bool, fallback string) bool {
+	changed := false
+	for _, ref := range []*string{&c.DefaultModel, &c.Agent.PlannerModel, &c.Agent.GuardianModel, &c.Agent.SubagentModel} {
+		if matches(*ref) {
+			*ref = fallback
+			changed = true
 		}
 	}
-	return nil
+	if matches(c.Agent.VisionModel) {
+		c.Agent.VisionModel = ""
+		changed = true
+	}
+	for skill, ref := range c.Agent.SubagentModels {
+		if !matches(ref) {
+			continue
+		}
+		changed = true
+		if fallback == "" {
+			delete(c.Agent.SubagentModels, skill)
+		} else {
+			c.Agent.SubagentModels[skill] = fallback
+		}
+	}
+	return changed
 }
 
 func (c *Config) providerRemovalFallback(name string) string {

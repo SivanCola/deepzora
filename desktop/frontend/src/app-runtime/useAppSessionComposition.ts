@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useCommittedCommand } from "../lib/useCommittedCommand";
 import { projectSessionAvailability } from "../lib/sessionAvailability";
-import type { RemoteSessionApi } from "../lib/useRemoteSession";
 import { activeLeaseBlockedTab } from "../lib/tabMetaRefresh";
 import { topicTitle } from "../lib/sessionTitles";
 import { composerDraftKeyForTab } from "../lib/composerDraftKey";
@@ -9,8 +8,6 @@ import { useWindowStatePersistence, useViewportHeightVar } from "../lib/windowSt
 import { useManagementWorkspace } from "../lib/useManagementWorkspace";
 import { reportPendingRevisionFailure, usePendingPlanRevisions } from "../lib/usePendingPlanRevisions";
 import { useComposerModeActions } from "../lib/useComposerModeActions";
-import { useRemoteComposerRuntimeActions, useRemoteComposerSend } from "../lib/useRemoteComposerIntegration";
-import type { RemoteNavigationCommand } from "../lib/remoteNavigationCommands";
 import type { CollaborationMode, TabMeta } from "../lib/types";
 import type { ComposerProfile, UserPlanModeIntents } from "../lib/composerProfile";
 import type { State } from "../lib/useController";
@@ -51,7 +48,6 @@ import { useSessionBannerCommands } from "./useSessionBannerCommands";
 import { useWorkspacePanelCommands } from "./useWorkspacePanelCommands";
 import { useTurnVerificationCommands } from "./useTurnVerificationCommands";
 import { useTerminalPanelCommands } from "./useTerminalPanelCommands";
-import { useRemoteWorkspaceCommands } from "./useRemoteWorkspaceCommands";
 import { useAutomationNavigation } from "./useAutomationNavigation";
 import { useDesktopNavigation } from "./useDesktopNavigation";
 import { useTranscriptSurfaceProjection } from "./useTranscriptSurfaceProjection";
@@ -60,15 +56,6 @@ import { projectControllerProfiles, projectVisibleTabs } from "./controllerProfi
 import { projectDecisionSurface, type AppDecisionSurfaceKind } from "./decisionSurfaceProjection";
 import { createSubmissionPorts, projectSubmissionResources } from "./desktopSubmissionAdapter";
 import type { useAppShellStores } from "./useAppShellStores";
-
-function setRemoteComposerProfileForSessionAction(
-  tabId: string,
-  mode: CollaborationMode,
-  approvalMode: import("../lib/types").ToolApprovalMode,
-  goal: string,
-) {
-  return desktopBridge.setRemoteTabComposerProfile(tabId, mode, approvalMode, goal);
-}
 
 const WORKSPACE_RESIZER_WIDTH = 8;
 
@@ -88,11 +75,6 @@ export type AppSessionCompositionInput = {
     activeTabId: string | undefined;
     notice: Runtime["snapshot"]["notice"];
     activeTab: TabMeta | undefined;
-    remoteSurfaceActive: boolean;
-    remoteSession: RemoteSessionApi;
-    remoteComposerReady: boolean;
-    remoteSend: (text: string, submitText?: string, choice?: import("../lib/modelApplication").ModelApplicationChoice) => Promise<void>;
-    remoteCancel: (queuedItemIDs?: string[]) => Promise<import("../lib/inboxCancel").CancelOutcome>;
     activeSessionIdentity: string;
     sessionSurfaceFence: ReturnType<typeof import("./sessionTarget").createSessionSurfaceFence>;
     sessionOperations: ReturnType<typeof useSessionOperations>;
@@ -136,13 +118,10 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
   const { t, showToast, shell, runtime } = input;
   useRecoverableErrorToasts(showToast);
   const {
-    state, liveStore, activeTabId, notice, activeTab, remoteSurfaceActive, remoteSession, remoteComposerReady,
-    remoteSend, activeSessionIdentity, sessionOperations,
+    state, liveStore, activeTabId, notice, activeTab, activeSessionIdentity, sessionOperations,
   } = input.core;
-  // remoteCancel is consumed by the shell view through core.
   const {
-    transitioning: runtimeTransitioning, dataReady: navigationTargetDataReady,
-    preserved: preservedTranscriptSurface, commitRendered: commitRenderedTranscriptSurface,
+    transitioning: runtimeTransitioning, commitRendered: commitRenderedTranscriptSurface,
     begin: beginNavigationSurface, maskTarget: settleNavigationSurface, commitPaint: commitNavigationSurfacePaint,
   } = input.surface;
   const {
@@ -163,7 +142,7 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
     listSessions, openChannelSession, resumeSession,
   } = runtime.sessionActions;
   const {
-    switchTab, switchRemoteTab, closeTab, reorderTabs, createIsolatedWorktree,
+    switchTab, closeTab, reorderTabs, createIsolatedWorktree,
     noteNavigationIntent, registeredNavigationIntent, isNavigationIntentCurrent, reassertVisibleTabAfterStaleNavigation,
     commitSingleSurfaceNavigation, activateTopic,
     ensureBlankSurface, openCanonicalSession,
@@ -202,15 +181,12 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
   const clearCommands = useSessionClearCommands({
     activeTabId,
     activeSessionIdentity,
-    remote: remoteSurfaceActive,
     t,
     notice,
     operations: sessionOperations,
     refreshDock: () => setDockRefreshKey((value) => value + 1),
     ports: {
       clearSession,
-      clearRemoteSession: (tabId) => desktopBridge.clearRemoteTabSession(tabId),
-      retryRemoteHydration: () => remoteSession.retryHydration(),
     },
   });
   const { clearContextPending, setClearContextPending } = clearCommands;
@@ -246,10 +222,7 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
     workspacePanelGridOpen, sidebarRenderWidth, terminalRenderHeight,
   } = shellGeometry;
 
-  // Remote tab became ready: refresh the tab list so the spectator banner
-  // (takenOver) renders. The agent:ready event only fires for local tabs;
-  // remote tabs publish readiness via remote-tab:<id>:state, which
-  const conversationView = projectConversation({ local: state, remote: remoteSurfaceActive ? remoteSession : undefined,
+  const conversationView = projectConversation({ local: state,
     tab: activeTab, activeTabId, backgroundRuntimes, connectingLabel: t("status.connecting") });
   const visibleRuntimeState = conversationView.runtime;
   const chatSurfaceVisible = true;
@@ -275,7 +248,7 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
   const { activeTopicTurns } = useSessionSummary({ activeTab, revision: projectRevision });
   const visibleUserTurns = visibleRuntimeState.items.reduce((count, item) => (item.kind === "user" ? count + 1 : count), 0);
   const currentTabTurns = Math.max(visibleRuntimeState.checkpoints.length, visibleUserTurns);
-  const sessionTurns = currentTabTurns > 0 ? currentTabTurns : remoteSurfaceActive ? 0 : activeTopicTurns ?? 0;
+  const sessionTurns = currentTabTurns > 0 ? currentTabTurns : activeTopicTurns ?? 0;
   const startupSplashHold = !activeTabId && state.meta?.ready !== true && !state.meta?.startupErr;
   const profileProjection = useComposerProfileProjection({
     activeTabId,
@@ -284,8 +257,6 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
     profilesByTab: composerProfilesByTab,
     setProfilesByTab: setComposerProfilesByTab,
     tabMetas,
-    remote: remoteSurfaceActive,
-    remoteSession,
     planIntentsRef: userPlanModeByTabRef,
   });
   const {
@@ -299,8 +270,8 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
     !state.backendActivationPending &&
     !runtimeTransitioning;
   useEffect(() => {
-    if (controllerReady && activeTabId && !remoteSurfaceActive) noteNavigationComposerEnabled(activeTabId);
-  }, [activeTabId, controllerReady, remoteSurfaceActive]);
+    if (controllerReady && activeTabId) noteNavigationComposerEnabled(activeTabId);
+  }, [activeTabId, controllerReady]);
   useAppDiagnostics({ activeTabId, tabCount: tabMetas.length, ready: controllerReady, running: state.running,
     hydrating: state.hydrating, runtimeTransitioning, contentRevision: state.historyLayoutRevision });
 
@@ -319,7 +290,6 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
       closeTab,
       reorderTabs,
       switchTab,
-      switchRemoteTab,
       refreshTabMetas: (apply, options) => refreshTabMetas(apply, options),
       refreshBackgroundRuntimes,
       cancelActive: () => void handleCancelActive(),
@@ -336,8 +306,8 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
 
   const decisionSurface = useMemo((): AppDecisionSurfaceKind | null => projectDecisionSurface({
     approval: state.approval, ask: state.ask, mcpInteraction: state.mcpInteraction, extensionForm: state.extensionForm,
-    workspaceConflict, pendingClose, clearContextPending, remote: remoteSurfaceActive,
-  }), [clearContextPending, pendingClose, remoteSurfaceActive, state.approval, state.ask, state.extensionForm, state.mcpInteraction, workspaceConflict]);
+    workspaceConflict, pendingClose, clearContextPending,
+  }), [clearContextPending, pendingClose, state.approval, state.ask, state.extensionForm, state.mcpInteraction, workspaceConflict]);
   const visibleDecisionSurface = decisionSurface;
   // Navigation used to hide the entire composer until the controller/runtime
   // activation ticket and the transcript paint ticket both settled.  That made
@@ -347,7 +317,7 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
   // the submission resources still use `controllerReady` as the write fence,
   // so drafts remain editable while send/control actions stay disabled until
   // the target runtime is ready.  Decision surfaces remain exclusive.
-  const composerSurfaceHidden = (runtimeTransitioning && remoteSurfaceActive) || Boolean(decisionSurface);
+  const composerSurfaceHidden = Boolean(decisionSurface);
   useDecisionSurfaceFocus({ surface: decisionSurface, activeTabId, closeOverlays: closeTransientOverlays });
 
   // Extension form surface (stage 8b2): submit delivers the structured values
@@ -379,13 +349,13 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
 
 
   const controllerProfiles = projectControllerProfiles(tabMetas, composerProfilesByTab, {
-    target: { tabId: activeTabId ?? "", sessionKey: activeSessionIdentity }, profile: composerProfile, remote: remoteSurfaceActive,
+    target: { tabId: activeTabId ?? "", sessionKey: activeSessionIdentity }, profile: composerProfile,
   });
   const controllerProfileCommands = useControllerProfileCommands({
     target: { tabId: activeTabId ?? "", sessionKey: activeSessionIdentity }, profiles: controllerProfiles,
-    ready: controllerReady, remote: remoteSurfaceActive, runtimeEpoch: state.meta?.runtime?.epoch, operations: sessionOperations,
+    ready: controllerReady, runtimeEpoch: state.meta?.runtime?.epoch, operations: sessionOperations,
     ports: { model: setModelForTab, profile: setControllerComposerProfileForTab },
-    remoteModel: remoteSession.setModel, report: handleGoalActionError,
+    report: handleGoalActionError,
   });
   const { switchModel, applyProfile: applyControllerProfile } = controllerProfileCommands;
   const hydratePlaceholderActive = Boolean(
@@ -414,7 +384,7 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
     handleSessionRevertCommitted, handleMessageAction, handleForkTurn, handleUndoRewind, handleEditPrompt,
   } = sessionUndoCommands;
   const clearSubmissionUndo = useCommittedCommand((tab: string) => setRewindStateForTab(tab, null));
-  const { commitThenSend, submit: submitComposerTurn, applyGoalForTab, applyGoal, sendRevision } = useSessionSubmission({
+  const { commitThenSend, submit: submitComposerTurn, applyGoal, sendRevision } = useSessionSubmission({
     target: { tabId: activeTabId ?? "", sessionKey: activeSessionIdentity }, operations: sessionOperations,
     resources: projectSubmissionResources(controllerProfiles, tabMetas, composerProfilesByTab,
       { tabId: activeTabId ?? "", profile: composerProfile, ready: controllerReady },
@@ -430,18 +400,14 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
       goal: "",
     }, ["collaborationMode", "goal"]);
   });
-  const drainRemoteApprovalsForTab = useCommittedCommand((tabId: string, ids: string[]) => {
-    if (activeTabId === tabId) remoteSession.drainApprovals(ids);
-  });
   const modeActions = useComposerModeActions({
     target: { tabId: activeTabId ?? "", sessionKey: activeSessionIdentity },
-    remote: remoteSurfaceActive, collaborationMode, toolApprovalMode, goal,
+    collaborationMode, toolApprovalMode, goal,
     operations: sessionOperations,
     planIntentsRef: userPlanModeByTabRef,
     ports: {
       setMode: setControllerModeForTab, setCollaboration: setControllerCollaborationModeForTab,
       setApproval: setToolApprovalModeForTab, clearGoal: clearControllerGoalForTab,
-      setRemote: setRemoteComposerProfileForSessionAction, drainRemote: drainRemoteApprovalsForTab,
       patch: patchComposerProfileForTab,
     },
     showError: (message) => showToast(message, "error"),
@@ -460,22 +426,18 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
     approval: state.approval,
     question: state.ask,
     mcpInteraction: state.mcpInteraction,
-    remote: Boolean(activeTab?.remote), goal, toolApprovalMode,
+    goal, toolApprovalMode,
     operations: sessionOperations,
     ports: {
       approveForTab, isPromptCurrentForTab, resolvePlanForTab: resolvePlanDecisionForTab,
       answerQuestionForTab, answerMCPForTab: answerMCPInteractionForTab,
       setCollaborationModeForTab: setControllerCollaborationModeForTab,
-      clearGoalForTab: clearControllerGoalForTab, setRemoteComposerProfile: setRemoteComposerProfileForSessionAction,
+      clearGoalForTab: clearControllerGoalForTab,
       patchComposerProfile: patchPlanExitProfileForTab, notePlanMode: notePlanModeForTab,
-      drainRemoteApprovals: drainRemoteApprovalsForTab, rememberRevision: rememberPlanRevisionForTab,
+      rememberRevision: rememberPlanRevisionForTab,
     },
     reportError: error => showToast(error instanceof Error ? error.message : String(error), "error"),
   });
-  const remoteComposerSend = useRemoteComposerSend(activeTab?.remote, activeTabId, collaborationMode, goal,
-    remoteSession, remoteSend, applyGoalForTab, useCommittedCommand(() => setClearContextPending(true)),
-    { target: { tabId: activeTabId ?? "", sessionKey: activeSessionIdentity }, operations: sessionOperations,
-      navigateRemote: useCommittedCommand<RemoteNavigationCommand>((remote, options) => openRemoteProject(remote, options)) });
   const controlCommands = useSessionControlCommands({
     activeTabId,
     resources: controllerProfiles.map(resource => resource.target),
@@ -486,7 +448,6 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
       cancel,
       cancelForTab,
       acceptDelivery: (tabId) => desktopBridge.acceptDeliveryToTab(tabId),
-      disconnectRemote: (hostId) => desktopBridge.disconnectRemoteHost(hostId),
       cancelJobForTab: (tabId, jobId) => desktopBridge.cancelJobForTab(tabId, jobId),
       refreshBackgroundRuntimes,
     },
@@ -505,30 +466,24 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
     meta: state.meta,
     activeTab,
     activeTabId,
-    remote: remoteSurfaceActive,
-    remoteReady: remoteComposerReady,
     controllerReady,
     sessionKey: activeSessionIdentity,
     operations: sessionOperations,
     t,
     ports: {
-      remoteSend: (text) => remoteSend(text),
       sendToTab: (tabId, text) => sendToTab(tabId, text),
     },
   });
   const { showTodos, scopedTodoBatch, todos, dismissTodos, handleTodoContinue } = todoPanelCommands;
 
   const sessionTitle = topicTitle(activeTab);
-  const exportItems = remoteSurfaceActive ? remoteSession.transcript.items : state.items;
-  const exportLive = remoteSurfaceActive
-    ? remoteSession.transcript.live
-    : liveStore.getSnapshot(activeTabId) ?? state.live;
+  const exportItems = state.items;
+  const exportLive = liveStore.getSnapshot(activeTabId) ?? state.live;
   const sessionHasContent = exportItems.length > 0 || Boolean(exportLive?.text || exportLive?.reasoning);
 
   const sessionExportCommands = useSessionExportCommands({
     selector: activeTab?.session?.sessionId ? { ref: activeTab.session } : activeTab?.sessionPath ? { sessionPath: activeTab.sessionPath } : { topicId: activeTab?.topicId },
     tabId: activeTabId,
-    remote: remoteSurfaceActive,
     sessionTitle,
     items: exportItems,
     live: exportLive,
@@ -556,28 +511,36 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
       setPendingClose: (value) => setPendingClose(value),
       submitComposerTurn: (tab, display, submit, structured, submissionId) => submitComposerTurn(tab, display, submit, structured, submissionId),
       steerForTab,
-      isRemoteTab: (tabId) => tabMetas.some((tab) => tab.id === tabId && tab.remote),
     },
   });
 
   const editGoal = async (objective: string, maxGoalRounds: number | null) => {
     if (!activeTabId) return;
-    if (remoteSurfaceActive) await remoteSession.editGoal(objective, maxGoalRounds);
-    else await editControllerGoalForTab(activeTabId, objective, maxGoalRounds);
+    await editControllerGoalForTab(activeTabId, objective, maxGoalRounds);
   };
   const goalCommands = useComposerGoalCommands({ applyCollaborationMode, applyGoal, editGoal });
-  const remoteGoalActions = useRemoteComposerRuntimeActions({
-    target: { tabId: activeTabId ?? "", sessionKey: activeSessionIdentity }, operations: sessionOperations,
-    remote: remoteSurfaceActive, session: remoteSession, runGoalAction,
-    pauseLocal: pauseControllerGoalForTab, resumeLocal: resumeControllerGoalForTab,
-    setLocalEffort: setEffortForTab, showError: (message) => showToast(message, "error"),
+
+  const goalTarget = { tabId: activeTabId ?? "", sessionKey: activeSessionIdentity };
+  const runComposerRuntime = useCommittedCommand(async (action: "pause" | "resume" | "effort", level?: string) => {
+    const outcome = await sessionOperations(goalTarget, action === "effort" ? "effort" : "goal-lifecycle", { tabId: goalTarget.tabId, action, level },
+      async (operationInput, authority) => {
+        authority.checkpoint();
+        if (operationInput.action === "pause") await pauseControllerGoalForTab(operationInput.tabId);
+        else if (operationInput.action === "resume") await resumeControllerGoalForTab(operationInput.tabId);
+        else await setEffortForTab(operationInput.tabId, operationInput.level ?? "");
+      });
+    if (outcome.status === "failed") throw outcome.error;
   });
+  const reportGoalRuntimeError = useCommittedCommand((error: unknown) => showToast(error instanceof Error ? error.message : String(error), "error"));
+  const goalActions = {
+    pauseGoal: useCommittedCommand(() => runGoalAction(() => runComposerRuntime("pause"))),
+    resumeGoal: useCommittedCommand(() => runGoalAction(() => runComposerRuntime("resume"))),
+    setEffort: useCommittedCommand((level: string) => { void runComposerRuntime("effort", level).catch(reportGoalRuntimeError); }),
+  };
 
   const {
     refreshTabMetas, seedActiveTabMeta,
     handleRuntimeEvent, handleRuntimeReady, handleRuntimeRebuilt,
-    handleRemoteStatus, handleRemoteForwards, handleRemoteServer,
-    handleInitialRemoteHosts, handleInitialRemoteStatuses,
   } = useRuntimeEventHandlers({
     activeTabId,
     workspaceScopeKey,
@@ -596,14 +559,13 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
 
   const leaseBlockedTab = activeLeaseBlockedTab(tabMetas, activeTab?.id ?? activeTabId);
   const bannerCommands = useSessionBannerCommands({
-    remote: Boolean(activeTab?.remote),
     reloadConfigWarnings,
   });
 
   const workspacePanelCommands = useWorkspacePanelCommands({
     sessionId: activeTabId ?? "",
     workspaceRoot: activeTab?.workspaceRoot ?? state.meta?.cwd ?? "",
-    globalWorkspace: !activeTab || (!activeTab.remote && activeTab.scope === "global"),
+    globalWorkspace: !activeTab || activeTab.scope === "global",
     visible: surfaceWorkspacePanelRenderable,
     closeOverlays: closeTransientOverlays, clearLiveWidth: setLiveWorkspacePanelRenderWidth,
     setTreeWidth: setRightDockTreeWidth,
@@ -624,8 +586,6 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
     tabId: activeTabId, enabled: conversationView.localToolsEnabled, shortcutsEnabled: !managementActive,
   });
 
-  const remoteWorkspaceCommands = useRemoteWorkspaceCommands({ t, showToast });
-
   const layoutStyle = useMemo(
     () =>
       ({
@@ -642,8 +602,7 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
   // openTopic/blank/resume navigation uses, so rapidly clicking between two
   // running sessions can't run two switchTab() calls concurrently. Concurrent
   // switches race on the backend SetActiveTab/confirmBackendActiveTab ordering,
-  const availability = projectSessionAvailability({ local: state, remote: remoteSurfaceActive ? remoteSession : undefined, empty: !activeTabId && !runtimeTransitioning });
-  const presentationTransitioning = runtimeTransitioning && remoteSurfaceActive;
+  const availability = projectSessionAvailability({ local: state, empty: !activeTabId && !runtimeTransitioning });
   const {
     transcriptHydrating, emptyHero,
     visibleTranscriptItems, visibleTranscriptTabId, visibleTranscriptGeometryKey,
@@ -654,19 +613,14 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
     hydratePlaceholderItems: state.hydratePlaceholderItems,
     hydratePlaceholderActive,
     items: state.items,
-    guidanceConsumed: remoteSurfaceActive ? remoteSession.transcript.guidanceConsumed : state.guidanceConsumed,
-    remote: remoteSurfaceActive,
-    remoteItems: remoteSession.transcript.items,
+    guidanceConsumed: state.guidanceConsumed,
     activeTabId,
     geometrySessionKey: transcriptGeometrySessionKey,
-    transitioning: presentationTransitioning,
-    navigationDataReady: navigationTargetDataReady,
-    preserved: preservedTranscriptSurface,
     controllerReady,
     availability,
     sessionActivity: Boolean(conversationView.runtime.running || conversationView.runtime.pendingPrompt
       || conversationView.runtime.approval || conversationView.runtime.ask || conversationView.runtime.extensionForm
-      || conversationView.runtime.mcpInteraction || (remoteSurfaceActive && (remoteSession.promptError || remoteSession.error))),
+      || conversationView.runtime.mcpInteraction),
     sessionHasContent,
     commitRendered: commitRenderedTranscriptSurface,
     commitPaint: commitNavigationSurfacePaint,
@@ -681,12 +635,12 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
 
   const { openAutomationTopic, topicAccepted } = useAutomationNavigation({ noteIntent: noteNavigationIntent,
     enqueue: useCommittedCommand((intent, seq) => enqueueNavigationWithIntent(intent, seq)) });  const {
-    enqueueNavigation, enqueueNavigationWithIntent, openRemoteProject,
+    enqueueNavigation, enqueueNavigationWithIntent,
   } = useDesktopNavigation({
     visible: { tabId: activeTabId ?? "", sessionKey: activeSessionIdentity },
     ports: { isNavigationIntentCurrent, activateTopic,
       ensureBlankSurface, openCanonicalSession, createIsolatedWorktree, openChannelSession, resumeSession,
-      registeredNavigationIntent, switchRemoteTab, openRemoteProject: desktopBridge.openRemoteProjectTab,
+      registeredNavigationIntent,
       listTabs: desktopBridge.listTabs, applyTabs: setTabMetas, seedTab: seedActiveTabMeta, listSessions, topicAccepted,
     },
     setTabRevealSignal, setProjectRevision, setHistory: setHistView, t, showToast,
@@ -702,7 +656,7 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
     controlCommands,
     routerCommands,
     goalCommands,
-    remoteGoalActions,
+    goalActions,
     modeActions,
     controllerProfileCommands,
     profileProjection,
@@ -710,13 +664,10 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
     workspacePanelCommands,
     turnVerificationCommands,
     terminalPanelCommands,
-    remoteWorkspaceCommands,
     bannerCommands,
     runtimeEventCommands: {
       refreshTabMetas, seedActiveTabMeta,
       handleRuntimeEvent, handleRuntimeReady, handleRuntimeRebuilt,
-      handleRemoteStatus, handleRemoteForwards, handleRemoteServer,
-      handleInitialRemoteHosts, handleInitialRemoteStatuses,
     },
     sessionUndo: {
       rewindState, rewindCommitting, rewindSignal, handleSessionRevertCommitted, handleMessageAction, handleForkTurn, handleUndoRewind, handleEditPrompt,
@@ -728,7 +679,7 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
       handleLoadOlderHistory, handleLoadNewerHistory, handleNavigateToTurn, handleSurfacePaintReady, latestGuidanceConsumed, handleTranscriptPrompt,
     },
     automation: { openAutomationTopic },
-    desktopNavigation: { enqueueNavigation, enqueueNavigationWithIntent, openRemoteProject },
+    desktopNavigation: { enqueueNavigation, enqueueNavigationWithIntent },
     invocation: { invocationMetadataByTab, handleInvocationMetadataChange },
     sessionHasContent,
     conversationView,
@@ -755,7 +706,6 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
     leaseBlockedTab,
     layoutStyle,
     cycleMode,
-    remoteComposerSend,
     closeTransientOverlays,
     refreshProviderSetupState,
     shellGeometry,

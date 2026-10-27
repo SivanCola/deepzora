@@ -40,10 +40,6 @@ deepzora/
     ├── permission/
     ├── command/
     ├── plugin/
-    ├── remote/
-    │   ├── forward/
-    │   ├── sftpfs/
-    │   └── bootstrap/
     └── agent/
 ```
 
@@ -53,7 +49,7 @@ deepzora/
 cli → {agent, plugin, config} → {tool, provider}
 ```
 
-`provider/openai`、`tool/builtin` 等 built-in 子包导入父包完成自注册，父包不反向导入子包。Remote-SSH 采用 `cli → remote/bootstrap → remote` 的分层，`remote` 及其子包不依赖 `cli`、`agent` 或 `serve`；host key 和 secret prompt 等交互都通过 callback 暴露，供桌面端复用。
+`provider/openai`、`tool/builtin` 等 built-in 子包导入父包完成自注册，父包不反向导入子包。
 
 ## 3. 核心抽象
 
@@ -443,17 +439,12 @@ allow = ["Bash(go test:*)", "Bash(git status:*)"]
 # workspace_root = ""
 # allow_write = ["/tmp"]
 # forbid_read = ["${HOME}/.ssh"]
-
-[serve]
-auth_mode = "none"
 ```
 
 原生 CLI 更新器始终安装最新的严格 `vX.Y.Z` 正式版。1.x 期间仍解析旧渠道配置与
 参数，但统一指向正式版，并在后续保存配置时省略这些字段。
 
 权限预设直接选择强制沙盒边界。交互会话可以用「扩展写入范围」授权（仅本次 / 本会话 / 拒绝）按需扩大可写根；文件工具会申请目标父目录，Bash 必须声明 `additional_write_dirs` 和 `justification`。无头 `deepzora run` 缺少目录时失败关闭。file writer 默认限制在 workspace root、会话私有临时目录和显式授权根；`forbid_read` 可阻止读取敏感路径。macOS 使用 Seatbelt，Linux 使用 bubblewrap；受限 backend 不可用时拒绝执行，不无约束回退。Windows 没有 OS 级 Shell 沙箱：受限预设仍约束文件工具，Shell 命令以当前系统账户运行。
-
-`[serve]` 控制 `deepzora serve` 的 HTTP 前端（桌面端远程工作区的后端）。默认 `auth_mode = "none"` 仅适合 loopback；暴露到其他机器时必须使用 token。`none` 模式下所有会改变状态的请求仍需启动令牌（serve 把它写进 `<Deepzora home>/remote/` 下 0600 文件而非终端），否则以 `launch_token_required` 拒绝；`[serve]` 只从用户配置读取。只有位于可信 reverse proxy 后方时才能启用 `behind_proxy`。
 
 项目根目录的 `.mcp.json` 可使用 Claude Code 的 `mcpServers` schema；与 `deepzora.toml` 同名时，以后者为准。
 

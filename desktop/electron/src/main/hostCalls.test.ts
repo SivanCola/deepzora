@@ -23,7 +23,6 @@ function deps() {
       message: async () => ({ button: "OK" }),
     },
     tray: { ensure: (labels) => { calls.push(`tray(${labels.openTitle},${labels.quitTitle},${labels.tooltip})`); return { ready: true, reason: "" }; }, destroy: record("trayDestroy") },
-    remote: { open: (input) => { calls.push(`remoteOpen(${input.hostKey})`); return { windowId: "7" }; }, navigate: record("remoteNavigate"), focus: record("remoteFocus"), close: record("remoteClose") },
     lifecycle: { approve: record("approve"), relaunch: record("relaunch") },
     openExternal: async (url) => { calls.push(`open(${url})`); },
     hideApp: record("hideApp"),
@@ -40,12 +39,11 @@ test("every documented host/* method is dispatched with parsed params", async ()
   assert.deepEqual(await dispatchHostCall(table, "host/screen.list", {}), { screens: [{ x: 0, y: 0, width: 1, height: 1, scale: 2, primary: true }] });
   assert.deepEqual(await dispatchHostCall(table, "host/dialog.openDirectory", { title: "t" }), { path: "/dir" });
   assert.deepEqual(await dispatchHostCall(table, "host/tray.ensure", { openTitle: "打开", quitTitle: "退出" }), { ready: true, reason: "" });
-  assert.deepEqual(await dispatchHostCall(table, "host/remoteWindow.open", { hostKey: "h1", url: "https://x", title: "T" }), { windowId: "7" });
   assert.deepEqual(await dispatchHostCall(table, "host/app.relaunch", { args: ["--x", 3] }), {});
   assert.deepEqual(await dispatchHostCall(table, "host/shell.openExternal", { url: "https://e" }), {});
   assert.deepEqual(await dispatchHostCall(table, "host/app.quit", undefined), {});
   assert.deepEqual(calls, [
-    'show("tray")', "setPosition(10.4,0)", "tray(打开,退出,Deepzora)", "remoteOpen(h1)", 'relaunch(["--x"])', "open(https://e/)", "approve()",
+    'show("tray")', "setPosition(10.4,0)", "tray(打开,退出,Deepzora)", 'relaunch(["--x"])', "open(https://e/)", "approve()",
   ]);
   for (const method of ["host/window.hide", "host/window.maximise", "host/window.center", "host/devtools.toggle", "host/tray.destroy", "host/app.hide"]) {
     assert.deepEqual(await dispatchHostCall(table, method, {}), {});
@@ -81,7 +79,6 @@ test("browser host calls merge into the table when the surface is wired", async 
       },
       dialogs: { openDirectory: async () => ({ path: "" }), openFile: async () => ({ paths: [] }), saveFile: async () => ({ path: "" }), message: async () => ({ button: "" }) },
       tray: { ensure: () => ({ ready: false, reason: "x" }), destroy: () => {} },
-      remote: { open: () => ({ windowId: "" }), navigate: () => {}, focus: () => {}, close: () => {} },
       lifecycle: { approve: () => {}, relaunch: () => {} },
       openExternal: async () => {},
       hideApp: () => {},

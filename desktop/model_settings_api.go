@@ -380,7 +380,7 @@ func applyModelProviderRemoval(c *config.Config, change ModelSettingsChange) err
 		}
 	}
 	fallback := providerAccessFallbackRef(c, names)
-	retargetProviderReferences(c, names, fallback)
+	c.RetargetProviderRefs(names, fallback)
 	if removeEntries {
 		for _, name := range names {
 			p, _ := c.Provider(name)
@@ -540,7 +540,6 @@ func (a *App) GetModelSettingsApplication() ModelSettingsResult {
 		}
 		result.Targets = append(result.Targets, target)
 	}
-	a.appendRemoteModelSettingsStatus(&result)
 	if result.Application == "not_required" && len(result.Targets) > 0 {
 		result.Application = "applied"
 	}
@@ -548,23 +547,6 @@ func (a *App) GetModelSettingsApplication() ModelSettingsResult {
 }
 
 func (a *App) RetryModelSettingsApplication(tabID string) ModelSettingsResult {
-	a.remoteTabMu.Lock()
-	remote := a.remoteTabs[tabID] != nil
-	a.remoteTabMu.Unlock()
-	if remote {
-		_, _, err := a.ensureRemoteModelSettings(tabID)
-		result := a.GetModelSettingsApplication()
-		if err != nil {
-			var application *modelApplicationError
-			if errors.As(err, &application) && application.details != nil && application.details.Code == "model_settings_pending" {
-				result.Application = "pending"
-			} else {
-				result.Application = "failed"
-				result.Issues = append(result.Issues, modelSettingsIssue("apply_failed", err))
-			}
-		}
-		return result
-	}
 	a.mu.Lock()
 	tab := a.tabByEventSinkIDLocked(tabID)
 	if tab != nil {

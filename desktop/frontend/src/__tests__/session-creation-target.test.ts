@@ -16,13 +16,12 @@ test("a global surface keeps its actual directory for UI preferences", () => {
   );
 });
 
-test("remote, rootless and missing surfaces hand over to the global draft", () => {
+test("rootless and missing surfaces hand over to the global draft", () => {
   for (const tab of [
     undefined,
     null,
     { scope: "global", workspaceRoot: "" },
     { scope: "project", workspaceRoot: "" },
-    { scope: "project", workspaceRoot: "/repo/agent", remote: { hostId: "host", workspace: "/w" } },
   ]) {
     assert.deepEqual(sessionCreationTargetForTab(tab), { scope: "global", workspaceRoot: "" }, JSON.stringify(tab));
   }

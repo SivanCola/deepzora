@@ -5,7 +5,6 @@ import { openExternal } from "./lib/bridge";
 import { useT, useI18n } from "./lib/i18n";
 import { useToast } from "./lib/toast";
 import { useGoalActionHandler } from "./lib/goalAction";
-import { useActiveRemoteSession } from "./lib/useRemoteSession";
 import { useWarmTerminalPanel } from "./lib/useWarmTerminalPanel";
 import type { ComposerProfile, UserPlanModeIntents } from "./lib/composerProfile";
 import type { TabMeta } from "./lib/types";
@@ -63,12 +62,10 @@ export function AppRuntime() {
     () => tabMetas.find((tab) => tab.id === activeTabId) ?? tabMetas.find((tab) => tab.active),
     [activeTabId, tabMetas],
   );
-  const { active: remoteSurfaceActive, session: remoteSession, ready: remoteComposerReady, onSend: remoteSend, onCancel: remoteCancel } = useActiveRemoteSession(activeTab, showToast);
   const activeSessionIdentity = sessionIdentityKey({
     tabId: activeTabId,
     session: activeTab?.session ?? state.meta?.session,
     sessionId: activeTab?.sessionId,
-    remote: activeTab?.remote,
     sessionPath: activeTab?.sessionPath ?? state.meta?.sessionPath,
     sessionGeneration: activeTab?.sessionGeneration ?? state.meta?.sessionGeneration ?? state.sessionGen,
     scope: activeTab?.scope,
@@ -85,7 +82,7 @@ export function AppRuntime() {
       ...tabMetas.filter(tab => tab.id !== activeTabId).map(tab => ({
         tabId: tab.id,
         sessionKey: sessionIdentityKey({ tabId: tab.id, sessionPath: tab.sessionPath,
-          session: tab.session, sessionId: tab.sessionId, remote: tab.remote, sessionGeneration: tab.sessionGeneration,
+          session: tab.session, sessionId: tab.sessionId, sessionGeneration: tab.sessionGeneration,
           scope: tab.scope, workspaceRoot: tab.workspaceRoot, topicId: tab.topicId }),
       })),
     ],
@@ -95,7 +92,7 @@ export function AppRuntime() {
     return () => sessionSurfaceFence.dispose();
   }, [activeSessionIdentity, activeTabId, sessionSurfaceFence]);
   const navigationSurface = useNavigationSurface(projectNavigationSurfaceTarget({
-    activeTabId, sessionKey: activeSessionIdentity, local: state, remote: remoteSurfaceActive ? remoteSession : undefined,
+    activeTabId, sessionKey: activeSessionIdentity, local: state,
   }));
   const shell = useAppShellStores();
   const [tabRevealSignal, setTabRevealSignal] = useState(0);
@@ -118,8 +115,7 @@ export function AppRuntime() {
     showToast,
     shell,
     core: {
-      state, liveStore, activeTabId, notice, activeTab, remoteSurfaceActive, remoteSession, remoteComposerReady,
-      remoteSend, remoteCancel, activeSessionIdentity, sessionSurfaceFence, sessionOperations,
+      state, liveStore, activeTabId, notice, activeTab, activeSessionIdentity, sessionSurfaceFence, sessionOperations,
     },
     surface: navigationSurface,
     stores: {
@@ -143,7 +139,6 @@ export function AppRuntime() {
     activeTab,
     activeTabId,
     activeSessionIdentity,
-    remoteSurfaceActive,
     surface: navigationSurface,
     local: {
       setHistView, setProjectRevision,
@@ -156,8 +151,7 @@ export function AppRuntime() {
     <Suspense fallback={<AppRuntimeViewFallback />}>
     <AppRuntimeView
       core={{
-        state, activeTab, activeTabId, liveStore, remoteSurfaceActive, remoteSession, remoteComposerReady,
-        remoteCancel, surface: navigationSurface, t, locale, onOpenLink: openExternal,
+        state, activeTab, activeTabId, liveStore, surface: navigationSurface, t, locale, onOpenLink: openExternal,
       }}
       shell={shell}
       session={session}

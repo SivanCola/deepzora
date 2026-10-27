@@ -1,17 +1,14 @@
-import { lazy, Suspense, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Transcript, type TranscriptProps } from "../components/Transcript";
 import { SessionRecoveryBanner, SessionRecoveryPlaceholder } from "../components/SessionRecoveryBanner";
 import { SessionLoadingIndicator } from "../components/SessionLoadingIndicator";
 import { NoticePreviewPanel, noticePreviewMockEnabled } from "./NoticePreviewPanel";
-import type { TabMeta } from "../lib/types";
 import type { State } from "../lib/useController";
-import type { RemoteSessionApi } from "../lib/useRemoteSession";
 import type { Translator } from "../lib/i18n";
 import type { ForkBlockReason } from "../lib/forkTargets";
 import type { SessionAvailability } from "../lib/sessionAvailability";
 import { orderedLocalSubmissions } from "../lib/localSubmissionState";
 
-const RemoteSessionSurface = lazy(() => import("../components/RemoteSessionSurface").then((module) => ({ default: module.RemoteSessionSurface })));
 
 export type ChatPaneTranscriptInput = {
   state: State;
@@ -23,7 +20,6 @@ export type ChatPaneTranscriptInput = {
   surfaceCommitToken: TranscriptProps["surfaceCommitToken"];
   liveStore: TranscriptProps["liveStore"];
   transcriptHydrating: boolean;
-  navigationDataReady: boolean;
   readOnly: boolean;
   controllerReady: boolean;
   hydratePlaceholderActive: boolean;
@@ -37,9 +33,7 @@ export type ChatPaneTranscriptInput = {
 };
 
 export type ChatPaneRegionProps = {
-  transitioning: boolean;
   t: Translator;
-  remote: { tab: TabMeta; session: RemoteSessionApi } | undefined;
   /** Floating dock launcher card, mounted over the transcript's right edge. */
   launcher?: ReactNode;
   transcript: ChatPaneTranscriptInput;
@@ -56,13 +50,13 @@ export type ChatPaneRegionProps = {
 };
 
 /**
- * The chat-pane main surface: IM/bot detail, notice preview mock, remote
- * session surface or the local transcript with its navigation-transition
+ * The chat-pane main surface: IM/bot detail, notice preview mock or the
+ * local transcript with its navigation-transition
  * wrapper and history-load error. Pure prop-driven; all ownership stays in
  * the caller's owners.
  */
 export function ChatPaneRegion(props: ChatPaneRegionProps) {
-  const { transitioning, transcript, commands } = props;
+  const { transcript, commands } = props;
   const { state, rewind } = transcript;
   // A fork entry reads persisted turn records, so it never waits for the session
   // to stop running, and a read-only source still forks: the child is written
@@ -70,22 +64,18 @@ export function ChatPaneRegion(props: ChatPaneRegionProps) {
   // while the transcript hydrates or the source identity is switching, the
   // records on screen are not yet the ones a cut would address.
   const forkBlocked: ForkBlockReason | null = state.forkCreating ? "creating"
-    : !transcript.controllerReady || transcript.transcriptHydrating || transcript.hydratePlaceholderActive || transitioning
+    : !transcript.controllerReady || transcript.transcriptHydrating || transcript.hydratePlaceholderActive
       ? "loading"
       : null;
   const noticePreview = noticePreviewMockEnabled();
-  if (props.remote && !noticePreview) {
-    return <Suspense fallback={null}><RemoteSessionSurface tab={props.remote.tab} session={props.remote.session}
-      surfaceCommitToken={transcript.surfaceCommitToken} onSurfacePaintReady={commands.onSurfacePaintReady} /></Suspense>;
-  }
   const localSubmissions = orderedLocalSubmissions(state);
-  const recoveringEmpty = !transitioning && transcript.availability.kind !== "ready" && transcript.items.length === 0 && localSubmissions.length === 0
+  const recoveringEmpty = transcript.availability.kind !== "ready" && transcript.items.length === 0 && localSubmissions.length === 0
     && !state.live?.text && !state.live?.reasoning;
-  const loading = transcript.availability.kind !== "error" && (transitioning || transcript.transcriptHydrating
+  const loading = transcript.availability.kind !== "error" && (transcript.transcriptHydrating
     || (transcript.availability.kind === "loading" && (transcript.availability.source !== "runtime" || recoveringEmpty)));
   return (
     <>
-    {!transitioning && !noticePreview && <SessionRecoveryBanner key={transcript.geometrySessionKey ?? transcript.tabId}
+    {!noticePreview && <SessionRecoveryBanner key={transcript.geometrySessionKey ?? transcript.tabId}
       availability={transcript.availability} onRetry={props.onRetryHistory} />}
     <main className="main">
       {noticePreview ? (
@@ -96,10 +86,10 @@ export function ChatPaneRegion(props: ChatPaneRegionProps) {
             {props.launcher}
             <div
               className="transcript-navigation-content"
-              aria-hidden={transitioning || transcript.emptyHero || undefined}
+              aria-hidden={transcript.emptyHero || undefined}
               ref={(node) => {
                 if (!node) return;
-                (node as HTMLElement & { inert?: boolean }).inert = transitioning || Boolean(transcript.emptyHero);
+                (node as HTMLElement & { inert?: boolean }).inert = Boolean(transcript.emptyHero);
               }}
             >
               {recoveringEmpty ? <SessionRecoveryPlaceholder availability={transcript.availability} /> : <Transcript
@@ -107,7 +97,7 @@ export function ChatPaneRegion(props: ChatPaneRegionProps) {
                 localSubmissions={localSubmissions}
                 localSubmissionSendRevision={state.localSubmissionSendRevision}
                 visibleSubmissionHandoffs={state.visibleSubmissionHandoffs}
-                live={transitioning ? undefined : state.live}
+                live={state.live}
                 liveStore={transcript.liveStore}
                 tabId={transcript.tabId}
                 geometrySessionKey={transcript.geometrySessionKey}
@@ -119,10 +109,10 @@ export function ChatPaneRegion(props: ChatPaneRegionProps) {
                 forkBlocked={forkBlocked}
                 running={(state.running && !state.runtimeStateSnapshot?.maintenance) || rewind.committing}
                 turnStartAt={state.turnStartAt}
-                hydrating={transcript.transcriptHydrating || (transitioning && !transcript.navigationDataReady)}
+                hydrating={transcript.transcriptHydrating}
                 showLoadingFeedback={false}
-                hasOlderHistory={!transitioning && state.historyHasOlder && !rewind.stateActive}
-                hasNewerHistory={!transitioning && state.historyHasNewer && !rewind.stateActive}
+                hasOlderHistory={state.historyHasOlder && !rewind.stateActive}
+                hasNewerHistory={state.historyHasNewer && !rewind.stateActive}
                 historyStartTurn={state.historyStartTurn}
                 historyEndTurn={state.historyEndTurn}
                 totalTurns={state.historyTotalTurns}
@@ -138,7 +128,6 @@ export function ChatPaneRegion(props: ChatPaneRegionProps) {
                 onSurfacePaintReady={commands.onSurfacePaintReady}
               />}
             </div>
-            {transitioning && <div className="transcript-navigation-overlay" aria-hidden="true" />}
             <SessionLoadingIndicator active={loading}
               identity={transcript.geometrySessionKey ?? transcript.tabId ?? "local"}
               source={transcript.availability.source} />

@@ -19,7 +19,7 @@ for (const phase of ["executing", "finishing"] as const) {
   const ref = { hostId: "local", sessionId };
   const route = `session-id:${sessionId}`;
   const backend = makeSessionUIMock(async () => {});
-  const target: InboxTarget = { tabId: "tab-a", sessionPath: route, generation: 3, selection: 0, remote: false };
+  const target: InboxTarget = { tabId: "tab-a", sessionPath: route, generation: 3, selection: 0 };
   let queues = 0, steers = 0, lookups = 0, direct = 0;
   let lost = false, conflict = false, lastKey = "";
   const receipt = (key: string) => ({ itemId: key, disposition: "queued_followup", position: 1, paused: false });
@@ -57,7 +57,7 @@ for (const phase of ["executing", "finishing"] as const) {
   });
   const projection: RuntimeProjection = { epoch: sessionId, revision: 1, topics: [], sessions: [{
     tabId: "tab-a", scope: "global", workspaceRoot: "", topicId: "topic", sessionId, sessionPath: "", sessionGeneration: 3,
-    open: true, remote: false, freshness: "synced", state: { schemaVersion: 1, runtimeEpoch: "runtime", activityRevision: 1, revision: 1,
+    open: true, freshness: "synced", state: { schemaVersion: 1, runtimeEpoch: "runtime", activityRevision: 1, revision: 1,
       phase, running: true, turnId: "active-turn", turnStatus: "running", turnEventSeq: 1, pendingPrompt: false,
       cancelRequested: false, cancellable: phase === "executing", backgroundJobs: 0, activity: "streaming" },
   }] };

@@ -243,15 +243,29 @@ func (s *IndexedSearcher) Around(ctx context.Context, req AroundRequest) ([]Mess
 	if req.MessageIndex >= len(messages) {
 		return nil, fmt.Errorf("message_index is outside session length")
 	}
-	start := max(0, req.MessageIndex-clamp(req.Before, defaultAround, maxAround))
-	end := req.MessageIndex + 1 + min(clamp(req.After, defaultAround, maxAround), len(messages)-req.MessageIndex-1)
 	out := []MessageContext{}
-	for i := start; i < end; i++ {
-		if !agent.IsPinnedContextRevision(messages[i]) {
-			out = append(out, MessageContext{Index: i, Text: renderMessage(i, messages[i])})
-		}
+	for _, i := range ContextIndices(messages, req.MessageIndex, clamp(req.Before, defaultAround, maxAround), clamp(req.After, defaultAround, maxAround)) {
+		out = append(out, MessageContext{Index: i, Text: renderMessage(i, messages[i])})
 	}
 	return out, nil
+}
+
+// ContextIndices lists the message indices from before messages ahead of
+// index to after messages past it, skipping pinned context revisions: they are
+// never indexed, so a hit's surrounding context must not surface them either.
+func ContextIndices(messages []provider.Message, index, before, after int) []int {
+	out := []int{}
+	if index < 0 || index >= len(messages) {
+		return out
+	}
+	start := max(0, index-max(before, 0))
+	end := index + 1 + min(max(after, 0), len(messages)-index-1)
+	for i := start; i < end; i++ {
+		if !agent.IsPinnedContextRevision(messages[i]) {
+			out = append(out, i)
+		}
+	}
+	return out
 }
 
 func (s *IndexedSearcher) IndexStatus() historycatalog.Status {

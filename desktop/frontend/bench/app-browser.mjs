@@ -125,7 +125,7 @@ try {
   }));
   assert(afterSwitch.workspace && afterSwitch.workspaceTree && afterSwitch.preview && afterSwitch.selectedFile === 'README.md',
     'same-project session switching preserves actual WorkspacePanel, tree, preview DOM and selected file');
-  assert(afterSwitch.subscriptions === 6, `the six AppRuntimeEffects subscriptions remain singular (${afterSwitch.subscriptions})`);
+  assert(afterSwitch.subscriptions === 3, `the three AppRuntimeEffects subscriptions remain singular (${afterSwitch.subscriptions})`);
   assert(afterSwitch.operations === 0, "instrumented operation owners report zero active operations (not yet all App operations)");
 
   // Browser-mock local switches exercise the renderer latency contract. Use
@@ -155,25 +155,14 @@ try {
   assert(localSwitchP95 <= 300,
     `browser-mock local click-to-first-paint P95 <= 300ms (${localSwitchP95.toFixed(1)}ms; samples=${switchSamples.map(value => value.toFixed(1)).join(",")})`);
 
-  await page.locator('.project-tree__folder-main:has(svg.lucide-cloud)').click();
-  await page.locator('.project-tree__topic-main:has-text("Remote demo session")').click();
-  await page.locator('.remote-surface--ready').waitFor();
-  await page.waitForFunction(() => document.querySelector('textarea.composer__input:not([aria-hidden=true])')?.disabled === false);
-  assert((await page.locator('.topicbar').textContent()).includes('Remote demo session'), "remote project selection adopts its source workspace and authoritative hydrated surface");
-  await newSessionButton(page).click();
-  await page.waitForFunction(() => document.querySelector('.topicbar')?.textContent?.includes('New session'));
-  await page.locator('.remote-surface--ready').waitFor();
-  await page.waitForFunction(() => document.querySelector('textarea.composer__input:not([aria-hidden=true])')?.disabled === false);
-  assert(await page.locator('.remote-surface').count() === 1, "global New Session stays on the remote workspace instead of opening a local blank");
-  assert(await page.evaluate(() => window.__appBrowserIdentity.composer === document.querySelector('textarea.composer__input:not([aria-hidden=true])')), "local/remote navigation and remote New Session preserve the Composer DOM identity");
   await selectSession(page, "bench:geometry");
-  // Resident history can already contain the local marker during the async
-  // switch. Wait for navigation ownership, then inspect the selected history.
-  await page.locator('.remote-surface').waitFor({ state: 'detached' });
   await page.waitForFunction(() => document.querySelector('.transcript')?.textContent?.includes('Geometry contract fixture complete.'));
-  assert(await page.locator('.remote-surface').count() === 0, "subsequent local navigation owns the surface; remote events do not reclaim it");
+  await page.waitForFunction(() => document.querySelector('textarea.composer__input:not([aria-hidden=true])')?.disabled === false);
   const sentText = 'App source-bound submission fixture';
   await composer.fill(sentText);
+  // Switching sessions re-runs runtime activation; Enter before the send gate
+  // opens is intentionally a no-op, so wait for the same gate the user sees.
+  await page.waitForFunction(() => document.querySelector('.composer__btn--send')?.disabled === false);
   await composer.press('Enter');
   await page.locator('[data-chat-kind="user"]').filter({ hasText: sentText }).waitFor();
   await page.locator('.composer__btn--stop').click();

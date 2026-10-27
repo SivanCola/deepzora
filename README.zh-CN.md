@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  在桌面、终端与远程工作区中使用 AI 编程。<br />
+  在桌面与终端中使用 AI 编程。<br />
   自选模型，阅读代码、完成修改、运行测试。
 </p>
 
@@ -38,9 +38,9 @@
 
 Deepzora 源自 **Reasonix 1.x 系列**（`main-v2`），使用独立品牌，持续维护并独立发布。你可以把它理解为 **Reasonix Mini**；这是对项目定位的说明，不是 Reasonix 官方的另一个产品版本，也不属于 Reasonix Studio 2.x 发布线。
 
-选好项目，用自然语言描述任务，Agent 就能阅读文件、修改代码、执行命令和运行测试。你可以使用 Electron 桌面端，在终端里直接工作，或通过 SSH 连接远程工作区。内置 DeepSeek 预设，也支持自定义 OpenAI 兼容和 Anthropic 兼容供应商，自行选择模型连接。
+选好项目，用自然语言描述任务，Agent 就能阅读文件、修改代码、执行命令和运行测试。你可以使用 Electron 桌面端，或在终端里直接工作。内置 DeepSeek 预设，也支持自定义 OpenAI 兼容和 Anthropic 兼容供应商，自行选择模型连接。
 
-Agent 在本机或你选择的远程主机上运行；模型请求所需的上下文会发送给你配置的供应商。数据存储、网络访问与可选诊断的说明见[隐私政策](PRIVACY.zh-CN.md)。
+Agent 在本机运行；模型请求所需的上下文会发送给你配置的供应商。数据存储、网络访问与可选诊断的说明见[隐私政策](PRIVACY.zh-CN.md)。
 
 ## 你可以用它做什么
 
@@ -57,7 +57,6 @@ Agent 在本机或你选择的远程主机上运行；模型请求所需的上�
 | --- | --- | --- |
 | **桌面端** | 在可视化工作区中管理对话、文件、修改和工具 | [下载 Electron 桌面端](#桌面版下载) |
 | **终端** | 交互式编程与脚本任务 | `deepzora` · `deepzora run "任务"` |
-| **远程** | 在桌面端连接远程 SSH 主机上的代码 | [远程会话](docs/REMOTE_SESSIONS.zh-CN.md) |
 | **编辑器** | 将支持 ACP 的编辑器连接到 Agent | `deepzora acp` · [ACP 指南](docs/ACP.zh-CN.md) |
 
 ## 快速开始
@@ -103,7 +102,7 @@ deepzora -p "概述这个仓库的结构" --output-format json
 | --- | --- | --- |
 | [使用指南](docs/GUIDE.zh-CN.md) | [模型设置](docs/MODEL_SETTINGS.zh-CN.md) | [贡献指南（English）](CONTRIBUTING.md) |
 | [CLI 参考](docs/CLI.zh-CN.md) | [配置路径](docs/CONFIG_PATHS.zh-CN.md) | [架构与规范（English）](docs/SPEC.md) |
-| [计划与目标](docs/COLLABORATION_MODES.zh-CN.md) | [远程会话](docs/REMOTE_SESSIONS.zh-CN.md) | [桌面端开发（English）](desktop/README.md) |
+| [计划与目标](docs/COLLABORATION_MODES.zh-CN.md) | [插件包](docs/PLUGIN_PACKAGES.zh-CN.md) | [桌面端开发（English）](desktop/README.md) |
 | [权限与沙箱](docs/TOOL_APPROVAL_MODES.zh-CN.md) | [ACP 编辑器集成](docs/ACP.zh-CN.md) | [扩展协议](docs/EXTENSION_PROTOCOL.zh-CN.md) |
 | [检查点与回退](docs/CHECKPOINTS.zh-CN.md) | [扩展与 MCP](docs/EXTENSIONS.zh-CN.md) | [发布候选](docs/RELEASE_CANDIDATES.zh-CN.md) |
 | [上下文与记忆](docs/SESSION_MEMORY_RETRIEVAL.zh-CN.md) | [主题包](docs/THEME_PACK.zh-CN.md) | [可选反馈接收服务](supabase/README.md) |

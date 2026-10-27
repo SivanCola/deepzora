@@ -20,8 +20,6 @@ export type OverlayState = {
   transientOverlayDismissSignal: number;
   startupSplashVisible: boolean;
   needsOnboarding: boolean | null;
-  takeoverDialogTab: string | null;
-  reclaimBusyTab: string | null;
   providerSetupNeeded: boolean;
   setPaletteOpen: Dispatch<SetStateAction<boolean>>;
   setPaletteSessions: Dispatch<SetStateAction<SessionMeta[]>>;
@@ -33,8 +31,6 @@ export type OverlayState = {
   setTransientOverlayDismissSignal: Dispatch<SetStateAction<number>>;
   setStartupSplashVisible: Dispatch<SetStateAction<boolean>>;
   setNeedsOnboarding: Dispatch<SetStateAction<boolean | null>>;
-  setTakeoverDialogTab: Dispatch<SetStateAction<string | null>>;
-  setReclaimBusyTab: Dispatch<SetStateAction<string | null>>;
   setProviderSetupNeeded: Dispatch<SetStateAction<boolean>>;
 };
 
@@ -49,8 +45,6 @@ export const useOverlayStore = create<OverlayState>((set) => ({
   transientOverlayDismissSignal: 0,
   startupSplashVisible: shouldShowStartupSplash(),
   needsOnboarding: null,
-  takeoverDialogTab: null,
-  reclaimBusyTab: null,
   providerSetupNeeded: false,
   setPaletteOpen: (update) => set((s) => ({ paletteOpen: applySetState(s.paletteOpen, update) })),
   setPaletteSessions: (update) => set((s) => ({ paletteSessions: applySetState(s.paletteSessions, update) })),
@@ -62,7 +56,5 @@ export const useOverlayStore = create<OverlayState>((set) => ({
   setTransientOverlayDismissSignal: (update) => set((s) => ({ transientOverlayDismissSignal: applySetState(s.transientOverlayDismissSignal, update) })),
   setStartupSplashVisible: (update) => set((s) => ({ startupSplashVisible: applySetState(s.startupSplashVisible, update) })),
   setNeedsOnboarding: (update) => set((s) => ({ needsOnboarding: applySetState(s.needsOnboarding, update) })),
-  setTakeoverDialogTab: (update) => set((s) => ({ takeoverDialogTab: applySetState(s.takeoverDialogTab, update) })),
-  setReclaimBusyTab: (update) => set((s) => ({ reclaimBusyTab: applySetState(s.reclaimBusyTab, update) })),
   setProviderSetupNeeded: (update) => set((s) => ({ providerSetupNeeded: applySetState(s.providerSetupNeeded, update) })),
 }));

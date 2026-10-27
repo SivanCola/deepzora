@@ -47,7 +47,7 @@ installDesktopHostStub({
   },
 });
 const dispatch = (action: Action) => { state = reducer(state, action); store.setState(tab, state); };
-let follower = new TranscriptSessionFollower(tab, tab, false, dispatch, () => state);
+let follower = new TranscriptSessionFollower(tab, tab, dispatch, () => state);
 await follower.start();
 function Fixture() {
   const view = useSyncExternalStore(fn => store.subscribeState(tab, fn), () => state);
@@ -67,7 +67,7 @@ window.turnOutlineFixture = {
   switchSession: async () => {
     const previous = tab; follower.stop(); tab = tab === "outline-a" ? "outline-b" : "outline-a";
     state = { ...initialState, meta: { sessionPath: tab } } as State;
-    follower = new TranscriptSessionFollower(tab, tab, false, dispatch, () => state);
+    follower = new TranscriptSessionFollower(tab, tab, dispatch, () => state);
     await follower.start(); store.setState(previous, state);
   },
 };

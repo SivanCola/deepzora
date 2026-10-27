@@ -25,7 +25,7 @@ try {
   const feedback = page.locator(".session-loading-indicator");
   const userNode = page.locator('.chat-node[data-chat-kind="user"]');
   await mkdir(evidence, { recursive: true });
-  for (const surface of ["local", "remote", "transcript"]) {
+  for (const surface of ["local", "transcript"]) {
     const input = { surface, identity: `${surface}-A`, phase: "loading" };
     await paint(input);
     await page.clock.runFor(249);

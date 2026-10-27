@@ -10,7 +10,6 @@ import { sessionIdentityKey } from "../app-runtime/sessionTarget";
 import { useControllerProfileCommands } from "../lib/useControllerProfileCommands";
 import type { ComposerProfile, UserPlanModeIntents } from "../lib/composerProfile";
 import type { Meta, TabMeta, ToolApprovalMode } from "../lib/types";
-import type { RemoteSessionApi } from "../lib/useRemoteSession";
 
 const dom = new JSDOM("<div id='root'></div>");
 Object.assign(globalThis, { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true });
@@ -21,7 +20,6 @@ const ports = {
   model: async () => true,
   profile: async (_tab: string, _collaboration: string, approval: string) => { pushes.push(approval); return true; },
 };
-const remoteSession = { composerProfile: undefined } as unknown as RemoteSessionApi;
 let patchActive!: ReturnType<typeof useComposerProfileProjection>["patchActiveComposerProfile"];
 
 function tabFor(sessionId: string, preset: ToolApprovalMode): TabMeta {
@@ -41,14 +39,14 @@ function Surface({ tab, meta }: { tab: TabMeta; meta: Meta }) {
   const tabs = [tab];
   useTabProjectionLifecycle({ tabs, activeTabId: tab.id, activeMeta: tab, meta, planIntentsRef, setOrder, setProfiles });
   const projection = useComposerProfileProjection({ activeTabId: tab.id, activeTab: tab, meta, profilesByTab: profiles,
-    setProfilesByTab: setProfiles, tabMetas: tabs, remote: false, remoteSession, planIntentsRef });
+    setProfilesByTab: setProfiles, tabMetas: tabs, planIntentsRef });
   patchActive = projection.patchActiveComposerProfile;
   const target = { tabId: tab.id, sessionKey: sessionIdentityKey({ tabId: tab.id, session: tab.session, sessionId: tab.sessionId,
     scope: tab.scope, workspaceRoot: tab.workspaceRoot, topicId: tab.topicId }) };
-  const controllerProfiles = projectControllerProfiles(tabs, profiles, { target, profile: projection.composerProfile, remote: false });
+  const controllerProfiles = projectControllerProfiles(tabs, profiles, { target, profile: projection.composerProfile });
   const operations = useSessionOperations({ visible: target, resources: controllerProfiles.map(value => value.target) });
-  useControllerProfileCommands({ target, profiles: controllerProfiles, ready: true, remote: false, operations, ports,
-    remoteModel: async () => {}, report: error => { throw error; } });
+  useControllerProfileCommands({ target, profiles: controllerProfiles, ready: true, operations, ports,
+    report: error => { throw error; } });
   return null;
 }
 

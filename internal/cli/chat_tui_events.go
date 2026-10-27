@@ -335,7 +335,6 @@ func (m *chatTUI) ingestSessionOperation(e event.Event) {
 	if sessionOperationTerminal(incoming.Status) {
 		m.maintenanceTerminal[incoming.OperationID] = struct{}{}
 		m.maintenance = nil
-		m.syncTakeoverIdentity()
 	}
 }
 

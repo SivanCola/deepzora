@@ -7,12 +7,6 @@ import (
 // CancelModelApplicationBlockers is a fenced recovery operation, not a generic
 // kill-all command. The subsequent apply still waits for actual task exit.
 func (a *App) CancelModelApplicationBlockers(tabID string, choice control.ModelApplicationChoice, ids []string) error {
-	if a.isRemoteTab(tabID) {
-		if err := a.validateRemoteModelConfirmation(tabID, choice); err != nil {
-			return err
-		}
-		return a.remoteTabPost(tabID, "/model-settings/cancel-blockers", map[string]any{"choice": choice, "ids": ids})
-	}
 	a.runtimeRebuildMu.Lock()
 	defer a.runtimeRebuildMu.Unlock()
 	a.mu.RLock()

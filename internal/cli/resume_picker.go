@@ -8,6 +8,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
+	"deepzora/internal/control"
 	"deepzora/internal/i18n"
 	"deepzora/internal/session"
 )
@@ -26,20 +27,15 @@ type resumePicker struct {
 // openResumePicker populates the picker from the session directory and opens it.
 // A no-op (with a notice) when there are no saved sessions.
 func (m *chatTUI) openResumePicker() {
-
 	entries := resumeEntries(m.ctrl.SessionDir())
 	if len(entries) == 0 {
 		m.notice(i18n.M.NoSessionToResume)
 		return
 	}
 	activeIdx := -1
-	reclaimedIdx := -1
 	for i, entry := range entries {
 		if resumeEntryIsActive(m.ctrl, entry) {
 			activeIdx = i
-		}
-		if resumeTargetMatches(m.reclaimedTarget, entry) {
-			reclaimedIdx = i
 		}
 	}
 	// Default selection: the first session after the active one, else 0.
@@ -47,20 +43,12 @@ func (m *chatTUI) openResumePicker() {
 	if activeIdx >= 0 && activeIdx+1 < len(entries) {
 		sel = activeIdx + 1
 	}
-	if m.sessionReclaimed && reclaimedIdx >= 0 && len(entries) > 1 {
-		sel = reclaimedIdx + 1
-		if sel >= len(entries) {
-			sel = 0
-		}
-	}
 	items := make([]quickPickerItem, 0, len(entries))
 	for i, entry := range entries {
 		status := ""
 		switch i {
 		case activeIdx:
 			status = "active"
-		case reclaimedIdx:
-			status = "taken back"
 		}
 		label := sessionPickerLabel(entry.session)
 		description := entry.session.UpdatedAt.Local().Format("2006-01-02 15:04")
@@ -77,10 +65,6 @@ func (m *chatTUI) openResumePicker() {
 		entries: entries, sel: sel, active: activeIdx,
 		quick: &quickPicker{kind: quickPickerResume, title: i18n.M.ResumePickTitle, items: items, selected: sel},
 	}
-}
-
-func resumeTargetMatches(target cliResumeTarget, entry resumeEntry) bool {
-	return !target.empty() && target.ref == entry.target.ref && (target.service == nil || entry.target.service == nil || target.service == entry.target.service)
 }
 
 func (m chatTUI) handleResumePickerKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
@@ -138,28 +122,21 @@ func (m chatTUI) applyResumePick() (tea.Model, tea.Cmd) {
 		m.notice(i18n.M.ResumeBusy)
 		return m, nil
 	}
-	detached := m.sessionReclaimed || m.takeover != nil && m.takeover.Returned()
-	if !detached {
-		// Snapshot before moving the lease: the outgoing session must be written
-		// while this process still owns it.
-		if err := m.ctrl.Snapshot(); err != nil {
-			m.notice("resume: snapshot current session: " + err.Error())
-			return m, nil
-		}
-		m.syncTakeoverIdentity()
+	// Snapshot before moving the lease: the outgoing session must be written
+	// while this process still owns it.
+	if err := m.ctrl.Snapshot(); err != nil {
+		m.notice("resume: snapshot current session: " + err.Error())
+		return m, nil
 	}
 	if err := m.commitResumeTarget(target.target); err != nil {
 		if errors.Is(err, session.ErrWriterOwned) {
-			m.pendingTakeoverTarget = target.target
-			m.notice("resume: " + sessionWriterHeldNotice())
-			m.notice("run /takeover to take this session over")
+			m.notice("resume: " + control.SessionInUseMessage)
 			return m, nil
 		}
 		m.notice("resume: " + err.Error())
 		return m, nil
 	}
 
-	m.resumeAfterReclaim()
 	m.replayActiveBranch(i18n.M.ResumedTitle)
 	return m, nil
 }

@@ -3,7 +3,7 @@
 
 export const DESKTOP_PROTOCOL_VERSION = 11;
 
-export const DESKTOP_CONTRACT_DIGEST = "sha256:3fe915487594062ffa0a889d03b31b48d6a026a1abb742a58505f2e78171771f";
+export const DESKTOP_CONTRACT_DIGEST = "sha256:2f8f5fcf09429c8b46d43a85534fa79a2916d2f31f0c114c1706e6fbf7a7ac4c";
 
 export const DESKTOP_COMMANDS = [
   "AIRenameSessionTarget",
@@ -23,16 +23,11 @@ export const DESKTOP_COMMANDS = [
   "AddProviderConnectionWithOptions",
   "AddProviderConnectionWithURL",
   "AddProviderPresetAccess",
-  "AddRemoteForward",
-  "AddRemoteHost",
-  "AddRemoteProject",
   "AddSkillPath",
-  "AnswerRemoteTab",
   "AppendSessionExportPage",
   "ApplyModelSettings",
   "ApplySessionLifecycle",
   "ApplyUpdateRequest",
-  "ApproveRemoteTab",
   "ArchiveCanonicalSession",
   "ArchiveSessionTarget",
   "AttachDropped",
@@ -57,8 +52,6 @@ export const DESKTOP_COMMANDS = [
   "CancelJobForTab",
   "CancelJobsForTab",
   "CancelModelApplicationBlockers",
-  "CancelRemoteTab",
-  "CancelRemoteTabJobs",
   "CancelSessionExport",
   "CancelSessionForTab",
   "CancelTab",
@@ -69,17 +62,14 @@ export const DESKTOP_COMMANDS = [
   "CapabilityDiagnostics",
   "CaptureAttachmentTarget",
   "CaptureInboxTarget",
-  "CheckRemotePlatform",
   "CheckUpdate",
   "CheckpointsForTab",
   "ClearGoalForTab",
   "ClearMCPServerAuthentication",
   "ClearProviderKey",
-  "ClearRemoteTabSession",
   "ClearSession",
   "ClearSessionForTab",
   "CloseMergedWorktreeTab",
-  "CloseRemoteTab",
   "CloseTab",
   "CloseTabWithPolicy",
   "CloseTerminalForTab",
@@ -87,20 +77,15 @@ export const DESKTOP_COMMANDS = [
   "CommitRewindForTab",
   "CommitWorkspaceFileRevertForTab",
   "CompactForTab",
-  "CompactRemoteTab",
   "CompleteSessionComposerSubmission",
   "ConfirmAction",
-  "ConfirmRemoteHostKey",
-  "ConfirmRemoteSecret",
   "ConnectKey",
-  "ConnectRemoteHost",
   "ContextPanel",
   "ContextUsageForTab",
   "CopySessionTarget",
   "CopyThemePack",
   "CreateBlankProject",
   "CreateForkForTab",
-  "CreateForkRemoteTab",
   "CreateIsolatedWorktree",
   "CreatePresentedBrowserPreviewForTab",
   "CreateSession",
@@ -112,22 +97,17 @@ export const DESKTOP_COMMANDS = [
   "DeleteAgentPreset",
   "DeleteInboxItem",
   "DeleteProvider",
-  "DeleteRemotePath",
-  "DeleteRemoteProjectSession",
   "DeleteSessionTarget",
   "DeleteSubagentProfile",
   "DeleteThemePack",
   "DesktopStartupSettings",
   "DisableThemePack",
-  "DisconnectRemoteHost",
   "EditGoalForTab",
-  "EditRemoteTabGoal",
   "Effort",
   "EffortForTab",
   "EnqueueForAttachmentTarget",
   "EnqueueInboxFollowupForTarget",
   "EnsureBlankSurface",
-  "EnsureRemoteProjectSessions",
   "ExportGoalDiagnostics",
   "ExportManualCreationDiagnostics",
   "ExportScrollDiagnostics",
@@ -142,13 +122,10 @@ export const DESKTOP_COMMANDS = [
   "FinishSessionExport",
   "Forget",
   "ForgetForTab",
-  "ForgetRemoteTab",
   "ForkForTab",
-  "ForkRemoteTab",
   "ForkSession",
   "ForkSessionTarget",
   "ForkTargetsForTab",
-  "ForkTargetsRemoteTab",
   "ForkWorktreeForTab",
   "GetActiveThemePack",
   "GetDesktopShellStatus",
@@ -208,8 +185,6 @@ export const DESKTOP_COMMANDS = [
   "ListHistorySessions",
   "ListManualSessionCreations",
   "ListProjectTopics",
-  "ListRemoteDir",
-  "ListRemoteProjects",
   "ListSessions",
   "ListSessionsForTab",
   "ListTabs",
@@ -242,7 +217,6 @@ export const DESKTOP_COMMANDS = [
   "MergeWorktreeBack",
   "Meta",
   "MetaForTab",
-  "MkdirRemote",
   "Models",
   "ModelsForTab",
   "MoveInboxItem",
@@ -260,8 +234,6 @@ export const DESKTOP_COMMANDS = [
   "OpenPresentedPathForTab",
   "OpenProjectTab",
   "OpenReferencePathForTab",
-  "OpenRemoteProjectTab",
-  "OpenRemoteWorkspace",
   "OpenSession",
   "OpenTaskSessionByKey",
   "OpenTaskSessionForTab",
@@ -269,13 +241,11 @@ export const DESKTOP_COMMANDS = [
   "OpenWorkspaceInExternalOpenerForTab",
   "OpenWorkspacePathForTab",
   "PauseGoalForTab",
-  "PauseRemoteTabGoal",
   "PendingPromptIdentitiesForTab",
   "PermissionSnapshotForTab",
   "PickBlankProjectParent",
   "PickExportFile",
   "PickPluginFolder",
-  "PickRemoteIdentityFile",
   "PickSkillFolder",
   "PickThemeBackground",
   "PickWorkspace",
@@ -289,7 +259,6 @@ export const DESKTOP_COMMANDS = [
   "PreviewSession",
   "PreviewWorkspaceFileRevertForTab",
   "PurgeCanonicalSession",
-  "QuerySessionTakeover",
   "ReadDraftImageForTab",
   "ReadDraftImageForTarget",
   "ReadFile",
@@ -300,7 +269,6 @@ export const DESKTOP_COMMANDS = [
   "ReadPresentedTextPageForTab",
   "ReadReferenceFileForTab",
   "ReadReferenceFileSourceForTab",
-  "ReadRemoteFile",
   "ReadSessionAttachmentForTab",
   "ReadSessionExportChunk",
   "ReadSessionHistory",
@@ -311,7 +279,6 @@ export const DESKTOP_COMMANDS = [
   "RebuildHistoryIndex",
   "RebuildSessionCatalog",
   "RebuildTaskCatalog",
-  "ReclaimRemoteTabSession",
   "ReconnectMCPServer",
   "RecordUIPerf",
   "RefreshSkills",
@@ -327,44 +294,17 @@ export const DESKTOP_COMMANDS = [
   "ReloadUserConfig",
   "Remember",
   "RememberForTab",
-  "RemoteConnectionStatuses",
-  "RemoteForwards",
-  "RemoteHosts",
-  "RemoteLastWorkspace",
-  "RemoteLocateSessionMessageForTab",
-  "RemoteProjectSessions",
-  "RemoteSearchSessionHistoryForTab",
-  "RemoteServerLogs",
-  "RemoteServerStatus",
-  "RemoteSessionHistoryContentForTab",
-  "RemoteSessionHistoryOutlineForTab",
-  "RemoteSessionHistoryPageForTab",
-  "RemoteSessionHistoryWindowForTab",
-  "RemoteSessionMessageFieldForTab",
-  "RemoteSessionOpenForTab",
-  "RemoteTabBranches",
-  "RemoteTabMetadata",
-  "RemoteTabSkills",
-  "RemoteTabSnapshot",
-  "RemoteTabStatus",
-  "RemoteTranscriptContentForTab",
-  "RemoteTranscriptFollowForTab",
   "RemoveMCPServer",
   "RemovePermissionRule",
   "RemovePlugin",
   "RemoveProviderAccess",
   "RemoveProviderAccesses",
-  "RemoveRemoteForward",
-  "RemoveRemoteHost",
-  "RemoveRemoteProject",
   "RemoveSkillPath",
   "RemoveTopic",
   "RemoveWorkspace",
   "RenameCanonicalSession",
   "RenameProject",
   "RenameProviderConnections",
-  "RenameRemotePath",
-  "RenameRemoteProjectSession",
   "RenameSession",
   "RenameSessionTarget",
   "RenameTerminalForTab",
@@ -374,7 +314,6 @@ export const DESKTOP_COMMANDS = [
   "ReorderTabs",
   "RepairCredentials",
   "ReplayPendingPromptsForTab",
-  "ReplayRemoteTabPrompts",
   "ReportCrash",
   "ReportDesktopWebViewReady",
   "RequeueTaskByKey",
@@ -386,10 +325,6 @@ export const DESKTOP_COMMANDS = [
   "ResolvePromptForSession",
   "ResolvePromptForTab",
   "ResolveReferencePathForTab",
-  "ResolveRemotePresentedPathForTab",
-  "ResolveRemoteTabPlanDecision",
-  "ResolveRemoteTabPromptExact",
-  "ResolveRemoteWorkspacePathForTab",
   "ResolveWorkspacePathForTab",
   "RestartApplication",
   "RestoreArchivedMemory",
@@ -400,7 +335,6 @@ export const DESKTOP_COMMANDS = [
   "RestoreMemoryRevisionForTab",
   "RestoreSessionTarget",
   "ResumeGoalForTab",
-  "ResumeRemoteTabGoal",
   "ResumeTranscriptSessionForTab",
   "RetryAuthenticationForTab",
   "RetryInboxItem",
@@ -415,7 +349,6 @@ export const DESKTOP_COMMANDS = [
   "RevokePermissionGrantForTab",
   "RevokeWorkspaceBrowserPreview",
   "RevokeWorkspaceMediaPreview",
-  "RewindRemoteTab",
   "RunShellForTab",
   "RuntimeDoctor",
   "SanitizeMarkdownSVG",
@@ -444,15 +377,12 @@ export const DESKTOP_COMMANDS = [
   "SaveProviderModelCatalogs",
   "SaveProviderWithKey",
   "SaveReferencePathAsForTab",
-  "SaveRemoteFileAs",
-  "SaveRemotePresentedFileAs",
   "SaveSessionComposerState",
   "SaveSessionMarkdownForTab",
   "SaveThemePack",
   "SaveWindowState",
   "SaveWorkspacePathAsForTab",
   "ScanPromptHistory",
-  "ScanSSHConfig",
   "SearchFileRefs",
   "SearchFileRefsForTab",
   "SearchFileRefsForTarget",
@@ -511,14 +441,6 @@ export const DESKTOP_COMMANDS = [
   "SetProviderKey",
   "SetProviderWebSearch",
   "SetReasoningLanguage",
-  "SetRemoteProjectTitle",
-  "SetRemoteSessionPinned",
-  "SetRemoteTabComposerProfile",
-  "SetRemoteTabEffort",
-  "SetRemoteTabGoal",
-  "SetRemoteTabModel",
-  "SetRemoteTabPlanMode",
-  "SetRemoteTabToolApprovalMode",
   "SetSandbox",
   "SetSessionExperience",
   "SetSessionPinned",
@@ -551,8 +473,6 @@ export const DESKTOP_COMMANDS = [
   "Steer",
   "SteerForTab",
   "SteerInboxItemForTurn",
-  "SteerRemoteTab",
-  "StopRemoteServer",
   "StopTaskByKey",
   "StorageSettings",
   "SubmitDisplayToTabWithID",
@@ -561,18 +481,10 @@ export const DESKTOP_COMMANDS = [
   "SubmitExtensionFormExact",
   "SubmitInitialGoalToTabWithID",
   "SubmitInvocationsToTabWithID",
-  "SubmitRemoteTab",
-  "SubmitRemoteTabExtensionForm",
-  "SubmitRemoteTabExtensionFormExact",
-  "SubmitRemoteTabWithModelApplication",
-  "SubmitRemoteTabWithSubmission",
   "SubmitToTabWithID",
   "SummarizeFromForTab",
-  "SummarizeRemoteTab",
   "SummarizeUpToForTab",
   "SwitchWorkspace",
-  "SyncRuntimeState",
-  "TakeoverSession",
   "TerminalOutputForTab",
   "TerminalWorkspaceForTab",
   "TestProviderModel",
@@ -589,7 +501,6 @@ export const DESKTOP_COMMANDS = [
   "UpdateInboxItem",
   "UpdateMCPServer",
   "UpdatePlugin",
-  "UpdateRemoteHost",
   "UpdateSessionOrganization",
   "UpdateSubagentProfile",
   "UsageStats",
@@ -603,7 +514,6 @@ export const DESKTOP_COMMANDS = [
   "WorkspaceRevisionForTab",
   "WorkspaceTurnChangeDetail",
   "WorkspaceTurnChanges",
-  "WriteRemoteFile",
   "WriteTerminalForTab",
 ] as const;
 
@@ -617,11 +527,6 @@ export const DESKTOP_EVENTS = [
   "project-tree:changed",
   "project-tree:changed-v2",
   "project-tree:runtime-changed",
-  "remote-tab:opened",
-  "remote-tab:updated",
-  "remote:forwards",
-  "remote:server",
-  "remote:status",
   "runtime-state:changed",
   "runtime:rebuilt",
   "tab:meta",
@@ -2308,9 +2213,6 @@ export interface InboxTargetView {
   sessionPath: string;
   generation: number;
   selection: number;
-  remote: boolean;
-  hostId?: string;
-  workspace?: string;
 }
 
 export interface InstructionDiagnostic {
@@ -2620,7 +2522,6 @@ export interface Meta {
   goalRuntime?: GoalRuntimeView | null;
   canonicalTodos?: TodoItem[] | null;
   pinnedFiles?: PinnedFileInfo[];
-  remote?: RemoteTabRef | null;
 }
 
 export interface ModelInfo {
@@ -2828,7 +2729,6 @@ export interface ProjectNode {
   pinned?: boolean;
   sortOrder: number;
   isolatedWorktree?: boolean;
-  remote?: RemoteTabRef | null;
   runtimeOnly?: boolean;
   children?: ProjectNode[];
 }
@@ -3032,177 +2932,6 @@ export interface ReadSnapshotDiagnostics {
   reservedDiskBytes: number;
 }
 
-export interface RemoteAskAnswer {
-  QuestionID: string;
-  Selected: string[];
-}
-
-export interface RemoteConnectionErrorDetailsView {
-  code: string;
-  presentedSha256?: string;
-  knownHostRecords?: RemoteKnownHostLocationView[];
-}
-
-export interface RemoteConnectionStatusView {
-  hostId: string;
-  state: string;
-  error?: string;
-  errorDetails?: RemoteConnectionErrorDetailsView | null;
-  fingerprint?: RemoteFingerprintView | null;
-  secretPrompt?: RemoteSecretPromptView | null;
-  attempt?: number;
-}
-
-export interface RemoteDirEntry {
-  name: string;
-  path: string;
-  isDir: boolean;
-  size: number;
-  mtimeUnix: number;
-  symlink: boolean;
-}
-
-export interface RemoteFilePreview {
-  path: string;
-  body: string;
-  size: number;
-  mtimeUnix: number;
-  truncated: boolean;
-  binary: boolean;
-  err?: string;
-}
-
-export interface RemoteFingerprintView {
-  hostId: string;
-  address: string;
-  keyType: string;
-  sha256: string;
-}
-
-export interface RemoteForwardInput {
-  localPort: number;
-  remoteHost: string;
-  remotePort: number;
-  label: string;
-}
-
-export interface RemoteForwardView {
-  id: string;
-  hostId: string;
-  localPort: number;
-  remoteHost: string;
-  remotePort: number;
-  label: string;
-  state: string;
-  error?: string;
-}
-
-export interface RemoteHostInput {
-  label: string;
-  host: string;
-  port: number;
-  user: string;
-  identityFile: string;
-  proxyJump: string;
-  defaultWorkspace: string;
-  serveInstall: string;
-  credentialMode: string;
-  useSSHConfig: boolean;
-  password?: string;
-  keyPassphrase?: string;
-  clearPassword?: boolean;
-  clearPassphrase?: boolean;
-  preserveExistingSettings?: boolean;
-}
-
-export interface RemoteHostView {
-  id: string;
-  label: string;
-  host: string;
-  port: number;
-  user: string;
-  identityFile: string;
-  proxyJump: string;
-  defaultWorkspace: string;
-  serveInstall: string;
-  credentialMode: string;
-  useSSHConfig: boolean;
-  passwordSet?: boolean;
-  keyPassphraseSet?: boolean;
-}
-
-export interface RemoteKnownHostLocationView {
-  path: string;
-  line: number;
-}
-
-export interface RemoteProjectView {
-  hostId: string;
-  workspace: string;
-  title?: string;
-  color?: string;
-  merged?: boolean;
-}
-
-export interface RemoteSecretPromptView {
-  promptId: string;
-  hostId: string;
-  host: string;
-  kind: string;
-  identity?: string;
-}
-
-export interface RemoteServerView {
-  hostId: string;
-  workspace: string;
-  state: string;
-  message?: string;
-  localUrl?: string;
-  instanceId?: string;
-  error?: string;
-}
-
-export interface RemoteSessionView {
-  hostId?: string;
-  sessionId: string;
-  title?: string;
-  turns?: number;
-  current?: boolean;
-  running?: boolean;
-  lastActivityAt?: number;
-  resultSequence?: number | null;
-  metadataReady?: boolean;
-  pinned?: boolean;
-}
-
-export interface RemoteTabOpenOptions {
-  newSession?: boolean;
-  sessionId?: string;
-  sessionTitle?: string;
-}
-
-export interface RemoteTabRef {
-  hostId: string;
-  workspace: string;
-}
-
-export interface RemoteTabSnapshot {
-  history: unknown;
-  context?: unknown;
-  todos?: unknown;
-  checkpoints?: unknown;
-  models?: unknown;
-  commands?: unknown;
-  status?: unknown;
-  pendingEvents?: unknown[];
-}
-
-export interface RemoteWriteResult {
-  ok: boolean;
-  conflict: boolean;
-  newMtimeUnix: number;
-}
-
 export interface RepairGuidanceView {
   manager: string;
   command?: string;
@@ -3269,8 +2998,6 @@ export interface RuntimeSessionState {
   sessionPath: string;
   sessionGeneration: number;
   open: boolean;
-  remote: boolean;
-  hostId?: string;
   freshness: string;
   state: RuntimeStateSnapshot;
 }
@@ -3562,7 +3289,6 @@ export interface SessionOrganizationSnapshot {
 export interface SessionOrganizationWorkspace {
   scope: string;
   workspaceRoot?: string;
-  hostId?: string;
 }
 
 export interface SessionRuntimeIssue {
@@ -3581,16 +3307,6 @@ export interface SessionSelector {
   ref?: SessionRef | null;
   sessionPath?: string;
   topicId?: string;
-}
-
-export interface SessionTakeoverView {
-  available: boolean;
-  reason?: string;
-  sessionPath?: string;
-  holder?: string;
-  remoteAttached: boolean;
-  running: boolean;
-  mirrored: boolean;
 }
 
 export interface SettingsView {
@@ -3761,8 +3477,6 @@ export interface TabMeta {
   workspacePath?: string;
   gitBranch?: string;
   isolatedWorktree?: boolean;
-  remote?: RemoteTabRef | null;
-  remoteState?: string;
   forkTargetsSupported: boolean;
   interactionTargetSupported: boolean;
   extensionFormInstanceSupported: boolean;
@@ -3775,7 +3489,6 @@ export interface TabMeta {
   sessionDigest?: string;
   sessionGeneration?: number;
   readOnly?: boolean;
-  takenOver?: boolean;
   projectColor?: string;
   label: string;
   ready: boolean;
@@ -4975,16 +4688,11 @@ export interface GeneratedDesktopCommands {
   AddProviderConnectionWithOptions(arg0: string, arg1: string, arg2: string, arg3: string, arg4: string): Promise<string>;
   AddProviderConnectionWithURL(arg0: string, arg1: string, arg2: string, arg3: string): Promise<string>;
   AddProviderPresetAccess(arg0: string, arg1: string): Promise<string>;
-  AddRemoteForward(arg0: string, arg1: RemoteForwardInput): Promise<RemoteForwardView>;
-  AddRemoteHost(arg0: RemoteHostInput): Promise<RemoteHostView>;
-  AddRemoteProject(arg0: string, arg1: string): Promise<RemoteProjectView>;
   AddSkillPath(arg0: string): Promise<void>;
-  AnswerRemoteTab(arg0: string, arg1: string, arg2: RemoteAskAnswer[]): Promise<void>;
   AppendSessionExportPage(arg0: string, arg1: SessionExportPage): Promise<void>;
   ApplyModelSettings(arg0: ModelSettingsChange): Promise<ModelSettingsResult>;
   ApplySessionLifecycle(arg0: SessionLifecycleRequest): Promise<SessionLifecycleResult>;
   ApplyUpdateRequest(arg0: string, arg1: string, arg2: string): Promise<void>;
-  ApproveRemoteTab(arg0: string, arg1: string, arg2: string): Promise<void>;
   ArchiveCanonicalSession(arg0: SessionRef): Promise<void>;
   ArchiveSessionTarget(arg0: SessionSelector): Promise<SessionMutationResult>;
   AttachDropped(arg0: string): Promise<DroppedItem>;
@@ -5009,8 +4717,6 @@ export interface GeneratedDesktopCommands {
   CancelJobForTab(arg0: string, arg1: string): Promise<boolean>;
   CancelJobsForTab(arg0: string, arg1: string[]): Promise<JobCancelBatchView>;
   CancelModelApplicationBlockers(arg0: string, arg1: ModelApplicationChoice, arg2: string[]): Promise<void>;
-  CancelRemoteTab(arg0: string): Promise<void>;
-  CancelRemoteTabJobs(arg0: string, arg1: string[]): Promise<void>;
   CancelSessionExport(arg0: string): Promise<void>;
   CancelSessionForTab(arg0: string): Promise<CancelReceipt>;
   CancelTab(arg0: string): Promise<void>;
@@ -5021,17 +4727,14 @@ export interface GeneratedDesktopCommands {
   CapabilityDiagnostics(arg0: boolean): Promise<Report>;
   CaptureAttachmentTarget(arg0: ComposerTarget): Promise<AttachmentTargetView>;
   CaptureInboxTarget(arg0: string, arg1: string): Promise<InboxTargetView>;
-  CheckRemotePlatform(arg0: string): Promise<void>;
   CheckUpdate(arg0: string): Promise<UpdateInfo | null>;
   CheckpointsForTab(arg0: string): Promise<CheckpointMeta[]>;
   ClearGoalForTab(arg0: string): Promise<void>;
   ClearMCPServerAuthentication(arg0: string): Promise<void>;
   ClearProviderKey(arg0: string): Promise<void>;
-  ClearRemoteTabSession(arg0: string): Promise<void>;
   ClearSession(): Promise<SessionClearResult>;
   ClearSessionForTab(arg0: string): Promise<SessionClearResult>;
   CloseMergedWorktreeTab(arg0: CloseMergedWorktreeTabRequest): Promise<CloseMergedWorktreeTabResult>;
-  CloseRemoteTab(arg0: string): Promise<void>;
   CloseTab(arg0: string): Promise<void>;
   CloseTabWithPolicy(arg0: string, arg1: string): Promise<void>;
   CloseTerminalForTab(arg0: string, arg1: string): Promise<void>;
@@ -5039,20 +4742,15 @@ export interface GeneratedDesktopCommands {
   CommitRewindForTab(arg0: string, arg1: string, arg2: number, arg3: string): Promise<RewindResultView>;
   CommitWorkspaceFileRevertForTab(arg0: string, arg1: string, arg2: string): Promise<RewindResultView>;
   CompactForTab(arg0: string): Promise<void>;
-  CompactRemoteTab(arg0: string, arg1: string): Promise<void>;
   CompleteSessionComposerSubmission(arg0: SessionRef, arg1: string, arg2: string): Promise<SessionComposerState>;
   ConfirmAction(arg0: NativeConfirmRequest): Promise<boolean>;
-  ConfirmRemoteHostKey(arg0: string, arg1: boolean): Promise<void>;
-  ConfirmRemoteSecret(arg0: string, arg1: string, arg2: string, arg3: boolean): Promise<void>;
   ConnectKey(arg0: string): Promise<string>;
-  ConnectRemoteHost(arg0: string): Promise<void>;
   ContextPanel(arg0: string): Promise<ContextPanelInfo>;
   ContextUsageForTab(arg0: string): Promise<ContextInfo>;
   CopySessionTarget(arg0: SessionSelector, arg1: string): Promise<SessionCreationResult>;
   CopyThemePack(arg0: string, arg1: string, arg2: string): Promise<ThemePackView>;
   CreateBlankProject(arg0: string, arg1: string): Promise<string>;
   CreateForkForTab(arg0: string, arg1: ForkAnchorView): Promise<ForkCreationView>;
-  CreateForkRemoteTab(arg0: string, arg1: ForkAnchorView): Promise<ForkCreationView>;
   CreateIsolatedWorktree(arg0: string): Promise<IsolatedWorktreeOpenResult>;
   CreatePresentedBrowserPreviewForTab(arg0: string, arg1: string, arg2: string): Promise<string>;
   CreateSession(arg0: string): Promise<SessionRef>;
@@ -5064,22 +4762,17 @@ export interface GeneratedDesktopCommands {
   DeleteAgentPreset(arg0: string, arg1: string, arg2: string): Promise<void>;
   DeleteInboxItem(arg0: string, arg1: string): Promise<void>;
   DeleteProvider(arg0: string): Promise<void>;
-  DeleteRemotePath(arg0: string, arg1: string, arg2: boolean): Promise<void>;
-  DeleteRemoteProjectSession(arg0: string, arg1: string, arg2: string): Promise<void>;
   DeleteSessionTarget(arg0: SessionSelector): Promise<SessionMutationResult>;
   DeleteSubagentProfile(arg0: string, arg1: string): Promise<void>;
   DeleteThemePack(arg0: string): Promise<void>;
   DesktopStartupSettings(): Promise<DesktopStartupSettingsView>;
   DisableThemePack(): Promise<void>;
-  DisconnectRemoteHost(arg0: string): Promise<void>;
   EditGoalForTab(arg0: string, arg1: string, arg2: number | null): Promise<void>;
-  EditRemoteTabGoal(arg0: string, arg1: string, arg2: number | null): Promise<void>;
   Effort(): Promise<EffortInfo>;
   EffortForTab(arg0: string): Promise<EffortInfo>;
   EnqueueForAttachmentTarget(arg0: string, arg1: string, arg2: string, arg3: string, arg4: control_InvocationRequest[], arg5: SubmissionAttachment[]): Promise<InboxReceiptView>;
   EnqueueInboxFollowupForTarget(arg0: InboxTargetView, arg1: string, arg2: string, arg3: main_InvocationRequest[], arg4: string): Promise<InboxReceiptView>;
   EnsureBlankSurface(arg0: string, arg1: string): Promise<TabMeta>;
-  EnsureRemoteProjectSessions(arg0: string, arg1: string): Promise<RemoteSessionView[]>;
   ExportGoalDiagnostics(): Promise<string>;
   ExportManualCreationDiagnostics(): Promise<string>;
   ExportScrollDiagnostics(arg0: string): Promise<string>;
@@ -5094,13 +4787,10 @@ export interface GeneratedDesktopCommands {
   FinishSessionExport(arg0: string): Promise<SessionExportResult>;
   Forget(arg0: string): Promise<void>;
   ForgetForTab(arg0: string, arg1: string): Promise<void>;
-  ForgetRemoteTab(arg0: string, arg1: string): Promise<void>;
   ForkForTab(arg0: string, arg1: number): Promise<TabMeta>;
-  ForkRemoteTab(arg0: string, arg1: number, arg2: string): Promise<void>;
   ForkSession(arg0: SessionRef, arg1: string): Promise<SessionRef>;
   ForkSessionTarget(arg0: SessionSelector, arg1: string): Promise<SessionRef>;
   ForkTargetsForTab(arg0: string): Promise<ForkTargetSetView>;
-  ForkTargetsRemoteTab(arg0: string): Promise<ForkTargetSetView>;
   ForkWorktreeForTab(arg0: string, arg1: number): Promise<ForkWorktreeResultView>;
   GetActiveThemePack(): Promise<ThemeActiveView>;
   GetDesktopShellStatus(): Promise<DesktopShellStatusView>;
@@ -5160,8 +4850,6 @@ export interface GeneratedDesktopCommands {
   ListHistorySessions(arg0: HistorySessionPageRequest): Promise<HistorySessionPage>;
   ListManualSessionCreations(): Promise<ManualSessionCreationView[]>;
   ListProjectTopics(arg0: ProjectTopicPageRequest): Promise<ProjectTopicPage>;
-  ListRemoteDir(arg0: string, arg1: string): Promise<RemoteDirEntry[]>;
-  ListRemoteProjects(): Promise<RemoteProjectView[]>;
   ListSessions(): Promise<SessionMeta[]>;
   ListSessionsForTab(arg0: string): Promise<SessionMeta[]>;
   ListTabs(): Promise<TabMeta[]>;
@@ -5194,7 +4882,6 @@ export interface GeneratedDesktopCommands {
   MergeWorktreeBack(arg0: MergeWorktreeBackRequest): Promise<MergeResult>;
   Meta(): Promise<Meta>;
   MetaForTab(arg0: string): Promise<Meta>;
-  MkdirRemote(arg0: string, arg1: string): Promise<void>;
   Models(): Promise<ModelInfo[]>;
   ModelsForTab(arg0: string): Promise<ModelInfo[]>;
   MoveInboxItem(arg0: string, arg1: string, arg2: number): Promise<void>;
@@ -5212,8 +4899,6 @@ export interface GeneratedDesktopCommands {
   OpenPresentedPathForTab(arg0: string, arg1: string, arg2: string): Promise<void>;
   OpenProjectTab(arg0: string, arg1: string): Promise<TabMeta>;
   OpenReferencePathForTab(arg0: string, arg1: string): Promise<void>;
-  OpenRemoteProjectTab(arg0: string, arg1: string, arg2: RemoteTabOpenOptions): Promise<TabMeta>;
-  OpenRemoteWorkspace(arg0: string, arg1: string): Promise<void>;
   OpenSession(arg0: SessionRef): Promise<HistoryPage>;
   OpenTaskSessionByKey(arg0: TaskOpenRequest): Promise<ControlResult>;
   OpenTaskSessionForTab(arg0: string, arg1: string): Promise<ControlResult>;
@@ -5221,13 +4906,11 @@ export interface GeneratedDesktopCommands {
   OpenWorkspaceInExternalOpenerForTab(arg0: string, arg1: string): Promise<void>;
   OpenWorkspacePathForTab(arg0: string, arg1: string): Promise<void>;
   PauseGoalForTab(arg0: string): Promise<boolean>;
-  PauseRemoteTabGoal(arg0: string): Promise<void>;
   PendingPromptIdentitiesForTab(arg0: string): Promise<PromptIdentityView[]>;
   PermissionSnapshotForTab(arg0: string): Promise<PermissionSnapshot>;
   PickBlankProjectParent(): Promise<string>;
   PickExportFile(arg0: string, arg1: string): Promise<string>;
   PickPluginFolder(): Promise<string>;
-  PickRemoteIdentityFile(): Promise<string>;
   PickSkillFolder(): Promise<string>;
   PickThemeBackground(): Promise<string>;
   PickWorkspace(): Promise<string>;
@@ -5241,7 +4924,6 @@ export interface GeneratedDesktopCommands {
   PreviewSession(arg0: string): Promise<Message[]>;
   PreviewWorkspaceFileRevertForTab(arg0: string, arg1: string): Promise<RewindPlanView>;
   PurgeCanonicalSession(arg0: SessionRef): Promise<void>;
-  QuerySessionTakeover(arg0: string): Promise<SessionTakeoverView | null>;
   ReadDraftImageForTab(arg0: string, arg1: string): Promise<string>;
   ReadDraftImageForTarget(arg0: string, arg1: string): Promise<string>;
   ReadFile(arg0: string): Promise<FilePreview>;
@@ -5252,7 +4934,6 @@ export interface GeneratedDesktopCommands {
   ReadPresentedTextPageForTab(arg0: string, arg1: string, arg2: string, arg3: number, arg4: string): Promise<PresentedTextPage>;
   ReadReferenceFileForTab(arg0: string, arg1: string): Promise<FilePreview>;
   ReadReferenceFileSourceForTab(arg0: string, arg1: string): Promise<FilePreview>;
-  ReadRemoteFile(arg0: string, arg1: string): Promise<RemoteFilePreview>;
   ReadSessionAttachmentForTab(arg0: string, arg1: string, arg2: number): Promise<SessionHistoryContentChunk>;
   ReadSessionExportChunk(arg0: string, arg1: number): Promise<SessionExportChunk>;
   ReadSessionHistory(arg0: SessionRef, arg1: string, arg2: number): Promise<HistoryPage>;
@@ -5263,7 +4944,6 @@ export interface GeneratedDesktopCommands {
   RebuildHistoryIndex(): Promise<void>;
   RebuildSessionCatalog(): Promise<void>;
   RebuildTaskCatalog(): Promise<void>;
-  ReclaimRemoteTabSession(arg0: string): Promise<void>;
   ReconnectMCPServer(arg0: string): Promise<void>;
   RecordUIPerf(arg0: Record<string, string>): Promise<void>;
   RefreshSkills(): Promise<void>;
@@ -5279,44 +4959,17 @@ export interface GeneratedDesktopCommands {
   ReloadUserConfig(): Promise<DesktopStartupSettingsView>;
   Remember(arg0: string, arg1: string): Promise<string>;
   RememberForTab(arg0: string, arg1: string, arg2: string): Promise<string>;
-  RemoteConnectionStatuses(): Promise<RemoteConnectionStatusView[]>;
-  RemoteForwards(arg0: string): Promise<RemoteForwardView[]>;
-  RemoteHosts(): Promise<RemoteHostView[]>;
-  RemoteLastWorkspace(arg0: string): Promise<string>;
-  RemoteLocateSessionMessageForTab(arg0: string, arg1: string, arg2: number): Promise<MessageLocation>;
-  RemoteProjectSessions(arg0: string, arg1: string): Promise<RemoteSessionView[]>;
-  RemoteSearchSessionHistoryForTab(arg0: string, arg1: string, arg2: string, arg3: number): Promise<SearchHistoryPage>;
-  RemoteServerLogs(arg0: string, arg1: string, arg2: number): Promise<string>;
-  RemoteServerStatus(arg0: string, arg1: string): Promise<RemoteServerView>;
-  RemoteSessionHistoryContentForTab(arg0: string, arg1: Ref, arg2: number): Promise<SessionHistoryContentChunk>;
-  RemoteSessionHistoryOutlineForTab(arg0: string, arg1: HistoryOutlineRequest): Promise<HistoryOutlinePage>;
-  RemoteSessionHistoryPageForTab(arg0: string, arg1: string, arg2: number): Promise<MessageHistoryPage>;
-  RemoteSessionHistoryWindowForTab(arg0: string, arg1: HistoryWindowRequest): Promise<HistoryWindowPage>;
-  RemoteSessionMessageFieldForTab(arg0: string, arg1: string, arg2: number, arg3: string, arg4: number, arg5: number): Promise<MessageFieldPage>;
-  RemoteSessionOpenForTab(arg0: string): Promise<SessionOpenView>;
-  RemoteTabBranches(arg0: string): Promise<unknown>;
-  RemoteTabMetadata(arg0: string): Promise<RemoteTabSnapshot>;
-  RemoteTabSkills(arg0: string): Promise<unknown>;
-  RemoteTabSnapshot(arg0: string): Promise<RemoteTabSnapshot>;
-  RemoteTabStatus(arg0: string): Promise<unknown>;
-  RemoteTranscriptContentForTab(arg0: string, arg1: ContentRequest): Promise<ContentChunk>;
-  RemoteTranscriptFollowForTab(arg0: string, arg1: FollowRequest): Promise<TranscriptFollowResponse>;
   RemoveMCPServer(arg0: string): Promise<void>;
   RemovePermissionRule(arg0: string, arg1: string): Promise<void>;
   RemovePlugin(arg0: string): Promise<void>;
   RemoveProviderAccess(arg0: string): Promise<void>;
   RemoveProviderAccesses(arg0: string[]): Promise<void>;
-  RemoveRemoteForward(arg0: string, arg1: string): Promise<void>;
-  RemoveRemoteHost(arg0: string): Promise<void>;
-  RemoveRemoteProject(arg0: string, arg1: string): Promise<void>;
   RemoveSkillPath(arg0: string): Promise<void>;
   RemoveTopic(arg0: TopicRemovalRequest): Promise<TopicRemovalResult>;
   RemoveWorkspace(arg0: string): Promise<void>;
   RenameCanonicalSession(arg0: SessionRef, arg1: string): Promise<void>;
   RenameProject(arg0: string, arg1: string): Promise<void>;
   RenameProviderConnections(arg0: string[], arg1: string): Promise<void>;
-  RenameRemotePath(arg0: string, arg1: string, arg2: string): Promise<void>;
-  RenameRemoteProjectSession(arg0: string, arg1: string, arg2: string, arg3: string): Promise<void>;
   RenameSession(arg0: string, arg1: string): Promise<void>;
   RenameSessionTarget(arg0: SessionSelector, arg1: string): Promise<SessionMutationResult>;
   RenameTerminalForTab(arg0: string, arg1: string, arg2: string): Promise<void>;
@@ -5326,7 +4979,6 @@ export interface GeneratedDesktopCommands {
   ReorderTabs(arg0: string[]): Promise<void>;
   RepairCredentials(arg0: boolean): Promise<CredentialDiagnosticReport>;
   ReplayPendingPromptsForTab(arg0: string): Promise<void>;
-  ReplayRemoteTabPrompts(arg0: string): Promise<unknown>;
   ReportCrash(arg0: string, arg1: string): Promise<void>;
   ReportDesktopWebViewReady(): Promise<void>;
   RequeueTaskByKey(arg0: TaskActionRequest): Promise<ControlResult>;
@@ -5338,10 +4990,6 @@ export interface GeneratedDesktopCommands {
   ResolvePromptForSession(arg0: InteractionTargetView, arg1: PromptAnswerView): Promise<void>;
   ResolvePromptForTab(arg0: string, arg1: string, arg2: string, arg3: string, arg4: string, arg5: PromptAnswerView): Promise<void>;
   ResolveReferencePathForTab(arg0: string, arg1: string): Promise<string>;
-  ResolveRemotePresentedPathForTab(arg0: string, arg1: string, arg2: string, arg3: string): Promise<string>;
-  ResolveRemoteTabPlanDecision(arg0: string, arg1: string, arg2: string, arg3: string): Promise<void>;
-  ResolveRemoteTabPromptExact(arg0: InteractionTargetView, arg1: PromptAnswerView): Promise<void>;
-  ResolveRemoteWorkspacePathForTab(arg0: string, arg1: string, arg2: string, arg3: string): Promise<string>;
   ResolveWorkspacePathForTab(arg0: string, arg1: string): Promise<string>;
   RestartApplication(): Promise<void>;
   RestoreArchivedMemory(arg0: string): Promise<MemoryFact>;
@@ -5352,7 +5000,6 @@ export interface GeneratedDesktopCommands {
   RestoreMemoryRevisionForTab(arg0: string, arg1: string, arg2: number): Promise<MemoryFact>;
   RestoreSessionTarget(arg0: SessionSelector): Promise<SessionMutationResult>;
   ResumeGoalForTab(arg0: string): Promise<boolean>;
-  ResumeRemoteTabGoal(arg0: string): Promise<void>;
   ResumeTranscriptSessionForTab(arg0: string, arg1: string): Promise<HistorySwitchPhases>;
   RetryAuthenticationForTab(arg0: string): Promise<AuthenticationState>;
   RetryInboxItem(arg0: string, arg1: string): Promise<void>;
@@ -5367,7 +5014,6 @@ export interface GeneratedDesktopCommands {
   RevokePermissionGrantForTab(arg0: string, arg1: string, arg2: string, arg3: number): Promise<PermissionSnapshot>;
   RevokeWorkspaceBrowserPreview(arg0: string): Promise<void>;
   RevokeWorkspaceMediaPreview(arg0: string): Promise<void>;
-  RewindRemoteTab(arg0: string, arg1: string, arg2: string): Promise<void>;
   RunShellForTab(arg0: string, arg1: string): Promise<void>;
   RuntimeDoctor(): Promise<RuntimeDoctorReport>;
   SanitizeMarkdownSVG(arg0: string): Promise<MarkdownSVGView>;
@@ -5396,15 +5042,12 @@ export interface GeneratedDesktopCommands {
   SaveProviderModelCatalogs(arg0: ProviderModelCatalogUpdate[]): Promise<string[]>;
   SaveProviderWithKey(arg0: ProviderView, arg1: string): Promise<string>;
   SaveReferencePathAsForTab(arg0: string, arg1: string): Promise<string>;
-  SaveRemoteFileAs(arg0: string, arg1: string): Promise<string>;
-  SaveRemotePresentedFileAs(arg0: string, arg1: string, arg2: string, arg3: string): Promise<string>;
   SaveSessionComposerState(arg0: SessionComposerSaveRequest): Promise<SessionComposerState>;
   SaveSessionMarkdownForTab(arg0: string, arg1: string, arg2: string): Promise<void>;
   SaveThemePack(arg0: ThemeSaveInput): Promise<ThemePackView>;
   SaveWindowState(arg0: DesktopWindowState): Promise<void>;
   SaveWorkspacePathAsForTab(arg0: string, arg1: string): Promise<string>;
   ScanPromptHistory(arg0: string): Promise<PromptHistoryResult>;
-  ScanSSHConfig(): Promise<RemoteHostInput[]>;
   SearchFileRefs(arg0: string): Promise<DirEntry[]>;
   SearchFileRefsForTab(arg0: string, arg1: string): Promise<DirEntry[]>;
   SearchFileRefsForTarget(arg0: ComposerTarget, arg1: string): Promise<DirEntry[]>;
@@ -5463,14 +5106,6 @@ export interface GeneratedDesktopCommands {
   SetProviderKey(arg0: string, arg1: string): Promise<string>;
   SetProviderWebSearch(arg0: string[], arg1: boolean): Promise<void>;
   SetReasoningLanguage(arg0: string): Promise<void>;
-  SetRemoteProjectTitle(arg0: string, arg1: string, arg2: string): Promise<void>;
-  SetRemoteSessionPinned(arg0: string, arg1: string, arg2: string, arg3: boolean): Promise<void>;
-  SetRemoteTabComposerProfile(arg0: string, arg1: string, arg2: string, arg3: string): Promise<string[]>;
-  SetRemoteTabEffort(arg0: string, arg1: string): Promise<void>;
-  SetRemoteTabGoal(arg0: string, arg1: string): Promise<void>;
-  SetRemoteTabModel(arg0: string, arg1: string): Promise<void>;
-  SetRemoteTabPlanMode(arg0: string, arg1: boolean): Promise<void>;
-  SetRemoteTabToolApprovalMode(arg0: string, arg1: string): Promise<void>;
   SetSandbox(arg0: string, arg1: boolean, arg2: string, arg3: string[], arg4: string): Promise<void>;
   SetSessionExperience(arg0: string): Promise<void>;
   SetSessionPinned(arg0: SessionSelector, arg1: boolean): Promise<void>;
@@ -5503,8 +5138,6 @@ export interface GeneratedDesktopCommands {
   Steer(arg0: string): Promise<void>;
   SteerForTab(arg0: string, arg1: string): Promise<void>;
   SteerInboxItemForTurn(arg0: string, arg1: string, arg2: string): Promise<InboxReceiptView>;
-  SteerRemoteTab(arg0: string, arg1: string): Promise<void>;
-  StopRemoteServer(arg0: string, arg1: string): Promise<void>;
   StopTaskByKey(arg0: TaskActionRequest): Promise<ControlResult>;
   StorageSettings(): Promise<StorageSettingsView>;
   SubmitDisplayToTabWithID(arg0: string, arg1: string, arg2: string, arg3: string): Promise<void>;
@@ -5513,18 +5146,10 @@ export interface GeneratedDesktopCommands {
   SubmitExtensionFormExact(arg0: ExtensionFormTarget, arg1: Record<string, unknown>): Promise<void>;
   SubmitInitialGoalToTabWithID(arg0: string, arg1: string, arg2: string, arg3: string, arg4: main_InvocationRequest[], arg5: string, arg6: string, arg7: string): Promise<string[]>;
   SubmitInvocationsToTabWithID(arg0: string, arg1: string, arg2: string, arg3: main_InvocationRequest[], arg4: string): Promise<void>;
-  SubmitRemoteTab(arg0: string, arg1: string): Promise<void>;
-  SubmitRemoteTabExtensionForm(arg0: string, arg1: string, arg2: string, arg3: Record<string, unknown>): Promise<void>;
-  SubmitRemoteTabExtensionFormExact(arg0: ExtensionFormTarget, arg1: Record<string, unknown>): Promise<void>;
-  SubmitRemoteTabWithModelApplication(arg0: string, arg1: string, arg2: string, arg3: ModelApplicationChoice): Promise<void>;
-  SubmitRemoteTabWithSubmission(arg0: string, arg1: string, arg2: string): Promise<void>;
   SubmitToTabWithID(arg0: string, arg1: string, arg2: string): Promise<void>;
   SummarizeFromForTab(arg0: string, arg1: number): Promise<void>;
-  SummarizeRemoteTab(arg0: string, arg1: number, arg2: string): Promise<void>;
   SummarizeUpToForTab(arg0: string, arg1: number): Promise<void>;
   SwitchWorkspace(arg0: string): Promise<string>;
-  SyncRuntimeState(): Promise<RuntimeStateProjection>;
-  TakeoverSession(arg0: string, arg1: string): Promise<void>;
   TerminalOutputForTab(arg0: string, arg1: string): Promise<string>;
   TerminalWorkspaceForTab(arg0: string): Promise<TerminalWorkspaceView>;
   TestProviderModel(arg0: ProviderView, arg1: string, arg2: string): Promise<void>;
@@ -5541,7 +5166,6 @@ export interface GeneratedDesktopCommands {
   UpdateInboxItem(arg0: string, arg1: string, arg2: string, arg3: string): Promise<void>;
   UpdateMCPServer(arg0: string, arg1: MCPServerInput): Promise<void>;
   UpdatePlugin(arg0: string): Promise<string>;
-  UpdateRemoteHost(arg0: string, arg1: RemoteHostInput): Promise<RemoteHostView>;
   UpdateSessionOrganization(arg0: SessionOrganizationWorkspace, arg1: number, arg2: SessionOrganizationMutation): Promise<SessionOrganizationSnapshot>;
   UpdateSubagentProfile(arg0: string, arg1: string, arg2: SubagentProfileInput): Promise<void>;
   UsageStats(arg0: UsageStatsRequest): Promise<UsageStatsRange>;
@@ -5555,6 +5179,5 @@ export interface GeneratedDesktopCommands {
   WorkspaceRevisionForTab(arg0: string): Promise<WorkspaceRevisionView>;
   WorkspaceTurnChangeDetail(arg0: string, arg1: string, arg2: number, arg3: string, arg4: string): Promise<TurnFile | null>;
   WorkspaceTurnChanges(arg0: string, arg1: string, arg2: number, arg3: string): Promise<TurnChanges | null>;
-  WriteRemoteFile(arg0: string, arg1: string, arg2: string, arg3: number): Promise<RemoteWriteResult>;
   WriteTerminalForTab(arg0: string, arg1: string, arg2: string): Promise<void>;
 }

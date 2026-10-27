@@ -50,7 +50,7 @@ export function createInboxQueuePreview() {
 export function createInboxQueuePreviewBindings() {
   const queue = createInboxQueuePreview();
   const bindings: Pick<AppBindings, "CaptureInboxTarget" | "InboxQueueForTarget" | "EnqueueInboxFollowupForTarget" | "LookupInboxFollowupForTarget" | "InboxSnapshot"> = {
-    CaptureInboxTarget: async (tabId, sessionPath) => ({ tabId, sessionPath, generation: 1, selection: 0, remote: false }),
+    CaptureInboxTarget: async (tabId, sessionPath) => ({ tabId, sessionPath, generation: 1, selection: 0 }),
     InboxQueueForTarget: queue.command,
     EnqueueInboxFollowupForTarget: async (_target, display, submit, _invocations, key) => queue.enqueue(submit || display, key),
     LookupInboxFollowupForTarget: async (_target, key) => {

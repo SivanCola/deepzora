@@ -135,7 +135,7 @@ func (a *App) syncTabSessionIdentity(tab *WorkspaceTab, ctrl control.SessionAPI)
 	if rebound {
 		a.adoptSessionPreset(tab, ctrl, ref.SessionID)
 	}
-	a.saveTabsFromRemote()
+	a.saveTabs()
 }
 
 type permissionSnapshotInvalidator interface {

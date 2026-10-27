@@ -1,4 +1,4 @@
-import { CloudOff, Loader2, TriangleAlert } from "lucide-react";
+import { Loader2, TriangleAlert } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
 import type { SessionAvailability } from "../lib/sessionAvailability";
@@ -34,19 +34,17 @@ export function SessionRecoveryBanner({ availability, onRetry }: {
   // Runtime setup errors already have their own startup/lease recovery controls.
   if (availability.kind !== "error" || availability.source === "runtime") return null;
   const loading = busy;
-  const connection = availability.source === "connection";
   const detail = actionError || availability.detail;
-  const Icon = loading ? Loader2 : connection ? CloudOff : TriangleAlert;
+  const Icon = loading ? Loader2 : TriangleAlert;
   return (
     <section id={`deepzora-session-recovery-${detailId}`} className={`session-recovery${loading ? " session-recovery--loading" : ""}`} role={loading ? "status" : "alert"} aria-busy={loading}>
       <Icon size={28} aria-hidden="true" className={loading ? "session-recovery__spinner" : undefined} />
       <div className="session-recovery__copy">
-        <strong>{t(loading ? connection ? "remoteSurface.connecting" : "sessionRecovery.loadingHistory"
-          : connection ? "sessionRecovery.connectionLost" : "sessionRecovery.historyFailed")}</strong>
-        {!loading && <span>{t(actionError ? "sessionRecovery.retryFailed" : connection ? "sessionRecovery.connectionHint" : "sessionRecovery.historyHint")}</span>}
+        <strong>{t(loading ? "sessionRecovery.loadingHistory" : "sessionRecovery.historyFailed")}</strong>
+        {!loading && <span>{t(actionError ? "sessionRecovery.retryFailed" : "sessionRecovery.historyHint")}</span>}
       </div>
       {onRetry && <button type="button" className="btn btn--primary btn--small" disabled={loading} onClick={() => void retry()}>
-        {t(loading ? "common.loading" : connection ? "remoteSurface.reconnect" : "sessionRecovery.retryHistory")}
+        {t(loading ? "common.loading" : "sessionRecovery.retryHistory")}
       </button>}
       {detail && <button type="button" className="btn btn--ghost btn--small" aria-expanded={expanded} aria-controls={detailId} onClick={() => setExpanded(value => !value)}>
         {t("sessionRecovery.details")}
@@ -59,7 +57,7 @@ export function SessionRecoveryBanner({ availability, onRetry }: {
 export function SessionRecoveryPlaceholder({ availability }: { availability: SessionAvailability }) {
   const t = useT();
   if (availability.kind !== "error") return null;
-  const Icon = availability.source === "connection" ? CloudOff : TriangleAlert;
+  const Icon = TriangleAlert;
   return <div className="session-recovery-placeholder">
     <Icon size={30} aria-hidden="true" />
     <span>{t("sessionRecovery.contentAfterRecovery")}</span>

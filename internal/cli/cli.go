@@ -36,7 +36,6 @@ import (
 	"deepzora/internal/notify"
 	"deepzora/internal/plugin"
 	"deepzora/internal/provider/openai"
-	"deepzora/internal/serve"
 	"deepzora/internal/telemetry"
 
 	tea "charm.land/bubbletea/v2"
@@ -115,8 +114,6 @@ func RunWithBuildInfo(args []string, info BuildInfo) int {
 		return runAgent(rest, version)
 	case "chat", "code": // "code" is the v0.x name for the interactive session
 		return runInteractiveSession(rest, version)
-	case "serve":
-		return runServe(rest)
 	case "setup":
 		configureCLIThemeFromConfigForTTYOutput()
 		return setupConfig(rest)
@@ -135,9 +132,6 @@ func RunWithBuildInfo(args []string, info BuildInfo) int {
 	case "mcp":
 		configureCLIThemeFromConfig()
 		return mcpCommand(rest)
-	case "remote":
-		configureCLIThemeFromConfig()
-		return remoteCommand(rest, version)
 	case "plugin":
 		configureCLIThemeFromConfig()
 		return pluginCommand(rest)
@@ -413,7 +407,6 @@ func runAgent(args []string, version string) int {
 	cont := registerContinueFlag(fs)
 	resume := fs.String("resume", "", "resume by session file path, session ID, or machine session ID (takes precedence over --continue)")
 	copySession := fs.Bool("copy", false, "with --resume/--continue: duplicate the session and continue in the copy (escape hatch when the original is held by another Deepzora process)")
-	takeover := fs.Bool("takeover", false, "with --resume/--continue: when a resident serve on this machine holds the session, take it over instead of refusing")
 	effort := fs.String("effort", "", "session reasoning effort override")
 	permissionMode := fs.String("permission-mode", "workspace-write", "permission mode: read-only | workspace-write | danger-full-access")
 	autoApprove := fs.BoolP("auto", "y", false, "deprecated compatibility flag; uses workspace-write")
@@ -522,28 +515,15 @@ func runAgent(args []string, version string) int {
 		PermissionMode: *permissionMode, SessionMode: sessionMode,
 	})
 
-	// Own the session file for the lifetime of this run so a desktop window (or
-	// another CLI) writing the same session is refused up front instead of
-	// silently double-writing. Released after the controller closes.
-	takeoverManager := newCLITakeoverManager(nil)
-	defer func() {
-		if err := takeoverManager.Close(); err != nil {
-			fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, err)
-		}
-	}()
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	defer stop()
 	started := time.Now()
 
 	chain, err := buildRunSink(format, *printOnly, *showThinking, *metricsPath, *trajectoryPath, cfg, reporter)
 	if err != nil {
-
 		fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, err)
 		return 1
 	}
-	takeoverManager.SetInner(chain.sink)
-	chain.sink = takeoverManager
 	sink, resultOutput, metrics := chain.sink, chain.resultOutput, chain.metrics
 	if err := applyResumeTargetModel(model, resumeTarget, cfg); err != nil {
 		return cliFailure(err)
@@ -576,7 +556,6 @@ func runAgent(args []string, version string) int {
 	}
 	ctrl, err := setupProfileWithOverrides(ctx, *model, *maxSteps, true, sink, overrides)
 	if err != nil {
-
 		if resultOutput != nil && format != runOutputText {
 			if encodeErr := resultOutput.Finalize("", started, err); encodeErr != nil {
 				fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, encodeErr)
@@ -587,7 +566,6 @@ func runAgent(args []string, version string) int {
 		return 1
 	}
 	defer ctrl.Close()
-	takeoverManager.AttachController(ctrl)
 	SetTaskJobKiller(ctrlKillerAdapter{ctrl})
 	ctrl.ApplyHeadlessApprovalMode(permissions.approval)
 
@@ -595,8 +573,7 @@ func runAgent(args []string, version string) int {
 	// MCP/API callers that manage their own per-project session). Takes
 	// precedence over --continue.
 	// --continue: resume the most recent saved session.
-	if err := commitStartupResume(takeoverManager, ctrl, resumeTarget,
-		flagTakeoverApproval(*takeover)); err != nil {
+	if err := commitStartupResume(ctrl, resumeTarget); err != nil {
 		return cliFailure(err)
 	}
 	if _, err := ctrl.EnsureSession(ctx, session.CreateOptions{Kind: session.SessionKindHeadlessRun}); err != nil {
@@ -647,97 +624,6 @@ func runAgent(args []string, version string) int {
 		return completion.exitCode
 	}
 	return completion.exitCode
-}
-
-func runServe(args []string) int {
-	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
-	model := fs.String("model", "", "provider name (default: config default_model)")
-	preset := fs.String("preset", "", "agent persona/tool preset id (default: default; resumed sessions keep their preset)")
-	maxSteps := fs.Int("max-steps", 0, "one-off max tool-call rounds (0 = automatic)")
-	addr := fs.String("addr", "127.0.0.1:8787", "listen address")
-	resume := fs.String("resume", "", "resume by session ID or query")
-	auth := fs.String("auth", "", "auth mode: none or token (default: config/none; none still requires the launch token for changes)")
-	token := fs.String("token", "", "pre-shared token for auth=token (auto-generated if empty)")
-	behindProxy := fs.Bool("behind-proxy", false, "trust X-Forwarded-Proto headers from a reverse proxy")
-	portFile := fs.String("port-file", "", "write the actual bound listen address (host:port) to this file after binding")
-	tokenFile := fs.String("token-file", "", "read the auth=token pre-shared token from this file (overrides --token; keeps the secret out of argv)")
-	pidFile := fs.String("pid-file", "", "write the server process id to this file")
-	registerServeCapabilityFlags(fs)
-	if code, ok := parseCommandFlags(fs, args); !ok {
-		return code
-	}
-
-	ctx := context.Background()
-	bc, sessionTag, cfg := newServeBootstrap()
-
-	// Build serve config, merging CLI flags over config file.
-	serveCfg := cfg.Serve
-	if *auth != "" {
-		serveCfg.AuthMode = *auth
-	}
-	if *token != "" {
-		serveCfg.Token = *token
-	}
-	if *tokenFile != "" {
-		tok, err := readServeTokenFile(*tokenFile)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, err)
-			return 1
-		}
-		serveCfg.Token = tok
-		config.RegisterHostSecretPath(*tokenFile)
-	}
-	if *behindProxy {
-		serveCfg.BehindProxy = true
-	}
-	mode, err := serve.NormalizeAuthMode(serveCfg.AuthMode)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, err)
-		return 1
-	}
-	serveCfg.AuthMode = mode
-
-	// Own the active session file for the server's lifetime; the serve
-	// handlers that rebind sessions (/resume, /new, /fork) move the lease
-	// through the same keeper. Released after the controller closes.
-	resumeTarget, err := resolveSessionQuery(resolveCLISessionDir(), *resume)
-	if err != nil {
-		return cliFailure(err)
-	}
-	if err := applyResumeTargetModel(model, resumeTarget, cfg); err != nil {
-		return cliFailure(err)
-	}
-	// Serve always resolves an implicit model from the user-global config,
-	// ignoring project-level default_model overrides. Explicit flags and
-	// resumable session models remain strict and are preserved verbatim.
-	*model = resolveServeModel(*model)
-	// Keep the window reachable when the selected provider has no saved key.
-	// The loopback-only provider setup surface stores the missing credential and
-	// rebuilds this controller in place before the normal web UI is exposed.
-	ctrl, serveBuildOpts, err := setupCLIMultiSessionProfile(ctx, *model, *maxSteps, sessionTag, cliBuildOverrides{
-		AgentPreset: *preset, AgentPresetSource: resumeTarget.presetSource(), AgentPresetService: resumeTarget.service,
-	})
-	if err != nil {
-		fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, err)
-		return 1
-	}
-	defer ctrl.Close()
-	SetTaskJobKiller(ctrlKillerAdapter{ctrl})
-
-	// Keep the resumed identity, or create a current session before serving.
-	if err := prepareServeSession(ctrl, resumeTarget); err != nil {
-		return cliFailure(err)
-	}
-	if _, err := ctrl.EnsureSession(ctx, session.CreateOptions{}); err != nil {
-		return cliFailure(err)
-	}
-
-	srv := newCLIMultiSessionServer(ctrl, bc, sessionTag, serveCfg, serveBuildOpts)
-	defer srv.Close()
-	return runServeFrontend(ctrl, srv, serveCfg, serveFrontendOptions{
-		address:  *addr,
-		portFile: *portFile, tokenFile: *tokenFile, pidFile: *pidFile,
-	})
 }
 
 // chatREPL is an interactive session: a single persistent agent/session and a
@@ -819,17 +705,6 @@ func chatREPL(args []string, version string) int {
 		PermissionMode: *permissionMode, SessionMode: sessionMode,
 	})
 
-	// Own the active session file for the TUI's lifetime; in-TUI switches
-	// (/resume, /switch, /new, ...) move the lease with the active path.
-	// Refusing a held resume target up front is what keeps a desktop window
-	// and this chat from silently double-writing one transcript.
-	takeoverManager := newCLITakeoverManager(nil)
-	defer func() {
-		if err := takeoverManager.Close(); err != nil {
-			fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, err)
-		}
-	}()
-
 	ctx := context.Background()
 	if err := applyResumeTargetModel(model, resumeTarget, cfg); err != nil {
 		return cliFailure(err)
@@ -844,8 +719,6 @@ func chatREPL(args []string, version string) int {
 	var sink event.Sink = &eventSink{ch: eventCh}
 	sink = withNotifications(sink, cfg)
 	sink = reporter.Wrap(sink)
-	takeoverManager.SetInner(sink)
-	sink = takeoverManager
 	var effortOverride *string
 	if strings.TrimSpace(*effort) != "" {
 		effortOverride = effort
@@ -869,21 +742,18 @@ func chatREPL(args []string, version string) int {
 		// the wizard would overwrite the user's config (#2856).
 		fmt.Fprintln(os.Stderr, i18n.M.ReconfigureOnUnknownModel)
 		if rc := interactiveSetup(defaultConfigTarget(), defaultEnvTarget()); rc != 0 {
-
 			return rc
 		}
 		ctrl, err = setupProfileWithOverrides(ctx, *model, *maxSteps, false, sink, overrides)
 	}
 	if err != nil {
-
 		fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, err)
 		return 1
 	}
 	diagnostics.Milestone("controller_build_done")
 
 	// Keep the resumed identity, or create a current session before accepting input.
-	if err := commitStartupResume(takeoverManager, ctrl, resumeTarget,
-		promptTakeoverApproval); err != nil {
+	if err := commitStartupResume(ctrl, resumeTarget); err != nil {
 		return cliFailure(err)
 	}
 	if _, err := ctrl.EnsureSession(ctx, session.CreateOptions{}); err != nil {
@@ -929,8 +799,6 @@ func chatREPL(args []string, version string) int {
 	m.diagnostics = diagnostics
 	m.updateWatchdogStatusProvider()
 	m.planMode = permissions.plan
-	m.takeover = takeoverManager
-	takeoverManager.AttachController(ctrl)
 	if cfg != nil {
 		m.outputStyle = cfg.Agent.OutputStyle    // shown as the active entry in /output-style
 		m.statuslineCmd = cfg.Statusline.Command // custom status-line command, "" = built-in row
@@ -964,7 +832,6 @@ func chatREPL(args []string, version string) int {
 	// keep working; finalized transcript lines are emitted via tea.Println.
 	diagnostics.Milestone("terminal_takeover_begin")
 	p := tea.NewProgram(m)
-	takeoverManager.SetYieldCallback(func() { p.Send(tuiSessionReclaimedMsg{}) })
 	diagnostics.StartWatchdog(p)
 	// SSH drop (SIGHUP) or service stop (SIGTERM): persist the conversation
 	// before the terminal goes away, then unwind through the normal close path
@@ -979,12 +846,6 @@ func chatREPL(args []string, version string) int {
 	final, runErr := p.Run()
 	signal.Stop(hangup)
 	diagnostics.Milestone("terminal_released")
-	if err := takeoverManager.Close(); err != nil {
-		fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, err)
-		if runErr == nil {
-			runErr = err
-		}
-	}
 	// Close the active controller plus any retired ones from /model switches.
 	// Retired controllers were stashed rather than closed at switch time
 	// because Controller.Close() runs SessionEnd hooks and kills plugin
@@ -993,7 +854,6 @@ func chatREPL(args []string, version string) int {
 	if fm, ok := final.(chatTUI); ok {
 		reportShutdownFailure(fm.shutdownErr)
 		for _, oc := range fm.oldControllers {
-
 			oc.Close()
 		}
 		if fm.ctrl != nil {

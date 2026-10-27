@@ -63,7 +63,7 @@ installDesktopHostStub({
   SessionHistoryWindowForTab: (_tab: string, request: HistoryWindowRequest) => windowPage(request),
   SessionHistoryOutlineForTab: () => ({ status: "ready", generation: "cut", snapshotSequence: 0, coverageSequence: 0, totalTurns: 0, entries: [], nextTurn: 0, done: true }),
 });
-const follower = new TranscriptSessionFollower(tab, path, false, dispatch, () => state);
+const follower = new TranscriptSessionFollower(tab, path, dispatch, () => state);
 await follower.start();
 
 async function page(direction: "older" | "newer" | "latest") {

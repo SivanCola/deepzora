@@ -106,8 +106,6 @@ func keyEnvInUseText(err error) string {
 	switch inUse.Holder {
 	case config.CredentialKeyHeldByProvider:
 		return fmt.Sprintf(i18n.M.SetupKeyEnvTakenFmt, inUse.Key, inUse.Provider)
-	case config.CredentialKeyHeldBySetting:
-		return fmt.Sprintf(i18n.M.SetupKeyEnvSettingFmt, inUse.Key)
 	case config.CredentialKeyHeldByEnvironment:
 		return fmt.Sprintf(i18n.M.SetupKeyEnvShellFmt, inUse.Key)
 	default:

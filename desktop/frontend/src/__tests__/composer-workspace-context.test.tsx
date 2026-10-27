@@ -24,7 +24,6 @@ installBridgeApp({
       projects: [
         { key: "project:/repo", kind: "project", label: "Deepzora", root: "/repo" },
         { key: "project:/other", kind: "project", label: "Other", root: "/other" },
-        { key: "project_remote_box", kind: "project", label: "SSH Box", root: "remote-project:box:/srv/app", remote: { hostId: "box", workspace: "/srv/app" } },
       ],
       catalog: { state: "ready", revision: 1, indexed: 2, total: 2, repairPending: 0 },
       indexed: 2,
@@ -61,7 +60,6 @@ const surfaceInput = {
     inert: false,
     hero: true,
     headline: "Welcome",
-    remote: false,
     rewindCommitting: false,
     messageActionPending: false,
     decisionActive: false,
@@ -73,11 +71,10 @@ const surfaceInput = {
   router: { handleSend: noop, handleSteer: noop },
   modes: { applyMode: noop, applyToolApprovalMode: noop },
   goals: { setCollaborationModeFromUi: noop, clearGoalFromUi: noop, editGoalFromUi: noop },
-  remoteGoal: { pauseGoal: noop, resumeGoal: noop, setEffort: noop },
+  goalActions: { pauseGoal: noop, resumeGoal: noop, setEffort: noop },
   modelSwitch: { switchModelFromUi: noop },
   inserts: { composerInsertRequest: undefined, selectedTextRequest: undefined },
   control: { handleCancelActive: noop },
-  remoteComposer: { send: noop, cancel: noop, ready: true, profileReady: true, liveStore: undefined },
   localLiveStore: undefined,
   onInvocationMetadataChange: noop,
   onCycleMode: noop,
@@ -104,7 +101,6 @@ assert.equal(startingSurface.inert, false, "bound new session input is usable be
 assert.equal(startingSurface.props.disabled, false, "new-session typing does not wait for a controller");
 assert.equal(startingSurface.props.submitDisabled, true, "typing readiness never admits a send to a starting controller");
 assert.equal(buildComposerSurface({ ...startingInput, view: { ...startingInput.view, targetInputReady: false } }).inert, true, "old session input stays fenced before the new target binds");
-assert.equal(buildComposerSurface({ ...startingInput, view: { ...startingInput.view, remote: true } }).inert, true, "local startup editing does not bypass remote navigation ownership");
 
 const rootElement = document.getElementById("root");
 assert(rootElement);
@@ -139,7 +135,6 @@ assert(document.querySelector('input[aria-label="Search workspaces"]'));
 const projectItems = [...document.querySelectorAll('.composer-workspace-menu--projects [role="menuitem"]')];
 assert(projectItems.some((item) => item.textContent?.includes("Deepzora")));
 assert(projectItems.some((item) => item.textContent?.includes("Other")));
-assert(!projectItems.some((item) => item.textContent?.includes("SSH Box")), "remote projects never appear among local folders to switch to");
 await click(projectItems.find((item) => item.textContent?.includes("Deepzora")) ?? null);
 assert.deepEqual(calls.switches, [], "selecting the current workspace only closes the menu");
 
@@ -183,7 +178,7 @@ assert.equal(document.activeElement, document.querySelector('button[aria-label="
 await click(document.querySelector('button[aria-label="Use default workspace"]'));
 assert.equal(calls.globals, 1);
 
-await render({ scope: "global", workspaceRoot: "/stale-cwd", workspaceName: "Stale workspace", remote: false });
+await render({ scope: "global", workspaceRoot: "/stale-cwd", workspaceName: "Stale workspace" });
 assert(document.querySelector('button[aria-label="Project: Default workspace"]'), "global sessions never inherit a stale cwd label");
 assert.equal(document.querySelector('button[aria-label="Use default workspace"]'), null, "global sessions do not render a redundant clear action");
 

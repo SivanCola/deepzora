@@ -38,14 +38,6 @@ func (m *chatTUI) startControllerTurnWithQueue(displayed, restore, queued string
 
 func (m *chatTUI) prepareControllerTurn(intent controllerTurnIntent, settingsChecked bool) tea.Cmd {
 	displayed, restore, queued, start := intent.displayed, intent.restore, intent.queued, intent.start
-	if m.sessionReclaimed || m.takeover != nil && m.takeover.Returned() {
-		m.notice(sessionReclaimedNotice)
-		return nil
-	}
-	if m.takeover != nil && m.takeover.Reclaiming() {
-		m.notice("the remote side is taking this session back; new input is disabled")
-		return nil
-	}
 	if !settingsChecked && m.ctrl != nil && !m.ctrl.Running() {
 		if cmd, checking := m.checkTurnModelSettings(intent); checking {
 			return cmd

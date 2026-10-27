@@ -3,7 +3,7 @@ import { act } from "react";
 import { installDom, installBridgeApp, renderComposer } from "./composerInboxHarness";
 
 const dom = installDom();
-const target = { tabId: "tab-a", sessionPath: "session-a", generation: 1, selection: 0, remote: false };
+const target = { tabId: "tab-a", sessionPath: "session-a", generation: 1, selection: 0 };
 let resolveReceipt!: (value: { itemId: string; disposition: string; position: number; paused: boolean }) => void;
 const receipt = new Promise<{ itemId: string; disposition: string; position: number; paused: boolean }>(resolve => { resolveReceipt = resolve; });
 let submitted: unknown[] | undefined;

@@ -13,16 +13,8 @@ This record distinguishes implemented behavior from release qualification. The c
 | Startup and consecutive-save publication fencing | Startup model revision check and versioned deferred rebuild entries | `TestModelSettingsStartupPublicationRejectsCandidateBuiltBeforeSave`, deferred rebuild tests |
 | Final lease invalidation preserves the old runtime and permits a safe retry | Final authority bind, fail-closed admission and refreshed authority before migration snapshot | `TestModelSettingsFinalAuthorityFailurePreservesRuntimeAndRecovers` releases the real lease immediately before final bind |
 | Deletion blocks an unavailable next run without destroying history | Validated runtime model resolution | `TestModelSettingsLastProviderRemovalBlocksNewRun`, provider removal tests |
-| Remote immutable routes, candidate ownership and automatic next-run application | `desktop/cred_proxy.go`, `desktop/remote_model_settings.go`, `internal/serve/model_settings_source.go` | `TestRemoteModelOwnershipRetiresOldRouteAfterInFlightRequest`, `TestRemoteModelSourceRefreshesAutonomousHTTPRunAndRetiresOldRoute`, Serve application-failure/receipt tests |
-| Remote project configuration remains authoritative | `internal/config/model_runtime_settings.go` | `TestManagedModelSnapshotPreservesProjectProviderAndAssignments` |
-| No architecture metadata in model prefixes | Transport-only snapshot metadata and unchanged serializers | `TestRemoteModelSnapshotPreservesWirePrefixAndKeepsKeysLocal` compares OpenAI, Anthropic and Responses request bytes |
 | Saved/pending/failed states and draft races | Structured bridge result, request receipts, read/apply generations | `model-settings-receipt.test.ts`, `provider-editor-save-races.test.tsx`, settings refresh snapshot tests |
 | Children created after a save and approval continuations retain the accepted snapshot | Boot-created child factories and controller approval resume | `TestModelSettingsChildCreatedAfterSaveInheritsAcceptedRunSnapshot`, `TestModelSettingsApprovalResumeKeepsAcceptedCredential` exercise actual HTTP requests |
-| Source refresh supersession and uncertain completion | Shared runtime-owner refresh, source revision fencing and retained offers | `TestModelSettingsSourceFencesOvertakenBuildAndUncertainFinish` |
-| Detached remote work retains its own admission boundary | `internal/serve/model_settings_detached.go` | `TestDetachedModelSettingsRefreshTargetsItsOwnerAndPreservesFailure`, `TestDetachedModelSettingsKeepsQueuedOwnerUntilAdmission` |
-| Bounded remote ownership does not evict accepted routes | Proxy-scoped offer admission | `TestRemoteModelOfferCapacityPreservesOwnedRoutes` |
-| Late ownership receipts and replaced connections cannot revoke current routes | Serve-wide incarnation/sequence, atomically pinned connection identity and route reconciliation | `TestRemoteOwnershipRejectsOvertakenReceipts`, `TestRemoteReplacedConnectionCannotPinOwnership`, `TestRemoteIncarnationReclaimsOldReservationsAndRejectsLateBuilders` |
-| Rejected installs release reservations; unknown installs retain them until confirmed | Typed rejection and positive ownership readback | `TestRemoteInstallDistinguishesRejectionFromLostAcknowledgement`, `TestRemoteUnknownInstallRetainsOfferUntilOwned` |
 | Controller shutdown prevents late inbox sidecar creation | Inbox open seal and synchronously registered publication kick | `TestClosedControllerCannotOpenInboxFromLateDispatch`, `TestStaleRecoveryCannotOverwritePublishedForegroundRoute` |
 | Retired snapshots cannot overwrite the selected connection | Listing publication holds the current lease generation through metadata commit | `TestListingProjectionCannotOverwriteModelAfterAuthorityReplacement`, `TestListingAuthorityGuardRetainsGenerationThroughCommit`, `TestOwnedListingRejectsMissingAuthority`, `TestModelSettingsCredentialRefreshPersistsSelectedConnection` |
 | Restored sessions show the correct connection before opening the selector | Catalog refresh follows readiness and session identity with stale-response fencing | `model-switcher-refresh.test.tsx`, native cold restoration with two connections sharing a model |
@@ -34,14 +26,14 @@ Run focused tests first, then race coverage for shared ownership, both Go module
 
 ```sh
 go test -p 4 ./...
-go test -race ./internal/config ./internal/boot ./internal/control ./internal/serve
+go test -race ./internal/config ./internal/boot ./internal/control
 (cd desktop && node ../scripts/desktop-windows-go-tests.mjs --all)
-(cd desktop && go test -race . -run 'TestModelSettings|TestRemoteModel|TestCredentialProxy|TestDeferred')
+(cd desktop && go test -race . -run 'TestModelSettings|TestDeferred')
 (cd desktop/frontend && pnpm typecheck && pnpm test:all && pnpm build)
 go run ./tools/repolint
 ```
 
-The frontend test set includes receipt recovery, delayed editor saves, remote behavior and long-history performance. Uncertain writes are read back, never automatically repeated. Candidate route reservations protect builds, and Serve-wide ordered ownership receipts prevent stale status from retiring a published route. Offer release and retirement are atomic. Accepted old requests release their own references on completion.
+The frontend test set includes receipt recovery, delayed editor saves and long-history performance. Uncertain writes are read back, never automatically repeated.
 
 ## Background-process replacement and submission recovery
 
@@ -55,8 +47,6 @@ checks are separate from the historical release qualification below.
 | Discarded candidates preserve processes and outgoing extension generation | boot `TestRebuildBackgroundCandidateFailurePreservesOwner`, `TestModelCandidateDiscardPreservesLiveExtensionManager` |
 | Candidate initialization and retired callbacks cannot affect the new owner | control `TestModelReplacementFencesCandidateAndRetiredCallbacks` |
 | Single-submit continuation validates all routes, credentials and limits | config continuation tests and Desktop model-application tests |
-| Overtaken remote candidates never publish; uncertain finish is recoverable | Serve `TestModelSettingsSourceFencesOvertakenBuildAndUncertainFinish` |
-| Reconnect/status refresh cannot revive old confirmations | Desktop `TestRemoteModelConfirmationExpiresOnReconnectAndNewRuntime` |
 | Rejection preserves drafts/attachments; applying never resends | frontend submission tests and `node bench/model-application.mjs` |
 | Structured rejection crosses the real Electron context bridge | `desktop/electron/scripts/smoke.mjs`, using the Go service and production renderer |
 

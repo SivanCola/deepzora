@@ -3110,41 +3110,6 @@ func TestAppendUniquePathsDeduplicatesSymlinkEquivalentRoots(t *testing.T) {
 	}
 }
 
-func TestRuntimeForbidReadRootsAddsGlobalCredentialFileExceptOnWindows(t *testing.T) {
-	t.Setenv("DEEPZORA_HOME", filepath.Join(isolateConfigHome(t), "deepzora-home"))
-	configured := filepath.Join(t.TempDir(), "configured-secret")
-	projectEnv := filepath.Join(t.TempDir(), ".env")
-	for _, path := range []string{configured, projectEnv} {
-		if err := os.WriteFile(path, []byte("secret"), 0o600); err != nil {
-			t.Fatal(err)
-		}
-	}
-	cfg := config.Default()
-	cfg.Sandbox.ForbidRead = []string{configured}
-	withoutCredentials := RuntimeForbidReadRoots(cfg, ".")
-	if want := appendUniquePaths([]string{configured}, config.HostSecretReadRoots()...); runtime.GOOS != "windows" && !reflect.DeepEqual(withoutCredentials, want) {
-		t.Fatalf("roots without global credentials = %v", withoutCredentials)
-	}
-	credentialPath := config.UserCredentialsPath()
-	if err := os.MkdirAll(filepath.Dir(credentialPath), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(credentialPath, []byte("PROVIDER_KEY=secret"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	got := runtimeForbidReadRootsForGOOS(cfg, ".", "darwin")
-	if !pathListContains(got, credentialPath) || !pathListContains(got, configured) {
-		t.Fatalf("runtime forbid roots = %v", got)
-	}
-	if pathListContains(got, projectEnv) {
-		t.Fatalf("project .env was unexpectedly added to runtime forbid roots: %v", got)
-	}
-	windowsRoots := runtimeForbidReadRootsForGOOS(cfg, ".", "windows")
-	if !reflect.DeepEqual(windowsRoots, []string{configured}) {
-		t.Fatalf("Windows runtime forbid roots = %v", windowsRoots)
-	}
-}
-
 func TestRuntimeForbidReadRootsFiltersUnconfiguredStoredCredential(t *testing.T) {
 	home := isolateConfigHome(t)
 	t.Setenv("DEEPZORA_HOME", filepath.Join(home, "deepzora-home"))
@@ -3465,5 +3430,40 @@ func TestBuildKeepsSourceConnectorAndSkillToolsDespiteSafeModeEnv(t *testing.T) 
 		if !names[want] {
 			t.Fatalf("expected core tool %s when DEEPZORA_SAFE_MODE is set", want)
 		}
+	}
+}
+
+func TestRuntimeForbidReadRootsAddsGlobalCredentialFileExceptOnWindows(t *testing.T) {
+	t.Setenv("DEEPZORA_HOME", filepath.Join(isolateConfigHome(t), "deepzora-home"))
+	configured := filepath.Join(t.TempDir(), "configured-secret")
+	projectEnv := filepath.Join(t.TempDir(), ".env")
+	for _, path := range []string{configured, projectEnv} {
+		if err := os.WriteFile(path, []byte("secret"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cfg := config.Default()
+	cfg.Sandbox.ForbidRead = []string{configured}
+	withoutCredentials := RuntimeForbidReadRoots(cfg, ".")
+	if want := []string{configured}; runtime.GOOS != "windows" && !reflect.DeepEqual(withoutCredentials, want) {
+		t.Fatalf("roots without global credentials = %v", withoutCredentials)
+	}
+	credentialPath := config.UserCredentialsPath()
+	if err := os.MkdirAll(filepath.Dir(credentialPath), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(credentialPath, []byte("PROVIDER_KEY=secret"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got := runtimeForbidReadRootsForGOOS(cfg, ".", "darwin")
+	if !pathListContains(got, credentialPath) || !pathListContains(got, configured) {
+		t.Fatalf("runtime forbid roots = %v", got)
+	}
+	if pathListContains(got, projectEnv) {
+		t.Fatalf("project .env was unexpectedly added to runtime forbid roots: %v", got)
+	}
+	windowsRoots := runtimeForbidReadRootsForGOOS(cfg, ".", "windows")
+	if !reflect.DeepEqual(windowsRoots, []string{configured}) {
+		t.Fatalf("Windows runtime forbid roots = %v", windowsRoots)
 	}
 }

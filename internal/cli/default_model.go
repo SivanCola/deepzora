@@ -45,17 +45,3 @@ func resolveModelForCLI(explicitRef string, cfg *config.Config) (ref string, fal
 	ref, fallback, _ = cfg.ResolveNewSessionChatModel()
 	return ref, fallback, nil
 }
-
-// resolveServeModel keeps serve's implicit model scoped to the user config.
-// A project deepzora.toml may configure the served workspace, but it must not
-// replace the account-level model used for new serve sessions.
-func resolveServeModel(modelName string) string {
-	if strings.TrimSpace(modelName) != "" {
-		return modelName
-	}
-	cfg := config.LoadForEdit(config.UserConfigPath())
-	if resolved, _, ok := cfg.ResolveNewSessionChatModel(); ok {
-		return resolved
-	}
-	return modelName
-}

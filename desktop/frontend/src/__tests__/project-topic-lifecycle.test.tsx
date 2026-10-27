@@ -5,7 +5,6 @@ import { JSDOM } from "jsdom";
 import { useProjectTopicCommands } from "../app-runtime/useProjectTopicCommands";
 import type { ProjectTopicPorts } from "../app-runtime/projectTopicOwner";
 import { mockAIRenameSession, mockSessionTitleTarget } from "../lib/mockSessionTitle";
-import type { RemoteSessionView } from "../lib/remoteTypes";
 import type { ProjectNode } from "../lib/types";
 import { enqueueNavigationRequest, type NavigationCoalescingRefs } from "../lib/openTopicCoalescing";
 
@@ -15,7 +14,6 @@ Object.assign(globalThis, { window: dom.window, document: dom.window.document, I
 const root = createRoot(document.getElementById("root")!);
 let commands!: ReturnType<typeof useProjectTopicCommands>;
 const effects: string[] = [];
-let listing = deferred<RemoteSessionView[]>();
 const localRequests = new Map<string, ReturnType<typeof deferred<void>>>();
 type NavigationInput = { kind: "isolated-worktree"; workspaceRoot: string };
 const navigationRefs: NavigationCoalescingRefs<NavigationInput> = {
@@ -31,8 +29,6 @@ const ports: ProjectTopicPorts = {
     effects.push(`rename:${id}:${title}`);
     const gate = deferred<void>(); localRequests.set(id, gate); await gate.promise;
   },
-  listRemote: async () => listing.promise,
-  renameRemote: async (_host, _workspace, name, title) => { effects.push(`remote:${name}:${title}`); },
   markChanged: () => { effects.push("refresh-projects"); },
   refreshTabs: async () => [],
   syncActive: async () => { effects.push("sync-current"); },
@@ -70,16 +66,14 @@ assert.equal(mockAIRenameSession(titleTarget), "Sibling preview");
 assert.equal(topicNode.label, "A", "AI rename keeps the sibling with the same topic unchanged");
 assert.equal(sibling.label, "Sibling preview", "AI rename mutates the resolved session directly");
 
-function Probe({ tab, remote = false }: { tab: string; remote?: boolean }) {
+function Probe({ tab }: { tab: string }) {
   commands = useProjectTopicCommands({ visible: { tabId: tab, sessionKey: tab },
-    topic: { id: tab, title: tab, target: remote
-      ? { kind: "remote", hostId: "fixture", workspace: "fixture", sessionId: tab }
-      : { kind: "local", topicId: tab, selector: { ref: { hostId: "local", sessionId: tab } } } },
+    topic: { id: tab, title: tab, target: { kind: "local", topicId: tab, selector: { ref: { hostId: "local", sessionId: tab } } } },
     ports, navigation, reportError: error => { reportedErrors.push(error); },
   });
   return null;
 }
-async function paint(tab: string, remote = false) { await act(async () => root.render(<Probe tab={tab} remote={remote} />)); }
+async function paint(tab: string) { await act(async () => root.render(<Probe tab={tab} />)); }
 try {
   await paint("A");
   const first = commands;
@@ -134,15 +128,14 @@ try {
   await paint("A");
   assert.equal(commands.topicbarEditing, false, "switching resources releases the former draft");
 
-  await paint("A", true);
   await act(async () => commands.startActiveTopicRename());
   await act(async () => commands.setTopicTitleDraft("source title"));
   let pending!: Promise<void>;
   await act(async () => { pending = commands.commitActiveTopicRename(); });
-  await paint("B", true); await paint("A", true);
-  listing.resolve([{ sessionId: "A", title: "A", turns: 1 }, { sessionId: "B", title: "B", turns: 1, current: true }]);
+  await paint("B"); await paint("A");
+  localRequests.get("A")!.resolve();
   await act(async () => { await pending; });
-  assert.deepEqual(effects, ["remote:A:source title", "refresh-projects"], "remote current may change but rename retains A; ABA cannot resync the visible tab");
+  assert.deepEqual(effects, ["rename:A:source title", "refresh-projects"], "rename retains A across ABA and cannot resync the visible tab");
 
   effects.length = 0;
   await paint("A");
@@ -154,13 +147,13 @@ try {
   assert.equal(effects.filter(effect => effect === "refresh-projects").length, 2, "unrelated topics retain independent operation lanes");
 
   effects.length = 0;
-  listing = deferred<RemoteSessionView[]>();
-  await paint("A", true);
+  await paint("A");
   await act(async () => commands.startActiveTopicRename());
+  await act(async () => commands.setTopicTitleDraft("disposed title"));
   await act(async () => { pending = commands.commitActiveTopicRename(); });
   await act(async () => root.unmount());
-  listing.resolve([{ sessionId: "A", title: "A", turns: 1 }]); await pending;
+  localRequests.get("A")!.resolve(); await pending;
   first.onAddProject("stale");
-  assert.deepEqual(effects, [], "disposed feature cannot rename, refresh, or navigate");
+  assert.deepEqual(effects, ["rename:A:disposed title"], "disposed feature cannot refresh or navigate after an in-flight rename");
   console.log("project/topic commands: stable entry, targeted rename, independent lanes, ABA, cancel and disposal passed");
 } finally { dom.window.close(); }

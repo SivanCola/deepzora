@@ -40,7 +40,7 @@ function state(scenario: number, phase: "idle" | "executing" | "finishing", revi
       pendingPrompt: false, cancelRequested: false, cancellable: phase === "executing", backgroundJobs: 0, activity: "" },
   }] };
 }
-const target: InboxTarget = { tabId: "tab-a", sessionPath: "session-a", generation: 7, selection: 3, remote: true };
+const target: InboxTarget = { tabId: "tab-a", sessionPath: "session-a", generation: 7, selection: 3 };
 const receipt = { itemId: "item-1", disposition: "queued_followup", position: 0, paused: false };
 
 // The classifier and the copy table must recognize the bridge's transient mark.

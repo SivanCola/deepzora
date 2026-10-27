@@ -6,7 +6,7 @@ import type { SessionOperationAuthority } from "./useSessionOperations";
 export type SessionPromptKind = "approval" | "ask" | "mcpInteraction";
 export type PromptRequest =
   | { kind: "approval"; allow: boolean; session: boolean; persist: boolean }
-  | { kind: "plan"; action: PlanDecisionAction; leavePlanMode: boolean; remote: boolean; goal: string; toolApprovalMode: ToolApprovalMode; revision?: string }
+  | { kind: "plan"; action: PlanDecisionAction; leavePlanMode: boolean; goal: string; toolApprovalMode: ToolApprovalMode; revision?: string }
   | { kind: "question"; answers: QuestionAnswer[] }
   | { kind: "mcp"; action: MCPInteractionAction; content?: Record<string, unknown> };
 export type PromptPorts = SessionActionPorts & {

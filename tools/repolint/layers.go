@@ -14,7 +14,6 @@ var frontends = []string{
 	"internal/acp",
 	"internal/boot",
 	"internal/cli",
-	"internal/serve",
 }
 
 // Utility layer: these packages carry no knowledge of the kernel and must
@@ -36,7 +35,6 @@ var leaves = []string{
 	"internal/packagegrant",
 	"internal/planmode",
 	"internal/proc",
-	"internal/releaseasset",
 	"internal/retrieval",
 	"internal/shellparse",
 	"internal/store",

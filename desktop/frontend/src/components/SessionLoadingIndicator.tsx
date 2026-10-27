@@ -28,7 +28,7 @@ function PendingIndicator({ source }: { source: SessionAvailability["source"] })
   }, []);
   if (stage === "quiet") return null;
   const label = t(stage !== "slow" || source === "runtime" ? "common.loading"
-    : source === "connection" ? "remoteSurface.connecting" : "sessionRecovery.loadingHistory");
+    : "sessionRecovery.loadingHistory");
   return <div className="session-loading-indicator" role="status" aria-live="polite">
     <Loader2 size={16} className="session-recovery__spinner" aria-hidden="true" />
     <span>{label}</span>

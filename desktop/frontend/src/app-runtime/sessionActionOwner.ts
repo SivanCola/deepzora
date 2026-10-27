@@ -16,15 +16,8 @@ export type SessionActionPorts = {
   answerMCPForTab: (target: SessionPromptTarget, action: MCPInteractionAction, content?: Record<string, unknown>) => void;
   setCollaborationModeForTab: (tabId: string, mode: CollaborationMode) => Promise<void>;
   clearGoalForTab: (tabId: string) => Promise<void>;
-  setRemoteComposerProfile: (
-    tabId: string,
-    mode: CollaborationMode,
-    approvalMode: ToolApprovalMode,
-    goal: string,
-  ) => Promise<string[]>;
   patchComposerProfile: (tabId: string, mode: CollaborationMode) => void;
   notePlanMode: (tabId: string, enabled: boolean) => void;
-  drainRemoteApprovals: (tabId: string, ids: string[]) => void;
 };
 
 export function submitApproval(
@@ -40,7 +33,6 @@ export async function submitPlanDecision(
   input: {
     action: PlanDecisionAction;
     leavePlanMode: boolean;
-    remote: boolean;
     goal: string;
     toolApprovalMode: ToolApprovalMode;
   },
@@ -49,18 +41,12 @@ export async function submitPlanDecision(
 ): Promise<void> {
   authority.checkpoint();
   if (input.leavePlanMode) {
-    if (input.remote) {
-      const drained = await ports.setRemoteComposerProfile(target.tabId, "normal", input.toolApprovalMode, "");
-      authority.checkpoint();
-      if (authority.ownsUI()) ports.drainRemoteApprovals(target.tabId, drained);
-    } else {
-      if (input.goal.trim()) {
-        await ports.clearGoalForTab(target.tabId);
-        authority.checkpoint();
-      }
-      await ports.setCollaborationModeForTab(target.tabId, "normal");
+    if (input.goal.trim()) {
+      await ports.clearGoalForTab(target.tabId);
       authority.checkpoint();
     }
+    await ports.setCollaborationModeForTab(target.tabId, "normal");
+    authority.checkpoint();
     ports.notePlanMode(target.tabId, false);
     ports.patchComposerProfile(target.tabId, "normal");
   }

@@ -14,8 +14,8 @@ automatic-update pass.
 Model/provider setup: [English guide](../docs/MODEL_SETTINGS.md) · [中文指南](../docs/MODEL_SETTINGS.zh-CN.md).
 
 A native desktop window around the Deepzora Go kernel. The same
-transport-agnostic `control.Controller` that backs the chat TUI and the HTTP/SSE
-server is driven by the Electron shell through the desktop host protocol — the
+transport-agnostic `control.Controller` that backs the chat TUI and ACP is
+driven by the Electron shell through the desktop host protocol — the
 Go binary runs as a supervised service (`deepzora-desktop --host-rpc` over
 stdio), the shell owns the window, tray, menu and renderer lifecycle. See
 [the host protocol](../docs/DESKTOP_HOST_PROTOCOL.md) and
@@ -393,7 +393,7 @@ desktop/
   main.go            service entry: host launch modes, shell bootstrap
   host_rpc.go        --host-rpc service over stdio + -emit-contract
   app.go             App (bound command surface) + eventSink (event.Sink)
-  wire.go            event.Event → JSON wire form (mirrors internal/serve/wire.go)
+  wire.go            event.Event → JSON wire form
   electron/          Electron shell (main process, preload, browser surface)
   packaging/         @electron/packager pipeline + packaged smoke test
   frontend/

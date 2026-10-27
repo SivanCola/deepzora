@@ -208,9 +208,6 @@ Wails 实现已随 Electron 壳落地删除。
 | `host/app.quit` | `{}` | `{}` |
 | `host/app.relaunch` | `{"args":[],"execPath"?:string}` | `{}` |
 | `host/devtools.toggle` | `{}` | `{}` |
-| `host/remoteWindow.open` | `{"hostKey","url","title"}` | `{"windowId":string}` |
-| `host/remoteWindow.navigate` | `{"hostKey","url","title"}` | `{}` |
-| `host/remoteWindow.focus` `close` | `{"hostKey"}` | `{}` |
 | `host/tray.ensure` | `{"openTitle","openTooltip","quitTitle","quitTooltip","tooltip"}` | `{"ready":bool,"reason":string}` |
 
 `host/shell.openExternal` 只接受 `http:`、`https:` 和 `mailto:` URL。
@@ -232,7 +229,7 @@ Wails 实现已随 Electron 壳落地删除。
 标签（任务）；该授权下打开的浏览器标签归属于它。
 
 宿主事件（`desktop/hostEvent`）：`tray.open`、`tray.quit`、`secondInstance`（`payload` 携带
-原始 argv）、`menu.showWindow`、`remoteWindow.closed`（`{"hostKey"}`）、`browser.takeover`
+原始 argv）、`menu.showWindow`、`browser.takeover`
 （`{"tabId","epoch","reason"}`）。
 
 对话框结果从不暴露文件内容；它们只返回路径，再由 Go 经现有工作区和媒体检查授权。
@@ -262,7 +259,7 @@ Wails 实现已随 Electron 壳落地删除。
 服务在回环端口上监听，承载现有的授权资源处理器（`/__deepzora_workspace_media/…`、
 `/__deepzora_theme_asset/…`、远程 markdown 图片代理）和精确匹配的附件上传入口。壳从受限的 `deepzora://app/`
 scheme 提供打包界面，只把上述前缀转发到资源源，并在主进程中附加
-`Authorization: Bearer <token>`。token 从不到达渲染进程、网站视图、远程窗口或
+`Authorization: Bearer <token>`。token 从不到达渲染进程、网站视图或
 MCP App 框架。Go 保留今天的全部文件身份与 TTL 检查。
 
 ## 渲染进程 preload 接口
@@ -337,7 +334,7 @@ warning: "invalid-config" | "unreadable-config" | "unsupported-version" | null }
 
 - 应用窗口：sandbox 开启，context isolation 开启，Node integration 关闭，只加载
   `deepzora://app`，使用上述 preload。
-- 网站视图、远程 Serve 窗口和 MCP App 框架：独立 session，没有应用 preload，不能访问
+- 网站视图和 MCP App 框架：独立 session，没有应用 preload，不能访问
   `deepzora://`，不能触达 `host/*`。
 - IPC 处理器只接受来自应用窗口 `webContents` 的请求，其他发送者被拒绝并记录。
 - 内嵌契约之外的 `desktop/invoke` 名称在到达 Go 之前失败。

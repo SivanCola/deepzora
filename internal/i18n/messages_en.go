@@ -329,7 +329,6 @@ var English = Messages{
 	CmdRemember:         "save a memory note",
 	CmdForget:           "archive a saved memory",
 	CmdMcp:              "MCP servers",
-	CmdRemote:           "remote SSH hosts",
 	CmdHooks:            "manage hooks",
 	CmdPlugins:          "manage plugin packages",
 	CmdPasteImage:       "paste clipboard image",
@@ -470,7 +469,6 @@ var English = Messages{
 	SetupSharedKeyWarningFmt: "%s is also used by %s at %s. Share this credential?",
 	SetupKeyEnvTakenFmt:      "%s is already used by provider %s; saving this key under it would replace that provider's key.",
 	SetupKeyEnvStoredFmt:     "%s already holds a saved credential; saving this key under it would overwrite that value.",
-	SetupKeyEnvSettingFmt:    "%s is read by a remote-host setting; saving this key under it would hand that setting your key.",
 	SetupKeyEnvShellFmt:      "%s is already set in the environment Deepzora runs in; saving this key under it would override that value.",
 	SetupKeyEnvRetry:         "Enter another name, or press Enter to let Deepzora choose a private variable.",
 	SetupPromptAPIKeyFmt:     "Enter new value for %s",
@@ -525,18 +523,6 @@ var English = Messages{
 	AnthropicFetchModelsSuccessFmt: "Found %d models for %s",
 	AnthropicFetchModelsFailedFmt:  "Failed to fetch models for %s: %v",
 	AnthropicSelectModelsLabel:     "Select models to enable for %s",
-
-	RemoteConnectingFmt:       "connecting to %s…",
-	RemoteConnectedFmt:        "connected to %s",
-	RemoteReconnectingFmt:     "reconnecting to %s (attempt %d)…",
-	RemoteDegradedFmt:         "connected to %s, but some forwards are down",
-	RemoteDisconnected:        "disconnected (remote serve keeps running)",
-	RemoteServeReadyFmt:       "remote serve ready: %s",
-	RemoteHostKeyPromptFmt:    "unknown host key for %s\n  type:        %s\n  fingerprint: %s",
-	RemotePassphrasePromptFmt: "passphrase for %s:",
-	RemotePasswordPromptFmt:   "password for %s:",
-	RemoteBootstrapStepFmt:    "remote serve: %s %s",
-	RemoteNoHostsHint:         "no remote hosts configured; add one with `deepzora remote add <name> [user@]host`",
 
 	UnknownCommandFmt:         "unknown command %q",
 	UsageRunHint:              "usage: deepzora -p [--model NAME] <task>",
@@ -635,7 +621,6 @@ Usage:
   deepzora run [--model NAME] [--preset ID] [--max-steps N] [-c|--continue] [--resume PATH] [--copy] [--output-format FORMAT] <task>
   deepzora run --events-jsonl [--model NAME] <task>      emit redacted structured events as JSONL
   deepzora review [--base BRANCH] [--commit SHA] [--model NAME]  AI-powered code review on local diffs
-  deepzora serve [--model NAME] [--preset ID] [--addr HOST:PORT] [--auth none|token] [--token STR]  serve over HTTP+SSE (backend for remote workspaces)
   deepzora acp [--model NAME]                           serve Agent Client Protocol over stdio (also: deepzora --acp)
   deepzora setup [path]                                 interactive config wizard; writes deepzora.toml (+ .env)
   deepzora config reasoning-language [auto|zh|en]        configure visible reasoning language

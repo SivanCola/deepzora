@@ -142,17 +142,13 @@ func credentialEnvNamesFromConfig(cfg *Config) []string {
 	for _, p := range cfg.Providers {
 		add(p.APIKeyEnv)
 	}
-	for _, h := range cfg.Remote.Hosts {
-		add(h.PassphraseEnv)
-		add(h.PasswordEnv)
-	}
 	sort.Strings(out)
 	return out
 }
 
 // CredentialEnvNames returns every environment-variable name whose value can
 // be loaded from Deepzora's global credential store. This includes configured
-// provider/bot keys and stored keys that are no longer referenced by the
+// provider keys and stored keys that are no longer referenced by the
 // current config: loadCredentialStoreForRoot loads the whole credential file,
 // so stale entries must remain outside child-process environments too.
 func (c *Config) CredentialEnvNames() []string {

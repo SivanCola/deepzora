@@ -2,9 +2,6 @@ import type { SessionOrganizationMutation, SessionOrganizationSnapshot, SessionO
 import type { ProjectNode, ProjectTreeOrganizationBindings } from "./types";
 
 export function projectNodeSelector(node: ProjectNode): SessionSelector {
-  const remote = node.remoteSession;
-  if (remote) return remote.sessionId ? { ref: { hostId: remote.hostId, sessionId: remote.sessionId } }
-    : { ref: { hostId: remote.hostId, sessionId: "" } };
   return { ref: node.session, sessionPath: node.sessionPath };
 }
 

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"deepzora/internal/config"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -12,6 +11,7 @@ import (
 	"testing"
 
 	"deepzora/desktop/internal/workspacestate"
+	"deepzora/internal/config"
 	"deepzora/internal/session"
 )
 
@@ -48,26 +48,6 @@ func TestReconcileSavedTabsDropsMissingCanonicalWithoutOwner(t *testing.T) {
 	got, changed := app.reconcileSavedTabs(t.Context(), file)
 	if !changed || len(got.Tabs) != 0 || got.ActiveTab != "" || len(got.TabOrder) != 0 {
 		t.Fatalf("stale tab reconciliation = changed:%v file:%+v", changed, got)
-	}
-}
-
-func TestReconcileSavedTabsSelectsValidFallbackAfterDroppingActive(t *testing.T) {
-	app := newSavedTabReconcileTestApp(t)
-	finishSavedTabRecovery(app)
-	root := t.TempDir()
-	file := desktopTabsFile{
-		Tabs:       []desktopTabEntry{savedProjectTab("stale", "missing-session", "", root, desktopWorkspaceID("project", root))},
-		RemoteTabs: []desktopRemoteTabEntry{{ID: "remote", HostID: "host", Workspace: "/workspace"}},
-		ActiveTab:  "stale", RemoteTabOrder: []string{"remote"}, TabOrder: []string{"stale", "remote"},
-	}
-
-	got, changed := app.reconcileSavedTabs(t.Context(), file)
-	if !changed || len(got.Tabs) != 0 || len(got.RemoteTabs) != 1 || got.ActiveTab != "remote" {
-		t.Fatalf("fallback selection = changed:%v file:%+v", changed, got)
-	}
-	single := singleSurfaceTabsFile(got)
-	if len(single.RemoteTabs) != 1 || single.RemoteTabs[0].ID != "remote" {
-		t.Fatalf("single-surface fallback discarded valid remote tab: %+v", single)
 	}
 }
 
@@ -170,61 +150,6 @@ func TestReconcileSavedTabsPreservesUnregisteredCanonicalContent(t *testing.T) {
 	}
 }
 
-func TestReconcileSavedTabsPreservesEmptyWorkspaceConflictWithoutRetiredDraftReads(t *testing.T) {
-	app := newSavedTabReconcileTestApp(t)
-	canonicalRoot := t.TempDir()
-	ref, workspaceID := createCurrentRegistrySession(t, app, canonicalRoot, "empty-workspace-conflict", false)
-
-	state, err := app.workspaceRegistry().Load(t.Context())
-	if err != nil {
-		t.Fatal(err)
-	}
-	workspace := state.Workspaces[workspaceID]
-	workspace.Root = t.TempDir()
-	state.Workspaces[workspaceID] = workspace
-	body, err := json.Marshal(state)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(app.workspaceRegistry().Path(), body, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	finishSavedTabRecovery(app)
-	file := desktopTabsFile{
-		Tabs:       []desktopTabEntry{savedProjectTab("empty", ref.SessionID, "", canonicalRoot, workspaceID)},
-		RemoteTabs: []desktopRemoteTabEntry{{ID: "remote", HostID: "host", Workspace: "/workspace"}},
-		ActiveTab:  "remote", TabOrder: []string{"remote", "empty"},
-	}
-	body = mustMarshalJSON(t, file)
-	if err := os.MkdirAll(desktopConfigDir(), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(desktopConfigDir(), tabsFileName), body, 0o600); err != nil {
-		t.Fatal(err)
-	}
-
-	got, changed := app.reconcileSavedTabs(t.Context(), file)
-	if changed || len(got.Tabs) != 1 || len(got.RemoteTabs) != 1 || !got.Tabs[0].restoreBlocked {
-		t.Fatalf("formal workspace conflict was not retained for repair: changed=%v file=%+v", changed, got)
-	}
-	if persisted := loadTabsFile(); len(persisted.RemoteTabs) != 1 {
-		t.Fatalf("preflight archive overwrote unpublished tabs: %+v", persisted)
-	}
-	state, err = app.workspaceRegistry().Load(t.Context())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if state.SessionStates[ref.SessionID].Lifecycle != workspacestate.Active {
-		t.Fatalf("empty formal session lifecycle = %q, want active", state.SessionStates[ref.SessionID].Lifecycle)
-	}
-	if _, err := os.Stat(filepath.Join(filepath.Dir(config.DesktopSessionUIStatePath()), "drafts-v1.sqlite")); !os.IsNotExist(err) {
-		t.Fatalf("workspace conflict opened the retired draft database: %v", err)
-	}
-	if len(app.tabs) != 0 || len(app.runtimeByID) != 0 {
-		t.Fatal("empty-session reconciliation created a replacement runtime")
-	}
-}
-
 func TestReconcileSavedTabsPreservesNonEmptyWorkspaceConflict(t *testing.T) {
 	app := newSavedTabReconcileTestApp(t)
 	canonicalRoot := t.TempDir()
@@ -305,40 +230,6 @@ func TestRestoreDropsStaleSavedTabWithoutReplacementRuntime(t *testing.T) {
 	}
 }
 
-func TestDesktopTabsUnknownFieldsSurviveRoundTrip(t *testing.T) {
-	var file desktopTabsFile
-	raw := []byte(`{
-  "tabs": [{"id":"local","scope":"global","workspaceRoot":"","topicId":"topic","futureLocal":{"enabled":true}}],
-  "activeTab":"local",
-  "remoteTabs":[{"id":"remote","hostId":"host","workspace":"/work","futureRemote":7}],
-  "futureTop":{"version":4}
-}`)
-	if err := json.Unmarshal(raw, &file); err != nil {
-		t.Fatal(err)
-	}
-	body, err := json.Marshal(file)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(body, &fields); err != nil {
-		t.Fatal(err)
-	}
-	if string(fields["futureTop"]) != `{"version":4}` {
-		t.Fatalf("top-level unknown field lost: %s", body)
-	}
-	var localFields, remoteFields map[string]json.RawMessage
-	if err := json.Unmarshal(mustMarshalJSON(t, file.Tabs[0]), &localFields); err != nil {
-		t.Fatal(err)
-	}
-	if err := json.Unmarshal(mustMarshalJSON(t, file.RemoteTabs[0]), &remoteFields); err != nil {
-		t.Fatal(err)
-	}
-	if string(localFields["futureLocal"]) != `{"enabled":true}` || string(remoteFields["futureRemote"]) != "7" {
-		t.Fatalf("entry unknown fields lost: local=%s remote=%s", mustMarshalJSON(t, file.Tabs[0]), mustMarshalJSON(t, file.RemoteTabs[0]))
-	}
-}
-
 func mustMarshalJSON(t *testing.T, value any) []byte {
 	t.Helper()
 	body, err := json.Marshal(value)
@@ -385,5 +276,93 @@ func TestPersistReconciledTabsRejectsStaleStartupSnapshot(t *testing.T) {
 	}
 	if got := loadTabsFile(); got.ActiveTab != "new" {
 		t.Fatalf("stale startup snapshot overwrote newer save: %+v", got)
+	}
+}
+
+func TestDesktopTabsUnknownFieldsSurviveRoundTrip(t *testing.T) {
+	var file desktopTabsFile
+	raw := []byte(`{
+  "tabs": [{"id":"local","scope":"global","workspaceRoot":"","topicId":"topic","futureLocal":{"enabled":true}}],
+  "activeTab":"local",
+  "remoteTabs":[{"id":"remote","hostId":"host","workspace":"/work"}],
+  "futureTop":{"version":4}
+}`)
+	if err := json.Unmarshal(raw, &file); err != nil {
+		t.Fatal(err)
+	}
+	body, err := json.Marshal(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(body, &fields); err != nil {
+		t.Fatal(err)
+	}
+	if string(fields["futureTop"]) != `{"version":4}` {
+		t.Fatalf("top-level unknown field lost: %s", body)
+	}
+	if _, ok := fields["remoteTabs"]; ok {
+		t.Fatalf("retired remoteTabs section was carried forward: %s", body)
+	}
+	var localFields map[string]json.RawMessage
+	if err := json.Unmarshal(mustMarshalJSON(t, file.Tabs[0]), &localFields); err != nil {
+		t.Fatal(err)
+	}
+	if string(localFields["futureLocal"]) != `{"enabled":true}` {
+		t.Fatalf("entry unknown field lost: %s", mustMarshalJSON(t, file.Tabs[0]))
+	}
+}
+
+func TestReconcileSavedTabsPreservesEmptyWorkspaceConflictWithoutRetiredDraftReads(t *testing.T) {
+	app := newSavedTabReconcileTestApp(t)
+	canonicalRoot := t.TempDir()
+	ref, workspaceID := createCurrentRegistrySession(t, app, canonicalRoot, "empty-workspace-conflict", false)
+
+	state, err := app.workspaceRegistry().Load(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	workspace := state.Workspaces[workspaceID]
+	workspace.Root = t.TempDir()
+	state.Workspaces[workspaceID] = workspace
+	body, err := json.Marshal(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(app.workspaceRegistry().Path(), body, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	finishSavedTabRecovery(app)
+	file := desktopTabsFile{
+		Tabs:      []desktopTabEntry{savedProjectTab("empty", ref.SessionID, "", canonicalRoot, workspaceID)},
+		ActiveTab: "empty", TabOrder: []string{"empty"},
+	}
+	body = mustMarshalJSON(t, file)
+	if err := os.MkdirAll(desktopConfigDir(), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(desktopConfigDir(), tabsFileName), body, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	got, changed := app.reconcileSavedTabs(t.Context(), file)
+	if changed || len(got.Tabs) != 1 || !got.Tabs[0].restoreBlocked {
+		t.Fatalf("formal workspace conflict was not retained for repair: changed=%v file=%+v", changed, got)
+	}
+	if persisted := loadTabsFile(); len(persisted.Tabs) != 1 {
+		t.Fatalf("preflight archive overwrote unpublished tabs: %+v", persisted)
+	}
+	state, err = app.workspaceRegistry().Load(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state.SessionStates[ref.SessionID].Lifecycle != workspacestate.Active {
+		t.Fatalf("empty formal session lifecycle = %q, want active", state.SessionStates[ref.SessionID].Lifecycle)
+	}
+	if _, err := os.Stat(filepath.Join(filepath.Dir(config.DesktopSessionUIStatePath()), "drafts-v1.sqlite")); !os.IsNotExist(err) {
+		t.Fatalf("workspace conflict opened the retired draft database: %v", err)
+	}
+	if len(app.tabs) != 0 || len(app.runtimeByID) != 0 {
+		t.Fatal("empty-session reconciliation created a replacement runtime")
 	}
 }

@@ -67,7 +67,7 @@ var (
 	// Localizable filler inside a backtick span is normalized away before
 	// comparison so translations may localize examples:
 	//   `deepzora run "your task"`   vs   `deepzora run "你的任務"`
-	//   `deepzora remote add <name>` vs   `deepzora remote add <名稱>`
+	//   `deepzora preset show <id>`  vs   `deepzora preset show <編號>`
 	reSpanQuoted = regexp.MustCompile(`"[^"]*"`)
 	reSpanAngle  = regexp.MustCompile(`<[^>]*>`)
 )

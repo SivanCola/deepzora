@@ -65,9 +65,7 @@ type Config struct {
 	Statusline    StatuslineConfig    `toml:"statusline"`
 	LSP           LSPConfig           `toml:"lsp"`
 	Browser       BrowserConfig       `toml:"browser"`
-	Serve         ServeConfig         `toml:"serve"`
 	Secrets       SecretsConfig       `toml:"secrets"`
-	Remote        RemoteConfig        `toml:"remote"`
 
 	systemPromptFileSource   promptFileSource
 	providerSources          map[string]providerSourceScope
@@ -623,23 +621,6 @@ type CheckpointsConfig struct {
 	BlobQuotaBytes int64 `toml:"blob_quota_bytes"`
 }
 
-// ServeConfig controls the HTTP serve frontend security settings.
-type ServeConfig struct {
-	// AuthMode selects the authentication mode for the HTTP serve frontend.
-	// "none" (default): no authentication.
-	// "token": a pre-shared token in the URL query string.
-	AuthMode string `toml:"auth_mode"`
-	// Token is a pre-shared token for auth_mode = "token". When empty, a
-	// cryptographically random token is generated at startup and printed.
-	Token string `toml:"token"`
-	// BehindProxy indicates the server sits behind a trusted reverse proxy
-	// (nginx, Caddy, Cloudflare, etc.) that sets X-Forwarded-For and
-	// X-Forwarded-Proto headers. When true, those headers are used for
-	// Secure-cookie and host-guard decisions. When false (default), they
-	// are ignored — an attacker can otherwise forge them.
-	BehindProxy bool `toml:"behind_proxy"`
-}
-
 // NetworkConfig controls ordinary outbound HTTP traffic such as model providers,
 // wallet-balance lookups, updater checks, CodeGraph downloads, and web_fetch.
 // web_fetch reuses these proxy settings while keeping its own SSRF-guarded
@@ -1017,13 +998,12 @@ type ProviderEntry struct {
 	// ResponsesMode selects the Responses API context strategy. Empty preserves
 	// vendor detection; DeepSeek is stateless while compatible endpoints may use
 	// stateful previous_response_id continuation.
-	ResponsesMode      string `toml:"responses_mode"`
-	resolvedAPIKey     string
-	credentialsFrozen  bool
-	credentialProxyURL string // runtime-only loopback transport, never persisted
-	resolvedSource     CredentialSource
-	BalanceURL         string `toml:"balance_url"` // optional; a provider-specific wallet-balance endpoint (DeepSeek: https://api.deepseek.com/user/balance). Empty = no balance readout.
-	ContextWindow      int    `toml:"context_window"`
+	ResponsesMode     string `toml:"responses_mode"`
+	resolvedAPIKey    string
+	credentialsFrozen bool
+	resolvedSource    CredentialSource
+	BalanceURL        string `toml:"balance_url"` // optional; a provider-specific wallet-balance endpoint (DeepSeek: https://api.deepseek.com/user/balance). Empty = no balance readout.
+	ContextWindow     int    `toml:"context_window"`
 	// MaxOutputTokens is a protocol-neutral total output budget for one turn.
 	// Zero means official DeepSeek omits the field (server 384K ceiling) and
 	// other vendors keep their own defaults. Effort selects thinking depth only.

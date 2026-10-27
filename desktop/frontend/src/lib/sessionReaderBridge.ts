@@ -24,25 +24,14 @@ export interface SessionReaderBindings {
   LocateSessionHistoryMessage(id: string, messageID: string, snapshot: number): Promise<MessageLocation>;
   SearchSessionHistoryRead(id: string, text: string, cursor: string, limit: number): Promise<SearchHistoryPage>;
   SessionHistoryOutlineForTab?(tabID: string, req: HistoryOutlineRequest): Promise<HistoryOutlinePage>;
-  RemoteSessionHistoryOutlineForTab?(tabID: string, req: HistoryOutlineRequest): Promise<HistoryOutlinePage>;
   TranscriptFollowForTab(tabID: string, request: FollowRequest): Promise<TranscriptFollowResponse>;
-  RemoteTranscriptFollowForTab(tabID: string, request: FollowRequest): Promise<TranscriptFollowResponse>;
   SessionHistoryPageForTab(tabID: string, cursor: string, limit: number): Promise<MessageHistoryPage>;
   SessionOpenForTab(tabID: string): Promise<SessionOpenView>;
   SessionHistoryContentForTab(tabID: string, ref: SessionContentRef, offset: number): Promise<SessionHistoryContentChunk>;
-  RemoteSessionOpenForTab(tabID: string): Promise<SessionOpenView>;
-  RemoteSessionHistoryPageForTab(tabID: string, cursor: string, limit: number): Promise<MessageHistoryPage>;
-  RemoteSessionHistoryContentForTab(tabID: string, ref: SessionContentRef, offset: number): Promise<SessionHistoryContentChunk>;
   SearchSessionHistoryForTab(tabID: string, textQuery: string, cursor: string, limit: number): Promise<SearchHistoryPage>;
-  RemoteSearchSessionHistoryForTab(tabID: string, textQuery: string, cursor: string, limit: number): Promise<SearchHistoryPage>;
   LocateSessionMessageForTab(tabID: string, messageID: string, snapshot: number): Promise<MessageLocation>;
-  RemoteLocateSessionMessageForTab(tabID: string, messageID: string, snapshot: number): Promise<MessageLocation>;
-  // Canonical history requires history-window-v1. Remote services without
-  // that capability are rejected by the history reader.
   SessionHistoryWindowForTab(tabID: string, req: HistoryWindowRequest): Promise<HistoryWindowPage>;
   SessionMessageFieldForTab(tabID: string, messageID: string, version: number, field: string, offset: number, length: number): Promise<MessageFieldPage>;
-  RemoteSessionHistoryWindowForTab(tabID: string, req: HistoryWindowRequest): Promise<HistoryWindowPage>;
-  RemoteSessionMessageFieldForTab(tabID: string, messageID: string, version: number, field: string, offset: number, length: number): Promise<MessageFieldPage>;
 }
 
 interface MockSessionReaderHost {
@@ -202,7 +191,6 @@ export function makeMockSessionReaderBindings(readHistory: (tabID: string) => Pr
     async LocateSessionHistoryMessage(this: MockSessionReaderHost, id, messageID, snapshot) { return (this.LocateSessionMessageForTab ?? bindings.LocateSessionMessageForTab).call(this, id, messageID, snapshot); },
     async SearchSessionHistoryRead(this: MockSessionReaderHost, id, text, cursor, limit) { return (this.SearchSessionHistoryForTab ?? bindings.SearchSessionHistoryForTab).call(this, id, text, cursor, limit); },
     TranscriptFollowForTab: follow,
-    RemoteTranscriptFollowForTab: follow,
     async SessionHistoryPageForTab(this: MockSessionReaderHost, tabID, cursor, limit) {
       const slice = await mockReaderSlice(source, tabID, { cursor, entries: limit, turns: limit });
       const history = slice.entries.some(entry => entry.refs?.length) ? await readHistory(tabID) : [];
@@ -224,13 +212,8 @@ export function makeMockSessionReaderBindings(readHistory: (tabID: string) => Pr
       const nextOffset = Math.min(body.length, offset + (1 << 20));
       return { data: encodedChunk(body.subarray(offset, nextOffset)), nextOffset, done: nextOffset >= body.length };
     },
-    async RemoteSessionOpenForTab(this: MockSessionReaderHost, tabID) { return (this.SessionOpenForTab ?? bindings.SessionOpenForTab).call(this, tabID); },
-    async RemoteSessionHistoryPageForTab(this: MockSessionReaderHost, tabID, cursor, limit) { return (this.SessionHistoryPageForTab ?? bindings.SessionHistoryPageForTab).call(this, tabID, cursor, limit); },
-    async RemoteSessionHistoryContentForTab(this: MockSessionReaderHost, tabID, ref, offset) { return (this.SessionHistoryContentForTab ?? bindings.SessionHistoryContentForTab).call(this, tabID, ref, offset); },
     async SearchSessionHistoryForTab() { return search(); },
-    async RemoteSearchSessionHistoryForTab() { return search(); },
     async LocateSessionMessageForTab(_tabID, messageID) { return { status: "not_found", messageId: messageID, snapshotSequence: 0, coverageSequence: 0 }; },
-    async RemoteLocateSessionMessageForTab(_tabID, messageID) { return { status: "not_found", messageId: messageID, snapshotSequence: 0, coverageSequence: 0 }; },
     // The in-memory mock has one direction of history: a newest page and its
     // older cursors. It answers a window request without a newer cursor.
     async SessionHistoryWindowForTab(this: MockSessionReaderHost, tabID, req) {
@@ -255,8 +238,6 @@ export function makeMockSessionReaderBindings(readHistory: (tabID: string) => Pr
       };
     },
     async SessionMessageFieldForTab() { return { status: "not_found", messageId: "", version: 0, field: "", totalBytes: 0, offset: 0, encoding: "utf-8" }; },
-    async RemoteSessionHistoryWindowForTab(this: MockSessionReaderHost, tabID, req) { return (this.SessionHistoryWindowForTab ?? bindings.SessionHistoryWindowForTab).call(this, tabID, req); },
-    async RemoteSessionMessageFieldForTab() { return { status: "not_found", messageId: "", version: 0, field: "", totalBytes: 0, offset: 0, encoding: "utf-8" }; },
   };
   return bindings;
 }

@@ -9,7 +9,6 @@ export type AppBottomRegionsProps = {
     surfaceVisible?: boolean;
     open: boolean;
     contentVisible: boolean;
-    remoteSurface: boolean;
     t: Translator;
     panel: ComponentProps<typeof TerminalPanel>;
     resizer: {
@@ -29,7 +28,7 @@ export function AppBottomRegions({ terminal, status }: AppBottomRegionsProps) {
   return (
     <>
       <aside className="terminal-drawer" aria-label={terminal.t("terminal.title")} aria-hidden={!terminal.open} inert={!terminal.open ? true : undefined}>
-        {!terminal.remoteSurface && terminal.contentVisible && (
+        {terminal.contentVisible && (
           <Suspense fallback={<div className="terminal-empty"><span className="terminal-empty__spinner" />{terminal.t("terminal.loading")}</div>}>
             <TerminalPanel {...terminal.panel} />
           </Suspense>

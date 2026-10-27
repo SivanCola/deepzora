@@ -71,7 +71,7 @@ export type TranscriptProps = {
 };
 
 
-/** Local and remote hosts share this natural-flow presentation adapter. */
+/** The natural-flow presentation adapter for transcript hosts. */
 export function Transcript(props: TranscriptProps) {
   const sessionKey = props.geometrySessionKey || `tab:${props.tabId ?? "preview"}`;
   return <ChatSession key={sessionKey} {...props} sessionKey={sessionKey} />;
@@ -274,7 +274,7 @@ function ChatSession(props: TranscriptProps & { sessionKey: string }) {
         <SessionLoadingIndicator active={hydrating && props.showLoadingFeedback !== false} identity={sessionKey} />
         <div className="chat-surface" inert={Boolean(activeDetails)}>
           <Suspense fallback={null}><ChatTurnNavigator source={source} scroll={scroll} mounts={mounts}
-            tabId={tabId} hostId={props.hostId} knownTurns={props.totalTurns ?? 0}
+            tabId={tabId} knownTurns={props.totalTurns ?? 0}
             busyTurn={jumpState.status === "loading" ? jumpState.turn : null}
             failedTurn={jumpState.status === "failed" ? jumpState.turn : null}
             failedReason={jumpState.reason}

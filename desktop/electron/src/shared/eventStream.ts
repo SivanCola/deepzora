@@ -7,7 +7,7 @@ export interface EventRecovery {
   actualSeq: number;
 }
 
-// Dynamic remote-tab event names must not accumulate for the renderer's
+// Dynamic per-tab event names must not accumulate for the renderer's
 // lifetime. Once the cap is reached, retain no names and conservatively
 // repair every new subscription until the next service generation.
 export class MissedEventSubscriptions {

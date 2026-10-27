@@ -103,7 +103,6 @@ export type SettingsInitialFocus =
 type DesktopPlatform = "darwin" | "windows" | "linux";
 
 const MCPServersSettingsPage = lazy(() => import("./CapabilitiesPanel").then((module) => ({ default: module.MCPServersSettingsPage })));
-const RemoteHostsPage = lazy(() => import("./RemoteHostsPage").then((module) => ({ default: module.RemoteHostsPage })));
 const SkillsSettingsPage = lazy(() => import("./CapabilitiesPanel").then((module) => ({ default: module.SkillsSettingsPage })));
 const PluginsSettingsPage = lazy(() => import("./CapabilitiesPanel").then((module) => ({ default: module.PluginsSettingsPage })));
 const MemorySettingsPage = lazy(() => import("./MemoryPanel").then((module) => ({ default: module.MemorySettingsPage })));
@@ -433,7 +432,6 @@ export function SettingsPanel({
                 {tab === "general" && s && <SettingsPageShell key={tab} s={s} tab={tab} busy={busy} apply={apply}><GeneralSection s={s} busy={busy} apply={apply} agentRunning={agentRunning} /></SettingsPageShell>}
                 {(tab === "models" || tab === "providers" || tab === "model-stats") && s && <SettingsPageShell key="model-pages" s={s} tab={tab} busy={busy} apply={apply}><ModelsSection onOpenProviders={() => selectTab("providers")} s={s} busy={busy} apply={apply} backgroundApply={backgroundApply} onboarding={initialFocus?.target === "model-access" && initialFocus.onboarding} focusProvider={initialFocus?.target === "model-access" ? initialFocus.providerName : undefined} focusRequestId={initialFocus?.target === "model-access" ? initialFocus.requestId : undefined} onOnboardingComplete={onClose} onOnboardingStart={onOnboardingStart} subtab={tab === "providers" ? "access" : tab === "model-stats" ? "stats" : "usage"} /></SettingsPageShell>}
                 {tab === "mcp" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><MCPServersSettingsPage /></Suspense></SettingsPageShell>}
-                {tab === "remote" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><RemoteHostsPage /></Suspense></SettingsPageShell>}
                 {tab === "skills" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><SkillsSettingsPage activeWorkspaceKey={activeWorkspaceKey} /></Suspense></SettingsPageShell>}
                 {tab === "agent-presets" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><AgentPresetsSettingsPage key={activeWorkspaceKey} tabId={activeTabId} workspaceKey={activeWorkspaceKey} /></Suspense></SettingsPageShell>}
                 {tab === "subagents" && s && <SettingsPageShell key={tab} s={s} tab={tab} busy={busy} apply={apply}><Suspense fallback={lazySettingsPageFallback}><SubagentsSettingsPage s={s} onUseInChat={(command) => {
@@ -541,7 +539,7 @@ function SettingsPageShell({ s: _s, tab, children }: { s: SettingsView | null; t
 export function settingsPageLayout(tab: SettingsTab): "form" | "list" | "detail" | "tool" {
   if (tab === "providers") return "detail";
   if (["model-stats", "diagnostics", "hooks", "updates"].includes(tab)) return "tool";
-  if (["mcp", "remote", "skills", "agent-presets", "subagents", "plugins", "memory", "shortcuts"].includes(tab)) return "list";
+  if (["mcp", "skills", "agent-presets", "subagents", "plugins", "memory", "shortcuts"].includes(tab)) return "list";
   return "form";
 }
 
@@ -552,7 +550,6 @@ function settingsPageKind(tab: SettingsTab): "form" | "manager" {
     case "hooks":
     case "diagnostics":
     case "mcp":
-    case "remote":
     case "skills":
     case "agent-presets":
     case "subagents":
@@ -606,8 +603,6 @@ function settingsTabLabel(id: SettingsTab, t: ReturnType<typeof useT>): string {
       return t("settings.models.services");
     case "mcp":
       return t("settings.tab.mcp");
-    case "remote":
-      return t("settings.tab.remote");
     case "skills":
       return t("settings.tab.skills");
     case "agent-presets":
@@ -649,8 +644,6 @@ function settingsTabMeta(id: SettingsTab, s: SettingsView, t: ReturnType<typeof 
       return t("settings.providerCount", { n: s.providers.length });
     case "mcp":
       return t("caps.connectorsTab");
-    case "remote":
-      return t("remote.tabHint");
     case "skills":
       return t("settings.tabSub.skills");
     case "agent-presets":

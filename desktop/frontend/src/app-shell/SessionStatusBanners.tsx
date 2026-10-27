@@ -1,22 +1,11 @@
 import { ErrorMessage } from "../components/ErrorMessage";
-import { lazy, Suspense } from "react";
 import type { Translator } from "../lib/i18n";
-import { RemoteReclaimBanner } from "../components/RemoteReclaimBanner";
 import { UpdateBanner } from "../components/UpdateBanner";
-
-const SessionRuntimeOverlays = lazy(() => import("../components/SessionTakeoverDialog").then((module) => ({ default: module.SessionRuntimeOverlays })));
 
 export type SessionStatusBannersProps = {
   t: Translator;
-  takenOver: boolean;
-  reclaimTabId: string;
-  reclaimBusyTabId: string | null;
-  onReclaim: (tabId: string) => void;
   leaseBlocked: { tabId: string; message: string } | null;
   startupError: string | undefined;
-  takeoverDialogTabId: string | null;
-  onOpenTakeover: (tabId: string) => void;
-  onCloseTakeover: () => void;
   configWarnings: readonly string[];
   onOpenConfigFile: () => void;
   onReloadConfigFile: () => void;
@@ -34,20 +23,9 @@ export function SessionStatusBanners(props: SessionStatusBannersProps) {
   const { t } = props;
   return (
     <>
-      {props.takenOver ? (
-        <RemoteReclaimBanner
-          tabId={props.reclaimTabId}
-          busyTabId={props.reclaimBusyTabId}
-          onReclaim={props.onReclaim}
-        />
-      ) : null}
       {props.leaseBlocked ? (
         <div className="banner banner--error">
           <span className="banner__msg"><ErrorMessage error={t("topbar.startupError", { msg: props.leaseBlocked.message })} /></span>
-          <span className="banner__spacer" />
-          <button type="button" className="btn btn--small" onClick={() => props.onOpenTakeover(props.leaseBlocked!.tabId)}>
-            {t("takeover.bannerButton")}
-          </button>
         </div>
       ) : props.startupError ? (
         <div className="banner banner--error">
@@ -85,9 +63,6 @@ export function SessionStatusBanners(props: SessionStatusBannersProps) {
         enabled={props.updateChecksEnabled}
         onShowReleaseNotes={props.onShowReleaseNotes}
       />
-      {props.takeoverDialogTabId ? <Suspense fallback={null}>
-        <SessionRuntimeOverlays takeoverTabId={props.takeoverDialogTabId} onCloseTakeover={props.onCloseTakeover} />
-      </Suspense> : null}
     </>
   );
 }

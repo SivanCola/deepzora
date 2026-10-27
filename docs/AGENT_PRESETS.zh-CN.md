@@ -15,11 +15,6 @@
 在空白会话的输入框旁选择预设。第一轮开始后，当前会话的选择会锁定；需要不同
 角色时新建会话。保存预设文件不会立即改变正在运行的会话提示词或工具。
 
-远程标签页管理的是远程工作区的预设文件。远程服务需要支持 `agent-preset-v1`；
-旧服务会提示此功能不可用。保存包含 `complete: true` 或
-`include-runtime-context: false` 的预设还需要支持 `agent-preset-complete-v1`。
-仅支持 `agent-preset-v1` 的旧主机仍可保存关闭完整模式、启用运行时上下文的普通预设。
-
 ## CLI 使用方式
 
 ```sh
@@ -105,19 +100,3 @@ MCP 按服务控制：`mcp:github` 允许一个服务，`mcp:*` 允许所有已�
 如果已记录的预设文件被删除，会话保留该 ID，给出提示，并在文件恢复前使用默认
 智能体。显式要求使用不存在的 ID 创建会话会报错；已有文件格式错误时也会报错，
 以便修正。
-
-## HTTP 接口
-
-通过身份认证的 Serve 客户端可以使用以下接口：
-
-| 请求 | 请求体或返回值 |
-| --- | --- |
-| `GET /agent-presets` | 返回 `{presets, problems, current, locked}`，定义中包含正文和范围。 |
-| `PUT /agent-presets/{id}` | JSON `{ "scope": "user", "content": "<完整 Markdown 定义>" }`，返回保存后的定义。 |
-| `DELETE /agent-presets/{id}` | JSON `{ "scope": "user" }`，删除对应范围的文件。 |
-| `POST /agent-preset` | JSON `{ "agentPreset": "reviewer" }`，切换空白会话的预设。 |
-| `POST /new` | 可选 JSON `{ "agentPreset": "reviewer" }`，使用指定预设创建会话。 |
-
-项目范围使用 `project`。`/new` 省略 `agentPreset` 时保留当前预设 ID，并读取其最新
-定义；传入 `"default"` 可使用默认智能体。切换会话的请求沿用 Serve 的预期会话身份
-校验，锁定后切换返回 HTTP 409。`/status` 返回 `agentPreset` 与 `agentPresetLocked`。

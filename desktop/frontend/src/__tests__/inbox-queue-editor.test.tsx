@@ -10,7 +10,7 @@ import type { InboxTarget } from "../lib/pendingFollowup";
 
 const dom = installDom();
 globalThis.sessionStorage = dom.window.sessionStorage;
-const target: InboxTarget = { tabId: "tab-a", sessionPath: "session-a", generation: 7, selection: 3, remote: true };
+const target: InboxTarget = { tabId: "tab-a", sessionPath: "session-a", generation: 7, selection: 3 };
 const fixture = createInboxQueuePreview();
 const requests: InboxQueueRequest[] = [];
 let loseSaveReply = false;

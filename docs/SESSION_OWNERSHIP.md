@@ -9,7 +9,7 @@ sessions use the framed v4 codec, schema 4 and storage revision 3. See
 
 The session service owns the writer lease, runtime binding and durable commits.
 Every mutation is fenced by the current session identity and writer generation.
-A second process must use the current takeover protocol before it can write.
+Another process that tries to write the same session is refused.
 Read-only history queries do not acquire writer authority or create a session.
 
 Controller replacements prepare the candidate before publishing it, retaining

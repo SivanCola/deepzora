@@ -1,6 +1,6 @@
 import { defaultSidebarWidth, SIDEBAR_MAX_WIDTH } from "../store/layout";
 import type { Translator } from "../lib/i18n";
-import type { Meta, RemoteTabRefView, TabMeta } from "../lib/types";
+import type { Meta, TabMeta } from "../lib/types";
 import type { useSessionBannerCommands } from "../app-runtime/useSessionBannerCommands";
 import type { useProjectTopicCommands } from "../app-runtime/useProjectTopicCommands";
 import type { useOnboardingCommands } from "../app-runtime/useOnboardingCommands";
@@ -25,9 +25,6 @@ export function buildSidebarRegionProps(input: {
   geometry: ReturnType<typeof useShellGeometry>;
   projectTree: {
     activeTab: TabMeta | undefined;
-    /** Owned by useActiveRemoteRef: this assembly must not rebuild it, because
-     *  the project tree keys its tree walks on the object's identity. */
-    activeRemote: RemoteTabRefView | undefined;
     activeScope?: string;
     activeWorkspaceRoot?: string;
     refreshSignal: number;
@@ -70,7 +67,6 @@ export function buildSidebarRegionProps(input: {
       activeWorkspaceRoot: input.projectTree.activeWorkspaceRoot ?? input.projectTree.activeTab?.workspaceRoot,
       activeTopicId: input.projectTree.activeTab?.topicId, activeSessionPath: sessionIdentityRoute(input.projectTree.activeTab),
       activeSession: input.projectTree.activeTab?.session ?? undefined,
-      activeRemote: input.projectTree.activeRemote,
       onOpenTopic: commands.onOpenTopic,
       onCreateTopic: topics.onCreateTopic, onCreateIsolatedWorktree: topics.onCreateIsolatedWorktree,
       onTopicsChanged: topics.refreshProjectsAndTabs, onRenameTopic: topics.renameTopic, refreshSignal: input.projectTree.refreshSignal,
@@ -97,15 +93,8 @@ export function buildSessionStatusBannerProps(input: {
   const { banners, shell, onboarding } = input;
   return {
     t: input.t,
-    takenOver: Boolean(input.activeTab?.takenOver),
-    reclaimTabId: input.activeTab?.id ?? "",
-    reclaimBusyTabId: shell.reclaimBusyTab,
-    onReclaim: banners.reclaimSession,
     leaseBlocked: input.leaseBlocked,
     startupError: input.meta?.startupErr,
-    takeoverDialogTabId: shell.takeoverDialogTab,
-    onOpenTakeover: banners.openTakeoverDialog,
-    onCloseTakeover: banners.closeTakeoverDialog,
     configWarnings: input.configWarnings,
     onOpenConfigFile: banners.openConfigFile,
     onReloadConfigFile: banners.reloadConfigFile,

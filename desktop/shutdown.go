@@ -319,13 +319,10 @@ func (a *App) shutdownBody(c *desktopShutdownCoordinator, items []desktopShutdow
 	if a.workspaceHub != nil {
 		c.runStep("workspace-hub", a.workspaceHub.close)
 	}
-	c.runStep("remote-windows", a.closeAllRemoteWindows)
 	c.runStep("deferred-rebuild", a.stopDeferredRebuildRetry)
-	c.runStep("takeover-mirrors-stop", a.stopTakeoverMirrors)
 	if a.heartbeat != nil {
 		c.runStep("heartbeat", a.heartbeat.Stop)
 	}
-	c.runStep("remote-runtime", a.stopRemoteRuntime)
 	c.runStep("tray", a.stopTray)
 	if a.terminals != nil {
 		c.runStep("terminals", a.terminals.closeAll)
@@ -334,14 +331,12 @@ func (a *App) shutdownBody(c *desktopShutdownCoordinator, items []desktopShutdow
 
 	for _, item := range items {
 		c.runStep("session:"+item.tab.ID, func() {
-			a.returnTakeoverLeaseForShutdown(item.tab)
 			item.ctrl.Close()
 			a.mu.Lock()
 			a.releaseSessionRuntimeLocked(item.tab)
 			a.mu.Unlock()
 		})
 	}
-	c.runStep("takeover-mirrors-end", a.endTakeoverMirrors)
 	c.runStep("update-health", func() {
 		if !a.startupReady.Load() {
 			return

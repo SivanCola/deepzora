@@ -315,7 +315,6 @@ type Messages struct {
 	CmdRemember         string // /remember
 	CmdForget           string // /forget
 	CmdMcp              string // /mcp
-	CmdRemote           string // /remote
 	CmdHooks            string // /hooks
 	CmdPlugins          string // /plugins
 	CmdPasteImage       string // /paste-image
@@ -507,7 +506,6 @@ type Messages struct {
 	SetupSharedKeyWarningFmt string
 	SetupKeyEnvTakenFmt      string
 	SetupKeyEnvStoredFmt     string
-	SetupKeyEnvSettingFmt    string
 	SetupKeyEnvShellFmt      string
 	SetupKeyEnvRetry         string
 	SetupPromptAPIKeyFmt     string
@@ -564,17 +562,6 @@ type Messages struct {
 	AnthropicSelectModelsLabel     string // "Select models to enable for %s"
 
 	// remote SSH module
-	RemoteConnectingFmt       string // "connecting to %s…"
-	RemoteConnectedFmt        string // "connected to %s"
-	RemoteReconnectingFmt     string // "reconnecting to %s (attempt %d)…"
-	RemoteDegradedFmt         string // "connected to %s but some forwards are down"
-	RemoteDisconnected        string // "disconnected"
-	RemoteServeReadyFmt       string // "remote serve ready: %s"
-	RemoteHostKeyPromptFmt    string // "host %s key (%s): %s"
-	RemotePassphrasePromptFmt string // "passphrase for %s:"
-	RemotePasswordPromptFmt   string // "password for %s:"
-	RemoteBootstrapStepFmt    string // "remote serve: %s %s"
-	RemoteNoHostsHint         string // "no remote hosts configured; add one with `deepzora remote add`"
 
 	// top-level / runAgent
 	UnknownCommandFmt         string // "unknown command %q"

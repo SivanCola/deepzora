@@ -37,7 +37,6 @@ go test ./...              # runs the full test suite
 | `internal/memory` | DEEPZORA.md hierarchy + auto-memory |
 | `internal/skill` | Skill discovery from Markdown |
 | `internal/sandbox` | OS-level sandboxing |
-| `internal/serve` | HTTP/SSE server frontend |
 | `internal/checkpoint` | Snapshot-based rewind |
 | `desktop/` | Electron desktop app + Go service (separate Go module) |
 | `docs/` | Engineering spec, migration guide |

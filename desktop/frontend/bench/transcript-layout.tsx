@@ -79,7 +79,7 @@ function Fixture() {
   const transcript: ChatPaneTranscriptInput = {
     state: { ...initialState, items, running: options.streaming }, items, tabId: "layout-fixture", geometrySessionKey: "layout-fixture",
     footerHeight: 100, invocationMetadata: undefined, surfaceCommitToken: undefined,
-    liveStore: undefined, transcriptHydrating: false, navigationDataReady: true, readOnly: false,
+    liveStore: undefined, transcriptHydrating: false, readOnly: false,
     controllerReady: true, hydratePlaceholderActive: false, clearContextPending: false,
     availability: { kind: "ready", source: "history" },
     rewind: { stateActive: false, committing: false },
@@ -90,7 +90,7 @@ function Fixture() {
       <header className="topicbar">Transcript layout fixture</header>
       <aside className="sidebar">Sidebar</aside>
       <div className="chat-pane">
-        <ChatPaneRegion transitioning={false} t={t} remote={undefined} commands={commands}
+        <ChatPaneRegion t={t} commands={commands}
           transcript={transcript} onRetryHistory={async () => {}}
           launcher={options.launcher ? <DockLauncher tabId="layout-fixture" scopeKey="layout-fixture"
             workspaceRoot="" visible onSelect={noAction} overlay={options.dock} /> : undefined} />

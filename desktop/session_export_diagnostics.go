@@ -4,13 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"net/http"
 	"os"
 
 	"deepzora/desktop/internal/hostrpc"
 	"deepzora/internal/control"
-	"deepzora/internal/secrets"
-	"deepzora/internal/servecontract"
 	"deepzora/internal/session"
 )
 
@@ -26,32 +23,8 @@ func (a *App) writeSessionDiagnosticExport(job *sessionExportJob) error {
 		extra["frontendObservation"] = nil
 	}
 	return writeGoalDiagnosticsFile(job.path, func(dst io.Writer) error {
-		if job.client != nil {
-			extra["sessionIdentity"] = map[string]any{"session": job.handle.Snapshot.Ref, "source": "remote", "connectionHostId": job.sourceHostID, "workspaceRoot": job.workspaceRoot, "storageGeneration": job.handle.Snapshot.StorageGeneration}
-			body, _ := json.Marshal(extra)
-			resp, err := serveDoForSession(job.ctx, job.client, http.MethodPost, sessionExportURL(job.base, "/session-export/diagnostic", job.handle.Snapshot.Ref.SessionID, false), body, job.route)
-			if err != nil {
-				return err
-			}
-			defer resp.Body.Close()
-			if resp.StatusCode != http.StatusOK {
-				return errors.New("remote session diagnostics are unavailable; upgrade the remote service if the session was switched or taken over")
-			}
-			if _, err = copyExportContext(job.ctx, dst, resp.Body); err != nil {
-				return err
-			}
-			encoded, err := json.Marshal(browserDiagnostics)
-			if err != nil {
-				return err
-			}
-			encoded = []byte(secrets.Redact(string(encoded)))
-			if !json.Valid(encoded) {
-				return errors.New("redacted browser diagnostics are invalid")
-			}
-			return appendBrowserDiagnosticSection(dst, encoded)
-		}
 		extra["browserDiagnostics"] = browserDiagnostics
-		metadata := control.GoalDiagnosticMetadata{ApplicationVersion: version, BuildCommit: buildCommit(), ProtocolVersion: hostrpc.ProtocolVersion, Capabilities: []string{servecontract.SessionExportV1, servecontract.GoalLifecycleV2}}
+		metadata := control.GoalDiagnosticMetadata{ApplicationVersion: version, BuildCommit: buildCommit(), ProtocolVersion: hostrpc.ProtocolVersion, Capabilities: []string{"session-export-v1", "goal-lifecycle-v2"}}
 		if a.sessionDiagnosticControllerCurrent(job.controller, job.handle.Snapshot.Ref) {
 			runtimeErr := job.controller.WriteSessionDiagnostics(job.ctx, dst, metadata, extra)
 			if a.sessionDiagnosticControllerCurrent(job.controller, job.handle.Snapshot.Ref) {

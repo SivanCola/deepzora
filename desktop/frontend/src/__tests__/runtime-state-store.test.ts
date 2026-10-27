@@ -7,7 +7,7 @@ const state: RuntimeState = { schemaVersion: 1, runtimeEpoch: "controller-a", ac
   turnId: "turn-a", turnStatus: "in_progress", turnEventSeq: 1, pendingPrompt: false, cancelRequested: false, cancellable: true, backgroundJobs: 0, activity: "thinking" };
 const projection = (revision: number, changes: Partial<RuntimeState> = {}): RuntimeProjection => ({ epoch: "app-a", revision, topics: [],
   sessions: [{ tabId: "a", scope: "project", workspaceRoot: "/fixture", topicId: "topic", sessionPath: "/fixture/session", sessionGeneration: 1,
-    open: true, remote: false, freshness: "synced", state: { ...state, revision, ...changes } }] });
+    open: true, freshness: "synced", state: { ...state, revision, ...changes } }] });
 
 {
   const versioned = (projectionEpoch: string, revision: number, todos: RuntimeState["todos"]): RuntimeState => ({
@@ -45,11 +45,7 @@ const projection = (revision: number, changes: Partial<RuntimeState> = {}): Runt
   const canonical = { session: { hostId: "local", sessionId: "canonical-a" }, sessionPath: "session-id:canonical-a", sessionGeneration: 1 };
   assert.equal(selectRuntimeSession(frame, "a", canonical), session, "canonical references match even when route and physical path differ");
   assert.equal(selectRuntimeSession(frame, "a", { ...canonical, session: { hostId: "local", sessionId: "other" }, sessionPath: session.sessionPath }), undefined, "matching legacy paths cannot override distinct canonical identities");
-  session.remote = true;
-  session.hostId = "remote-host";
-  assert.equal(selectRuntimeSession(frame, "a", canonical), undefined, "the same session ID on another host is not the same session");
-  assert.equal(selectRuntimeSession(frame, "a", { ...canonical, session: { ...canonical.session, hostId: "remote-host" } }), session);
-  assert.equal(selectRuntimeSession(frame, "a", session.sessionPath), session, "remote path callers keep their scoped selection");
+  assert.equal(selectRuntimeSession(frame, "a", { ...canonical, session: { ...canonical.session, hostId: "other-host" } }), undefined, "the same session ID on another host is not the same session");
 }
 const rawStore = createRuntimeStateStore();
 const store = { ...rawStore, accept: (next: RuntimeProjection, authoritative = false) => acceptRuntimeState(rawStore, next, authoritative) };

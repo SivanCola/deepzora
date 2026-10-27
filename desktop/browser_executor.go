@@ -43,8 +43,7 @@ type hostBrowserExecutor struct {
 	host    hostRequester
 	tabID   string
 	grantID string
-	// sessionKey overrides the grant's session binding when set; remote
-	// broker executors use it because their tabs are not workspace tabs.
+	// sessionKey is the session binding the grant was issued for.
 	sessionKey      string
 	diagnosticScope string // Opaque export identity; never used to authorize operations.
 	granted         atomic.Bool
@@ -152,20 +151,6 @@ func newBrowserGrantID() string {
 		panic(err)
 	}
 	return "grant-" + hex.EncodeToString(buf)
-}
-
-func (a *App) revokeRemoteBrowserHost(hostID string) {
-	a.remoteTabMu.Lock()
-	var ids []string
-	for _, tab := range a.remoteTabs {
-		if tab != nil && tab.ref.HostID == hostID {
-			ids = append(ids, tab.id)
-		}
-	}
-	a.remoteTabMu.Unlock()
-	for _, id := range ids {
-		a.forgetRemoteBrowserExecutor(id)
-	}
 }
 
 // forgetBrowserExecutorLocked drops the tab's executor and revokes its grant
@@ -290,12 +275,6 @@ func (a *App) revokeBrowserExecutor(exec *hostBrowserExecutor) {
 		defer cancel()
 		_ = exec.host.Request(ctx, "host/browser.revoke", map[string]string{"grantId": exec.grantID}, nil)
 	})
-}
-
-// forgetRemoteBrowserExecutor drops the broker executor of a closed remote
-// tab; its grant ID is namespaced with the "remote/" prefix used at creation.
-func (a *App) forgetRemoteBrowserExecutor(remoteTabID string) {
-	a.forgetBrowserExecutorLocked("remote/" + remoteTabID)
 }
 
 func (a *App) browserLedger() (*browserops.Ledger, error) {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Activity, AlarmClock, BarChart3, Brain, Command, Cpu, Palette, Puzzle, RotateCw, Search, Server, Settings, SquarePen, TerminalSquare, Trash2 } from "lucide-react";
+import { Activity, AlarmClock, BarChart3, Brain, Command, Cpu, Palette, Puzzle, RotateCw, Search, Settings, SquarePen, TerminalSquare, Trash2 } from "lucide-react";
 import { useT } from "../lib/i18n";
 import { useMountTransition } from "../lib/useMountTransition";
 
@@ -22,7 +22,7 @@ import { useMountTransition } from "../lib/useMountTransition";
 // Fuzzy match is a small case-insensitive substring scorer — every query
 // token must appear in the candidate's title or hint, in order, but they
 // may overlap (a real fuzzy matcher would be overkill for 50-200 items).
-export type PaletteIconName = "appearance" | "automation" | "extension" | "memory" | "models" | "new" | "reload" | "remote" | "settings" | "tasks" | "terminal" | "trash" | "usage";
+export type PaletteIconName = "appearance" | "automation" | "extension" | "memory" | "models" | "new" | "reload" | "settings" | "tasks" | "terminal" | "trash" | "usage";
 
 const paletteIcons = {
   appearance: Palette,
@@ -32,7 +32,6 @@ const paletteIcons = {
   models: Cpu,
   new: SquarePen,
   reload: RotateCw,
-  remote: Server,
   settings: Settings,
   tasks: Activity,
   terminal: TerminalSquare,

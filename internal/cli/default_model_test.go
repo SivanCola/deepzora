@@ -173,37 +173,6 @@ func TestResolveModelForCLI(t *testing.T) {
 	}
 }
 
-func TestResolveServeModelUsesGlobalChatFallback(t *testing.T) {
-	isolateCLIConfigHome(t)
-	setCredential(t, defaultModelTestConfiguredEnv, true)
-	setCredential(t, defaultModelTestKeylessEnv, false)
-
-	cfg := newDefaultModelTestConfig()
-	cfg.DefaultModel = "deepseek-flash/deepseek-flash"
-	if err := cfg.SaveTo(config.UserConfigPath()); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile("deepzora.toml", []byte(`
-default_model = "project/project-chat"
-
-[[providers]]
-name = "project"
-kind = "openai"
-base_url = "https://project.example.com"
-models = ["project-chat"]
-api_key_env = "`+defaultModelTestConfiguredEnv+`"
-`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	if got := resolveServeModel(""); got != "minimax/MiniMax-M3" {
-		t.Fatalf("resolveServeModel(\"\") = %q, want global chat fallback", got)
-	}
-	if got := resolveServeModel("explicit/chat"); got != "explicit/chat" {
-		t.Fatalf("resolveServeModel(explicit) = %q, want explicit model preserved", got)
-	}
-}
-
 func TestNewChatTUIKeepsExplicitKeylessControllerModel(t *testing.T) {
 	isolateCLIConfigHome(t)
 	setCredential(t, defaultModelTestConfiguredEnv, true)

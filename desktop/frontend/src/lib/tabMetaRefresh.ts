@@ -3,7 +3,7 @@ import type { TabMeta } from "./types";
 export function activeLeaseBlockedTab(tabMetas: TabMeta[], activeTabId: string | null | undefined): TabMeta | undefined {
   if (!activeTabId) return undefined;
   const active = tabMetas.find((tab) => tab.id === activeTabId);
-  return active && !active.remote && active.runtime?.issue?.code === "session_lease_held" ? active : undefined;
+  return active && active.runtime?.issue?.code === "session_lease_held" ? active : undefined;
 }
 
 export function seedActiveTabMetaList(current: TabMeta[], tab: TabMeta): TabMeta[] {

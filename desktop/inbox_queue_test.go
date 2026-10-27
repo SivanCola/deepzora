@@ -1,70 +1,12 @@
 package main
 
 import (
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
-	"deepzora/internal/config"
 	"deepzora/internal/control"
 	"deepzora/internal/event"
-	"deepzora/internal/serve"
-	"deepzora/internal/servecontract"
 	"deepzora/internal/sessioninbox"
 )
-
-func TestRemoteInboxQueueCapabilitiesAndIdentity(t *testing.T) {
-	isolateDesktopUserDirs(t)
-	ctrl, path := newRemoteCanonicalController(t, nil, event.Discard)
-	defer ctrl.Close()
-	if err := ctrl.SetInboxPaused(true); err != nil {
-		t.Fatal(err)
-	}
-	receipt, err := ctrl.EnqueueInbox(control.InboxRequest{Submit: "remote full text", Idempotency: "remote"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	server := httptest.NewServer(operatorServeHandler(serve.New(ctrl, nil, config.ServeConfig{})))
-	defer server.Close()
-	a, tab := remoteRuntimeTestApp(server.Client())
-	tab.base, tab.routing.currentPath, tab.session.path = server.URL, path, path
-	target, err := a.CaptureInboxTarget(tab.id, path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	request := control.InboxQueueRequest{Kind: "read", ItemID: receipt.ItemID}
-	unsupported, err := a.InboxQueueForTarget(target, request)
-	if err != nil || unsupported.Reason != "unsupported" {
-		t.Fatalf("old remote: %+v %v", unsupported, err)
-	}
-	tab.capabilities[servecontract.InboxMutationsV1] = true
-	read, err := a.InboxQueueForTarget(target, request)
-	if err != nil || read.Edit == nil || read.Edit.Text != "remote full text" {
-		t.Fatalf("read: %+v %v", read, err)
-	}
-	request = control.InboxQueueRequest{Kind: "edit", ItemID: receipt.ItemID, ContentVersion: read.Edit.ContentVersion, Text: "edited remote"}
-	saved, err := a.InboxQueueForTarget(target, request)
-	if err != nil || saved.Outcome != "applied" || !saved.Snapshot.Paused {
-		t.Fatalf("save: %+v %v", saved, err)
-	}
-	tab.selectionRevision++
-	stale, err := a.InboxQueueForTarget(target, request)
-	if err != nil || stale.Reason != "session_changed" {
-		t.Fatalf("stale target: %+v %v", stale, err)
-	}
-	_, env, _ := ctrl.ReadInboxItem(receipt.ItemID)
-	if env.SubmitText != "edited remote" {
-		t.Fatal("remote queue changed unexpectedly")
-	}
-	tab.selectionRevision--
-	if _, err := ctrl.BindFreshSession(t.Context(), "other"); err != nil {
-		t.Fatal(err)
-	}
-	stale, err = a.InboxQueueForTarget(target, control.InboxQueueRequest{Kind: "pause", Paused: true})
-	if err != nil || stale.Reason != "session_changed" {
-		t.Fatalf("remote foreground switch: %+v %v", stale, err)
-	}
-}
 
 func TestTargetGuidanceQueuesEndedTurnAndRejectsReplacementSession(t *testing.T) {
 	isolateDesktopUserDirs(t)
@@ -101,14 +43,4 @@ func TestTargetGuidanceQueuesEndedTurnAndRejectsReplacementSession(t *testing.T)
 	if err != nil || stale.Reason != "session_changed" || len(ctrl.InboxSnapshot().Items) != 1 {
 		t.Fatalf("replacement fence: %+v %v", stale, err)
 	}
-}
-
-// operatorServeHandler stands in for the remote client, which holds the
-// launch token a serve requires for mutations.
-func operatorServeHandler(s *serve.Server) http.Handler {
-	h := s.Handler()
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.Header.Set("Authorization", "Bearer "+s.AuthToken())
-		h.ServeHTTP(w, r)
-	})
 }

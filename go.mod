@@ -21,11 +21,9 @@ require (
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/gorilla/websocket v1.5.3
 	github.com/joho/godotenv v1.5.1
-	github.com/kevinburke/ssh_config v1.6.0
 	github.com/klauspost/compress v1.20.3
 	github.com/mattn/go-runewidth v0.0.31
 	github.com/modelcontextprotocol/go-sdk v1.8.0
-	github.com/pkg/sftp v1.13.11
 	github.com/rivo/uniseg v0.4.7
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
@@ -39,7 +37,6 @@ require (
 	github.com/yuin/goldmark v1.8.6
 	go.etcd.io/bbolt v1.5.0
 	go.uber.org/goleak v1.3.0
-	golang.org/x/crypto v0.58.0
 	golang.org/x/image v0.47.0
 	golang.org/x/mod v0.42.0
 	golang.org/x/net v0.61.0
@@ -64,7 +61,6 @@ require (
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/google/jsonschema-go v0.4.3 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/kr/fs v0.1.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mattn/go-pointer v0.0.1 // indirect

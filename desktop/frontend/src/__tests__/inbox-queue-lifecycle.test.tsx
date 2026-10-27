@@ -22,7 +22,7 @@ function deferred() {
   const promise = new Promise<void>(done => { resolve = done; });
   return { promise, resolve };
 }
-const target: InboxTarget = { tabId: "tab-a", sessionPath: "session-a", generation: 1, selection: 1, remote: true };
+const target: InboxTarget = { tabId: "tab-a", sessionPath: "session-a", generation: 1, selection: 1 };
 const failures: string[] = [];
 async function check(name: string, test: () => Promise<void>) {
   try { await test(); console.log(`PASS ${name}`); }

@@ -18,7 +18,6 @@ Provider 模型能力元数据见
 - [计费与展示币种](./BILLING.zh-CN.md)
 - [CLI 命令参考](./CLI.zh-CN.md)
 - [环境变量](#环境变量)
-- [Serve](#serve)
 - [配置路径](./CONFIG_PATHS.zh-CN.md)
 - [思考语言](./REASONING_LANGUAGE.zh-CN.md)
 - [任务合约与暂停策略](./TASK_CONTRACT.zh-CN.md)
@@ -108,11 +107,6 @@ allow = ["Bash(go test:*)"]                  # 从不询问
 # allow_write    = ["/tmp"]    # write_file/edit_file/multi_edit/move_file 额外可写的目录
 # forbid_read    = ["${HOME}/.ssh"]   # agent 不可读取或列出的路径
 
-[serve]
-auth_mode = "none"             # none|token；绑定到非 localhost 前请先开启 token 认证
-# token = ""                   # 可选固定 token；token 模式为空时启动时自动生成
-# behind_proxy = false         # 只在可信反向代理后方设为 true
-
 [[plugins]]
 name    = "example"
 command = "deepzora-plugin-example"
@@ -190,61 +184,12 @@ deepzora report delete [ID]     # 不发送，直接删除
 需要单独审阅的报告。Go 无法恢复 runtime fatal throw、操作系统强制终止，以及未包装
 后台 goroutine 中的 panic，因此这些情况不会生成本地报告。
 
-## Serve
-
-`deepzora serve` 通过 HTTP+SSE API 运行引擎，主要用作桌面端远程工作区的后端：桌面端在 SSH
-主机上启动 `deepzora serve --auth token --token-file ...`，再在转发后的回环端口上打开窗口。
-它不会打开浏览器，默认监听 `127.0.0.1:8787`，保持在前台运行，按 Ctrl-C 停止。
-
-未开启认证时（`auth_mode = "none"`，即 `serve` 的默认值）读取接口保持开放，但所有会改变状态的请求（包括审批）都需要本次启动的令牌：
-
-- serve 把令牌写进 `<Deepzora home>/remote/` 下权限 0600 的文件，终端只打印文件路径和 `approvals:` 链接；在链接后拼上 `#token=<文件内容>` 用浏览器打开。带 `--token-file` 的托管启动则打印该文件路径。token 模式的 `share:` 链接同样处理。
-- 以 `Authorization: Bearer <token>` 发送，或打开一次链接让页面写入 Cookie；否则返回 403 `launch_token_required`。
-- 优先用 `--token-file` 而不是 `--token`：命令行参数对其他进程可见，沙盒内的进程也能看到。全局配置里明文的 `[serve].token` 在沙盒内可读，密钥请放文件。
-- macOS 和 Linux 的系统沙盒会拒绝读取该状态目录和 `--token-file`；Windows 没有 bash 沙盒，agent 命令可以读到该文件。
-- `[serve]` 只从用户配置读取，项目里的 `deepzora.toml` 不能设置它。
-
-如果要绑定到非 loopback 地址、通过 tunnel 暴露，或放到反向代理后面，请先开启 Token 认证再分享 URL：
-
-```bash
-deepzora serve --auth token
-deepzora serve --addr 0.0.0.0:8787 --auth token
-```
-
-Token 模式会在终端打印带 `#token=...` 的分享链接；页面会先将 fragment 换成 HttpOnly Cookie，
-再启动 API 与 SSE 请求，从而避免 Token 进入请求 URL、浏览器历史、Referrer 和访问日志。可通过
-`--token-file`、`--token` 或 `[serve].token` 复用固定 token。仅在可信反向代理后方才设置
-`behind_proxy = true`。
-
-Serve 可以同时维持多个活动会话：新建或恢复其他会话时，正在执行的回合会转入后台而不是被取消，
-会话列表也会持续显示其运行状态。空闲时运行 `/reload` 可在不重启 Serve 的情况下，以失败原子方式
-重载扩展 Sidecar 和运行时 generation。临时启动可用 `--model`、`--max-steps` 或 `--resume`；
-不传 `--model` 时，`serve` 使用用户全局 `default_model`。
-
-如果当前 Provider 尚未保存 API Key，绑定在回环地址的 Serve 仍会启动，并先显示 Provider
-配置页，而不是在窗口连接前直接失败。通过 Serve 认证后可在该页输入 Key；Deepzora 会以受限
-权限写入**当前主机**的全局凭据文件，在同一进程内重建 Controller，然后进入正常界面。
-凭据写入接口在非回环监听器上始终禁用。对于 SSH 远程窗口，“当前主机”指经 SSH 隧道访问的
-远端主机；Key 不会从桌面本机自动复制过去。
-
 ## 通过 ACP 接入编辑器
 
 `deepzora acp` 把 Deepzora 作为 ACP v1 stdio agent 提供给编辑器和其他 host 客户端。
 独立的 **[ACP 编辑器接入](./ACP.zh-CN.md)** 文档集中说明启动方式、能力协商、会话生命周期、
 彼此独立的模型/工作/协作/审批控制轴、客户端文件与 terminal 能力、MCP server、权限请求，
 以及 Deepzora 的回合中引导扩展。
-
-## 远程 SSH
-
-远程模块让 Deepzora 在远端主机上运行,并通过你自己的 SSH 连接访问它 —— 即 VS Code
-Remote-SSH 式的体验。它在远端主机上引导一个常驻的 headless `deepzora serve`,把本地一个
-回环端口转发过去,再经隧道打开现有的 serve Web 客户端。agent、工具与文件全部原生运行在远端
-主机上,保真度 100%,不经过有损的文件代理。V1 支持 Linux 与 macOS 远端主机。
-
-独立的 **[远程会话系统](./REMOTE_SESSIONS.zh-CN.md)** 文档集中说明主机配置(`config.toml`
-的 `[remote]` 段)、`ssh -G` 解析与别名导入、`deepzora remote` CLI、远端 serve 引导与
-安装阶梯、远程会话生命周期与接管、桌面端远程工作、`remote` 与 `local-proxy` 凭据模式、
-连接故障语义与故障排查。
 
 ## 自定义 OpenAI-compatible provider
 
@@ -795,13 +740,13 @@ RPC 调用。两者都可按服务器覆盖。
 `review.md` 即 `/review`，子目录构成命名空间（`git/commit.md` → `/git:commit`）。文件正文
 是 prompt 模板，调用即作为一轮对话发出。
 
-`/compact [关注点]` 现在作为独立的会话维护任务运行。桌面端和远程端会显示同一张可恢复的
+`/compact [关注点]` 现在作为独立的会话维护任务运行。桌面端会显示一张可恢复的
 进度卡片；在摘要请求仍可取消时，“停止”始终可用。压缩期间发送的消息保留在现有会话 inbox
 中，并在压缩完成或正常停止后按顺序执行；停止压缩不会撤回这些排队消息。如果摘要适配器未在
 取消宽限期内退出，或压缩结果无法安全保存，会话会进入明确的恢复状态，不会接受迟到摘要或伪装
 成空闲状态。
 
-压缩与普通 turn 共用同一个前台执行准入，覆盖直接 CLI、ACP、Bot、inbox、桌面端和远程入口。
+压缩与普通 turn 共用同一个前台执行准入，覆盖直接 CLI、ACP、Bot、inbox 和桌面端入口。
 终端界面可用 `Esc` 停止仍可取消的压缩，且不会清空当前草稿。空历史或空选择范围会以“暂无可
 压缩的历史”正常结束，不调用摘要模型。刷新或重连后，操作卡片仍会保留错误原因、已应用结果和
 估算 token 变化；持久化的进行中记录只有在运行状态同步确认不存在匹配任务后，才会显示为上次
@@ -873,7 +818,7 @@ Context Engine v2 把上下文分成两个用途不同的层：
 
 桌面 Context Center 展示相同的 provenance、冲突、revision history、recall trace 和恢复操作。
 打开 Suggestions tab 会自动扫描近期本地用户回合；候选会与两个 scope 的记忆和指令正文去重，
-但只有用户接受后才会保存。远程 workspace 绝不回退读取桌面机器的本地 memory 或 session。
+但只有用户接受后才会保存。
 
 ```markdown
 ---
@@ -909,8 +854,7 @@ Deepzora 会把 `docs/` 中明确列出的当前产品 Markdown 文档和已审�
 选择 `docs` 工具；普通自然语言问题仍可由模型自动调用该工具。已有自定义命令以及兼容插件或
 Skill 别名会继续拥有 `/docs`；发生冲突时，CLI 与桌面端通常会改为通过 `/deepzora:docs` 暴露
 内置语料。如果这个限定名也已被占用，Deepzora 会选择下一个空闲的 `deepzora:` 限定后备名，
-不会覆盖原命令。远程桌面端使用主机解析后的命令目录，因此菜单显示的入口与主机实际执行目标
-保持一致。
+不会覆盖原命令。
 
 如果 Pull Request 修改了用户可见的 CLI、桌面端、配置、Provider、权限或工具行为，必须声明
 是否已同步更新内置文档；如果无需更新，则必须说明现有的版本匹配说明为何仍然正确。
