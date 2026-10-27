@@ -534,16 +534,22 @@ func TestHTTPTransportSessionMissingConcurrentCallsShareOneRebuild(t *testing.T)
 }
 
 func TestHTTPTransportSessionMissingWithoutSessionDoesNotLoop(t *testing.T) {
-	var initializeCount atomic.Int32
+	// httptest servers bind ephemeral ports, so a reconnect left running by an
+	// earlier test can reach this server after the OS reuses its old port. Count
+	// only this transport's probes, which carry the header it was configured with.
+	const probeHeader = "X-Deepzora-Test-Transport"
+	probeID := t.Name()
+	var probeCount atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
-			initializeCount.Add(1)
+		if r.Method == http.MethodPost && r.Header.Get(probeHeader) == probeID {
+			probeCount.Add(1)
 		}
 		http.Error(w, "not an MCP endpoint", http.StatusNotFound)
 	}))
 	defer srv.Close()
 
-	transport, err := newHTTPTransport(Spec{Name: "missing-endpoint", Type: "http", URL: srv.URL})
+	transport, err := newHTTPTransport(Spec{Name: "missing-endpoint", Type: "http", URL: srv.URL,
+		Headers: map[string]string{probeHeader: probeID}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -554,8 +560,8 @@ func TestHTTPTransportSessionMissingWithoutSessionDoesNotLoop(t *testing.T) {
 	// The SDK performs its bounded modern-to-legacy protocol discovery fallback,
 	// but Deepzora must not treat a sessionless 404 as a lost established session
 	// and start another supervisor generation.
-	if got := initializeCount.Load(); got != 2 {
-		t.Fatalf("initialize requests = %d, want the SDK's two bounded protocol probes", got)
+	if got := probeCount.Load(); got != 2 {
+		t.Fatalf("protocol probes = %d, want the SDK's two bounded probes (server/discover, then initialize)", got)
 	}
 	transport.mu.Lock()
 	generations := transport.nextGeneration
