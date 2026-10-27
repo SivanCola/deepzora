@@ -8,7 +8,7 @@ export const APP_ORIGIN = "deepzora://app";
 export const APP_INDEX_URL = "deepzora://app/index.html";
 
 // Must match desktop/workspace_media.go, desktop/theme_assets.go and
-// desktop/markdown_web_image.go; only these reach the resource origin.
+// desktop/remote_markdown_image.go; only these reach the resource origin.
 export const FORWARDED_PATHS = [
   "/__deepzora_workspace_media/",
   "/__deepzora_theme_asset/",
