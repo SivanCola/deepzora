@@ -405,7 +405,7 @@ func runAgent(args []string, version string) int {
 	ablateFlag := fs.String("ablate", "", "benchmark arm: comma-separated subsystems to switch off (evidence, planner, subagent, retrieval, compaction; none|all)")
 	dir := fs.String("dir", "", "change to this directory first (project root); config, sandbox and file tools resolve from here")
 	cont := registerContinueFlag(fs)
-	resume := fs.String("resume", "", "resume by session file path, session ID, or machine session ID (takes precedence over --continue)")
+	resume := fs.StringP("resume", "r", "", "resume by session file path, session ID, machine session ID, or preview query (takes precedence over --continue)")
 	copySession := fs.Bool("copy", false, "with --resume/--continue: duplicate the session and continue in the copy (escape hatch when the original is held by another Deepzora process)")
 	effort := fs.String("effort", "", "session reasoning effort override")
 	permissionMode := fs.String("permission-mode", "workspace-write", "permission mode: read-only | workspace-write | danger-full-access")
@@ -421,6 +421,10 @@ func runAgent(args []string, version string) int {
 	fs.StringArrayVar(&allowedToolValues, "allowedTools", nil, "alias for --allowed-tools")
 	if code, ok := parseCommandFlags(fs, args); !ok {
 		return code
+	}
+	if err := validateMaxSteps(*maxSteps); err != nil {
+		fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, err)
+		return 2
 	}
 	resolvedPermissionMode, err := resolveRunPermissionMode(*permissionMode, *autoApprove, fs.Changed("permission-mode"))
 	if err != nil {
@@ -472,10 +476,7 @@ func runAgent(args []string, version string) int {
 	cfg, _ := config.Load()
 	configureCLIThemeFromConfigForTTYOutput()
 
-	prompt := strings.TrimSpace(strings.Join(fs.Args(), " "))
-	if prompt == "" {
-		prompt = readStdin()
-	}
+	prompt := headlessPrompt(fs.Args())
 	if prompt == "" {
 		fmt.Fprintln(os.Stderr, i18n.M.UsageRunHint)
 		return 2
@@ -556,14 +557,15 @@ func runAgent(args []string, version string) int {
 	}
 	ctrl, err := setupProfileWithOverrides(ctx, *model, *maxSteps, true, sink, overrides)
 	if err != nil {
+		code := setupFailureCode(err, effortOverride != nil)
 		if resultOutput != nil && format != runOutputText {
 			if encodeErr := resultOutput.Finalize("", started, err); encodeErr != nil {
 				fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, encodeErr)
 			}
-			return 1
+			return code
 		}
 		fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, err)
-		return 1
+		return code
 	}
 	defer ctrl.Close()
 	SetTaskJobKiller(ctrlKillerAdapter{ctrl})
@@ -649,6 +651,10 @@ func chatREPL(args []string, version string) int {
 	fs.StringArrayVar(&allowedToolValues, "allowedTools", nil, "alias for --allowed-tools")
 	if code, ok := parseCommandFlags(fs, normalizeOptionalResumeArg(args)); !ok {
 		return code
+	}
+	if err := validateMaxSteps(*maxSteps); err != nil {
+		fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, err)
+		return 2
 	}
 	allowedTools, err := splitAllowedToolRules(allowedToolValues)
 	if err != nil {
@@ -748,7 +754,7 @@ func chatREPL(args []string, version string) int {
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, i18n.M.ErrorPrefix, err)
-		return 1
+		return setupFailureCode(err, effortOverride != nil)
 	}
 	diagnostics.Milestone("controller_build_done")
 

@@ -153,7 +153,7 @@ func Collect(opts Options) Report {
 			Enabled: cfg.LSP.Enabled,
 			Servers: len(cfg.LSP.Servers),
 		},
-		Sessions: collectSessions(config.SessionStoreDir()),
+		Sessions: collectSessions(workspaceSessionStoreDir(cwd)),
 		Sandbox: SandboxReport{
 			Bash:              cfg.BashMode(),
 			Network:           cfg.Sandbox.Network,
@@ -309,6 +309,17 @@ func RenderText(r Report) string {
 	fmt.Fprintf(&b, "  mode         %s\n", valueOr(r.Permission.Mode, "ask"))
 	fmt.Fprintf(&b, "  rules        allow:%d ask:%d deny:%d\n", r.Permission.AllowRules, r.Permission.AskRules, r.Permission.DenyRules)
 	return b.String()
+}
+
+// workspaceSessionStoreDir is the store the CLI writes for sessions started in
+// cwd: the per-project root, falling back to the global one only when no
+// project store resolves (the same rule as the CLI's resolveCLISessionDir).
+// Reporting the global root here showed "saved 0" beside real project sessions.
+func workspaceSessionStoreDir(cwd string) string {
+	if dir := session.RootForSessionDir(config.ProjectSessionDir(cwd)); dir != "" {
+		return dir
+	}
+	return config.SessionStoreDir()
 }
 
 // collectSessions reads only the current store's metadata and file sizes. It

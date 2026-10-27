@@ -218,12 +218,20 @@ deepzora -p "summarize this repository" --output-format json
 deepzora run "implement the TODOs in main.go"
 deepzora run --auto "implement the TODOs in main.go"
 echo "explain this code" | deepzora run
+git diff | deepzora -p "review this diff"
 ```
+
+Piped stdin is the whole prompt when no task argument is given. With a task
+argument, piped or redirected input is appended after it, separated by a blank
+line; a pipe that sends nothing within two seconds is ignored so callers that
+leave stdin open do not hang.
 
 `deepzora run` keeps the normal streamed terminal presentation unless `-p` or a
 structured output format is selected. It also accepts `--model`,
 `--preset`, `--max-steps`, `--effort`, `--dir`, `--add-dir`,
-`--continue`, `--resume QUERY`, `--copy`, `--allowed-tools`, and `--permission-mode`.
+`--continue`, `-r`/`--resume QUERY`, `--copy`, `--allowed-tools`, and `--permission-mode`.
+A negative `--max-steps`, or an `--effort` level the selected model does not
+support, exits with status 2 like other invalid flags.
 
 ### Benchmark arms
 
@@ -400,7 +408,11 @@ deepzora hook status --json [--project-root PATH] [--home-dir PATH]
 For `session` and `task`, `--dir` explicitly selects the session storage
 directory, while `--project-root` resolves the selected project's session
 store. The two options cannot be combined. Without either option, Deepzora
-selects the current project's session store.
+selects the current project's session store. A `--dir` that names neither an
+existing directory nor an existing store fails with `session_dir_unavailable`
+(`task_state_unavailable` for `task`) instead of listing nothing. `scope` is
+`project` for sessions in a per-project store, including CLI sessions that do
+not record a working directory.
 Session and task listings use the current session catalog and walk all pages;
 old JSONL transcripts and sibling task sidecars are not read. Session state is
 `active`, `idle`, or `interrupted`; the old recovery-branch `recovered` field is

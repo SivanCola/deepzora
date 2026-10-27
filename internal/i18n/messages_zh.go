@@ -618,8 +618,8 @@ var Chinese = Messages{
 
 用法：
   deepzora [--model NAME] [--preset ID] [-c|--continue] [-r|--resume [QUERY]] [--permission-mode MODE] [--effort LEVEL] [--add-dir PATH]   交互式会话
-  deepzora -p|--print [--model NAME] [--output-format text|json|stream-json] [--allowed-tools RULES] [--add-dir PATH] <task>
-  deepzora run [--model NAME] [--preset ID] [--max-steps N] [-c|--continue] [--resume PATH] [--copy] [--output-format FORMAT] <task>
+  deepzora -p|--print [--model NAME] [-c|-r QUERY] [--output-format text|json|stream-json] [--allowed-tools RULES] [--add-dir PATH] <task>
+  deepzora run [--model NAME] [--preset ID] [--max-steps N] [-c|--continue] [-r|--resume QUERY] [--copy] [--output-format FORMAT] <task>
   deepzora run --events-jsonl [--model NAME] <task>      输出脱敏结构化事件 JSONL
   deepzora review [--base BRANCH] [--commit SHA] [--model NAME]  AI 代码审查（基于本地 diff）
   deepzora acp [--model NAME]                           通过 stdio 提供 Agent Client Protocol（也可用：deepzora --acp）
@@ -634,9 +634,9 @@ var Chinese = Messages{
   deepzora init                                         查看如何生成项目记忆（AGENTS.md）
   deepzora doctor [--json]                              输出脱敏的本地诊断信息
   deepzora doctor session <branch-id> [--zip] [--out PATH]  导出会话冲突诊断 zip
-  deepzora session list --json [--dir PATH]             为机器客户端列出脱敏会话
-  deepzora session show|status <machine-session-id> --json [--dir PATH]  查询单个脱敏会话
-  deepzora hook list|status --json [--dir PATH]         查看脱敏 Hook 状态
+  deepzora session list --json [--dir SESSION_DIR|--project-root PATH]   为机器客户端列出脱敏会话
+  deepzora session show|status <machine-session-id> --json [--dir SESSION_DIR|--project-root PATH]  查询单个脱敏会话
+  deepzora hook list|status --json [--project-root PATH]   查看脱敏 Hook 状态
   deepzora trust [--dir PATH] [--yes|--revoke]          审阅并批准本项目要运行的程序
   deepzora task list|show|status|events|stop|cancel|monitor|tmux --json [--dir PATH]
                                                          查看或控制脱敏 Task
@@ -651,14 +651,16 @@ var Chinese = Messages{
   deepzora --continue
   deepzora --resume provider-config
   deepzora run "把 main.go 里的 TODO 实现掉"
-  deepzora run --model mimo-pro "给这个函数补单元测试"
+  deepzora run --model deepseek-pro "给这个函数补单元测试"
   deepzora -p "总结这个仓库" --output-format json
   deepzora subagent run review "审查当前改动"
   echo "解释这段代码" | deepzora run
+  git diff | deepzora -p "审查这份 diff"
 
 配置：
   优先级：flag > ./deepzora.toml > <Deepzora home>/config.toml > 内置默认值
-  密钥通过 api_key_env 从环境变量注入（如 DEEPSEEK_API_KEY）。
+  api_key_env 指定密钥名（如 DEEPSEEK_API_KEY），其值从 <Deepzora home>/.env 读取，
+  不读取 shell 中 export 的环境变量。
   运行 'deepzora setup' 生成配置；详见 docs/SPEC.md。
 `,
 }

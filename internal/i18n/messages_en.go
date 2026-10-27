@@ -617,8 +617,8 @@ var English = Messages{
 
 Usage:
   deepzora [--model NAME] [--preset ID] [-c|--continue] [-r|--resume [QUERY]] [--permission-mode MODE] [--effort LEVEL] [--add-dir PATH]   interactive session
-  deepzora -p|--print [--model NAME] [--output-format text|json|stream-json] [--allowed-tools RULES] [--add-dir PATH] <task>
-  deepzora run [--model NAME] [--preset ID] [--max-steps N] [-c|--continue] [--resume PATH] [--copy] [--output-format FORMAT] <task>
+  deepzora -p|--print [--model NAME] [-c|-r QUERY] [--output-format text|json|stream-json] [--allowed-tools RULES] [--add-dir PATH] <task>
+  deepzora run [--model NAME] [--preset ID] [--max-steps N] [-c|--continue] [-r|--resume QUERY] [--copy] [--output-format FORMAT] <task>
   deepzora run --events-jsonl [--model NAME] <task>      emit redacted structured events as JSONL
   deepzora review [--base BRANCH] [--commit SHA] [--model NAME]  AI-powered code review on local diffs
   deepzora acp [--model NAME]                           serve Agent Client Protocol over stdio (also: deepzora --acp)
@@ -633,9 +633,9 @@ Usage:
   deepzora init                                         show how to generate project memory (AGENTS.md)
   deepzora doctor [--json]                              print redacted local diagnostics
   deepzora doctor session <branch-id> [--zip] [--out PATH]  export a session conflict diagnostic zip
-  deepzora session list --json [--dir PATH]             list redacted sessions for machine clients
-  deepzora session show|status <machine-session-id> --json [--dir PATH]  query one redacted session
-  deepzora hook list|status --json [--dir PATH]         inspect redacted hook state
+  deepzora session list --json [--dir SESSION_DIR|--project-root PATH]   list redacted sessions for machine clients
+  deepzora session show|status <machine-session-id> --json [--dir SESSION_DIR|--project-root PATH]  query one redacted session
+  deepzora hook list|status --json [--project-root PATH]   inspect redacted hook state
   deepzora trust [--dir PATH] [--yes|--revoke]          review and approve programs this project runs
   deepzora task list|show|status|events|stop|cancel|monitor|tmux --json [--dir PATH]
                                                          inspect or control redacted tasks
@@ -650,14 +650,16 @@ Examples:
   deepzora --continue
   deepzora --resume provider-config
   deepzora run "implement the TODOs in main.go"
-  deepzora run --model mimo-pro "add unit tests for this function"
+  deepzora run --model deepseek-pro "add unit tests for this function"
   deepzora -p "summarize this repository" --output-format json
   deepzora subagent run review "review the current changes"
   echo "explain this code" | deepzora run
+  git diff | deepzora -p "review this diff"
 
 Configuration:
   Resolution: flag > ./deepzora.toml > <Deepzora home>/config.toml > built-in defaults
-  Secrets come from the environment via api_key_env (e.g. DEEPSEEK_API_KEY).
+  api_key_env names each key (e.g. DEEPSEEK_API_KEY); its value is read from <Deepzora home>/.env,
+  not from exported shell variables.
   Run 'deepzora setup' to scaffold a config; see docs/SPEC.md.
 `,
 }

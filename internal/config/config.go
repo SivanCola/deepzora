@@ -1,7 +1,8 @@
 // Package config loads Deepzora's runtime configuration from TOML. Resolution order:
 // flag > project ./deepzora.toml > user config.toml (in the OS user-config dir) > built-in defaults.
-// Secrets come from the environment via api_key_env and are never stored in
-// config files.
+// Provider entries name their secret with api_key_env; the value is read only
+// from Deepzora's global .env (UserCredentialsPath) and never stored in config
+// files.
 package config
 
 import (
@@ -1862,7 +1863,7 @@ func (c *Config) Validate(model string) error {
 		return fmt.Errorf("provider %q: api_key_env is invalid; use letters, numbers, and underscores, not a model name", model)
 	}
 	if e.RequiresAPIKey() && e.APIKey() == "" {
-		return fmt.Errorf("provider %q: missing env %s", model, e.APIKeyEnv)
+		return missingAPIKeyError(model, e.APIKeyEnv)
 	}
 	return nil
 }

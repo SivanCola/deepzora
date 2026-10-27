@@ -193,6 +193,18 @@ func TestCollectCurrentSessionsMissingStoreDoesNotCreateIt(t *testing.T) {
 	}
 }
 
+func TestWorkspaceSessionStoreDirIsTheProjectStoreTheCLIWrites(t *testing.T) {
+	t.Setenv("DEEPZORA_HOME", t.TempDir())
+	workspace := t.TempDir()
+	got := workspaceSessionStoreDir(workspace)
+	if want := config.ProjectSessionStoreDir(workspace); got != want {
+		t.Fatalf("doctor session store = %q, want the project store %q", got, want)
+	}
+	if got == config.SessionStoreDir() {
+		t.Fatalf("doctor session store = global root %q for a project workspace", got)
+	}
+}
+
 func TestRenderTextSurfacesWarningsUpTop(t *testing.T) {
 	text := RenderText(Report{Warnings: []string{"config deepzora.toml: parse boom"}})
 	w := strings.Index(text, "parse boom")

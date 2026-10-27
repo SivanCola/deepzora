@@ -61,6 +61,9 @@ func runTaskCommand(args []string, out io.Writer) int {
 	if !options.json {
 		return writeMachineError(out, command, "invalid_argument", "--json is required")
 	}
+	if explicitSessionDirMissing(options.dir) {
+		return writeMachineError(out, command, "task_state_unavailable", "task state is unavailable")
+	}
 	options.dir = resolveMachineSessionDir(options.dir, options.projectRoot)
 	identityKey, err := loadMachineIdentityKey()
 	if err != nil {

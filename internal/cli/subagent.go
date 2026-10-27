@@ -355,6 +355,10 @@ func subagentRunCommand(args []string, readOnly bool) int {
 	if code, ok := parseCommandFlags(fs, rest); !ok {
 		return code
 	}
+	if err := validateMaxSteps(*maxSteps); err != nil {
+		fmt.Fprintf(os.Stderr, "subagent %s: %v\n", verb, err)
+		return 2
+	}
 	if rc := chdirTo(*dir); rc != 0 {
 		return rc
 	}
@@ -363,10 +367,7 @@ func subagentRunCommand(args []string, readOnly bool) int {
 		fmt.Fprintf(os.Stderr, "subagent %s: %v\n", verb, err)
 		return 1
 	}
-	task := strings.TrimSpace(strings.Join(fs.Args(), " "))
-	if task == "" {
-		task = readStdin()
-	}
+	task := headlessPrompt(fs.Args())
 	if task == "" {
 		fmt.Fprintf(os.Stderr, "subagent %s: task is required\n", verb)
 		return 2

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -75,5 +76,27 @@ func TestValidateDoesNotEchoCredentialPastedAsVariableName(t *testing.T) {
 	err := c.Validate("relay")
 	if err == nil || strings.Contains(err.Error(), secret) || !strings.Contains(err.Error(), "api_key_env is invalid") {
 		t.Fatalf("credential-name validation must retain guidance without echoing the supplied value: %v", err)
+	}
+}
+
+func TestValidateMissingKeyPointsAtCredentialsFileNotShellEnv(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("DEEPZORA_HOME", home)
+	// An exported variable is not a runtime key source, so it must neither
+	// satisfy the check nor be what the message tells the user to set.
+	t.Setenv("DEEPZORA_TEST_RELAY_KEY", "sk-exported-but-ignored")
+	c := &Config{Providers: []ProviderEntry{{Name: "relay", Kind: "openai", BaseURL: "https://api.example.com/v1", Model: "chat", APIKeyEnv: "DEEPZORA_TEST_RELAY_KEY"}}}
+	err := c.Validate("relay")
+	if err == nil {
+		t.Fatal("Validate accepted a key that exists only in the shell environment")
+	}
+	got := err.Error()
+	for _, want := range []string{"DEEPZORA_TEST_RELAY_KEY=", filepath.Join(home, ".env"), "deepzora setup"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("Validate error = %q, want it to mention %q", got, want)
+		}
+	}
+	if strings.Contains(got, "sk-exported-but-ignored") {
+		t.Fatalf("Validate error echoed the exported value: %q", got)
 	}
 }

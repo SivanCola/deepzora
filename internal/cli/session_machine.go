@@ -88,6 +88,9 @@ func runSessionCommand(args []string, out io.Writer) int {
 	if !options.json {
 		return writeMachineError(out, command, "invalid_argument", "--json is required")
 	}
+	if explicitSessionDirMissing(options.dir) {
+		return writeMachineError(out, command, "session_dir_unavailable", "session directory is unavailable")
+	}
 	options.dir = resolveMachineSessionDir(options.dir, options.projectRoot)
 	identityKey, err := loadMachineIdentityKey()
 	if err != nil {
@@ -115,6 +118,24 @@ func runSessionCommand(args []string, out io.Writer) int {
 		})
 	}
 	return writeMachineError(out, command, "session_not_found", "session was not found")
+}
+
+// explicitSessionDirMissing reports a --dir that names neither an existing
+// directory nor an existing session store. Listing such a path used to succeed
+// with no sessions, so a typo was indistinguishable from an empty project.
+func explicitSessionDirMissing(sessionDir string) bool {
+	if strings.TrimSpace(sessionDir) == "" {
+		return false
+	}
+	if _, err := os.Stat(sessionDir); err == nil {
+		return false
+	}
+	root := session.RootForSessionDir(sessionDir)
+	if root == "" {
+		return true
+	}
+	_, err := os.Stat(root)
+	return err != nil
 }
 
 func resolveMachineSessionDir(sessionDir, projectRoot string) string {
@@ -180,6 +201,9 @@ func machineSessions(dir string, identityKey []byte) ([]machineSession, error) {
 	if err != nil {
 		return nil, err
 	}
+	// CLI sessions do not record a cwd: the per-project store they live in is
+	// what makes them project sessions.
+	projectStore := session.RootForSessionDir(dir) != session.RootForSessionDir(config.SessionDir())
 	out := make([]machineSession, 0, len(ordered))
 	for _, info := range ordered {
 		if canonicalResumeHidden(info) {
@@ -201,7 +225,7 @@ func machineSessions(dir string, identityKey []byte) ([]machineSession, error) {
 			}
 		}
 		scope := "global"
-		if info.CWD != "" {
+		if projectStore || info.CWD != "" {
 			scope = "project"
 		}
 		out = append(out, machineSession{

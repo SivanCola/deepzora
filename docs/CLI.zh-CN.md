@@ -188,12 +188,17 @@ deepzora -p "总结这个仓库" --output-format json
 deepzora run "实现 main.go 里的 TODO"
 deepzora run --auto "实现 main.go 里的 TODO"
 echo "解释这段代码" | deepzora run
+git diff | deepzora -p "审查这份 diff"
 ```
+
+没有任务参数时，管道输入就是完整提示词。带任务参数时，管道或重定向的输入会以空行分隔
+追加在参数之后；管道两秒内没有任何输入时会被忽略，避免保持 stdin 打开的调用方卡住。
 
 未使用 `-p` 或结构化输出格式时，`deepzora run` 保持正常的终端流式展示。它也接受
 `--model`、`--preset`、`--max-steps`、`--effort`、`--dir`、
-`--add-dir`、`--continue`、`--resume QUERY`、`--copy`、`--allowed-tools` 和
+`--add-dir`、`--continue`、`-r`/`--resume QUERY`、`--copy`、`--allowed-tools` 和
 `--permission-mode`，以及作为 `--permission-mode workspace-write` 兼容别名的 `--auto` / `-y`。
+负数 `--max-steps`，或所选模型不支持的 `--effort` 级别，会像其他无效参数一样以状态码 2 退出。
 
 ### 基准对照组
 
@@ -350,7 +355,10 @@ deepzora hook status --json [--project-root PATH] [--home-dir PATH]
 
 对于 `session` 和 `task`，`--dir` 明确指定 session 存储目录，`--project-root`
 则解析指定项目的 session store；两者不能同时使用。都未指定时，Deepzora 选择当前
-项目的 session store。对于 `hook`，`--dir` 是 `--project-root` 的别名。
+项目的 session store。`--dir` 既不是已存在的目录、也不是已存在的 store 时，会返回
+`session_dir_unavailable`（`task` 为 `task_state_unavailable`），而不是空列表。
+位于按项目划分的 store 中的会话（包括不记录工作目录的 CLI 会话），`scope` 为 `project`。
+对于 `hook`，`--dir` 是 `--project-root` 的别名。
 会话和任务列表遍历当前会话目录的全部分页，不再读取旧 JSONL transcript 或旁侧任务
 文件。会话状态为 `active`、`idle` 或 `interrupted`；删除旧恢复分支的 `recovered`
 字段。后台任务元数据和输出保存在当前会话的 `jobs/` 目录中，随会话一起导出和删除。
