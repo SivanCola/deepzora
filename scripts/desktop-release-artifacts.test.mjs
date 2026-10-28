@@ -60,7 +60,8 @@ printf installer > ../../bin/fixture-installer.exe
     });
     assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
   };
-  const cases = ["v1.2.3", "v0.0.1"].flatMap(version => ["amd64", "arm64"].map(arch => ({ version, arch })));
+  const unsigned = version => ["v0.0.1", "v0.0.2"].includes(version);
+  const cases = ["v1.2.3", "v0.0.1", "v0.0.2"].flatMap(version => ["amd64", "arm64"].map(arch => ({ version, arch })));
   for (const { version, arch } of cases) {
     put("pwsh-calls.txt", "");
     // A signing runner never built locally, and a second architecture must not
@@ -91,22 +92,22 @@ printf installer > ../../bin/fixture-installer.exe
     run("bash", ["scripts/finalize-windows-signed-candidate.sh", arch, `signing-work-${arch}`,
       payload, `dist-${arch}`, `bundle-${arch}-${version}-retry`, version], {
         FINALIZE_PHASE: "seal", RELEASE_VERSION: version, RELEASE_TAG: `desktop-${version}`,
-        CERTUM_KEY_ID: version === "v0.0.1" ? "" : "fixture",
+        CERTUM_KEY_ID: unsigned(version) ? "" : "fixture",
       });
     assert.equal(readdirSync(path.join(root, `dist-${arch}`)).length, 4, "seal retry retains exactly two payloads and signatures");
     const calls = readFileSync(path.join(root, "pwsh-calls.txt"), "utf8");
     const manifest = JSON.parse(readFileSync(path.join(root, `bundle-${arch}/identity.json`), 'utf8'));
-    assert.equal(manifest.windowsAuthenticode, version === 'v0.0.1' ? 'unsigned' : 'certum');
-    if (version === 'v0.0.1') {
+    assert.equal(manifest.windowsAuthenticode, unsigned(version) ? 'unsigned' : 'certum');
+    if (unsigned(version)) {
       assert.doesNotMatch(calls, /sign-certum/);
-      assert.match(calls, /-ReleaseVersion v0\.0\.1/);
+      assert.ok(calls.includes(`-ReleaseVersion ${version}`));
     } else {
       assert.match(calls, /sign-certum/);
       assert.match(calls, /-RequireTrusted/);
     }
   }
-  const refused = spawnSync('bash', ['scripts/finalize-windows-signed-candidate.sh', 'amd64', 'work', 'payload', 'dist', 'bundle', 'v0.0.2'], {
-    cwd: root, encoding: 'utf8', env: { ...process.env, ...env, CERTUM_KEY_ID: '', RELEASE_VERSION: 'v0.0.2', MINISIGN_PRIVATE_KEY: 'fixture', MINISIGN_PASSWORD: 'fixture' },
+  const refused = spawnSync('bash', ['scripts/finalize-windows-signed-candidate.sh', 'amd64', 'work', 'payload', 'dist', 'bundle', 'v0.0.3'], {
+    cwd: root, encoding: 'utf8', env: { ...process.env, ...env, CERTUM_KEY_ID: '', RELEASE_VERSION: 'v0.0.3', MINISIGN_PRIVATE_KEY: 'fixture', MINISIGN_PASSWORD: 'fixture' },
   });
   assert.notEqual(refused.status, 0);
   assert.match(refused.stderr, /missing Certum key/);

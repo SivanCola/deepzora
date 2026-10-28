@@ -2,6 +2,219 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "0.0.2",
+      "releaseId": "0.0.2",
+      "baseVersion": "0.0.2",
+      "previousRelease": "0.0.1",
+      "date": "2026-10-28",
+      "channel": "stable",
+      "status": "reviewed",
+      "targetingVersion": 1,
+      "builds": {
+        "cli": "v0.0.2",
+        "desktop": "v0.0.2",
+        "npm": "0.0.2"
+      },
+      "title": {
+        "en": "Focused local desktop and CLI",
+        "zh": "专注本地的桌面端与 CLI"
+      },
+      "summary": {
+        "en": "Deepzora 0.0.2 narrows the product to the CLI, the desktop app and ACP. SSH remote workspaces, deepzora serve and session takeover are removed. This release adds session agent presets and native attachments, keeps the sidebar current while you work, and fixes issues found in live CLI runs. Sessions created by 0.0.1 open and continue unchanged. Windows 0.0.2 is still distributed without Authenticode signing.",
+        "zh": "Deepzora 0.0.2 将产品收敛为 CLI、桌面端和 ACP，移除 SSH 远程工作区、deepzora serve 和会话接管。本版新增会话智能体预设与原生附件，侧边栏随工作实时更新，并修复真实 CLI 运行中发现的问题。0.0.1 创建的会话可直接打开并继续。Windows 0.0.2 仍未提供 Authenticode 代码签名。"
+      },
+      "surfaces": [
+        "desktop",
+        "cli",
+        "service"
+      ],
+      "guides": [],
+      "highlights": [
+        {
+          "kind": "new",
+          "targets": [
+            "desktop",
+            "cli"
+          ],
+          "title": {
+            "en": "Session agent presets",
+            "zh": "会话智能体预设"
+          },
+          "body": {
+            "en": "Write reusable agent definitions in user or project Markdown, pick one before the first turn, and reopen a session against the latest saved definition. Tool allowlists are enforced separately from permission approval.",
+            "zh": "在用户或项目 Markdown 中编写可复用的智能体定义，首轮前选择，重新打开会话时使用最新保存的定义。工具白名单独立于权限审批强制执行。"
+          },
+          "refs": [
+            79
+          ]
+        },
+        {
+          "kind": "improved",
+          "targets": [
+            "desktop"
+          ],
+          "title": {
+            "en": "A sidebar that keeps up",
+            "zh": "实时更新的侧边栏"
+          },
+          "body": {
+            "en": "New sessions appear in the sidebar as soon as you send, and an untitled session takes its first message as its name in both the sidebar and the title bar.",
+            "zh": "发送后新会话立即出现在侧边栏；未命名会话在侧边栏和标题栏中都以首条消息作为名称。"
+          },
+          "refs": [
+            95
+          ]
+        }
+      ],
+      "changes": {
+        "new": [
+          {
+            "targets": [
+              "desktop"
+            ],
+            "title": {
+              "en": "Native attachments",
+              "zh": "原生附件"
+            },
+            "body": {
+              "en": "Reference local files natively and stream large attachments instead of pasting their contents.",
+              "zh": "可原生引用本地文件，大附件以流式传输，无需粘贴内容。"
+            },
+            "refs": [
+              79
+            ]
+          }
+        ],
+        "improved": [
+          {
+            "targets": [
+              "cli"
+            ],
+            "title": {
+              "en": "Piped input with a prompt",
+              "zh": "管道输入与提示词并用"
+            },
+            "body": {
+              "en": "`git diff | deepzora -p \"review this\"` now passes the piped text to the model after the prompt. A pipe that stays silent for 2 seconds is ignored, so callers that leave stdin open do not hang.",
+              "zh": "`git diff | deepzora -p \"review this\"` 现在会把管道内容附在提示词之后发给模型；2 秒内无数据的管道会被忽略，保持 stdin 打开的调用方不会卡住。"
+            },
+            "refs": [
+              94
+            ]
+          },
+          {
+            "targets": [
+              "cli"
+            ],
+            "title": {
+              "en": "Clearer diagnostics and flags",
+              "zh": "更清晰的诊断与参数"
+            },
+            "body": {
+              "en": "`doctor` reports the per-project session store, the missing-key error names the `.env` file and `deepzora setup`, `run` accepts `-r` for `--resume`, and invalid `--max-steps` or `--effort` values exit with code 2.",
+              "zh": "`doctor` 显示按项目划分的会话目录；缺少密钥时提示 `.env` 路径和 `deepzora setup`；`run` 支持 `-r` 作为 `--resume` 简写；无效的 `--max-steps` 或 `--effort` 以退出码 2 结束。"
+            },
+            "refs": [
+              94
+            ]
+          }
+        ],
+        "fixed": [
+          {
+            "targets": [
+              "desktop"
+            ],
+            "title": {
+              "en": "Sessions in use elsewhere open read-only",
+              "zh": "被占用的会话以只读方式打开"
+            },
+            "body": {
+              "en": "Opening a session that another Deepzora process is writing now shows its history read-only instead of failing.",
+              "zh": "打开正被另一个 Deepzora 进程写入的会话时，现在以只读方式显示历史，而不是打开失败。"
+            },
+            "refs": [
+              95
+            ]
+          },
+          {
+            "targets": [
+              "desktop"
+            ],
+            "title": {
+              "en": "Title bar name for new sessions",
+              "zh": "新会话的标题栏名称"
+            },
+            "body": {
+              "en": "The title bar no longer stays on \"New session\" after the first message is saved.",
+              "zh": "首条消息保存后，标题栏不再停留在“新的会话”。"
+            },
+            "refs": [
+              95
+            ]
+          }
+        ]
+      },
+      "upgrade": [
+        {
+          "level": "warning",
+          "targets": [
+            "desktop",
+            "cli",
+            "service"
+          ],
+          "title": {
+            "en": "Remote and Serve features removed",
+            "zh": "远程与 Serve 功能已移除"
+          },
+          "body": {
+            "en": "SSH remote workspaces, `deepzora serve`, `deepzora remote`, `deepzora web`, `/remote`, `/takeover` and `--takeover` are gone. Leftover `[remote]` and `[serve]` config sections are ignored. Local sessions, the CLI, the desktop app and ACP are unaffected.",
+            "zh": "SSH 远程工作区、`deepzora serve`、`deepzora remote`、`deepzora web`、`/remote`、`/takeover` 和 `--takeover` 已移除。配置中残留的 `[remote]`、`[serve]` 段会被忽略。本地会话、CLI、桌面端和 ACP 不受影响。"
+          },
+          "refs": [
+            88,
+            89
+          ]
+        },
+        {
+          "level": "info",
+          "targets": [
+            "desktop",
+            "cli"
+          ],
+          "title": {
+            "en": "0.0.1 sessions carry over",
+            "zh": "0.0.1 会话可直接沿用"
+          },
+          "body": {
+            "en": "Sessions and desktop data created by 0.0.1 open, show their history and continue in 0.0.2 without migration.",
+            "zh": "0.0.1 创建的会话和桌面数据无需迁移，在 0.0.2 中可直接打开、查看历史并继续对话。"
+          }
+        }
+      ],
+      "risks": [
+        {
+          "targets": [
+            "desktop",
+            "cli"
+          ],
+          "title": {
+            "en": "Windows still unsigned",
+            "zh": "Windows 仍未代码签名"
+          },
+          "body": {
+            "en": "Windows 0.0.2 has no Deepzora Authenticode publisher signature, so Windows may show an unknown-publisher or SmartScreen warning. Desktop download and payload integrity signatures remain required. This is a version-specific exception approved by the maintainer.",
+            "zh": "Windows 0.0.2 没有 Deepzora 的 Authenticode 发布者签名，可能出现未知发布者或 SmartScreen 提示。桌面下载及载荷完整性签名仍须校验。本例外仅限该版本，由维护者批准。"
+          }
+        }
+      ],
+      "contributors": [],
+      "links": {
+        "github": "https://github.com/SivanCola/deepzora/releases/tag/v0.0.2",
+        "compare": "https://github.com/SivanCola/deepzora/compare/v0.0.1...v0.0.2",
+        "download": "https://github.com/SivanCola/deepzora/releases"
+      }
+    },
+    {
       "version": "0.0.1",
       "releaseId": "0.0.1",
       "baseVersion": "0.0.1",
