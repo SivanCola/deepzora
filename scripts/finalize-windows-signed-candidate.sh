@@ -42,7 +42,7 @@ if run_phase sign; then
 	if [ "$signing_mode" = certum ]; then
 		pwsh -NoProfile -File "$control_root/scripts/sign-certum.ps1" -PayloadDirectory "$signed_payload"
 	else
-		echo 'Windows v0.0.1: Authenticode signing is explicitly waived.'
+		echo "Windows $version: Authenticode signing is explicitly waived."
 	fi
 fi
 if ! run_phase package && ! run_phase seal; then

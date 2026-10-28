@@ -87,9 +87,9 @@ test("seals and verifies a complete immutable candidate", t => {
 });
 
 test('the unsigned exception is exact-version and channel scoped', () => {
-  assert.equal(windowsSigningMode('v0.0.1', 'stable'), 'unsigned');
-  for (const version of ['0.0.2', '1.0.0', '0.0.1-preview.1']) assert.equal(windowsSigningMode(version, 'stable'), 'certum');
-  assert.equal(windowsSigningMode('0.0.1', 'prerelease'), 'certum');
+  for (const version of ['v0.0.1', '0.0.2']) assert.equal(windowsSigningMode(version, 'stable'), 'unsigned');
+  for (const version of ['0.0.3', '1.0.0', '0.0.1-preview.1', '0.0.2-preview.1']) assert.equal(windowsSigningMode(version, 'stable'), 'certum');
+  for (const version of ['0.0.1', '0.0.2']) assert.equal(windowsSigningMode(version, 'prerelease'), 'certum');
   assert.throws(() => windowsSigningMode('latest', 'stable'), /invalid Windows release version/);
 });
 

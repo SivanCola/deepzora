@@ -19,9 +19,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$unsignedFirstRelease = $ReleaseVersion -eq 'v0.0.1'
-if ($unsignedFirstRelease -and ($RequireTrusted -or $ExpectedThumbprint)) {
-    throw 'Unsigned v0.0.1 cannot assert a trusted Authenticode signer'
+# Same exempt versions as scripts/release-windows-policy.mjs.
+$unsignedRelease = $ReleaseVersion -in @('v0.0.1', 'v0.0.2')
+if ($unsignedRelease -and ($RequireTrusted -or $ExpectedThumbprint)) {
+    throw "Unsigned $ReleaseVersion cannot assert a trusted Authenticode signer"
 }
 
 $expectedPayload = @(
@@ -43,8 +44,8 @@ function Assert-AuthenticodeSignature {
         throw "Signed Windows artifact is missing: $Path"
     }
     $signature = Get-AuthenticodeSignature -LiteralPath $Path
-    if ($unsignedFirstRelease) {
-        Write-Host "Windows v0.0.1 Authenticode exemption: $Path ($($signature.Status))"
+    if ($unsignedRelease) {
+        Write-Host "Windows $ReleaseVersion Authenticode exemption: $Path ($($signature.Status))"
         return
     }
     if ($null -eq $signature.SignerCertificate -or $signature.SignatureType -eq "None") {
@@ -168,8 +169,8 @@ finally {
     }
 }
 
-if ($unsignedFirstRelease) {
-    Write-Host 'Unsigned Windows v0.0.1: complete PE inventory and exact portable/payload hashes verified.'
+if ($unsignedRelease) {
+    Write-Host "Unsigned Windows ${ReleaseVersion}: complete PE inventory and exact portable/payload hashes verified."
 } else {
     Write-Host 'Windows Authenticode release contract verified.'
 }
