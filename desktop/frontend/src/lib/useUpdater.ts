@@ -3,7 +3,7 @@ import { app, onUpdaterProgress } from "./bridge";
 import type { UpdateInfo } from "./types";
 
 // useUpdater drives the auto-update state machine shared by the top banner and the
-// Settings panel. v1.20+ uses a single "update and restart" action that downloads,
+// Settings panel. It uses a single "update and restart" action that downloads,
 // verifies, installs, and relaunches. There is no durable cross-restart pending
 // state: failures leave the current version running and the user simply retries.
 

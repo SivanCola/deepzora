@@ -89,9 +89,12 @@ func TestCanonicalOpenRefreshesSameWorkspaceIdentity(t *testing.T) {
 	}
 }
 
-func TestCanonicalOpenFailurePreservesSource(t *testing.T) {
+// A session whose writer another process holds (for example a CLI turn)
+// opens read-only: the click publishes its surface in lease_blocked instead of
+// failing, and neither the external writer nor the source session is touched.
+func TestCanonicalOpenOfExternallyHeldSessionIsLeaseBlocked(t *testing.T) {
 	app, tab, target, _, _ := canonicalWorkspaceOpenFixture(t)
-	previous := persistedDesktopTabEntry(tab)
+	installNoopRuntimeEvents(app)
 	ctrl := tab.Ctrl
 	if err := app.desktopSessionService("").Close(t.Context(), target.Ref()); err != nil {
 		t.Fatal(err)
@@ -106,15 +109,33 @@ func TestCanonicalOpenFailurePreservesSource(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = lease.Release(context.Background()) })
-	if _, err := app.OpenSession(target.Ref()); err == nil {
-		t.Fatal("external writer conflict accepted")
-	}
-	if tab.Ctrl != ctrl || tab.SessionID != previous.SessionID || tab.WorkspaceRoot != previous.WorkspaceRoot || !tab.Ready {
-		t.Fatal("failed open replaced source")
-	}
 	if err := ctrl.Snapshot(); err != nil {
-		t.Fatalf("source lost its writer: %v", err)
+		t.Fatal(err)
 	}
+
+	if _, err := app.OpenSession(target.Ref()); err != nil {
+		t.Fatalf("externally held session did not open read-only: %v", err)
+	}
+	var opened *WorkspaceTab
+	waitFor(t, "lease_blocked surface", func() bool {
+		app.mu.RLock()
+		defer app.mu.RUnlock()
+		opened = app.tabs[app.activeTabID]
+		return opened != nil && opened != tab && opened.SessionID == target.Ref().SessionID &&
+			app.sessionRuntimeViewLocked(opened).Phase == sessionRuntimeLeaseBlocked
+	})
+	app.mu.RLock()
+	ready, count := opened.Ready, len(app.tabs)
+	app.mu.RUnlock()
+	if ready || count != 1 {
+		t.Fatalf("lease-blocked surface: ready=%v tabs=%d", ready, count)
+	}
+	history, err := app.ReadSessionHistory(target.Ref(), "", 8)
+	if err != nil || len(history.Messages) == 0 {
+		t.Fatalf("history unreadable while blocked: %v", err)
+	}
+	// The external writer keeps appending after the blocked open.
+	appendSessionTestMessage(t, lease.Runtime(), "external-after-open", provider.Message{ID: "external-after-open", Role: provider.RoleUser, Content: "still writing"})
 }
 
 func TestCanonicalOpenRejectsConflictingMembership(t *testing.T) {

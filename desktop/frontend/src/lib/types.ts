@@ -876,8 +876,6 @@ export interface PermissionSnapshot {
   grants: SessionGrantSummary[];
   capabilities: PermissionCapabilities;
 }
-// Retired wire vocabularies remain accepted so old sessions and remote hosts
-// can be decoded. Current local hosts emit full/balanced/standard.
 export type GoalStatus = "running" | "complete" | "blocked" | "stopped";
 export type GoalPhase = "active" | "paused" | "blocked" | "complete";
 export type GoalActivation = "armed" | "disarmed";
@@ -894,7 +892,7 @@ export interface GoalLifecycleView {
   activation: GoalActivation;
   stopReason?: string;
 }
-// Optional Goal runtime summary; absent for old hosts or when no goal is active.
+// Optional Goal runtime summary; absent when no goal is active.
 export interface GoalRuntime {
   turnsUsed: number;
   tokensUsed: number;

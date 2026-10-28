@@ -43,8 +43,11 @@ func TestCanonicalNavigationSameWorkspaceBlankRetainsHost(t *testing.T) {
 	}
 }
 
-func TestCanonicalNavigationFailureDoesNotDetachActiveSource(t *testing.T) {
+// Opening a session another process writes publishes a lease_blocked surface;
+// the source that is still running a turn moves to the background intact.
+func TestCanonicalOpenOfHeldSessionKeepsActiveSourceRunning(t *testing.T) {
 	app, tab, target, _, _ := canonicalWorkspaceOpenFixture(t)
+	installNoopRuntimeEvents(app)
 	original := tab.Ctrl
 	active := &activeNavigationController{SessionAPI: original, IdentityLifecycle: original.(control.IdentityLifecycle), status: event.RuntimeStateSnapshot{PendingPrompt: true}}
 	tab.Ctrl = active
@@ -62,10 +65,16 @@ func TestCanonicalNavigationFailureDoesNotDetachActiveSource(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = lease.Release(context.Background()) })
-	if _, err := app.OpenSession(target.Ref()); err == nil {
-		t.Fatal("writer conflict accepted")
+	if _, err := app.OpenSession(target.Ref()); err != nil {
+		t.Fatalf("held target rejected: %v", err)
 	}
-	if tab.Ctrl != active || tab.SessionID != before || active.closed || len(app.detachedSessions) != 0 {
-		t.Fatal("failed target changed source ownership")
+	app.mu.RLock()
+	detached := false
+	for _, background := range app.detachedSessions {
+		detached = detached || background == tab
+	}
+	app.mu.RUnlock()
+	if tab.Ctrl != active || tab.SessionID != before || active.closed || !detached {
+		t.Fatal("running source was not kept intact in the background")
 	}
 }

@@ -417,6 +417,10 @@ func TestSearchHistoryUsesStableSnapshotAndOpaqueQueryCursor(t *testing.T) {
 	if err != nil || preparing.Status != "preparing" {
 		t.Fatalf("first search did not return preparation state: %+v, %v", preparing, err)
 	}
+	// Desktop readers index hits on every status; a nil slice reaches them as null.
+	if body, _ := json.Marshal(preparing); !strings.Contains(string(body), `"hits":[]`) {
+		t.Fatalf("preparing page must carry an empty hit list: %s", body)
+	}
 	first := searchHistoryReady(t, service.Query(), runtime.Ref(), "needle", "", 1)
 	if len(first.Hits) != 1 || first.Hits[0].MessageID != "two" || !first.HasMore || first.NextCursor == "" {
 		t.Fatalf("first search = %+v", first)

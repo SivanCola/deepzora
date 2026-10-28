@@ -8,8 +8,8 @@ SetCompressorDictSize 32
 ##
 ## This file is COMMITTED and fully self-contained: the Electron packaging
 ## script (desktop/packaging/package.mjs) generates deepzora_project.nsh with
-## the INFO_* identity defines, and every macro the old Wails template provided
-## is inlined below. The customizations vs. a stock NSIS template:
+## the INFO_* identity defines, and every other macro is inlined below.
+## The customizations vs. a stock NSIS template:
 ##
 ##   1. REQUEST_EXECUTION_LEVEL "user" + InstallDir under $LOCALAPPDATA - install
 ##      without administrator rights. This lets the auto-updater re-run a freshly

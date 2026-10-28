@@ -1,4 +1,4 @@
-// Package installlayout implements the Deepzora v1.20+ versioned install layout:
+// Package installlayout implements the Deepzora versioned install layout:
 // InstallRoot/{current.json, deepzora-launcher, versions/<version>/...}.
 //
 // The desktop launcher only reads current.json and starts the active desktop

@@ -108,7 +108,6 @@ func TestDesktopPackagesPreserveNativePlatformLaunchers(t *testing.T) {
 		`./cmd/deepzora`,
 		`./cmd/deepzora-launcher`,
 		`cp "$cli_out" "$app/Contents/Resources/service/$CLINAME"`,
-		`ln -s "../Resources/service/$BINNAME" "$app/Contents/MacOS/$BINNAME"`,
 		`[ "$bundle_executable" = "$APPNAME" ]`,
 		`Print :CFBundleIconFile`,
 		`darwin_icon="$ROOT/desktop/build/darwin/icon.icns"`,
@@ -130,6 +129,9 @@ func TestDesktopPackagesPreserveNativePlatformLaunchers(t *testing.T) {
 			t.Errorf("desktop-build.sh missing packaging contract %q", want)
 		}
 	}
+	if strings.Contains(build, `"$app/Contents/MacOS/$BINNAME"`) {
+		t.Fatal("macOS package must keep the service only under Contents/Resources/service")
+	}
 	if strings.Contains(build, `Set :CFBundleExecutable $GUARDNAME`) {
 		t.Fatal("macOS package must not replace the Electron bundle executable with Guard")
 	}
@@ -148,7 +150,6 @@ func TestDesktopPackagesPreserveNativePlatformLaunchers(t *testing.T) {
 	}
 	for _, copyCommand := range []string{
 		`cp "$service_out" "$app/Contents/Resources/service/$BINNAME"`,
-		`ln -s "../Resources/service/$BINNAME" "$app/Contents/MacOS/$BINNAME"`,
 		`cp "$cli_out" "$app/Contents/Resources/service/$CLINAME"`,
 	} {
 		if index := strings.Index(build, copyCommand); index < 0 || index > developerIDSign {

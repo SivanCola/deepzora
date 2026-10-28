@@ -27681,24 +27681,6 @@
           }
         },
         {
-          "name": "migration_pending",
-          "type": {
-            "kind": "integer"
-          }
-        },
-        {
-          "name": "migration_failed",
-          "type": {
-            "kind": "integer"
-          }
-        },
-        {
-          "name": "migration_completed",
-          "type": {
-            "kind": "integer"
-          }
-        },
-        {
           "name": "projection_pending",
           "type": {
             "kind": "integer"

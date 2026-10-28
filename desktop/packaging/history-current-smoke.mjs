@@ -142,7 +142,7 @@ try {
   const sources = (await invoke("ListProjectTopics", [{ scope: "global", limit: 50 }])).items
     .filter(node => fixtures.some(fixture => fixture.id === node.session?.sessionId));
   assert.equal(sources.length, 2);
-  for (const node of sources) await mutate({ kind: "set-group", groupId: "current-fixtures", target: { sessionId: node.session.sessionId } });
+  for (const node of sources) await mutate({ kind: "set-group", groupId: "current-fixtures", target: { ref: node.session, sessionPath: node.sessionPath } });
   const filtered = await invoke("ListProjectTopics", [{ scope: "global", groupFilter: "group", groupId: "current-fixtures", query: "ALPHA", limit: 1 }]);
   assert.equal(filtered.items.length, 1);
   assert.equal(filtered.items[0].session.sessionId, fixtures.find(fixture => fixture.kind === "alpha").id);
@@ -153,7 +153,7 @@ try {
   assert.equal(first.items.length, 1);
   assert.ok(first.nextCursor);
   const removed = sources.find(node => node.sessionPath !== first.items[0].sessionPath);
-  await mutate({ kind: "set-group", groupId: "", target: { sessionId: removed.session.sessionId } });
+  await mutate({ kind: "set-group", groupId: "", target: { ref: removed.session, sessionPath: removed.sessionPath } });
   const retained = await invoke("ListProjectTopics", [{ ...groupedRequest, cursor: first.nextCursor }]);
   assert.equal(retained.items.length, 1);
   assert.equal(retained.items[0].sessionPath, removed.sessionPath);

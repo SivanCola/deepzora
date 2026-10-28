@@ -11,6 +11,8 @@ import { waitForSmokeCondition } from "./smoke-poll.mjs";
 
 const require = createRequire(new URL("../electron/package.json", import.meta.url));
 const { _electron } = require("playwright");
+// The packaged shell must speak the protocol this checkout generated.
+const { protocolVersion } = JSON.parse(readFileSync(new URL("../frontend/src/generated/desktopContract.generated.json", import.meta.url), "utf8"));
 const home = mkdtempSync(join(tmpdir(), "deepzora-archive-recovery-"));
 const artifacts = resolve(process.argv[3] || "desktop/electron/artifacts/archive-recovery");
 mkdirSync(artifacts, { recursive: true });
@@ -32,7 +34,7 @@ const launch = async () => {
   page.on("pageerror", error => errors.push(error.message));
   await page.waitForFunction(() => Boolean(window.deepzoraDesktop));
   await page.waitForFunction(() => !document.querySelector(".boot-shell"));
-  assert.equal(await page.evaluate(() => window.deepzoraDesktop.contract.protocolVersion), 10);
+  assert.equal(await page.evaluate(() => window.deepzoraDesktop.contract.protocolVersion), protocolVersion);
 };
 const invoke = (method, args = []) => page.evaluate(({ method, args }) => window.deepzoraDesktop.invoke(method, args), { method, args });
 const close = async () => { await application.close(); application = null; };
@@ -73,7 +75,7 @@ try {
   await page.locator(".archived-sessions__preview").getByText("ARCHIVE_HISTORY_RETAINED", { exact: true }).waitFor();
   assert.deepEqual(await invoke("ListTabs"), tabsBeforePreview, "preview created a writable runtime");
   await page.screenshot({ path: join(artifacts, "trash-after-restart.png") });
-  await page.locator(".archived-sessions__row:visible").getByRole("button", { name: /恢复|Restore|還原/i }).click();
+  await page.locator(".archived-sessions__preview-actions").getByRole("button", { name: /恢复|Restore|還原/i }).click();
   await waitForSmokeCondition(async () => !(await invoke("GetWorkspaceSnapshot")).archivedSessionIds.includes(ref.sessionId));
   await page.waitForFunction(() => document.querySelector(".chat-transcript")?.textContent?.includes("ARCHIVE_HISTORY_RETAINED"));
   assert.equal((await active()).session.sessionId, ref.sessionId);
@@ -93,7 +95,7 @@ try {
   assert.equal(restoredTopic?.topicId, initialTopic.topicId);
   assert.equal(restoredTopic?.pinned, true);
   const diagnostics = await invoke("GetSessionArchitectureDiagnostics");
-  writeFileSync(join(artifacts, "recovery-diagnostics.json"), JSON.stringify(await invoke("ListRecoveryEntries", ["", "", 50]), null, 2));
+  writeFileSync(join(artifacts, "recovery-diagnostics.json"), JSON.stringify(diagnostics, null, 2));
   for (const key of ["pending_operations", "missing_members", "identity_mismatches", "source_conflicts", "recovery_entries"]) {
     assert.equal(diagnostics[key], 0, `clean fixture has unexpected ${key}`);
   }
@@ -104,7 +106,9 @@ try {
   await restoredRow.locator(".project-tree__topic-action--archive").click();
   await waitForSmokeCondition(async () => (await invoke("GetWorkspaceSnapshot")).archivedSessionIds.includes(ref.sessionId));
   await page.getByRole("button", { name: /回收站|Trash|垃圾桶/i }).first().click();
-  await page.locator(".archived-sessions__delete:visible").click();
+  await page.locator(".archived-sessions__open:visible").click();
+  await page.locator(".archived-sessions__session-menu").click();
+  await page.getByRole("menuitem", { name: /彻底删除|Permanently delete|徹底刪除/i }).click();
   await page.getByRole("dialog").getByRole("button", { name: /彻底删除|Permanently delete|徹底刪除/i }).click();
   await waitForSmokeCondition(async () => (await invoke("ListTrashEntries", ["", "", 50])).items.length === 0);
   recordRegistry("purge-observed");
@@ -117,7 +121,7 @@ try {
   assert.equal(containsSession((await invoke("ListProjectTopics", [{ scope: "global", workspaceRoot: "", limit: 50 }])).items), false);
   await assert.rejects(invoke("ReadSessionHistory", [ref, "", 32]));
   await close();
-  writeFileSync(join(artifacts, "result.json"), JSON.stringify({ passed: true, version, protocol: 10, listLatencyMS, diagnostics, checks: ["real sidebar archive", "persisted archive after restart", "read-only preview", "real Trash restore", "same SessionRef", "history after second restart", "confirmed purge", "no resurrection after restart", "clean exit"] }, null, 2));
+  writeFileSync(join(artifacts, "result.json"), JSON.stringify({ passed: true, version, protocol: protocolVersion, listLatencyMS, diagnostics, checks: ["real sidebar archive", "persisted archive after restart", "read-only preview", "real Trash restore", "same SessionRef", "history after second restart", "confirmed purge", "no resurrection after restart", "clean exit"] }, null, 2));
   console.log("PASS packaged archive/restart/Trash restore/restart");
 } catch (error) {
   if (page && !page.isClosed()) {

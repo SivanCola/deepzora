@@ -56,7 +56,7 @@ func bootstrapShell(exe, goos string, args, env []string) (handled bool, exitCod
 }
 
 // shellExecutableBeside resolves app/<shell> next to exe, or Contents/MacOS/
-// Deepzora beside the service inside a macOS bundle, and never exe itself.
+// Deepzora for the service under Contents/Resources/service, and never exe itself.
 func shellExecutableBeside(exe, goos string) (string, bool) {
 	exe = filepath.Clean(exe)
 	shell := shellPathForExecutable(exe, goos)
@@ -85,8 +85,8 @@ func shellPathForExecutable(exe, goos string) string {
 	return shell
 }
 
-// macAppContentsForExecutable recognizes every supported service location in
-// a macOS application bundle without relying on the name of the .app itself.
+// macAppContentsForExecutable recognizes the service payload location in a
+// macOS application bundle without relying on the name of the .app itself.
 // It is deliberately lexical: callers that mutate or trust the bundle must
 // additionally resolve symlinks and validate Info.plist.
 func macAppContentsForExecutable(exe string) (string, bool) {
@@ -102,7 +102,7 @@ func macAppContentsForExecutable(exe string) (string, bool) {
 				return "", false
 			}
 			rel = filepath.ToSlash(rel)
-			if strings.HasPrefix(rel, "MacOS/") || strings.HasPrefix(rel, "Resources/service/") {
+			if strings.HasPrefix(rel, "Resources/service/") {
 				return dir, true
 			}
 			return "", false

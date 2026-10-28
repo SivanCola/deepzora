@@ -77,10 +77,10 @@ func (q *Query) SearchHistory(ctx context.Context, ref SessionRef, textQuery, cu
 		select {
 		case <-preparation.done:
 			if preparation.err != nil {
-				return SearchHistoryPage{Status: "failed"}, preparation.err
+				return SearchHistoryPage{Hits: []SearchHistoryHit{}, Status: "failed"}, preparation.err
 			}
 		default:
-			return SearchHistoryPage{Status: "preparing"}, nil
+			return SearchHistoryPage{Hits: []SearchHistoryHit{}, Status: "preparing"}, nil
 		}
 	}
 	lock := q.projectionLock("search", ref.SessionID)

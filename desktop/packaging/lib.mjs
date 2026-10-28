@@ -1,5 +1,5 @@
-import { closeSync, fstatSync, lstatSync, openSync, readdirSync, readFileSync, readlinkSync, readSync, realpathSync, statSync } from "node:fs";
-import { basename, dirname, join, relative, resolve } from "node:path";
+import { closeSync, fstatSync, openSync, readdirSync, readFileSync, readSync, statSync } from "node:fs";
+import { basename, join, relative } from "node:path";
 import { spawnSync } from "node:child_process";
 import { inflateRawSync } from "node:zlib";
 
@@ -67,8 +67,6 @@ export function displayVersion(tag) {
   return releaseVersions(tag).display;
 }
 
-// The product identity lived in wails.json while the Wails shell was the build
-// entry point; with the shell retired it is a constant here.
 export function readProductIdentity() {
   return {
     projectName: PRODUCT.serviceExecutable,
@@ -199,7 +197,6 @@ function darwinBundleMembers() {
   return [
     "Contents/Info.plist",
     `Contents/MacOS/${PRODUCT.executable}`,
-    `Contents/MacOS/${PRODUCT.serviceExecutable}`,
     `Contents/Resources/service/${PRODUCT.serviceExecutable}`,
     // The CLI sidecar lives in Resources/service/, never Contents/MacOS/: on
     // case-insensitive APFS "deepzora" there collides with the Electron main
@@ -217,14 +214,18 @@ function darwinBundleMembers() {
   ];
 }
 
+// The service ships only under Resources/service; a MacOS sibling would be a
+// second launch path for the same payload.
+const DARWIN_FORBIDDEN = ["Contents/MacOS/deepzora-guard", `Contents/MacOS/${PRODUCT.serviceExecutable}`];
+
 const VERSION_DIR = "versions/v[^/]+";
 const PACKAGING_JUNK = /(^|\/)(?:[^/]+\.map|__tests__|testdata|\.cache|coverage|npm-debug\.log|pnpm-debug\.log|yarn-error\.log)(?:$|\/)/;
 
 const MEMBERS = {
-  "darwin-app-dir": { required: darwinBundleMembers(), forbidden: ["Contents/MacOS/deepzora-guard"] },
+  "darwin-app-dir": { required: darwinBundleMembers(), forbidden: DARWIN_FORBIDDEN },
   "darwin-zip": {
     required: darwinBundleMembers().map((name) => `${PRODUCT.name}.app/${name}`),
-    forbidden: [`${PRODUCT.name}.app/Contents/MacOS/deepzora-guard`],
+    forbidden: DARWIN_FORBIDDEN.map((name) => `${PRODUCT.name}.app/${name}`),
   },
   "windows-app-dir": {
     required: [`${PRODUCT.executable}.exe`, "ffmpeg.dll", "libEGL.dll", "libGLESv2.dll", "resources.pak", "icudtl.dat", "locales/en-US.pak", ...APP_RESOURCES],
@@ -377,36 +378,6 @@ export function checkStaticGoMembers(kind, readMember) {
 export function staticGoMemberError(name, bytes) {
   const interpreter = elfInterpreter(bytes);
   return interpreter === null ? null : `${name} is dynamically linked (interpreter ${interpreter}); Linux Go binaries must be built with CGO_ENABLED=0`;
-}
-
-export function validateMacServiceLink(appDir) {
-  const link = join(appDir, "Contents", "MacOS", PRODUCT.serviceExecutable);
-  const expectedTarget = `../Resources/service/${PRODUCT.serviceExecutable}`;
-  const errors = [];
-  let stat;
-  try {
-    stat = lstatSync(link);
-  } catch (error) {
-    return [`service compatibility link is unavailable: ${error.message}`];
-  }
-  if (!stat.isSymbolicLink()) return ["service compatibility path is not a symbolic link"];
-  const target = readlinkSync(link);
-  if (target !== expectedTarget) errors.push(`service compatibility link target is ${JSON.stringify(target)}, want ${JSON.stringify(expectedTarget)}`);
-  if (resolve(dirname(link), target) !== resolve(appDir, "Contents", "Resources", "service", PRODUCT.serviceExecutable)) {
-    errors.push("service compatibility link does not resolve to the package service entity");
-  }
-  try {
-    const realApp = realpathSync(appDir);
-    const realTarget = realpathSync(link);
-    const rel = relative(realApp, realTarget);
-    if (rel === "" || rel === ".." || rel.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`)) {
-      errors.push("service compatibility link resolves outside the application bundle");
-    }
-    if (!statSync(realTarget).isFile()) errors.push("service compatibility link target is not a regular file");
-  } catch (error) {
-    errors.push(`service compatibility link is dangling or cyclic: ${error.message}`);
-  }
-  return errors;
 }
 
 export function inferArtifactKind(pathname, isDirectory, entries = []) {

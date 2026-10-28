@@ -391,7 +391,7 @@ func (a *App) installPortableUpdate(requestID string, meta *cachedUpdate, data [
 }
 
 // ApplyUpdateRequest downloads, verifies, installs, and relaunches the exact
-// version bound to a frontend request. This is the v1.20+ single-action update
+// version bound to a frontend request. This is the single-action update
 // path ("更新并重启"); there is no durable cross-restart pending state when the
 // operation fails — the user simply retries.
 func (a *App) ApplyUpdateRequest(selectedChannel, expectedVersion, requestID string) error {

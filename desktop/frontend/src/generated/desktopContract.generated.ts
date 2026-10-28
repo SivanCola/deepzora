@@ -3,7 +3,7 @@
 
 export const DESKTOP_PROTOCOL_VERSION = 11;
 
-export const DESKTOP_CONTRACT_DIGEST = "sha256:2f8f5fcf09429c8b46d43a85534fa79a2916d2f31f0c114c1706e6fbf7a7ac4c";
+export const DESKTOP_CONTRACT_DIGEST = "sha256:250f8f40805283db389fc1f05c86b8de09e02c6d4cade5adf7ba1fe552a3dc26";
 
 export const DESKTOP_COMMANDS = [
   "AIRenameSessionTarget",
@@ -3087,9 +3087,6 @@ export interface SessionArchitectureDiagnostics {
   session_headers_total: number;
   workspace_members_total: number;
   unassigned_sessions: number;
-  migration_pending: number;
-  migration_failed: number;
-  migration_completed: number;
   projection_pending: number;
   projection_failed: number;
   pending_create_recovered: number;
