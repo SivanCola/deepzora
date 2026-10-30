@@ -30,4 +30,13 @@ bash scripts/verify-release-authorization.sh
 go run ./cmd/release-signing-contract validate
 bash scripts/release-candidate-tags.test.sh
 bash scripts/release-stable.test.sh
+# Signed Windows bundles carry only versioned public names, so the acceptance
+# steps must select the published Setup suffix, never the internal build name.
+if grep -Fq "'*installer.exe'" .github/workflows/release-desktop.yml; then
+  echo "Windows acceptance selects the internal installer build name" >&2; exit 1
+fi
+for arch in x64 arm64; do
+  grep -Fq "\"suffix\": \"Windows-$arch-Setup.exe\"" internal/releaseassets/desktop.json
+done
+[ "$(grep -Fc -e "-Filter '*-Setup.exe' -File" .github/workflows/release-desktop.yml)" = 2 ]
 echo 'current release workflow contracts: PASS'
