@@ -39,4 +39,11 @@ for arch in x64 arm64; do
   grep -Fq "\"suffix\": \"Windows-$arch-Setup.exe\"" internal/releaseassets/desktop.json
 done
 [ "$(grep -Fc -e "-Filter '*-Setup.exe' -File" .github/workflows/release-desktop.yml)" = 2 ]
+# Parallel provenance checks must share one prefetched trusted root; separate
+# TUF initializations race on hosted runners and fail random payload files.
+for workflow in release-promote release-candidate-verify; do
+  file=".github/workflows/$workflow.yml"
+  grep -Fq 'gh attestation trusted-root > "$RUNNER_TEMP/trusted_root.jsonl"' "$file"
+  grep -A5 -F 'xargs -0 -P 8' "$file" | grep -Fq -e '--custom-trusted-root "$RUNNER_TEMP/trusted_root.jsonl"'
+done
 echo 'current release workflow contracts: PASS'
