@@ -20,6 +20,8 @@ required=(
 	scripts/package-windows-desktop.sh
 	scripts/release-candidate.mjs
 	scripts/release-r2-mirror.mjs
+	scripts/release-website-deploy.mjs
+	website/release.mjs
 	scripts/release-windows-policy.mjs
 	scripts/release-candidate-tags.sh
 	scripts/test-release-control-contracts.sh
@@ -59,6 +61,8 @@ done
 
 node --check "$root/scripts/release-candidate.mjs"
 node --check "$root/scripts/release-r2-mirror.mjs"
+node --check "$root/scripts/release-website-deploy.mjs"
+node --check "$root/website/release.mjs"
 node --check "$root/scripts/desktop-downloads.mjs"
 node --check "$root/scripts/verify-release-artifact-archive.mjs"
 node --check "$root/scripts/resolve-release-candidate.mjs"

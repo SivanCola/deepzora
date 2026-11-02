@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { build, root, dist, validateRelease } from './build.mjs';
+import { build, root, dist } from './build.mjs';
 
-await build();
-const release = validateRelease(JSON.parse(await readFile(resolve(root, 'src/release.json'), 'utf8')));
+const release = await build();
 for (const [page, lang] of [['index.html', 'zh-CN'], ['en/index.html', 'en']]) {
   const html = await readFile(resolve(dist, page), 'utf8');
   assert(html.includes(`<html lang="${lang}">`));
