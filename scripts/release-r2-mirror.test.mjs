@@ -82,6 +82,9 @@ test("automation mirrors only after public postflight, with no signing or GitHub
   assert.match(mirror, /contents: read/);
   assert.doesNotMatch(mirror, /contents: write|pull_request|RELEASE_TAG_TOKEN|MINISIGN_PRIVATE_KEY|HOMEBREW_TAP_TOKEN/);
   assert.match(mirror, /node scripts\/release-r2-mirror.mjs "\$RELEASE_VERSION"/);
+  assert.match(job, /CLOUDFLARE_PAGES_DEPLOY_HOOK: \$\{\{ secrets.CLOUDFLARE_PAGES_DEPLOY_HOOK \}\}/);
+  assert(mirror.indexOf('node scripts/release-website-deploy.mjs') > mirror.indexOf('Save verified mirror inventory'));
+  assert.doesNotMatch(mirror, /if:.*always\(\)/, 'website deploy must require successful preceding steps');
 });
 
 // External-process fixtures exercise the real entry point, filesystem hashes,
@@ -106,6 +109,7 @@ if (tool === 'gh') {
   if (content == null) fail('curl: missing fixture');
   if (process.env.MIRROR_CORRUPT === 'source' && url.hostname === 'github.com' && url.pathname.endsWith('.dmg')) content += 'bad';
   if (process.env.MIRROR_CORRUPT === 'public' && url.hostname !== 'github.com') content += 'bad';
+  if (process.env.MIRROR_CORRUPT === 'pointer' && url.pathname === '/website/latest.json') content += 'bad';
   fs.writeFileSync(option('--output'), content);
 } else if (tool === 'aws') {
   for (;;) {
@@ -118,6 +122,7 @@ if (tool === 'gh') {
     if (!existing) fail('An error occurred (404) when calling HeadObject');
     console.log(JSON.stringify({ContentLength:Buffer.byteLength(existing.body),Metadata:existing.metadata,ETag:existing.etag}));
   } else {
+    if (process.env.MIRROR_CAS_FAIL === 'pointer' && key === 'website/latest.json') fail('An error occurred (PreconditionFailed)');
     if (args.includes('--if-none-match') && existing) fail('An error occurred (PreconditionFailed)');
     if (args.includes('--if-match') && option('--if-match') !== existing?.etag) fail('An error occurred (PreconditionFailed)');
     const metadata = Object.fromEntries(option('--metadata').split(',').map(value => value.split('=')));
@@ -137,23 +142,30 @@ test("sync verifies every object, retries without immutable overwrites, and pres
     for (const name of ["aws", "gh", "curl"]) { const file = path.join(bin, name); writeFileSync(file, fakeClient); chmodSync(file, 0o755); }
     const f = fixture(); writeFileSync(path.join(work, "fixture.json"), JSON.stringify(f));
     const stateFile = path.join(work, "state.json");
-    const reset = () => writeFileSync(stateFile, JSON.stringify({ objects: {}, writes: [] })); reset();
+    const reportFile = path.join(work, 'report.json');
+    const reset = () => { writeFileSync(stateFile, JSON.stringify({ objects: {}, writes: [] })); rmSync(reportFile, { force: true }); }; reset();
     const run = (extra = {}) => spawnSync(process.execPath, ["scripts/release-r2-mirror.mjs", f.version], {
-      encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_ACTIONS: "false", AWS_ACCESS_KEY_ID: "test", AWS_SECRET_ACCESS_KEY: "test", R2_ACCOUNT_ID: "a".repeat(32), R2_BUCKET: "deepzora-releases", R2_PUBLIC_BASE: "https://downloads.deepzora.app", R2_MIRROR_WORKDIR: path.join(work, "downloads"), MIRROR_FIXTURE: path.join(work, "fixture.json"), MIRROR_STATE: stateFile, ...extra },
+      encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_ACTIONS: "false", AWS_ACCESS_KEY_ID: "test", AWS_SECRET_ACCESS_KEY: "test", R2_ACCOUNT_ID: "a".repeat(32), R2_BUCKET: "deepzora-releases", R2_PUBLIC_BASE: "https://downloads.deepzora.app", R2_MIRROR_WORKDIR: path.join(work, "downloads"), R2_MIRROR_REPORT: reportFile, MIRROR_FIXTURE: path.join(work, "fixture.json"), MIRROR_STATE: stateFile, ...extra },
     });
     let result = run(); assert.equal(result.status, 0, result.stderr);
     let state = JSON.parse(readFileSync(stateFile));
     const count = desktopAssets.length * 2 + 8 + 3;
-    assert.equal(Object.keys(state.objects).length, count + 1);
+    assert.equal(Object.keys(state.objects).length, count + 2);
     assert.match(state.objects["index.html"].body, /Deepzora 0.0.2/);
+    assert.equal(JSON.parse(readFileSync(reportFile)).website.deploy, true);
+    const pointer = JSON.parse(state.objects['website/latest.json'].body);
+    assert.equal(pointer.inventory.sha256, hash(state.objects['desktop/desktop-v0.0.2/mirror.json'].body));
+    assert.equal(state.writes.at(-1), 'website/latest.json', 'website promotion happens after all other objects');
     result = run(); assert.equal(result.status, 0, result.stderr);
     state = JSON.parse(readFileSync(stateFile));
-    assert.equal(state.writes.length, count + 2, "only the mutable index is written again");
+    assert.equal(state.writes.length, count + 4, "only the mutable index and website pointer are written again");
     state.objects["index.html"].metadata.version = "0.0.10";
+    state.objects['website/latest.json'].metadata.version = '0.0.10';
     writeFileSync(stateFile, JSON.stringify(state));
     result = run(); assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /Preserved newer/);
     assert.equal(JSON.parse(readFileSync(stateFile)).objects["index.html"].metadata.version, "0.0.10");
+    assert.equal(JSON.parse(readFileSync(reportFile)).website.deploy, false);
     const firstKey = `desktop/desktop-v${f.version}/${desktopName(f.version, desktopAssets[0])}`;
     state.objects[firstKey].metadata.sha256 = "f".repeat(64);
     writeFileSync(stateFile, JSON.stringify(state));
@@ -161,6 +173,16 @@ test("sync verifies every object, retries without immutable overwrites, and pres
     reset();
     result = run({ MIRROR_CORRUPT: "public" }); assert.notEqual(result.status, 0); assert.match(result.stderr, /Public mirror integrity mismatch/);
     assert.equal(JSON.parse(readFileSync(stateFile)).objects["index.html"], undefined);
+    assert.equal(JSON.parse(readFileSync(stateFile)).objects['website/latest.json'], undefined);
+    assert.throws(() => readFileSync(reportFile), /ENOENT/);
+    reset();
+    result = run({ MIRROR_CAS_FAIL: 'pointer' }); assert.notEqual(result.status, 0); assert.match(result.stderr, /PreconditionFailed/);
+    assert.throws(() => readFileSync(reportFile), /ENOENT/);
+    result = run(); assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(readFileSync(reportFile)).website.deploy, true, 'retry completes a conflicted website promotion');
+    reset();
+    result = run({ MIRROR_CORRUPT: 'pointer' }); assert.notEqual(result.status, 0); assert.match(result.stderr, /Public mirror integrity mismatch/);
+    assert.throws(() => readFileSync(reportFile), /ENOENT/);
     reset(); rmSync(path.join(work, "downloads"), { recursive: true });
     result = run({ MIRROR_CORRUPT: "source" }); assert.notEqual(result.status, 0); assert.match(result.stderr, /GitHub artifact integrity mismatch/);
     assert.deepEqual(JSON.parse(readFileSync(stateFile)).writes, [], "invalid sources cause no R2 writes");

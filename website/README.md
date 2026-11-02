@@ -28,7 +28,7 @@ Output: `website/dist/`. The build contains localized metadata, canonical / alte
 
 ## Production deployment
 
-The intended production host is Cloudflare Pages with its native GitHub integration:
+The production host is Cloudflare Pages project `deepzora-website`, with its native GitHub integration:
 
 | Setting | Value |
 | --- | --- |
@@ -40,24 +40,35 @@ The intended production host is Cloudflare Pages with its native GitHub integrat
 | Build output directory | `dist` |
 | Environment variable | `NODE_VERSION=24.20.0` |
 | Environment variable | `SKIP_DEPENDENCY_INSTALL=true` |
-| Build watch include path | `website/**` |
+| Build watch include path | `website/*` |
 | Custom domain | `deepzora.app` |
 
-Cloudflare pulls the repository, builds the static pages, and publishes after changes reach `main`. The build runs the same checks used locally; a failed build does not replace the previous successful deployment. GitHub Actions `Website` independently validates the source and saves the static output as an artifact. Cloudflare's GitHub App handles deployment without adding Cloudflare API credentials to GitHub Actions.
+Cloudflare pulls the repository, builds the static pages, and publishes after changes reach `main`. The build runs the same checks used locally; a failed build does not replace the previous successful deployment. GitHub Actions `Website` independently validates the source and saves the static output as an artifact. Cloudflare's GitHub App handles deployment. A main-branch deploy hook stored as `CLOUDFLARE_PAGES_DEPLOY_HOOK` in Actions Secrets also allows the verified release mirror to request a rebuild, without repository write access or a Cloudflare administration token.
 
-The download hostname `downloads.deepzora.app` is managed separately and continues to serve release objects from R2. Website publishing must not change that hostname or the release mirror workflow.
+The download hostname `downloads.deepzora.app` continues to serve versioned release objects from R2. `www.deepzora.app` redirects to the apex while preserving paths and queries.
 
-To roll back, select an earlier successful production deployment in Cloudflare Pages, then revert the source change in GitHub so subsequent builds preserve the rollback.
+To roll back website code, select an earlier successful production deployment in Cloudflare Pages, then revert the source change in GitHub. A future production build still uses the latest verified release inventory; recovering an older mirror cannot downgrade downloads.
 
 ## Downloads
 
-`src/release.json` is the public R2 mirror inventory for desktop v0.0.2, obtained from:
+`src/release.json` is an offline preview and PR-validation snapshot for desktop v0.0.2, obtained from:
 
 https://downloads.deepzora.app/desktop/desktop-v0.0.2/mirror.json
 
 Download buttons point directly to versioned R2 objects on `downloads.deepzora.app`. macOS architectures, Windows installers and portable packages, and Linux x64 packages are explicit choices. Full inventory and GitHub release links provide alternatives. The build validates URLs, sizes, checksums, and required package names; it does not rehash large remote binaries.
 
-For a future release, replace `src/release.json` with that release's published mirror inventory, run `check`, and review the download links before deployment. The website intentionally uses a build-time release snapshot; existing GitHub → R2 automation remains unchanged.
+Production builds (`CF_PAGES=1`, `CF_PAGES_BRANCH=main`) instead fetch `https://downloads.deepzora.app/website/latest.json`, then fetch its immutable `mirror.json`. They validate the inventory's size, SHA-256, source commit, stable version, canonical URLs, and complete website package matrix before rendering. Missing or invalid remote metadata fails the build; production never falls back to a stale snapshot. Both languages and public `/release.json` are generated from the same inventory.
+
+After a new stable release passes public postflight, the mirror workflow verifies every source and public R2 object, advances the website pointer using a conditional write and version guard, and triggers the main-branch Pages deploy hook. It then waits up to 15 minutes for fresh production metadata and verifies the version and download URLs on both `/` and `/en/`. Hook or deployment failure fails the workflow; rerun the mirror for the same version to safely retry. An older-version backfill preserves the newer pointer and skips website deployment. No manual source update or PR is needed per release. See [the mirror runbook](../docs/R2_DOWNLOAD_MIRROR.md).
+
+To check the current production release locally (network required):
+
+```sh
+WEBSITE_RELEASE_SOURCE=r2 npm --prefix website run check
+node --test website/*.test.mjs scripts/release-website-deploy.test.mjs scripts/release-r2-mirror.test.mjs
+```
+
+Use the default offline build for local development and PR previews. A deliberate snapshot refresh is optional and must still pass validation. The deploy hook URL is a credential: never put it in source, logs, or artifacts.
 
 ## Content and assets
 

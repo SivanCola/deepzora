@@ -22,6 +22,9 @@ GitHub Actions repository secrets:
   **Object Read & Write** on `deepzora-releases` only.
 - `R2_ACCOUNT_ID`: the Cloudflare account containing that bucket.
 - `R2_BUCKET`: `deepzora-releases`.
+- `CLOUDFLARE_PAGES_DEPLOY_HOOK`: the URL of the `deepzora-website` Pages
+  project's deploy hook targeting `main`. This credential can trigger builds of
+  that branch only; it grants no DNS, bucket, or repository administration.
 
 Repository variables:
 
@@ -62,9 +65,39 @@ The mirror contains:
 - `cli/vVERSION/`: six native CLI archives and the official `SHA256SUMS`.
 - `index.html`: a download page advanced only after all versioned files pass
   public readback. Its links identify immutable versions.
+- `website/latest.json`: a small, noncached pointer to the immutable inventory,
+  with its version, source commit, size and SHA-256. Written last, after the
+  entire mirror and download index are verified. Conditional writes prevent
+  races; same-version retries must match the existing pointer; older recoveries
+  preserve the newer pointer and skip website deployment.
 
 The workflow saves `r2-mirror-report.json` as a 90-day Actions artifact. The report
 records the source SHA and public URL, size, and SHA-256 of every verified object.
+It also records whether the website should deploy and the verified pointer hash.
+
+## Official website handoff
+
+Create a deploy hook in Cloudflare Pages project `deepzora-website` → Settings →
+Builds & deployments → Deploy hooks, targeting `main`. Store its URL only as
+the `CLOUDFLARE_PAGES_DEPLOY_HOOK` Actions secret in `SivanCola/deepzora`.
+The reusable workflow explicitly receives this secret from `release-promote.yml`;
+it is available only to the website step, after the successful mirror and report
+upload. The mirror's S3 credentials are not passed to the deploy step.
+
+The website step binds the public pointer and inventory to the successful mirror
+report, requests a Pages rebuild, and waits for a fresh `/release.json` plus
+matching Chinese and English versions and installer URLs. Acceptance has a
+15-minute deadline. Failed hooks/builds/verification fail the job; the previous
+successful website remains available. Rerun `release-mirror.yml` for the same
+version to retry, without republishing GitHub Releases or changing immutable R2
+objects. A hook success alone is not deployment success.
+
+Pages production builds fetch the verified pointer and immutable inventory;
+metadata corruption or fetch failure stops deployment instead of publishing stale
+or partial downloads. PR previews and local builds use the checked-in snapshot.
+Website source changes on `main` still deploy through native Git integration.
+The main branch remains protected: no bot commits, broad PAT, or automatic
+per-release PR is required. See [website configuration](../website/README.md).
 
 ## Local backfill
 

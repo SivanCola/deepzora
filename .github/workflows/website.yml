@@ -31,7 +31,9 @@ jobs:
         with:
           node-version-file: website/.node-version
       - name: Validate pages, assets, docs, and R2 downloads
-        run: npm --prefix website run check
+        run: |
+          node --test website/*.test.mjs
+          npm --prefix website run check
       - name: Save static website
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:

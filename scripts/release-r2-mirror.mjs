@@ -9,6 +9,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { desktopAssets, desktopName, verifyNamedDownloads } from "./desktop-downloads.mjs";
+import { validateRelease, validatePointer } from "../website/release.mjs";
 
 const repository = "SivanCola/deepzora";
 const publicBase = "https://downloads.deepzora.app";
@@ -220,7 +221,27 @@ export async function mirrorRelease(value, env = process.env) {
       // verification query checks the newly committed bytes immediately.
       await verifyPublic({ ...root, url: `${root.url}?verify=${indexFile.sha256}` });
     } else console.log(`Preserved newer download index ${current.Metadata.version}`);
-    const report = { schema: 1, version, sourceSHA: plan.sourceSHA, publicBase, verifiedAt: new Date().toISOString(), files: files.map(({ key, size, sha256, url }) => ({ key, size, sha256, url })) };
+    // This pointer is the website's sole production release source. Advance it
+    // only after the complete immutable mirror AND the download index pass.
+    validateRelease(plan);
+    const inventory = files.find(file => file.name === "mirror.json");
+    const pointer = validatePointer({ schema: 1, version, sourceSHA: plan.sourceSHA, inventory: { url: inventory.url, size: inventory.size, sha256: inventory.sha256 } });
+    const pointerLocal = path.join(directory, "website-latest.json");
+    await writeFile(pointerLocal, `${JSON.stringify(pointer, null, 2)}\n`);
+    const pointerFile = { name: "latest.json", tag: "website", key: "website/latest.json", url: `${publicBase}/website/latest.json`, ...(await hashes(pointerLocal)) };
+    const latest = await head(pointerFile.key);
+    if (latest && (!latest.Metadata?.version || !latest.ETag || !latest.Metadata.sha256)) throw new Error("Cannot identify current website pointer; refusing to overwrite");
+    let website;
+    if (indexShouldAdvance(latest?.Metadata.version, version)) {
+      if (latest?.Metadata.version === version) checkExistingObject(latest, pointerFile);
+      await put(pointerFile, pointerLocal, latest ? ["--if-match", latest.ETag] : ["--if-none-match", "*"], "no-store");
+      await verifyPublic({ ...pointerFile, url: `${pointerFile.url}?verify=${pointerFile.sha256}` });
+      website = { version, pointerSHA256: pointerFile.sha256, deploy: true };
+    } else {
+      console.log(`Preserved newer website release ${latest.Metadata.version}`);
+      website = { version: latest.Metadata.version, deploy: false };
+    }
+    const report = { schema: 1, version, sourceSHA: plan.sourceSHA, publicBase, verifiedAt: new Date().toISOString(), website, files: files.map(({ key, size, sha256, url }) => ({ key, size, sha256, url })) };
     if (env.R2_MIRROR_REPORT) await writeFile(env.R2_MIRROR_REPORT, `${JSON.stringify(report, null, 2)}\n`);
     if (env.GITHUB_STEP_SUMMARY) await writeFile(env.GITHUB_STEP_SUMMARY, `\n### R2 download mirror\n\n- Version: ${version}\n- Verified objects: ${files.length}\n- Downloads: ${publicBase}/\n- Immutable version: ${publicBase}/desktop/desktop-v${version}/index.html\n`, { flag: "a" });
     console.log(`R2 mirror complete: version=${version} objects=${files.length} downloads=${publicBase}/`);
