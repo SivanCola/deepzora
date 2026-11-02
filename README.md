@@ -98,6 +98,8 @@ For supported data formats and compatibility, see the [current baseline](docs/cu
 
 ## Documentation
 
+Maintainers can follow the [release handbook](docs/RELEASE_HANDBOOK.md) for preflight checks, candidate builds, publication approval, automatic R2/website updates, and failure recovery.
+
 | Start here | Customize & connect | Develop & contribute |
 | --- | --- | --- |
 | [User guide](docs/GUIDE.md) | [Model settings](docs/MODEL_SETTINGS.md) | [Contributing](CONTRIBUTING.md) |

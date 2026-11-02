@@ -1,5 +1,7 @@
 # Deepzora 中文发布手册
 
+简体中文 | [English](RELEASE_HANDBOOK.md)
+
 适用仓库：`SivanCola/deepzora`。正式版统一从受保护的 `main` 准备和发布。
 本手册覆盖 CLI、npm、桌面端、Homebrew、R2 下载及中英文官网更新；以 `0.0.3`
 为示例。每次操作请替换为真实版本，保留候选 ID、源码 SHA 和运行链接。

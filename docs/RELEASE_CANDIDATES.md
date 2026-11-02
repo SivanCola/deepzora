@@ -1,7 +1,7 @@
 # Release candidates
 
 For step-by-step operations, prerequisites, commands, approval, and recovery,
-see the [Chinese release handbook](RELEASE_HANDBOOK.zh-CN.md).
+see the [release handbook](RELEASE_HANDBOOK.md) ([简体中文](RELEASE_HANDBOOK.zh-CN.md)).
 
 Release/download pages must link the [Code signing policy](../CODE_SIGNING_POLICY.md)
 and [Privacy policy](../PRIVACY.md); `scripts/release-notes.mjs` includes both links.
