@@ -26,6 +26,11 @@ await act(async () => rootEl.querySelector("button")!.click());
 assert.ok(document.querySelector('[role="listbox"]'));
 await render(true);
 await render(false);
-assert.equal(document.querySelector('[role="listbox"]'), null, "disabled then enabled does not reopen effort menu");
+// Disabling leaves the popover in its closing phase until a (reduced-motion,
+// 0ms) timer unmounts it; act() does not run macrotasks, so flush it. A
+// reopened menu would stay mounted. Compare a boolean: on Node 26 building an
+// AssertionError around a jsdom node runs away instead of reporting.
+await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+assert.equal(document.querySelector('[role="listbox"]') === null, true, "disabled then enabled does not reopen effort menu");
 await act(async () => root.unmount());
 console.log("PASS adapter-owned effort options and exact selection");
