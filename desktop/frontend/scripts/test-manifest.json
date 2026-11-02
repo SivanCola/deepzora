@@ -79,6 +79,18 @@
       ],
       [
         "tsx",
+        "src/__tests__/workspace-changes-summary.test.tsx"
+      ],
+      [
+        "tsx",
+        "src/__tests__/conversation-status-panel.test.tsx"
+      ],
+      [
+        "tsx",
+        "src/__tests__/conversation-status-data.test.tsx"
+      ],
+      [
+        "tsx",
         "src/__tests__/workspace-selection-isolation.test.tsx"
       ],
       [

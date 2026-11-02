@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { Transcript, type TranscriptProps } from "../components/Transcript";
 import { SessionRecoveryBanner, SessionRecoveryPlaceholder } from "../components/SessionRecoveryBanner";
 import { SessionLoadingIndicator } from "../components/SessionLoadingIndicator";
@@ -34,8 +33,6 @@ export type ChatPaneTranscriptInput = {
 
 export type ChatPaneRegionProps = {
   t: Translator;
-  /** Floating dock launcher card, mounted over the transcript's right edge. */
-  launcher?: ReactNode;
   transcript: ChatPaneTranscriptInput;
   onRetryHistory: () => Promise<unknown>;
   commands: {
@@ -83,7 +80,6 @@ export function ChatPaneRegion(props: ChatPaneRegionProps) {
       ) : (
         <>
           <div className="transcript-navigation-surface" aria-busy={loading}>
-            {props.launcher}
             <div
               className="transcript-navigation-content"
               aria-hidden={transcript.emptyHero || undefined}

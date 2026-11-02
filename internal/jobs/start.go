@@ -4,6 +4,7 @@ import (
 	"context"
 	"deepzora/internal/event"
 	"deepzora/internal/nilutil"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -118,7 +119,7 @@ func (m *Manager) runJob(ctx context.Context, j *Job, run func(context.Context, 
 
 	var st Status
 	switch {
-	case ctx.Err() != nil:
+	case ctx.Err() != nil || errors.Is(err, context.Canceled):
 		st = Killed
 	case err != nil:
 		st = Failed

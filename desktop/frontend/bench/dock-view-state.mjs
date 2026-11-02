@@ -26,6 +26,8 @@ try {
   // authoritative session snapshot before mutating dock state, otherwise the
   // late hydrate can replace the empty-state picker while Playwright clicks it.
   await page.waitForFunction(() => document.querySelector('.transcript')?.textContent?.includes('ASYNC LAYOUT EXPANSION COMPLETE'));
+  const dockToggle = page.locator(".topicbar__chrome-btn--workspace");
+  if (await dockToggle.getAttribute("aria-pressed") === "false") await dockToggle.click();
   const tabs = page.locator('.workbench-dock__tabs [role="tab"]');
   const overview = page.getByRole("tab", { name: "Overview", exact: true });
   await overview.waitFor();
@@ -118,10 +120,6 @@ try {
     return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight;
   }), "flat keyboard menu stays inside the viewport");
   await page.keyboard.press("Escape");
-  await page.locator(".topicbar__chrome-btn--launcher").click();
-  await page.locator(".dock-launcher").waitFor();
-  await page.locator(".topicbar__chrome-btn--launcher").click();
-  await page.locator(".dock-launcher").waitFor({ state: "detached" });
   await page.screenshot({ path: path.join(tmpdir(), "deepzora-dock-views-desktop.png") });
   await page.setViewportSize({ width: 960, height: 720 });
   await page.screenshot({ path: path.join(tmpdir(), "deepzora-dock-views-narrow.png") });

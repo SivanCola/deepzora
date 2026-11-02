@@ -53,31 +53,6 @@ func (a *App) GitCreateBranchForTab(tabID, workspaceRoot, name string) error {
 	return workspaceCheckoutBranch(repo, name, true)
 }
 
-// The launcher needs only Git totals, not session checkpoints or per-file views.
-func (a *App) WorkspaceGitStatsForTab(tabID, workspaceRoot string) (WorkspaceChangesView, error) {
-	repo, err := a.gitWorkspaceRepoForTab(tabID, workspaceRoot)
-	if err != nil {
-		return WorkspaceChangesView{}, err
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	out := WorkspaceChangesView{Files: []WorkspaceChangeView{}, GitAvailable: true}
-	out.GitBranch, _ = workspaceGitBranchContext(ctx, repo)
-	entries, err := workspaceGitStatusContext(ctx, repo)
-	if err != nil {
-		out.GitAvailable, out.Incomplete, out.GitErr = false, true, err.Error()
-		return out, nil
-	}
-	untracked := []string{}
-	for _, entry := range entries {
-		if entry.Status == "??" {
-			untracked = append(untracked, entry.Path)
-		}
-	}
-	out.Added, out.Removed, out.Incomplete = workspaceGitDiffTally(ctx, repo, untracked)
-	return out, nil
-}
-
 func workspaceLocalBranches(repo gitcmd.Repo) ([]string, error) {
 	raw, err := workspaceGitOutputWithTimeout(3*time.Second, repo, "-C", repo.Dir, "branch", "--format=%(refname:short)")
 	if err != nil {

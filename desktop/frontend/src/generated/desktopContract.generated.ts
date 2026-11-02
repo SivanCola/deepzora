@@ -3,7 +3,7 @@
 
 export const DESKTOP_PROTOCOL_VERSION = 11;
 
-export const DESKTOP_CONTRACT_DIGEST = "sha256:e2d8a9bef0324f0a50677ee6a3d1c1e7327828c891796b452650586057280f0f";
+export const DESKTOP_CONTRACT_DIGEST = "sha256:41769f100fccf37ad02b79a9415ae6d82d3c2af3df44aea7eefe32f5886657ad";
 
 export const DESKTOP_COMMANDS = [
   "AIRenameSessionTarget",
@@ -54,6 +54,7 @@ export const DESKTOP_COMMANDS = [
   "CancelModelApplicationBlockers",
   "CancelSessionExport",
   "CancelSessionForTab",
+  "CancelSubagentForTab",
   "CancelTab",
   "CancelTabWithInboxItemsResult",
   "CancelTaskByKey",
@@ -167,6 +168,7 @@ export const DESKTOP_COMMANDS = [
   "ImportThemePack",
   "InboxQueueForTarget",
   "InboxSnapshot",
+  "InspectBackgroundJobForTab",
   "InspectTopicRemoval",
   "InspectWorktreeMerge",
   "InstallMCPServer",
@@ -187,6 +189,7 @@ export const DESKTOP_COMMANDS = [
   "ListProjectTopics",
   "ListSessions",
   "ListSessionsForTab",
+  "ListSubagentRunsForTab",
   "ListTabs",
   "ListTaskEventPage",
   "ListTaskPage",
@@ -275,6 +278,8 @@ export const DESKTOP_COMMANDS = [
   "ReadSessionHistoryContent",
   "ReadSessionHistoryOutline",
   "ReadSessionHistoryWindow",
+  "ReadSubagentHistoryForTab",
+  "ReadSubagentMessageForTab",
   "RebindDraftImageForTarget",
   "RebuildHistoryIndex",
   "RebuildSessionCatalog",
@@ -350,6 +355,7 @@ export const DESKTOP_COMMANDS = [
   "RevokeWorkspaceBrowserPreview",
   "RevokeWorkspaceMediaPreview",
   "RunShellForTab",
+  "RunWorkspaceGitActionForTab",
   "RuntimeDoctor",
   "SanitizeMarkdownSVG",
   "SaveAgentPreset",
@@ -510,7 +516,6 @@ export const DESKTOP_COMMANDS = [
   "WorkspaceConflictForTab",
   "WorkspaceGitCommitDetail",
   "WorkspaceGitHistory",
-  "WorkspaceGitStatsForTab",
   "WorkspaceRevisionForTab",
   "WorkspaceTurnChangeDetail",
   "WorkspaceTurnChanges",
@@ -1580,6 +1585,14 @@ export interface AgentView {
 export interface AttachmentTargetView {
   token: string;
   capabilities: string[];
+}
+
+export interface BackgroundJobInspection {
+  id: string;
+  kind: string;
+  label: string;
+  status: string;
+  output: string;
 }
 
 export interface BackgroundRuntimeView {
@@ -3456,6 +3469,11 @@ export interface StorageSettingsView {
   extensionsPath: string;
 }
 
+export interface SubagentMessageText {
+  text: string;
+  nextOffset: number;
+}
+
 export interface SubagentProfileInput {
   name: string;
   description: string;
@@ -3466,6 +3484,16 @@ export interface SubagentProfileInput {
   allowedTools: string[];
   readOnly: boolean;
   scope: string;
+}
+
+export interface SubagentRunView {
+  ref: string;
+  name: string;
+  kind: string;
+  status: string;
+  outcome?: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface TabMeta {
@@ -4719,6 +4747,7 @@ export interface GeneratedDesktopCommands {
   CancelModelApplicationBlockers(arg0: string, arg1: ModelApplicationChoice, arg2: string[]): Promise<void>;
   CancelSessionExport(arg0: string): Promise<void>;
   CancelSessionForTab(arg0: string): Promise<CancelReceipt>;
+  CancelSubagentForTab(arg0: string, arg1: string): Promise<boolean>;
   CancelTab(arg0: string): Promise<void>;
   CancelTabWithInboxItemsResult(arg0: string, arg1: string[]): Promise<InboxCancelResultView>;
   CancelTaskByKey(arg0: TaskActionRequest): Promise<ControlResult>;
@@ -4832,6 +4861,7 @@ export interface GeneratedDesktopCommands {
   ImportThemePack(arg0: string, arg1: boolean): Promise<ThemeImportResult>;
   InboxQueueForTarget(arg0: InboxTargetView, arg1: InboxQueueRequest): Promise<InboxQueueResultView>;
   InboxSnapshot(arg0: string): Promise<InboxSnapshotView>;
+  InspectBackgroundJobForTab(arg0: string, arg1: string): Promise<BackgroundJobInspection>;
   InspectTopicRemoval(arg0: TopicRemovalTarget): Promise<TopicRemovalInspection>;
   InspectWorktreeMerge(arg0: string): Promise<MergeInspection>;
   InstallMCPServer(arg0: MCPServerInput): Promise<MCPInstallResult>;
@@ -4852,6 +4882,7 @@ export interface GeneratedDesktopCommands {
   ListProjectTopics(arg0: ProjectTopicPageRequest): Promise<ProjectTopicPage>;
   ListSessions(): Promise<SessionMeta[]>;
   ListSessionsForTab(arg0: string): Promise<SessionMeta[]>;
+  ListSubagentRunsForTab(arg0: string): Promise<SubagentRunView[]>;
   ListTabs(): Promise<TabMeta[]>;
   ListTaskEventPage(arg0: TaskEventPageRequest): Promise<EventPage>;
   ListTaskPage(arg0: TaskPageRequest): Promise<TaskPage>;
@@ -4940,6 +4971,8 @@ export interface GeneratedDesktopCommands {
   ReadSessionHistoryContent(arg0: string, arg1: Ref, arg2: number): Promise<SessionHistoryContentChunk>;
   ReadSessionHistoryOutline(arg0: string, arg1: HistoryOutlineRequest): Promise<HistoryOutlinePage>;
   ReadSessionHistoryWindow(arg0: string, arg1: HistoryWindowRequest): Promise<HistoryWindowPage>;
+  ReadSubagentHistoryForTab(arg0: string, arg1: string, arg2: HistoryWindowRequest): Promise<HistoryWindowPage>;
+  ReadSubagentMessageForTab(arg0: string, arg1: string, arg2: string, arg3: number, arg4: number): Promise<SubagentMessageText>;
   RebindDraftImageForTarget(arg0: string, arg1: string): Promise<DraftImageView>;
   RebuildHistoryIndex(): Promise<void>;
   RebuildSessionCatalog(): Promise<void>;
@@ -5015,6 +5048,7 @@ export interface GeneratedDesktopCommands {
   RevokeWorkspaceBrowserPreview(arg0: string): Promise<void>;
   RevokeWorkspaceMediaPreview(arg0: string): Promise<void>;
   RunShellForTab(arg0: string, arg1: string): Promise<void>;
+  RunWorkspaceGitActionForTab(arg0: string, arg1: string, arg2: string, arg3: string): Promise<string>;
   RuntimeDoctor(): Promise<RuntimeDoctorReport>;
   SanitizeMarkdownSVG(arg0: string): Promise<MarkdownSVGView>;
   SaveAgentPreset(arg0: string, arg1: string, arg2: string, arg3: string): Promise<Preset>;
@@ -5175,7 +5209,6 @@ export interface GeneratedDesktopCommands {
   WorkspaceConflictForTab(arg0: string): Promise<WorkspaceConflictView>;
   WorkspaceGitCommitDetail(arg0: string, arg1: string, arg2: string): Promise<GitCommitDetailView>;
   WorkspaceGitHistory(arg0: string, arg1: string): Promise<GitCommitView[]>;
-  WorkspaceGitStatsForTab(arg0: string, arg1: string): Promise<WorkspaceChangesView>;
   WorkspaceRevisionForTab(arg0: string): Promise<WorkspaceRevisionView>;
   WorkspaceTurnChangeDetail(arg0: string, arg1: string, arg2: number, arg3: string, arg4: string): Promise<TurnFile | null>;
   WorkspaceTurnChanges(arg0: string, arg1: string, arg2: number, arg3: string): Promise<TurnChanges | null>;

@@ -78,7 +78,7 @@ function clipsSingleLine(selector: string) {
 
 console.log("\ntypography overflow contract");
 
-eq(finalDeclaration(".transcript-navigation-content", "min-width"), "0", "chat content can shrink beside the dock launcher");
+eq(finalDeclaration(".transcript-navigation-content", "min-width"), "0", "chat content can shrink within the viewport");
 eq(finalDeclaration(".md", "overflow-wrap"), "anywhere", "completed markdown wraps the same long tokens as the stream tail");
 eq(finalDeclaration(".reasoning__body", "overflow-wrap"), "anywhere", "reasoning wraps long tokens");
 eq(finalDeclaration(".turn-collapse__inline-reasoning", "overflow-wrap"), "anywhere", "inline reasoning wraps long tokens");

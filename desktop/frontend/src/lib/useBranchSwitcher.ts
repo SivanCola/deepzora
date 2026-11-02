@@ -1,4 +1,4 @@
-// Branch list, checkout and create for the launcher's branch row. The list is
+// Branch list, checkout and create for the workspace branch menu. The list is
 // fetched lazily the first time the menu opens; the active branch is mirrored
 // locally so a checkout flips the row immediately while the workspace meta
 // catches up on its own (cached) cadence.
@@ -24,7 +24,7 @@ interface BranchSwitcherInput {
   workspaceRoot: string;
   /** Current git branch for the active workspace; undefined when unknown. */
   gitBranch: string | undefined;
-  /** The launcher card, used to dismiss the menu on an outside click. */
+  /** The menu container, used to dismiss the menu on an outside click. */
   rootRef: RefObject<HTMLElement | null>;
   /** Fired after a checkout/create so the caller can refresh derived data. */
   onBranchChanged: () => void;
@@ -68,7 +68,7 @@ export function useBranchSwitcher({ tabId, scopeKey, workspaceRoot, gitBranch, r
     setActiveBranch(gitBranch);
   }, [gitBranch, identity]);
 
-  // Dismiss the branch switcher on any click outside the launcher card, plus
+  // Dismiss the branch switcher on any click outside the menu container, plus
   // Escape — baseline popover behavior.
   useEffect(() => {
     if (!branchMenuOpen) return;

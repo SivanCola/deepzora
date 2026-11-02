@@ -1273,6 +1273,8 @@ func build(ctx context.Context, opts Options) (*BuildResult, error) {
 		// The child provider owns the final vision decision, as in read-only runs.
 		childCtx := agent.WithUserImages(sctx, agent.SubagentImageCandidates(sctx))
 		agent.EmitSubagentLifecycle(parentSink, "child_running", parentID, sk.Name, usageModelRef, effortRef, run, nil)
+		childCtx, cancelChild := run.CancellableContext(childCtx)
+		defer cancelChild()
 		if sk.ReadOnly {
 			answer, err = agent.RunReadOnlySubAgentWithSession(childCtx, prov, subReg, run.Session, task,
 				runOptions, agent.NestedSink(sctx, event.Discard))
