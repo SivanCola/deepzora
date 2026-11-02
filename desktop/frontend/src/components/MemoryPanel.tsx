@@ -1,4 +1,5 @@
 import { ErrorMessage } from "./ErrorMessage";
+import { useMemoryDocumentEditor } from "./useMemoryDocumentEditor";
 import { SettingsFeedback, useSettingsDraft, useSettingsExperience } from "./SettingsExperience";
 import { SettingsSelect } from "./SettingsSelect";
 import { Activity, AlertTriangle, ArchiveRestore, Check, ChevronDown, ChevronRight, FileText, History, Pencil, Plus, RefreshCw, Search, Sparkles, Trash2 } from "lucide-react";
@@ -784,9 +785,6 @@ export function MemorySettingsPage() {
 	const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
 	const [note, setNote] = useState("");
 	const [scope, setScope] = useState("");
-	const [editingPath, setEditingPath] = useState<string | null>(null);
-	const editingBaseline = useRef("");
-	const [draft, setDraft] = useState("");
 	const [busy, setBusy] = useState(false);
 	const [highlight, setHighlight] = useState<string | null>(null);
 	const [query, setQuery] = useState("");
@@ -1115,31 +1113,9 @@ export function MemorySettingsPage() {
 		}
 	}, [note, busy, activeScope, reload, effectiveTabId, announce]);
 
-	const startEdit = useCallback((path: string, body: string) => {
-		requestLeave(() => { editingBaseline.current = body; setEditingPath(path); setDraft(body); });
-	}, [requestLeave]);
-
-	const saveEdit = useCallback(async () => {
-		if (editingPath === null || busy) return false;
-		setBusy(true);
-		setError(null);
-		try {
-			if (effectiveTabId) await app.SaveDocForTab(effectiveTabId, editingPath, draft);
-			else await app.SaveDoc(editingPath, draft);
-			await reload();
-			setEditingPath(null);
-			announce("success");
-			return true;
-		} catch (err) {
-			setError(errorMessage(err));
-			return false;
-		} finally {
-			setBusy(false);
-		}
-	}, [editingPath, busy, draft, reload, effectiveTabId, announce]);
+	const { editingPath, draft, setDraft, dirty: documentDirty, startEdit, saveEdit, cancelEdit } = useMemoryDocumentEditor({
+		tabId: effectiveTabId, busy, setBusy, setError, reload });
 	useSettingsDraft({ label: t("memory.addMemory"), dirty: Boolean(note.trim()), busy, canSave: Boolean(note.trim()), save: submitNote, discard: () => { setNote(""); setShowAdd(false); } });
-	useSettingsDraft({ label: t("memory.instructionFiles"), dirty: editingPath !== null && draft !== editingBaseline.current, busy,
-		save: saveEdit, discard: () => setEditingPath(null) });
 
 	const acceptMemorySuggestion = useCallback(async (candidate: MemorySuggestion) => {
 		if (busy) return;
@@ -1864,10 +1840,10 @@ export function MemorySettingsPage() {
 										spellCheck={false}
 									/>
 									<div className="mem-doc__actions settings-save-bar">
-										<span role="status">{t(draft !== editingBaseline.current ? "settings.models.unsaved" : "settings.models.saved")}</span>
+										<span role="status">{t(documentDirty ? "settings.models.unsaved" : "settings.models.saved")}</span>
 										<button
 											className="btn btn--small"
-											onClick={() => requestLeave(() => setEditingPath(null))}
+											onClick={cancelEdit}
 											disabled={busy}
 										>
 											{t("common.cancel")}
@@ -1875,7 +1851,7 @@ export function MemorySettingsPage() {
 										<button
 											className="btn btn--primary btn--small"
 											onClick={() => void saveEdit()}
-											disabled={busy || draft === editingBaseline.current}
+											disabled={busy || !documentDirty}
 										>
 											{t("common.save")}
 										</button>
