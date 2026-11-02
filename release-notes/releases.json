@@ -6,7 +6,7 @@
       "releaseId": "0.0.3",
       "baseVersion": "0.0.3",
       "previousRelease": "0.0.2",
-      "date": "2026-11-01",
+      "date": "2026-11-02",
       "channel": "stable",
       "status": "reviewed",
       "targetingVersion": 1,
@@ -16,19 +16,46 @@
         "npm": "0.0.3"
       },
       "title": {
-        "en": "Per-model native search and a calmer Settings",
-        "zh": "按模型设置原生搜索，设置页更统一"
+        "en": "Conversation status, Magpie models and more reliable updates",
+        "zh": "会话状态面板、Magpie 模型与更可靠的更新"
       },
       "summary": {
-        "en": "Deepzora 0.0.3 lets you turn native search on or off for a single model, gives Settings one consistent surface, and fixes settings changes that failed when no tab was open. It also gives Git Bash more time to start during detection on Windows. Windows 0.0.3 is still distributed without Authenticode signing.",
-        "zh": "Deepzora 0.0.3 支持按单个模型开关原生搜索，统一了设置页的界面，并修复了未打开标签页时无法修改设置的问题。Windows 上检测 Git Bash 时也会等待更长的启动时间。Windows 0.0.3 仍未提供 Authenticode 代码签名。"
+        "en": "Deepzora 0.0.3 adds a conversation status panel, Magpie gateway model discovery, per-model native search, and easier preset editing. It fixes sessions appearing disconnected, restores the conversation width setting, and improves update downloads and Settings. The bilingual official website is now available. Windows 0.0.3 remains unsigned, and the reported shutdown stall remains under investigation.",
+        "zh": "Deepzora 0.0.3 新增会话状态面板、Magpie 网关模型发现、按模型配置原生搜索，以及更方便的预设编辑。修复会话显示连接中断和会话宽度设置不生效的问题，并改进更新下载与设置页。中英双语官网现已上线。Windows 0.0.3 仍未代码签名，已报告的退出卡住问题仍在排查。"
       },
       "surfaces": [
         "desktop",
-        "cli"
+        "cli",
+        "site"
       ],
       "guides": [],
       "highlights": [
+        {
+          "kind": "new",
+          "targets": ["desktop"],
+          "title": {
+            "en": "Conversation status in one panel",
+            "zh": "在一个面板中查看会话状态"
+          },
+          "body": {
+            "en": "Expand the status pill at the top right of the chat to inspect the workspace and Git changes, Goal progress, plan and todos, background commands, workflows and subagents. Read background output and child conversations, or cancel a selected subagent without stopping its parent.",
+            "zh": "展开聊天区右上角的状态按钮，查看工作区与 Git 变更、Goal 进度、计划与待办、后台命令、工作流和子智能体。可以查看后台输出和子会话，或取消指定子智能体而不停止父会话。"
+          },
+          "refs": [131]
+        },
+        {
+          "kind": "new",
+          "targets": ["desktop", "cli"],
+          "title": {
+            "en": "Magpie gateway models",
+            "zh": "接入 Magpie 网关模型"
+          },
+          "body": {
+            "en": "A new Magpie provider preset connects to the local gateway. Adding it in Desktop fetches and enables the gateway's configured models, keeping their display names while preserving the model IDs used for routing. Start Magpie and configure its providers first.",
+            "zh": "新增 Magpie 服务商预设，可连接本机网关。在桌面端添加连接时会获取并启用网关中已配置的模型，显示模型名称并保留实际路由使用的模型 ID。使用前请先启动 Magpie 并配置其中的服务商。"
+          },
+          "refs": [123]
+        },
         {
           "kind": "new",
           "targets": [
@@ -48,8 +75,45 @@
         }
       ],
       "changes": {
-        "new": [],
+        "new": [
+          {
+            "targets": ["desktop"],
+            "title": {
+              "en": "Preset tool picker and icons",
+              "zh": "预设工具选择器与图标"
+            },
+            "body": {
+              "en": "Choose built-in tools and MCP servers from a grouped, searchable list, or add custom tool names and patterns. Selected tools appear as removable chips. Choose an optional preset icon that also appears in the composer picker; card descriptions and editor hints now align consistently.",
+              "zh": "在可搜索的分组列表中选择内置工具和 MCP 服务，也可添加自定义工具名称与匹配模式；已选工具显示为可移除标签。预设可选配图标，并同步显示在输入区选择器中；卡片说明与编辑提示的对齐也已修复。"
+            },
+            "refs": [121]
+          },
+          {
+            "targets": ["site"],
+            "title": {
+              "en": "Bilingual official website",
+              "zh": "中英双语官网"
+            },
+            "body": {
+              "en": "The official website at https://deepzora.app now offers Chinese and English pages with desktop downloads. Release delivery verifies the R2 download mirror before updating the website's version and download links.",
+              "zh": "官网 https://deepzora.app 现提供中文和英文页面及桌面端下载。发布流程在验证 R2 下载镜像后，再更新官网版本和下载链接。"
+            },
+            "refs": [120, 122, 124]
+          }
+        ],
         "improved": [
+          {
+            "targets": ["desktop"],
+            "title": {
+              "en": "Verified mirror downloads for updates",
+              "zh": "通过验证的镜像下载更新"
+            },
+            "body": {
+              "en": "The updater prefers the R2 mirror and falls back to GitHub when needed, verifying downloaded files against the release's expected integrity information.",
+              "zh": "自动更新优先使用 R2 镜像，必要时回退到 GitHub，并依据目标版本的完整性信息校验下载文件。"
+            },
+            "refs": [130]
+          },
           {
             "targets": [
               "desktop"
@@ -119,6 +183,54 @@
         ],
         "fixed": [
           {
+            "targets": ["desktop"],
+            "title": {
+              "en": "New sessions no longer disconnect every workspace",
+              "zh": "新会话不再导致所有工作区显示断连"
+            },
+            "body": {
+              "en": "Creating a session, cancelling a turn, or entering recovery no longer makes one session's incomplete runtime state mark all workspaces as disconnected and disable their inputs. The separately reported shutdown stall is not fixed by this change.",
+              "zh": "创建会话、取消一轮对话或进入恢复状态时，不再因单个会话的运行状态不完整而让所有工作区显示连接中断并禁用输入框。另行报告的退出卡住问题不属于本次修复范围。"
+            },
+            "refs": [134]
+          },
+          {
+            "targets": ["desktop"],
+            "title": {
+              "en": "Conversation width applies to the transcript",
+              "zh": "会话宽度设置对聊天内容生效"
+            },
+            "body": {
+              "en": "The standard and full-width settings now resize the conversation transcript as well as the composer. Collapsing the sidebar can widen the chat column again.",
+              "zh": "标准和全宽设置现在会同时调整聊天内容与输入区宽度，折叠侧边栏后聊天列也能相应变宽。"
+            },
+            "refs": [133]
+          },
+          {
+            "targets": ["desktop"],
+            "title": {
+              "en": "Quieter automatic update checks",
+              "zh": "自动检查更新减少无效报错"
+            },
+            "body": {
+              "en": "Temporary network failures during startup or focus-triggered update checks no longer show an update-failed banner. Automatic checks retry after 15 minutes; checks you start manually still report failures.",
+              "zh": "启动或窗口重新获得焦点时，自动检查更新遇到临时网络故障不再弹出更新失败提示，并会在 15 分钟后重试；手动检查仍会报告失败。"
+            },
+            "refs": [132]
+          },
+          {
+            "targets": ["desktop"],
+            "title": {
+              "en": "No recovery warning during normal submission",
+              "zh": "正常发送时不再闪现恢复警告"
+            },
+            "body": {
+              "en": "Submitting a message normally no longer briefly displays a recovery warning while the session state updates.",
+              "zh": "正常提交消息时，会话状态更新期间不再短暂显示恢复警告。"
+            },
+            "refs": [123]
+          },
+          {
             "targets": [
               "desktop"
             ],
@@ -174,6 +286,18 @@
       ],
       "risks": [
         {
+          "targets": ["desktop"],
+          "title": {
+            "en": "Reported Windows shutdown stall remains under investigation",
+            "zh": "Windows 退出卡住的报告仍在排查"
+          },
+          "body": {
+            "en": "A Windows report describes shutdown stopping at `shutdown_incomplete: desktop shutdown stopped in cancelling_background`. The issue has not been reproduced locally and is not resolved by the session-state fix. If it occurs, attach service.log and service.log.1 from %APPDATA%\\Deepzora\\logs to [issue #126](https://github.com/SivanCola/deepzora/issues/126), including the `desktop: shutdown step` entries.",
+            "zh": "已有 Windows 报告显示退出停在 `shutdown_incomplete: desktop shutdown stopped in cancelling_background`。该问题尚未在本地复现，会话状态修复不代表已解决退出问题。如遇到，请在 [issue #126](https://github.com/SivanCola/deepzora/issues/126) 附上 %APPDATA%\\Deepzora\\logs 下的 service.log 与 service.log.1，保留其中的 `desktop: shutdown step` 记录。"
+          },
+          "refs": [134]
+        },
+        {
           "targets": [
             "desktop",
             "cli"
@@ -208,7 +332,7 @@
       "links": {
         "github": "https://github.com/SivanCola/deepzora/releases/tag/v0.0.3",
         "compare": "https://github.com/SivanCola/deepzora/compare/v0.0.2...v0.0.3",
-        "download": "https://github.com/SivanCola/deepzora/releases"
+        "download": "https://deepzora.app/#download"
       }
     },
     {
