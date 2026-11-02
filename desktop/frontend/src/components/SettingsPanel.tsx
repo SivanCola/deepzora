@@ -4728,7 +4728,7 @@ function AboutSection({
         label={t("changelog.title")}
         hint={t("changelog.subtitle")}
       >
-        <button className="btn btn--small" onClick={() => void openExternal("https://github.com/SivanCola/deepzora/releases/tag/")}>
+        <button className="btn btn--small" onClick={() => void openExternal("https://github.com/SivanCola/deepzora/releases/latest")}>
           {t("changelog.openWeb")}
           <ExternalLink size={14} aria-hidden="true" />
         </button>
