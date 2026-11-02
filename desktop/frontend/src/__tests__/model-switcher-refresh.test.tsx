@@ -39,6 +39,14 @@ globalThis.Node = dom.window.Node;
 globalThis.ResizeObserver = TestResizeObserver as unknown as typeof ResizeObserver;
 globalThis.requestAnimationFrame = dom.window.requestAnimationFrame.bind(dom.window);
 globalThis.cancelAnimationFrame = dom.window.cancelAnimationFrame.bind(dom.window);
+// JSDOM has no layout. Keep the actual popover's anchor and menu measurable so
+// its invalid-anchor guard does not dismiss the menu after eight animation frames.
+const originalGetBoundingClientRect = dom.window.HTMLElement.prototype.getBoundingClientRect;
+dom.window.HTMLElement.prototype.getBoundingClientRect = function () {
+  if (this.classList.contains("modelsw__trigger")) return new dom.window.DOMRect(100, 600, 200, 32);
+  if (this.classList.contains("modelsw__menu")) return new dom.window.DOMRect(100, 100, 480, 400);
+  return originalGetBoundingClientRect.call(this);
+};
 Object.defineProperty(dom.window.HTMLElement.prototype, "attachEvent", { configurable: true, value: () => {} });
 Object.defineProperty(dom.window.HTMLElement.prototype, "detachEvent", { configurable: true, value: () => {} });
 Object.defineProperty(window, "matchMedia", {
@@ -545,7 +553,10 @@ currentCatalog = presetBrands.map(({ expectedBrand: _expectedBrand, ...fixture }
 }));
 await act(async () => {
   window.dispatchEvent(new Event("deepzora:model-catalog-changed"));
-  await new Promise(resolve => setTimeout(resolve, 0));
+  // Exercise more frames than the popover's initial measurement retry budget.
+  for (let frame = 0; frame < 12; frame++) {
+    await new Promise<void>(resolve => window.requestAnimationFrame(() => resolve()));
+  }
 });
 const presetRail = document.querySelectorAll('.modelsw__rail-item');
 const presetRows = document.querySelectorAll('[role="option"]');
