@@ -48,8 +48,8 @@ eq(declaration(ruleBlock(managementStyles, ".management-screen__chrome"), "flex"
 eq(declaration(caption, "--windows-window-controls-height"), "var(--management-titlebar-height)", "Windows caption buttons match the settings drag strip");
 eq(declaration(caption, "background"), "var(--bg-soft)", "caption controls blend with settings in every theme");
 eq(declaration(caption, "border"), "0", "workspace borders do not leak into the settings caption");
-const settingsCenter = ruleBlock(panelStyles, ".settings-center");
-eq(declaration(settingsCenter, "grid-template-columns"), "clamp(220px, 20.5vw, 304px) minmax(0, 1fr)", "settings navigation remains readable without consuming the content pane");
+const settingsCenter = ruleBlock(panelStyles, ":root[data-theme-style] .settings-screen .settings-center");
+eq(declaration(settingsCenter, "grid-template-columns"), "clamp(192px, 17vw, 232px) minmax(0, 1fr)", "settings navigation remains readable without consuming the content pane");
 
 eq(declaration(ruleBlock(styles, ":root[data-theme-style] .settings-center__nav"), "background"), "var(--bg-soft)", "themed settings navigation shares the sidebar surface");
 eq(declaration(ruleBlock(styles, ":root[data-theme-style] .settings-center__content"), "background"), "var(--bg-soft)", "themed settings content shares the sidebar surface");
@@ -114,7 +114,7 @@ eq(declaration(narrowTail, "gap"), "12px", "narrow memory controls retain their 
 
 const compactPanelStart = panelStyles.indexOf("@media (max-width: 760px)");
 const compactPanel = panelStyles.slice(compactPanelStart);
-const compactCenter = ruleBlock(compactPanel, ".settings-center,\n  :root[data-theme-style] .settings-center");
+const compactCenter = ruleBlock(compactPanel, ".settings-center,\n  :root[data-theme-style] .settings-screen .settings-center");
 eq(declaration(compactCenter, "grid-template-columns"), "minmax(0, 1fr)", "minimum-width settings use one content column");
 eq(declaration(compactCenter, "grid-template-rows"), "auto minmax(0, 1fr)", "minimum-width navigation occupies its own top row");
 const compactNav = ruleBlock(compactPanel, ".settings-center__nav,\n  :root[data-theme-style] .settings-center__nav");

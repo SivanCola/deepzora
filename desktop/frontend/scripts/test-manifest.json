@@ -139,6 +139,9 @@
       ]
     ],
     "settings-responsive": [
+      ["tsx", "src/__tests__/settings-feedback.test.tsx"],
+      ["tsx", "src/__tests__/settings-draft-navigation.test.tsx"],
+      ["tsx", "src/__tests__/settings-page-navigation.test.tsx"],
       ["tsx", "src/__tests__/agent-presets.test.ts"],
       ["tsx", "src/__tests__/agent-presets-ui.test.tsx"],
       [

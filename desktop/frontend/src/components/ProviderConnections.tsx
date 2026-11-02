@@ -5,6 +5,8 @@ import { catalogForPreset } from "../lib/providerCatalog";
 import { providerBrandIcons } from "../lib/providerBrandIcons";
 import { useT } from "../lib/i18n";
 import { apiFormatLabel } from "./ProviderCatalogPicker";
+import { useSettingsExperience } from "./SettingsExperience";
+import { ArrowLeft } from "lucide-react";
 
 export function connectionBrand(group: ProviderAccessGroup, presets: ProviderPresetView[]) {
   const preset = presets.find((p) => p.providerNames.some((name) => group.providers.some((v) => v.name === name)))
@@ -22,6 +24,7 @@ export function ProviderConnections({ groups, presets, revealedProvider, hidden,
   onSelect?: () => void;
 }) {
   const t = useT();
+  const { requestLeave } = useSettingsExperience();
   const [selected, setSelected] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [mobileDetail, setMobileDetail] = useState(false);
@@ -36,16 +39,16 @@ export function ProviderConnections({ groups, presets, revealedProvider, hidden,
     <nav className="provider-connections__nav" aria-label={t("settings.providerAccess")}>
       <input className="mem-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("settings.connections.search")} aria-label={t("settings.connections.search")} />
       <div className="provider-connections__list">
-        {connections.map(g => { const brand=connectionBrand(g,presets); return <button type="button" key={g.id} className="provider-connections__item provider-connections__item--flat" title={`${g.label} · ${apiFormatLabel(g.kind)}`} aria-current={active===g.id ? "true" : undefined} onClick={()=>{setSelected(g.id);setMobileDetail(true);onSelect?.();}}>
+        {connections.map(g => { const brand=connectionBrand(g,presets); return <button type="button" key={g.id} className="provider-connections__item provider-connections__item--flat" title={`${g.label} · ${apiFormatLabel(g.kind)}`} aria-current={active===g.id ? "true" : undefined} onClick={()=>{const select=()=>{setSelected(g.id);setMobileDetail(true);onSelect?.();};if(active===g.id)select();else requestLeave(select);}}>
           {providerBrandIcons.has(brand.id) ? <span className="provider-catalog__icon" style={{maskImage:`url(/provider-icons/${brand.id}.svg)`}} aria-hidden="true"/> : <span className="provider-catalog__monogram" aria-hidden="true">{brand.label.slice(0,1)}</span>}
-          <strong>{g.label}</strong><span className={`provider-connections__status${g.configured ? " provider-connections__status--ready" : ""}`} aria-label={t(g.configured ? "settings.connections.configured" : "settings.modelsRequireKey")}/>
+          <span className="provider-connections__identity"><strong>{g.label}</strong><small className="provider-connections__state"><span className={`provider-connections__status${g.configured ? " provider-connections__status--ready" : ""}`} aria-hidden="true"/>{t(g.configured ? "settings.connections.configured" : "settings.modelsRequireKey")}</small></span>
         </button>;})}
         {!connections.length && <p className="muted">{t("settings.connections.noResults")}</p>}
       </div>
-      <button className="btn" disabled={busy} onClick={onAdd}>{t("settings.addProvider")}</button>
+      <button className="btn" disabled={busy} onClick={() => requestLeave(onAdd)}>{t("settings.addProvider")}</button>
     </nav>
     <div className="provider-connections__detail">
-      <button className="btn btn--small provider-connections__back" onClick={() => setMobileDetail(false)}>{t("settings.connections.back")}</button>
+      <button className="btn btn--small settings-back-button provider-connections__back" onClick={() => requestLeave(() => setMobileDetail(false))}><ArrowLeft size={16} aria-hidden="true" />{t("settings.connections.back")}</button>
       {/* Retain editors and fetched-model drafts across navigation and add flow. */}
       {groups.map((g) => <div key={g.id} hidden={g.id !== active}>{renderDetail(g)}</div>)}
     </div>

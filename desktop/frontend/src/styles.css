@@ -32181,9 +32181,11 @@ body > .mermaid-diagram--fullscreen {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 }
 .theme-gallery__preview-control {
   display: grid;
+  min-width: 0;
   grid-template-columns: minmax(76px, auto) minmax(0, 1fr);
   align-items: center;
   gap: 10px;
@@ -32462,7 +32464,7 @@ body > .mermaid-diagram--fullscreen {
 }
 .theme-gallery__immersive-toolbar .theme-gallery__preview-controls {
   display: grid;
-  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   gap: 12px;
   width: 100%;
 }

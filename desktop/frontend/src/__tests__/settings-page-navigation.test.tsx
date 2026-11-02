@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 import { baseSettings } from "../test-support/settingsTestFixtures";
 import { installDesktopHostStub } from "./desktopHostStub";
+import type { SettingsInitialFocus } from "../components/SettingsPanel";
 
 const dom = new JSDOM('<!doctype html><div id="workspace"><button id="opener">Settings</button></div><div id="root"></div>', { url: "http://localhost", pretendToBeVisual: true });
 Object.assign(globalThis, { window: dom.window, document: dom.window.document, HTMLElement: dom.window.HTMLElement, Node: dom.window.Node, Event: dom.window.Event, CustomEvent: dom.window.CustomEvent, localStorage: dom.window.localStorage, sessionStorage: dom.window.sessionStorage, IS_REACT_ACT_ENVIRONMENT: true });
@@ -26,10 +27,10 @@ useAppNavigationStore.getState().openPage({ kind: "settings", tab: "general" });
 function WorkspaceBoundary({ children }: { children: React.ReactNode }) { useManagementWorkspace(workspaceRef, true); return children; }
 let closes = 0;
 const routes: string[] = [];
-function RoutedSettings() {
+function RoutedSettings({ focus }: { focus?: SettingsInitialFocus }) {
   const route = useAppNavigationStore((state) => state.page);
   const navigate = useAppNavigationStore((state) => state.setSettingsTarget);
-  return <SettingsPanel initialTab={route.kind === "settings" ? route.tab : undefined} desktopPlatform="linux" onClose={() => { closes++; }} onChanged={() => {}} onUseSubagent={() => {}} onNavigate={(tab) => { routes.push(tab); navigate(tab); }} />;
+  return <SettingsPanel initialFocus={focus} initialTab={route.kind === "settings" ? route.tab : undefined} desktopPlatform="linux" onClose={() => { closes++; }} onChanged={() => {}} onUseSubagent={() => {}} onNavigate={(tab) => { routes.push(tab); navigate(tab); }} />;
 }
 await act(async () => {
   root.render(<LocaleProvider><WorkspaceBoundary><RoutedSettings /></WorkspaceBoundary></LocaleProvider>);
@@ -59,6 +60,20 @@ for (const tab of ["model-stats", "providers", "models", "providers"] as const) 
   assert.equal(page.querySelector('[aria-current="page"]')?.textContent?.trim(), label);
   assert.ok(page.querySelector(`.settings-page--${tab}`), `${label} remains rendered after route synchronization`);
 }
+const network = [...page.querySelectorAll<HTMLButtonElement>("nav button")].find(button => button.textContent?.trim() === "Network")!;
+await act(async () => network.click());
+await act(async () => page.querySelector<HTMLButtonElement>('[role="radiogroup"] button:last-child')!.click());
+const focusStats = async (requestId: number) => act(async () => root.render(<LocaleProvider><WorkspaceBoundary><RoutedSettings focus={{ target: "model-stats", requestId }} /></WorkspaceBoundary></LocaleProvider>));
+await focusStats(1);
+assert.ok(document.querySelector(".settings-leave-dialog"));
+assert.ok(page.querySelector(".settings-page--network"), "external focus cannot navigate before the draft decision");
+const decision = (label: string) => [...document.querySelectorAll<HTMLButtonElement>(".settings-leave-dialog button")].find(button => button.textContent === label)!;
+await act(async () => decision("Keep editing").click());
+assert.ok(page.querySelector(".settings-page--network"));
+await focusStats(2);
+await act(async () => decision("Discard and leave").click());
+assert.ok(page.querySelector(".settings-page--model-stats"), "accepting the external focus reaches the requested page");
+assert.deepEqual(useAppNavigationStore.getState().page, { kind: "settings", tab: "model-stats" });
 const back = Array.from(page.querySelectorAll<HTMLButtonElement>("button")).find((button) => button.textContent?.trim() === "Back to workspace")!;
 await act(async () => back.click());
 assert.equal(closes, 1);

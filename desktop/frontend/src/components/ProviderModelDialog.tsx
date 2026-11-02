@@ -7,6 +7,7 @@ import { imageInputHardBlocked, imageInputState } from "../lib/providerImageInpu
 import { ModalCloseButton } from "./ModalCloseButton";
 import type { ProviderModelCapabilityView } from "../lib/types";
 import { modelDraftError } from "../lib/providerModelDraft";
+import { useSettingsDraft } from "./SettingsExperience";
 
 export interface ModelDetailsDraft { model: string; contextWindow: string; maxOutputTokens: number; vision: boolean | null; webSearch: boolean | null; supportedEfforts: string[]; defaultEffort: string; }
 export default function ProviderModelDialog({ initial, candidates, contextDefault, capability, baseURL, busy, effortOptions, webSearchSupported = false, webSearchDefault = false, onClose, onApply, onDelete }: {
@@ -38,6 +39,16 @@ export default function ProviderModelDialog({ initial, candidates, contextDefaul
   const imageState = imageBlocked ? "unsupported" : imageInputState(vision === "auto" ? "auto" : vision === "true" ? "on" : "off", capability);
   const webSearchOn = webSearchSupported && (webSearch === "auto" ? webSearchDefault : webSearch === "true");
   const webSearchManual = webSearchSupported && webSearch !== "auto";
+  const snapshot = JSON.stringify([model, context, output, vision, webSearch, effort, explicitEfforts, selectedEfforts]);
+  const baseline = useRef(snapshot);
+  const apply = async () => {
+    if (validation) { setError(true); return false; }
+    const defaultEffort = effort && selectedEfforts.includes(effort) ? effort : "";
+    onApply({ model: model.trim(), contextWindow: context.trim(), maxOutputTokens: Number(output) || 0, vision: vision === "auto" ? null : !imageBlocked && vision === "true", webSearch: webSearchManual ? webSearch === "true" : null, supportedEfforts: explicitEfforts ? selectedEfforts : [], defaultEffort });
+    return true;
+  };
+  const guard = useSettingsDraft({ label: t(initial ? "settings.modelDialog.edit" : "settings.models.add"), order: 100, dirty: snapshot !== baseline.current, busy, canSave: !validation,
+    save: apply, discard: onClose });
   const toggleEffort = (option: string, checked: boolean) => {
     setExplicitEfforts(true);
     setSelectedEfforts(current => {
@@ -47,9 +58,9 @@ export default function ProviderModelDialog({ initial, candidates, contextDefaul
     });
   };
   return createPortal(<dialog ref={dialog} className="provider-model-dialog" data-app-overlay="" aria-labelledby={titleId}
-    onCancel={event => { event.preventDefault(); if (!busy) onClose(); }}>
-    <form onSubmit={event => { event.preventDefault(); if (validation) { setError(true); return; } const defaultEffort = effort && selectedEfforts.includes(effort) ? effort : ""; onApply({ model:model.trim(), contextWindow:context.trim(), maxOutputTokens:Number(output) || 0, vision:vision === "auto" ? null : !imageBlocked && vision === "true", webSearch:webSearchManual ? webSearch === "true" : null, supportedEfforts: explicitEfforts ? selectedEfforts : [], defaultEffort }); }}>
-      <header><h2 id={titleId}>{t(initial ? "settings.modelDialog.edit" : "settings.models.add")}</h2><ModalCloseButton label={t("common.close")} disabled={busy} onClick={onClose}/></header>
+    onCancel={event => { event.preventDefault(); if (!busy) guard.leave(onClose); }}>
+    <form onSubmit={event => { event.preventDefault(); void apply(); }}>
+      <header><h2 id={titleId}>{t(initial ? "settings.modelDialog.edit" : "settings.models.add")}</h2><ModalCloseButton label={t("common.close")} disabled={busy} onClick={() => guard.leave(onClose)}/></header>
       <label className="provider-model-dialog__id">{t("settings.modelDialog.id")}
         {initial ? <span><LockKeyhole size={16}/>{model}</span> : <input autoFocus className="mem-input" value={model} disabled={busy} onChange={e=>setModel(e.target.value)} placeholder="deepseek-v4-flash"/>}
       </label>
@@ -101,7 +112,7 @@ export default function ProviderModelDialog({ initial, candidates, contextDefaul
         </aside>
       </div>
       {error && validation && <p role="alert">{t(`providerUI.validation.${validation}`)}</p>}
-      <footer>{initial && onDelete && <button type="button" className="btn btn--danger" disabled={busy} onClick={onDelete}>{t("providerUI.deleteModel")}</button>}<small>{t("settings.modelDialog.draftHint")}</small><button type="button" className="btn" disabled={busy} onClick={onClose}>{t("common.cancel")}</button><button className="btn btn--primary" disabled={busy}>{t(initial ? "settings.modelDialog.apply" : "settings.modelDialog.add")}</button></footer>
+      <footer className="settings-save-bar">{initial && onDelete && <button type="button" className="btn btn--danger" disabled={busy} onClick={onDelete}>{t("providerUI.deleteModel")}</button>}<small>{t("settings.modelDialog.draftHint")}</small><button type="button" className="btn" disabled={busy} onClick={() => guard.leave(onClose)}>{t("common.cancel")}</button><button className="btn btn--primary" disabled={busy}>{t(initial ? "settings.modelDialog.apply" : "settings.modelDialog.add")}</button></footer>
     </form>
   </dialog>, document.body);
 }

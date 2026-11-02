@@ -1,5 +1,6 @@
 import { ErrorMessage } from "./ErrorMessage";
 import { SettingsOptions } from "./SettingsOptions";
+import { SettingsFeedback } from "./SettingsExperience";
 // UsageStatsPanel renders the "usage statistics" subtab inside the Models
 // settings page. It reads aggregated stats from the Go backend (App.UsageStats)
 // and draws three charts by hand in SVG — a GitHub-style activity heatmap, a
@@ -176,20 +177,24 @@ export function UsageStatsPanel() {
     return { from, to };
   }, []);
   const [heatDaily, setHeatDaily] = useState<DailyTokenUsage[]>([]);
+  const [heatError, setHeatError] = useState("");
+  const [heatLoading, setHeatLoading] = useState(true);
   const heatGenRef = useRef(0);
 
   const loadHeat = useCallback(async () => {
     const generation = ++heatGenRef.current;
     setHeatDaily([]);
+    setHeatError(""); setHeatLoading(true);
     try {
       const res = await app.UsageStats({ range: "custom", from: heatWindow.from, to: heatWindow.to, source });
       if (heatGenRef.current !== generation) return;
       setHeatDaily(res.daily);
-    } catch {
+    } catch (cause) {
       if (heatGenRef.current !== generation) return;
-      // The heatmap is auxiliary — a failed fetch leaves the current source
-      // empty instead of retaining cells from the previous source.
       setHeatDaily([]);
+      setHeatError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      if (heatGenRef.current === generation) setHeatLoading(false);
     }
   }, [heatWindow.from, heatWindow.to, source]);
 
@@ -340,12 +345,12 @@ export function UsageStatsPanel() {
         </button>
       </div>
 
-      {error && <div className="provider-fetch-banner provider-fetch-banner--warn"><ErrorMessage error={error} /></div>}
-      {loading && !stats && <div className="usage-stats__loading">{t("common.loading")}</div>}
+      {error && <SettingsFeedback kind="error" onRetry={() => void load()}><ErrorMessage error={error} /></SettingsFeedback>}
+      {loading && !stats && <SettingsFeedback kind="loading">{t("common.loading")}</SettingsFeedback>}
       {!loading && stats && (
         <>
           <StatCards stats={stats} t={t} />
-          <Heatmap daily={heatDaily} from={heatWindow.from} to={heatWindow.to} t={t} />
+          {heatError ? <SettingsFeedback kind="error" onRetry={() => void loadHeat()}><ErrorMessage error={heatError} /></SettingsFeedback> : heatLoading ? <SettingsFeedback kind="loading" /> : <Heatmap daily={heatDaily} from={heatWindow.from} to={heatWindow.to} t={t} />}
           <DailyTrend daily={dailyGrouped} modelOrder={groupedModels.map((m) => m.model)} t={t} colorForModel={colorForModel} />
           <ModelUsage models={groupedModels} t={t} colorForModel={colorForModel} />
           {stats.to && (
@@ -356,7 +361,7 @@ export function UsageStatsPanel() {
         </>
       )}
       {!loading && !error && stats && stats.tokens === 0 && (
-        <div className="usage-stats__empty">{t("settings.stats.empty")}</div>
+        <SettingsFeedback kind="empty">{t("settings.stats.empty")}</SettingsFeedback>
       )}
     </div>
   );
@@ -512,7 +517,8 @@ function Heatmap({ daily, from, to, t }: { daily: DailyTokenUsage[]; from: strin
         </div>
       </div>
       <div className="usage-stats__heatmap-wrap" ref={wrapRef}>
-        <svg className="usage-stats__heatmap" width={weeks * (geom.size + HEAT_GAP) + HEAT_GAP} height={rows * (geom.size + HEAT_GAP) + HEAT_GAP} role="img" aria-label={t("settings.stats.heatmap")}>
+        <svg className="usage-stats__heatmap" width={weeks * (geom.size + HEAT_GAP) + HEAT_GAP} height={rows * (geom.size + HEAT_GAP) + HEAT_GAP}
+          viewBox={`0 0 ${weeks * (geom.size + HEAT_GAP) + HEAT_GAP} ${rows * (geom.size + HEAT_GAP) + HEAT_GAP}`} role="img" aria-label={t("settings.stats.heatmap")}>
           {days.map((day, i) => {
             const col = Math.floor((i + startOffset) / 7);
             const row = (i + startOffset) % 7;

@@ -1,8 +1,9 @@
 import { ErrorMessage } from "./ErrorMessage";
+import { SettingsSubpageHeader, SettingsFeedback, useSettingsDraft, useSettingsExperience } from "./SettingsExperience";
 import { SettingsOptions } from "./SettingsOptions";
 import { SettingsSelect } from "./SettingsSelect";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ChevronDown, ChevronRight, CircleAlert, Folder, Plus, RefreshCw, Search, Server as ServerIcon } from "lucide-react";
+import { ChevronDown, ChevronRight, CircleAlert, Folder, Plus, RefreshCw, Search, Server as ServerIcon } from "lucide-react";
 import { asArray } from "../lib/array";
 import { app } from "../lib/bridge";
 import { activeWorkBusyNoticeText, installMCPServer } from "../lib/capabilityMutations";
@@ -179,7 +180,7 @@ export function CapabilitiesPanel({
           <div className="empty">{t("caps.loading")}</div>
         ) : (
           <div className="drawer__body">
-            {err && <div className="banner banner--error"><ErrorMessage error={err} /></div>}
+            {err && <div className="banner banner--error" role="alert"><ErrorMessage error={err} /></div>}
 
             <div className="cap-tabs" role="tablist" aria-label={t("caps.title")}>
               <button
@@ -223,7 +224,7 @@ export function CapabilitiesPanel({
                   />
                 )}
                 {view.servers.length === 0 && !adding && (
-                  <div className="mem-empty">{t("caps.noServers")}</div>
+                  <div className="mem-empty" role="status">{t("caps.noServers")}</div>
                 )}
                 {serverGroups.active.length > 0 && (
                   <div className="cap-server-section">
@@ -299,9 +300,9 @@ export function CapabilitiesPanel({
                   </div>
                 </div>
                 {view.skills.length === 0 ? (
-                  <div className="mem-empty">{t("caps.noSkills")}</div>
+                  <div className="mem-empty" role="status">{t("caps.noSkills")}</div>
                 ) : filteredSkills.length === 0 ? (
-                  <div className="mem-empty">{t("caps.noSkillMatches")}</div>
+                  <div className="mem-empty" role="status">{t("caps.noSkillMatches")}</div>
                 ) : (
                   <div className="cap-skills">
                     {filteredSkills.map((sk) => (
@@ -504,7 +505,7 @@ function SkillSources({
             </button>
           </div>
           {roots.length === 0 ? (
-            <div className="mem-empty">{t("caps.noSkillRoots")}</div>
+            <div className="mem-empty" role="status">{t("caps.noSkillRoots")}</div>
           ) : shownRoots.length > 0 ? (
             <div className="cap-source-list">
               {shownRoots.map((root) => {
@@ -1656,9 +1657,11 @@ type PluginInstallMode = "local" | "git";
 // rows below, and diagnostics/details only when a row is expanded.
 export function PluginsSettingsPage() {
 	const t = useT();
+	const { requestLeave, announce } = useSettingsExperience();
 	const [installOpen, setInstallOpen] = useState(false);
 	const [snapshotKey, setSnapshotKey] = useState("");
 	const [plugins, setPlugins] = useState<PluginView[] | null>(null);
+	const [loadError, setLoadError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
 	const [err, setErr] = useState<string | null>(null);
 	const [installMode, setInstallMode] = useState<PluginInstallMode>("local");
@@ -1685,9 +1688,10 @@ export function PluginsSettingsPage() {
 		} else {
 			setPlugins(null);
 		}
-		const next = normalizePluginViews(await app.Plugins().catch(() => []));
-		pluginsSettingsSnapshot = { key, value: next };
-		setPlugins(next);
+		try {
+			const next = normalizePluginViews(await app.Plugins());
+			pluginsSettingsSnapshot = { key, value: next }; setPlugins(next); setLoadError(null);
+		} catch (cause) { setLoadError(String((cause as Error)?.message ?? cause)); }
 	}, []);
 	useEffect(() => { void reload(); }, [reload]);
 
@@ -1741,9 +1745,13 @@ export function PluginsSettingsPage() {
 		void run(async () => {
 			const raw = await app.InstallPlugin(sourceValue, installOptions());
 			setPlan(parsePluginInstallPlan(raw));
+			setLocalSource(""); setGitSource(""); setName(""); setInstallOpen(false);
+			announce("success");
 			return raw;
 		});
 	};
+	useSettingsDraft({ label: t("caps.pluginInstall"), dirty: installOpen && Boolean(localSource.trim() || gitSource.trim() || name.trim() || link || replace), busy,
+		discard: () => { setLocalSource(""); setGitSource(""); setName(""); setLink(false); setReplace(false); setPlan(null); setInstallOpen(false); } });
 	const runDoctor = (pluginName: string) => {
 		void run(async () => {
 			const view = normalizePluginView(await app.PluginDoctor(pluginName));
@@ -1775,12 +1783,13 @@ export function PluginsSettingsPage() {
 
 	return (
 		<section className="mem-section">
-			{err && <div className="banner banner--error"><ErrorMessage error={err} /></div>}
-			{notice && !err && <div className="banner banner--success">{notice}</div>}
+			{err && <SettingsFeedback kind="error" onRetry={() => { setErr(null); void reload(); }}><ErrorMessage error={err} /></SettingsFeedback>}
+			{loadError && <SettingsFeedback kind="error" onRetry={() => { setLoadError(null); void reload(); }}><ErrorMessage error={loadError} /></SettingsFeedback>}
+			{notice && !err && <SettingsFeedback kind="success">{notice}</SettingsFeedback>}
 			<div className="settings-toolbar">
               <div><strong>{t("caps.installedPlugins")}</strong>{plugins && plugins.length > 0 && <div className="drawer__summary">{summary}</div>}</div>
               <div className="settings-toolbar__actions"><button className="btn btn--small" disabled={actionBusy} onClick={() => void reload()}>{t("caps.pluginRefresh")}</button>
-              <button className="btn btn--primary" aria-expanded={installOpen} aria-controls="settings-plugin-install" disabled={actionBusy} onClick={() => setInstallOpen(!installOpen)}>{installOpen ? t("common.cancel") : t("caps.pluginInstall")}</button></div>
+              <button className="btn btn--primary" aria-expanded={installOpen} aria-controls="settings-plugin-install" disabled={actionBusy} onClick={() => installOpen ? requestLeave(() => setInstallOpen(false)) : setInstallOpen(true)}>{installOpen ? t("common.cancel") : t("caps.pluginInstall")}</button></div>
             </div>
             <div id="settings-plugin-install" hidden={!installOpen}>
             <div className="cap-plugin-installer">
@@ -1877,9 +1886,9 @@ export function PluginsSettingsPage() {
 			<div className="cap-server-section cap-plugin-section">
 
 				{!plugins ? (
-					<div className="mem-empty">{t("caps.loading")}</div>
+					!loadError && <SettingsFeedback kind="loading" />
 				) : plugins.length === 0 ? (
-					<div className="mem-empty mem-empty--cta">
+					<div className="mem-empty mem-empty--cta" role="status">
 						<strong>{t("caps.noPluginsTitle")}</strong>
 						<span>{t("caps.noPluginsHint")}</span>
 					</div>
@@ -2435,6 +2444,7 @@ function mcpServerSourceLabel(server: ServerView, t: ReturnType<typeof useT>): s
 }
 
 function MCPSettingsSubpageHeader({
+	mode = "action",
 	title,
 	description,
 	onBack,
@@ -2442,18 +2452,10 @@ function MCPSettingsSubpageHeader({
 	title: string;
 	description: string;
 	onBack: () => void;
+	mode?: "manual" | "action";
 }) {
 	const t = useT();
-	return (
-		<header className="cap-mcp-subpage__header">
-			<button className="cap-mcp-subpage__back" type="button" onClick={onBack}>
-				<ArrowLeft aria-hidden size={14} />
-				{t("caps.backToServers")}
-			</button>
-			<h3 className="cap-mcp-subpage__title">{title}</h3>
-			<p className="cap-mcp-subpage__desc">{description}</p>
-		</header>
-	);
+	return <SettingsSubpageHeader className="cap-mcp-subpage__header" backClassName="cap-mcp-subpage__back" title={title} description={description} onBack={onBack} backLabel={t("caps.backToServers")} mode={mode} />;
 }
 
 function MCPSettingsServerRow({
@@ -2825,7 +2827,7 @@ function MCPServerSettingsEditor({
 	server?: ServerView;
 	busy: boolean;
 	onCancel: () => void;
-	onSubmit: (input: MCPServerInput) => void;
+	onSubmit: (input: MCPServerInput) => void | Promise<boolean>;
 }) {
 	const t = useT();
 	type EditorMode = "quick" | "form" | "json";
@@ -2905,6 +2907,17 @@ function MCPServerSettingsEditor({
 			setJSONError(mcpServerJSONErrorLabel(error, t));
 		}
 	};
+	const snapshot = mode === "quick" ? definition : mode === "json" ? json : JSON.stringify(draft);
+	const baseline = useRef(JSON.stringify(mcpServerEditorDraft(server)));
+	const changed = mode === "quick" ? Boolean(definition.trim()) : mode === "json" ? json !== mcpServerDraftJSON(mcpServerEditorDraft(server)) : snapshot !== baseline.current;
+	const guard = useSettingsDraft({ label: t(server ? "caps.editConfig" : "caps.addServerTitle"), dirty: changed, busy,
+		canSave: mode === "quick" ? Boolean(definition.trim()) : mode === "json" ? Boolean(json.trim()) : ready,
+		save: !server ? undefined : async () => {
+			try {
+				const input = mode === "quick" ? parseMCPQuickDefinition(definition) : mode === "json" ? finalize(parseMCPServerJSON(json, server?.name).input) : finalize(mcpServerDraftInput(draft));
+				return await onSubmit(input) !== false;
+			} catch (error) { setJSONError(mcpServerJSONErrorLabel(error, t)); return false; }
+		}, discard: onCancel });
 
 	return (
 		<div className="cap-mcp-editor">
@@ -2999,9 +3012,10 @@ function MCPServerSettingsEditor({
 					{jsonError && <div className="banner banner--error" role="alert"><ErrorMessage error={jsonError} /></div>}
 				</div>
 			)}
-			<div className="cap-mcp-editor__actions">
-				<button className="btn btn--small" disabled={busy} type="button" onClick={onCancel}>{t("common.cancel")}</button>
-				<button className="btn btn--primary btn--small" disabled={busy || (mode === "quick" ? !definition.trim() : mode === "form" && !ready)} type="button" onClick={submit}>
+			<div className="cap-mcp-editor__actions settings-save-bar">
+				<span role="status">{t(changed ? "settings.models.unsaved" : "settings.models.saved")}</span>
+				<button className="btn btn--small" disabled={busy} type="button" onClick={() => guard.leave(onCancel)}>{t("common.cancel")}</button>
+				<button className="btn btn--primary btn--small" disabled={busy || (Boolean(server) && !changed) || (mode === "quick" ? !definition.trim() : mode === "form" && !ready)} type="button" onClick={submit}>
 					{server ? t("caps.saveConfig") : t("caps.addAndConnect")}
 				</button>
 			</div>
@@ -3013,8 +3027,10 @@ function MCPServerSettingsEditor({
 // embedded inside the settings centre.
 export function MCPServersSettingsPage() {
 	const t = useT();
+	const { announce } = useSettingsExperience();
 	const [snapshotKey, setSnapshotKey] = useState("");
 	const [servers, setServers] = useState<ServerView[] | null>(null);
+	const [loadError, setLoadError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
 	const [err, setErr] = useState<string | null>(null);
 	const [query, setQuery] = useState("");
@@ -3035,9 +3051,10 @@ export function MCPServersSettingsPage() {
 		} else {
 			setServers(null);
 		}
-		const next = normalizeServerViews(await app.MCPServers().catch(() => []));
-		mcpSettingsSnapshot = { key, value: next };
-		setServers(next);
+		try {
+			const next = normalizeServerViews(await app.MCPServers());
+			mcpSettingsSnapshot = { key, value: next }; setServers(next); setLoadError(null);
+		} catch (cause) { setLoadError(String((cause as Error)?.message ?? cause)); }
 	}, []);
 	useEffect(() => { void reload(); }, [reload]);
 	useEffect(() => {
@@ -3052,6 +3069,7 @@ export function MCPServersSettingsPage() {
 		try {
 			await fn();
 			await reload();
+			announce("success");
 			return true;
 		} catch (e) {
 			setErr(activeWorkBusyNoticeText(e, t) ?? String((e as Error)?.message ?? e));
@@ -3116,7 +3134,8 @@ export function MCPServersSettingsPage() {
 
 	return (
 		<section className="cap-mcp-settings">
-			{err && <div className="banner banner--error" role="alert"><ErrorMessage error={err} /></div>}
+			{err && <SettingsFeedback kind="error" onRetry={() => { setErr(null); void reload(); }}><ErrorMessage error={err} /></SettingsFeedback>}
+			{loadError && <SettingsFeedback kind="error" onRetry={() => { setLoadError(null); void reload(); }}><ErrorMessage error={loadError} /></SettingsFeedback>}
 			{screen.kind === "list" && (
 				<>
 					<div className="cap-mcp-list-toolbar settings-toolbar">
@@ -3141,9 +3160,9 @@ export function MCPServersSettingsPage() {
 						<Search aria-hidden size={15} />
 						<input type="search" value={query} onInput={(event) => setQuery(event.currentTarget.value)} placeholder={t("caps.searchServers")} />
 					</label>
-					{loading && <div className="mem-empty">{t("caps.loading")}</div>}
-					{!loading && servers.length === 0 && <div className="mem-empty">{t("caps.noServers")}</div>}
-					{!loading && servers.length > 0 && filteredServers.length === 0 && <div className="mem-empty">{t("caps.noServerMatches")}</div>}
+					{loading && !loadError && <SettingsFeedback kind="loading" />}
+					{!loading && servers.length === 0 && <div className="mem-empty" role="status">{t("caps.noServers")}</div>}
+					{!loading && servers.length > 0 && filteredServers.length === 0 && <div className="mem-empty" role="status">{t("caps.noServerMatches")}</div>}
 					<MCPSettingsServerGroup
 						title={t("caps.projectServers")}
 						hint={t("caps.projectServersHint")}
@@ -3185,8 +3204,8 @@ export function MCPServersSettingsPage() {
 						<button className="btn btn--small" disabled={busy} type="submit">{t("caps.search")}</button>
 					</form>
 					{marketplace?.warning && <div className="banner" role="status">{t("caps.registryCached")} {marketplace.warning}</div>}
-					{busy && marketplace === null && <div className="mem-empty">{t("caps.loading")}</div>}
-					{!busy && marketplace && marketplace.servers.length === 0 && <div className="mem-empty">{t("caps.noRegistryMatches")}</div>}
+					{busy && marketplace === null && <SettingsFeedback kind="loading" />}
+					{!busy && marketplace && marketplace.servers.length === 0 && <div className="mem-empty" role="status">{t("caps.noRegistryMatches")}</div>}
 					{marketplace && marketplace.servers.length > 0 && (
 						<div className="cap-mcp-list">
 							{marketplace.servers.map((entry) => (
@@ -3223,18 +3242,18 @@ export function MCPServersSettingsPage() {
 					<MCPServerSettingsEditor
 						busy={busy}
 						onCancel={() => setScreen({ kind: "list" })}
-						onSubmit={(input) => void mutate(() => installMCPServer(input)).then((ok) => { if (ok) setScreen({ kind: "list" }); })}
+						onSubmit={(input) => mutate(() => installMCPServer(input)).then((ok) => { if (ok) setScreen({ kind: "list" }); return ok; })}
 					/>
 				</div>
 			)}
 			{screen.kind === "edit" && selectedServer && (
 				<div className="cap-mcp-subpage">
-					<MCPSettingsSubpageHeader title={t("caps.editServerTitle", { name: selectedServer.name })} description={t("caps.editServerHint")} onBack={() => setScreen({ kind: "detail", name: selectedServer.name })} />
+					<MCPSettingsSubpageHeader mode="manual" title={t("caps.editServerTitle", { name: selectedServer.name })} description={t("caps.editServerHint")} onBack={() => setScreen({ kind: "detail", name: selectedServer.name })} />
 					<MCPServerSettingsEditor
 						server={selectedServer}
 						busy={busy}
 						onCancel={() => setScreen({ kind: "detail", name: selectedServer.name })}
-						onSubmit={(input) => void mutate(() => app.UpdateMCPServer(selectedServer.name, input)).then((ok) => { if (ok) setScreen({ kind: "detail", name: selectedServer.name }); })}
+						onSubmit={(input) => mutate(() => app.UpdateMCPServer(selectedServer.name, input)).then((ok) => { if (ok) setScreen({ kind: "detail", name: selectedServer.name }); return ok; })}
 					/>
 				</div>
 			)}
@@ -3243,7 +3262,7 @@ export function MCPServersSettingsPage() {
 					<MCPSettingsSubpageHeader title={selectedServer.name} description={t("caps.serverDetailsHint")} onBack={() => setScreen({ kind: "list" })} />
 					{selectedServer.error && (
 						<div className="cap-mcp-detail-error">
-							<div className="banner banner--error"><ErrorMessage error={selectedServer.error} /></div>
+							<div className="banner banner--error" role="alert"><ErrorMessage error={selectedServer.error} /></div>
 							<details>
 								<summary>{t("caps.rawLog")}</summary>
 								<pre>{selectedServer.error}</pre>
@@ -3277,6 +3296,7 @@ export function MCPServersSettingsPage() {
 // the settings centre.
 export function SkillsSettingsPage({ activeWorkspaceKey = "" }: { activeWorkspaceKey?: string }) {
 	const t = useT();
+	const { announce } = useSettingsExperience();
 	const [snapshotKey, setSnapshotKey] = useState("");
 	const [view, setView] = useState<SkillsSettingsView | null>(null);
 	const [busy, setBusy] = useState(false);
@@ -3300,10 +3320,11 @@ export function SkillsSettingsPage({ activeWorkspaceKey = "" }: { activeWorkspac
 		} else {
 			setView(null);
 		}
-		const next = normalizeSkillsSettingsView(await app.SkillsSettings().catch(() => ({ skills: [], skillRoots: [] })));
-		if (sequence !== reloadSequence.current) return;
-		skillsSettingsSnapshot = { key, value: next };
-		setView(next);
+		try {
+			const next = normalizeSkillsSettingsView(await app.SkillsSettings());
+			if (sequence !== reloadSequence.current) return;
+			skillsSettingsSnapshot = { key, value: next }; setView(next);
+		} catch (cause) { if (sequence === reloadSequence.current) setErr(String((cause as Error)?.message ?? cause)); }
 	}, [activeWorkspaceKey]);
 	useEffect(() => {
 		setView(null);
@@ -3316,6 +3337,7 @@ export function SkillsSettingsPage({ activeWorkspaceKey = "" }: { activeWorkspac
 		try {
 			await fn();
 			await reload();
+			announce("success");
 			return true;
 		} catch (e) {
 			setErr(activeWorkBusyNoticeText(e, t) ?? String((e as Error)?.message ?? e));
@@ -3345,12 +3367,12 @@ export function SkillsSettingsPage({ activeWorkspaceKey = "" }: { activeWorkspac
 		setExpandedSkills((prev) => { const next = new Set(prev); if (next.has(name)) next.delete(name); else next.add(name); return next; });
 	}, []);
 
-	if (!view) return <div className="empty">{t("caps.loading")}</div>;
+	if (!view) return err ? <SettingsFeedback kind="error" onRetry={() => { setErr(null); void reload(); }}><ErrorMessage error={err} /></SettingsFeedback> : <SettingsFeedback kind="loading" />;
 	const actionBusy = busy || !snapshotKey;
 
 	return (
 		<section className="mem-section">
-			{err && <div className="banner banner--error"><ErrorMessage error={err} /></div>}
+			{err && <div className="banner banner--error" role="alert"><ErrorMessage error={err} /></div>}
 			<div className="cap-search settings-toolbar">
 				<input
 					className="mem-input"
@@ -3391,9 +3413,9 @@ export function SkillsSettingsPage({ activeWorkspaceKey = "" }: { activeWorkspac
 				</div>
 			</div>
 			{view.skills.length === 0 ? (
-				<div className="mem-empty">{t("caps.noSkills")}</div>
+				<div className="mem-empty" role="status">{t("caps.noSkills")}</div>
 			) : filteredSkills.length === 0 ? (
-				<div className="mem-empty">{t("caps.noSkillMatches")}</div>
+				<div className="mem-empty" role="status">{t("caps.noSkillMatches")}</div>
 			) : (
 				<div className="cap-skills">
 					{filteredSkills.map((sk) => (

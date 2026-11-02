@@ -546,7 +546,7 @@ ok(overviewSource.includes("appearance-overview"), "appearance overview present"
 ok(overviewSource.includes("settings.themeGallery.browse"), "overview has browse themes");
 ok(overviewSource.includes("settings.themeGallery.disable") || overviewSource.includes("handleDisable"), "overview can disable pack");
 const settingsPageShell = settingsSource.slice(settingsSource.indexOf("function SettingsPageShell"), settingsSource.indexOf("export function settingsPageLayout"));
-ok(settingsPageShell.includes("aria-label={settingsTabPageTitle(tab, t)}") && !settingsPageShell.includes("settings-page__header"), "settings pages retain accessible names without a duplicate visual header");
+ok(settingsPageShell.includes("aria-label={settingsTabPageTitle(tab, t)}") && settingsPageShell.includes('className="settings-page__title"') && settingsPageShell.includes("settings.saveAutomatically"), "settings pages share a named heading and explicit save behavior");
 ok(overviewSource.includes("initialCreateBaseStyle"), "base-style copy opens a prefilled theme editor");
 ok(overviewSource.includes('role="radiogroup"') && overviewSource.includes("aria-checked"), "overview segmented controls expose selection semantics");
 ok(/<SettingsOptions\s+layout="field"/.test(overviewSource), "overview choices use the shared field-width control");
@@ -703,12 +703,12 @@ ok(gallerySource.includes("settings.themeGallery.scenePreviewHint") && gallerySo
 ok(localeZh.includes('"settings.themeGallery.sceneHome": "首页展示"') && localeZh.includes('"settings.themeGallery.sceneTask": "工作区展示"'), "scene options use explicit Chinese labels");
 ok(localeZh.includes('"settings.themeGallery.subtitle": "点击主题即可全局预览，应用后才会保存"'), "gallery explains click-to-preview and apply-to-save semantics");
 ok(
-  localeEn.includes('"settings.themeGallery.restoreGraphite": "Restore Graphite appearance"') &&
-    localeEn.includes("detailed typography are preserved"),
+  localeEn.includes('"settings.themeGallery.restoreGraphite": "Reset colors to Graphite"') &&
+    localeEn.includes("preserves color mode, fonts, text sizes, and detailed typography"),
   "English restore copy names Graphite and preserves detailed typography",
 );
 ok(
-  localeZh.includes('"settings.themeGallery.restoreGraphite": "恢复石墨基础外观"') &&
+  localeZh.includes('"settings.themeGallery.restoreGraphite": "重置配色为石墨"') &&
     localeZh.includes("保留明暗模式、字体、字号及详细排版设置"),
   "Chinese restore copy localizes Graphite as 石墨 and preserves detailed typography",
 );

@@ -1,6 +1,7 @@
 import { SettingsSelect } from "./SettingsSelect";
+import { SettingsSubpageHeader } from "./SettingsExperience";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ChevronDown, ChevronRight, Minus, Plus, RotateCcw, Sparkles, Undo2, UserRound } from "lucide-react";
+import { ChevronDown, ChevronRight, Minus, Plus, RotateCcw, Sparkles, Undo2, UserRound } from "lucide-react";
 import { useT } from "../lib/i18n";
 import {
   TYPOGRAPHY_REGIONS,
@@ -82,20 +83,11 @@ export function TypographySettings({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="typography-settings">
-      <header className="typography-settings__header">
-        <div>
-          <div className="typography-settings__heading-row">
-            <button type="button" className="typography-settings__back" aria-label={t("settings.typography.back")} title={t("settings.typography.back")} onClick={onBack}>
-              <ArrowLeft size={17} aria-hidden="true" />
-            </button>
-            <h2>{t("settings.typography.title")}</h2>
-          </div>
-          <p>{t("settings.typography.subtitle")}</p>
-        </div>
+      <SettingsSubpageHeader className="typography-settings__header" backClassName="typography-settings__back" title={t("settings.typography.title")} description={t("settings.typography.subtitle")} onBack={onBack} backLabel={t("settings.typography.back")} mode="auto" actions={
         <button type="button" className="btn btn--small" onClick={resetAll}>
           <RotateCcw size={13} aria-hidden="true" /> {t("settings.typography.resetAll")}
         </button>
-      </header>
+      } />
 
       <div className="typography-settings__workspace">
         <nav className="typography-settings__regions" aria-label={t("settings.typography.regions")}>

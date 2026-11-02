@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useProviderT as useT } from "../lib/providerSettingsLocale";
 import { Tooltip } from "./Tooltip";
+import { useSettingsDraft } from "./SettingsExperience";
 
 export function RuleList({
   list,
@@ -20,14 +21,16 @@ export function RuleList({
   const adding = useRef(false);
   const add = async () => {
     const r = draft.trim();
-    if (!r || busy || adding.current) return;
+    if (!r || busy || adding.current) return false;
     adding.current = true;
     try {
-      if (await onAdd(r)) setDraft(current => current.trim() === r ? "" : current);
+      if (await onAdd(r)) { setDraft(current => current.trim() === r ? "" : current); return true; }
+      return false;
     } finally {
       adding.current = false;
     }
   };
+  useSettingsDraft({ label: ruleListLabel(list, t), dirty: Boolean(draft.trim()), busy, canSave: Boolean(draft.trim()), save: add, discard: () => setDraft("") });
   return (
     <div className="set-rules">
       <div className="set-rules__head">

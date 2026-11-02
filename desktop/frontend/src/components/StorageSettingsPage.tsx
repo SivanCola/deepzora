@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Copy, Check } from "lucide-react";
 import { app } from "../lib/bridge";
 import { useT } from "../lib/i18n";
+import { SettingsFeedback } from "./SettingsExperience";
 
 type StorageSettingsView = Awaited<ReturnType<typeof app.StorageSettings>>;
 
@@ -28,13 +29,10 @@ export function StorageSettingsPage() {
     void load();
   }, [load]);
 
-  if (loading) return <div className="empty">{t("settings.loading")}</div>;
+  if (loading) return <SettingsFeedback kind="loading" />;
   if (failed || !view) {
     return (
-      <div className="banner banner--error settings-load-error" role="alert">
-        <span>{t("settings.loadFailed")}</span>
-        <button className="btn btn--small" type="button" onClick={() => void load()}>{t("common.retry")}</button>
-      </div>
+      <SettingsFeedback kind="error" onRetry={() => void load()}>{t("settings.loadFailed")}</SettingsFeedback>
     );
   }
 

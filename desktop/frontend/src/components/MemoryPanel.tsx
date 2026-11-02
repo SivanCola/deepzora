@@ -1,4 +1,5 @@
 import { ErrorMessage } from "./ErrorMessage";
+import { SettingsFeedback, useSettingsDraft, useSettingsExperience } from "./SettingsExperience";
 import { SettingsSelect } from "./SettingsSelect";
 import { Activity, AlertTriangle, ArchiveRestore, Check, ChevronDown, ChevronRight, FileText, History, Pencil, Plus, RefreshCw, Search, Sparkles, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -91,7 +92,7 @@ function ArchivedMemoryList({
         <span className="mem-count">{totalArchives}</span>
       </div>}
       {archives.length === 0 ? (
-        <div className="mem-empty">{t("memory.noArchivedMatches")}</div>
+        <div className="mem-empty" role="status">{t("memory.noArchivedMatches")}</div>
       ) : (
         <div className="mem-facts mem-facts--archive">
           {archives.map((f) => {
@@ -125,7 +126,7 @@ function ArchivedMemoryList({
                     {f.body ? (
                       <div className="mem-fact__body">{renderWithLinks(f.body)}</div>
                     ) : (
-                      <div className="mem-empty">{t("memory.noBody")}</div>
+                      <div className="mem-empty" role="status">{t("memory.noBody")}</div>
                     )}
                     <div className="mem-archive__path">{f.path}</div>
                     {onRestore && (
@@ -496,9 +497,9 @@ export function MemoryPanel({
               </div>
               {error && <div className="mem-error" role="alert"><ErrorMessage error={error} /></div>}
               {facts.length === 0 ? (
-                <div className="mem-empty">{t("memory.noFacts")}</div>
+                <div className="mem-empty" role="status">{t("memory.noFacts")}</div>
               ) : filteredFacts.length === 0 ? (
-                <div className="mem-empty">
+                <div className="mem-empty" role="status">
                   {t("memory.noMatches")}
                   <button
                     className="mem-empty__action"
@@ -571,7 +572,7 @@ export function MemoryPanel({
                             {f.body ? (
                               <div className="mem-fact__body">{renderWithLinks(f.body)}</div>
                             ) : (
-                              <div className="mem-empty">{t("memory.noBody")}</div>
+                              <div className="mem-empty" role="status">{t("memory.noBody")}</div>
                             )}
                             {missing.length > 0 && (
                               <div className="mem-deadline">
@@ -687,7 +688,7 @@ export function MemoryPanel({
                 aria-label={t("memory.filterPlaceholder")}
               />
               {filteredDocs.length === 0 && (
-                <div className="mem-empty">{filter ? t("memory.noFilterMatch") : t("memory.noDocs")}</div>
+                <div className="mem-empty" role="status">{filter ? t("memory.noFilterMatch") : t("memory.noDocs")}</div>
               )}
               {filteredDocs.map((d) => {
                 const editing = editingPath === d.path;
@@ -748,7 +749,7 @@ export function MemoryPanel({
             <section className="mem-section">
               <div className="mem-section__title">{t("memory.savedMemories")}</div>
               {filteredFacts.length === 0 ? (
-                <div className="mem-empty">{filter ? t("memory.noFilterMatch") : t("memory.noFacts")}</div>
+                <div className="mem-empty" role="status">{filter ? t("memory.noFilterMatch") : t("memory.noFacts")}</div>
               ) : (
                 filteredFacts.map((f) => (
                   <div className="mem-fact" key={memoryFactKey(f)} title={f.body}>
@@ -777,12 +778,14 @@ export function MemoryPanel({
 // the settings centre. It loads its own data and handles all memory operations.
 export function MemorySettingsPage() {
 	const t = useT();
+	const { requestLeave, announce } = useSettingsExperience();
 	const [view, setView] = useState<MemoryView | null>(null);
 	const [tabs, setTabs] = useState<TabMeta[]>([]);
 	const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
 	const [note, setNote] = useState("");
 	const [scope, setScope] = useState("");
 	const [editingPath, setEditingPath] = useState<string | null>(null);
+	const editingBaseline = useRef("");
 	const [draft, setDraft] = useState("");
 	const [busy, setBusy] = useState(false);
 	const [highlight, setHighlight] = useState<string | null>(null);
@@ -803,6 +806,8 @@ export function MemorySettingsPage() {
 	const [revisions, setRevisions] = useState<Record<string, MemoryFact[]>>({});
 	const [revisionBusy, setRevisionBusy] = useState<string | null>(null);
 	const factRefs = useRef<Record<string, HTMLElement | null>>({});
+	const memoryLoadSequence = useRef(0);
+	const memoryWorkspace = useRef<string | null | undefined>(undefined);
 
 	useEffect(() => {
 		app.ListTabs().then((tabList) => {
@@ -841,17 +846,13 @@ export function MemorySettingsPage() {
 
 	const reload = useCallback(async () => {
 		const tabId = effectiveTabId;
-		// Clear view immediately so stale data from the previous workspace
-		// doesn't persist while the new workspace loads.
-		setView((prev) => {
-			if (prev && tabId) return {
-				...prev,
-				facts: [], archives: [], docs: [], conflicts: [], instructionDiagnostics: [],
-				lastRecall: { query: "", hits: [], omitted: 0, charBudget: 0, usedChars: 0 },
-			};
-			return prev;
-		});
-		setView(tabId ? await app.MemoryForTab(tabId).catch(() => null) : await app.Memory().catch(() => null));
+		const sequence = ++memoryLoadSequence.current;
+		if (memoryWorkspace.current !== tabId) { memoryWorkspace.current = tabId; setView(null); }
+		setError(null);
+		try {
+			const next = tabId ? await app.MemoryForTab(tabId) : await app.Memory();
+			if (sequence === memoryLoadSequence.current) setView(next);
+		} catch (cause) { if (sequence === memoryLoadSequence.current) setError(errorMessage(cause)); }
 	}, [effectiveTabId]);
 
 	useEffect(() => { void reload(); }, [reload]);
@@ -896,7 +897,7 @@ export function MemorySettingsPage() {
 									role="option"
 									aria-selected={tb.id === effectiveTabId}
 									className={"mem-ws-select__option" + (tb.id === effectiveTabId ? " mem-ws-select__option--selected" : "")}
-									onClick={() => { setSelectedTabId(tb.id); setWsOpen(false); }}
+								onClick={() => requestLeave(() => { setSelectedTabId(tb.id); setWsOpen(false); })}
 								>
 									<span>{tb.workspaceName || tb.label || tb.scope || tb.id}</span>
 									{tb.id === effectiveTabId && <Check size={13} />}
@@ -1095,7 +1096,7 @@ export function MemorySettingsPage() {
 
 	const submitNote = useCallback(async () => {
 		const trimmed = note.trim();
-		if (!trimmed || busy) return;
+		if (!trimmed || busy) return false;
 		setBusy(true);
 		setError(null);
 		try {
@@ -1104,20 +1105,22 @@ export function MemorySettingsPage() {
 			await reload();
 			setNote("");
 			setShowAdd(false);
+			announce("success");
+			return true;
 		} catch (err) {
 			setError(errorMessage(err));
+			return false;
 		} finally {
 			setBusy(false);
 		}
-	}, [note, busy, activeScope, reload, effectiveTabId]);
+	}, [note, busy, activeScope, reload, effectiveTabId, announce]);
 
 	const startEdit = useCallback((path: string, body: string) => {
-		setEditingPath(path);
-		setDraft(body);
-	}, []);
+		requestLeave(() => { editingBaseline.current = body; setEditingPath(path); setDraft(body); });
+	}, [requestLeave]);
 
 	const saveEdit = useCallback(async () => {
-		if (editingPath === null || busy) return;
+		if (editingPath === null || busy) return false;
 		setBusy(true);
 		setError(null);
 		try {
@@ -1125,12 +1128,18 @@ export function MemorySettingsPage() {
 			else await app.SaveDoc(editingPath, draft);
 			await reload();
 			setEditingPath(null);
+			announce("success");
+			return true;
 		} catch (err) {
 			setError(errorMessage(err));
+			return false;
 		} finally {
 			setBusy(false);
 		}
-	}, [editingPath, busy, draft, reload, effectiveTabId]);
+	}, [editingPath, busy, draft, reload, effectiveTabId, announce]);
+	useSettingsDraft({ label: t("memory.addMemory"), dirty: Boolean(note.trim()), busy, canSave: Boolean(note.trim()), save: submitNote, discard: () => { setNote(""); setShowAdd(false); } });
+	useSettingsDraft({ label: t("memory.instructionFiles"), dirty: editingPath !== null && draft !== editingBaseline.current, busy,
+		save: saveEdit, discard: () => setEditingPath(null) });
 
 	const acceptMemorySuggestion = useCallback(async (candidate: MemorySuggestion) => {
 		if (busy) return;
@@ -1165,7 +1174,8 @@ export function MemorySettingsPage() {
 		}
 	}, [busy, effectiveTabId]);
 
-	if (!view?.available) {
+	if (!view) return error ? <SettingsFeedback kind="error" onRetry={() => { setError(null); void reload(); }}>{error}</SettingsFeedback> : <SettingsFeedback kind="loading" />;
+	if (!view.available) {
 		return (
 			<>
 				{wsSelector}
@@ -1179,6 +1189,7 @@ export function MemorySettingsPage() {
 
 	return (
 		<>
+			{error && <SettingsFeedback kind="error"><ErrorMessage error={error} /></SettingsFeedback>}
 			<div className="memory-overview" aria-label={t("memory.title")}>
 				<div className="memory-overview__copy">
 					<span>{t("memory.summarySettings", { facts: facts.length, archives: archives.length, docs: view.docs.length })}</span>
@@ -1206,7 +1217,7 @@ export function MemorySettingsPage() {
 						role="tab"
 						aria-selected={tab === "saved"}
 						type="button"
-						onClick={() => setTab("saved")}
+						onClick={() => requestLeave(() => setTab("saved"))}
 					>
 						<span>{t("memory.savedMemories")}</span>
 					</button>
@@ -1215,7 +1226,7 @@ export function MemorySettingsPage() {
 						role="tab"
 						aria-selected={tab === "archived"}
 						type="button"
-						onClick={() => setTab("archived")}
+						onClick={() => requestLeave(() => setTab("archived"))}
 					>
 						<span>{t("memory.archivedMemories")}</span>
 					</button>
@@ -1224,7 +1235,7 @@ export function MemorySettingsPage() {
 						role="tab"
 						aria-selected={tab === "docs"}
 						type="button"
-						onClick={() => setTab("docs")}
+						onClick={() => requestLeave(() => setTab("docs"))}
 					>
 						<span>{t("memory.instructionFiles")}</span>
 					</button>
@@ -1233,7 +1244,7 @@ export function MemorySettingsPage() {
 						role="tab"
 						aria-selected={tab === "activity"}
 						type="button"
-						onClick={() => setTab("activity")}
+						onClick={() => requestLeave(() => setTab("activity"))}
 					>
 						<span>{t("memory.activity")}</span>
 					</button>
@@ -1246,7 +1257,7 @@ export function MemorySettingsPage() {
 						role="tab"
 						aria-selected={tab === "suggestions"}
 						type="button"
-						onClick={() => setTab("suggestions")}
+						onClick={() => requestLeave(() => setTab("suggestions"))}
 					>
 						<Sparkles size={14} aria-hidden="true" />
 						<span>{t("memory.suggestions")}</span>
@@ -1304,14 +1315,14 @@ export function MemorySettingsPage() {
 						))}
 					</div>
 				</div>}
-				{error && <div className="mem-error" role="alert"><ErrorMessage error={error} /></div>}
+
 				{facts.length === 0 ? (
-					<div className="mem-empty mem-empty--cta">
+					<div className="mem-empty mem-empty--cta" role="status">
 						<strong>{t("memory.emptySavedTitle")}</strong>
 						<span>{t("memory.emptySavedBody")}</span>
 					</div>
 				) : filteredFacts.length === 0 ? (
-					<div className="mem-empty">
+					<div className="mem-empty" role="status">
 						{t("memory.noMatches")}
 						<button
 							className="mem-empty__action"
@@ -1387,7 +1398,7 @@ export function MemorySettingsPage() {
 											{f.body ? (
 												<div className="mem-fact__body">{renderWithLinks(f.body)}</div>
 											) : (
-												<div className="mem-empty">{t("memory.noBody")}</div>
+												<div className="mem-empty" role="status">{t("memory.noBody")}</div>
 											)}
 										{missing.length > 0 && (
 												<div className="mem-deadline">
@@ -1482,9 +1493,9 @@ export function MemorySettingsPage() {
 						</button>
 					</div>
 				</div>
-				{error && <div className="mem-error" role="alert"><ErrorMessage error={error} /></div>}
+
 				{!suggestions ? (
-					<div className="mem-empty mem-empty--cta">
+					<div className="mem-empty mem-empty--cta" role="status">
 						<strong>{t("memory.suggestionsEmptyTitle")}</strong>
 						<span>{t("memory.suggestionsEmptyBody")}</span>
 						<button
@@ -1498,7 +1509,7 @@ export function MemorySettingsPage() {
 						</button>
 					</div>
 				) : suggestionTotal(suggestions) === 0 ? (
-					<div className="mem-empty mem-empty--cta">
+					<div className="mem-empty mem-empty--cta" role="status">
 						<strong>{t("memory.noSuggestionsTitle")}</strong>
 						<span>{t("memory.noSuggestionsBody")}</span>
 					</div>
@@ -1650,7 +1661,7 @@ export function MemorySettingsPage() {
 					</div>
 				)}
 				{view.lastRecall.hits.length === 0 ? (
-					<div className="mem-empty">{t("memory.noRecallHits")}</div>
+					<div className="mem-empty" role="status">{t("memory.noRecallHits")}</div>
 				) : (
 					<div className="mem-recall-hits">
 						{view.lastRecall.hits.map((hit) => (
@@ -1710,7 +1721,7 @@ export function MemorySettingsPage() {
 					</div>
 				</div>}
 				{archives.length === 0 ? (
-					<div className="mem-empty mem-empty--cta">
+					<div className="mem-empty mem-empty--cta" role="status">
 						<strong>{t("memory.emptyArchivedTitle")}</strong>
 						<span>{t("memory.emptyArchivedBody")}</span>
 					</div>
@@ -1803,7 +1814,7 @@ export function MemorySettingsPage() {
 					</div>
 				)}
 				{view.docs.length === 0 && (
-					<div className="mem-empty">{t("memory.noDocs")}</div>
+					<div className="mem-empty" role="status">{t("memory.noDocs")}</div>
 				)}
 				{view.docs.map((d) => {
 					const editing = editingPath === d.path;
@@ -1852,10 +1863,11 @@ export function MemorySettingsPage() {
 										onChange={(e) => setDraft(e.target.value)}
 										spellCheck={false}
 									/>
-									<div className="mem-doc__actions">
+									<div className="mem-doc__actions settings-save-bar">
+										<span role="status">{t(draft !== editingBaseline.current ? "settings.models.unsaved" : "settings.models.saved")}</span>
 										<button
 											className="btn btn--small"
-											onClick={() => setEditingPath(null)}
+											onClick={() => requestLeave(() => setEditingPath(null))}
 											disabled={busy}
 										>
 											{t("common.cancel")}
@@ -1863,7 +1875,7 @@ export function MemorySettingsPage() {
 										<button
 											className="btn btn--primary btn--small"
 											onClick={() => void saveEdit()}
-											disabled={busy}
+											disabled={busy || draft === editingBaseline.current}
 										>
 											{t("common.save")}
 										</button>

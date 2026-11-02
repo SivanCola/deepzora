@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
+import { Children, cloneElement, isValidElement, useId, type ReactNode } from "react";
 import { Tooltip } from "./Tooltip";
+import { SettingsSelect } from "./SettingsSelect";
 
 export function SettingsSection({
   title,
@@ -20,7 +21,7 @@ export function SettingsSection({
       {hasHead && (
         <div className="settings-section__head">
           <div>
-            {title && <div className="settings-section__title">{title}</div>}
+            {title && <div className="settings-section__title">{isValidElement(title) ? title : <h2>{title}</h2>}</div>}
             {description && (
               <div className="settings-section__desc">
                 <SettingsHint hint={description} />
@@ -50,20 +51,30 @@ export function SettingsField({
   className?: string;
   stacked?: boolean;
 }) {
+  const id = useId();
+  const labelId = `${id}-label`;
+  const hintId = hint ? `${id}-hint` : undefined;
   return (
     <div className={`settings-field${stacked ? " settings-field--stacked" : ""}${className ? ` ${className}` : ""}`}>
       <div className={`settings-field__copy${icon ? " settings-field__copy--icon" : ""}`}>
         {icon && <span className="settings-field__icon" aria-hidden="true">{icon}</span>}
         <div className="settings-field__copy-body">
-          <div className="settings-field__label">{label}</div>
+          <div id={labelId} className="settings-field__label">{label}</div>
           {hint && (
-            <div className="settings-field__hint">
+            <div id={hintId} className="settings-field__hint">
               <SettingsHint hint={hint} />
             </div>
           )}
         </div>
       </div>
-      <div className="settings-field__control">{children}</div>
+      <div className="settings-field__control">{Children.map(children, child => {
+        if (!isValidElement<Record<string, unknown>>(child)) return child;
+        if (child.type !== "input" && child.type !== "select" && child.type !== "textarea" && child.type !== SettingsSelect) return child;
+        return cloneElement(child, {
+          "aria-labelledby": child.props["aria-label"] ? child.props["aria-labelledby"] : child.props["aria-labelledby"] ?? labelId,
+          "aria-describedby": child.props["aria-describedby"] ?? hintId,
+        });
+      })}</div>
     </div>
   );
 }

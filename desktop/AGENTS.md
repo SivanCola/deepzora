@@ -2,6 +2,11 @@
 
 Desktop Go is a separate module; root Go tests do not cover it.
 
+For settings pages, subpages, editors, and dialogs, follow the
+[settings UI standard](../docs/SETTINGS_UI_STANDARD.zh-CN.md). Shared headings,
+back navigation, action bars, draft protection, and feedback must use the
+settings experience components and pass the page-by-page verification matrix.
+
 For changes affecting transcript viewport, scrolling, loaded history, or
 delayed geometry work, read the
 [transcript scroll and history contract](../docs/TRANSCRIPT_SCROLL_CONTRACT.md)

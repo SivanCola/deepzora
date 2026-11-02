@@ -1,4 +1,5 @@
 import { ErrorMessage } from "./ErrorMessage";
+import { SettingsFeedback } from "./SettingsExperience";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronRight, Clipboard, Loader2, RefreshCw } from "lucide-react";
 import { app } from "../lib/bridge";
@@ -188,8 +189,8 @@ export function DiagnosticsSettingsPage({
         </div>
       </section>
 
-      {loading && !report && <div className="empty">{t("settings.loading")}</div>}
-      {error && <div className="settings-error" role="alert"><ErrorMessage error={error} /></div>}
+      {loading && !report && <SettingsFeedback kind="loading" />}
+      {error && <SettingsFeedback kind="error" onRetry={() => void load(includeRuntime)}><ErrorMessage error={error} /></SettingsFeedback>}
 
       {report && (
         <>
@@ -274,7 +275,7 @@ export function DiagnosticsSettingsPage({
             </button>
             {open.issues && (
               <div className="diag-section__body">
-                {report.issues.length === 0 && <div className="empty">{t("diag.noIssues")}</div>}
+                {report.issues.length === 0 && <SettingsFeedback kind="empty">{t("diag.noIssues")}</SettingsFeedback>}
                 {(["error", "warning", "info"] as const).map((sev) =>
                   issuesBySeverity[sev].length === 0 ? null : (
                     <div key={sev} className={`diag-issue-group diag-issue-group--${sev}`}>
@@ -314,7 +315,7 @@ export function DiagnosticsSettingsPage({
                 <span className="diag-path">{d.path}</span>
               </div>
             ))}
-            {report.instructions.docs.length === 0 && <div className="empty">{t("common.none")}</div>}
+            {report.instructions.docs.length === 0 && <SettingsFeedback kind="empty">{t("common.none")}</SettingsFeedback>}
           </Collapsible>
 
           <Collapsible
