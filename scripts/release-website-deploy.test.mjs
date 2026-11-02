@@ -61,10 +61,14 @@ test('an old build, wrong downloads or a failed Pages deployment is not reported
 });
 
 test('hook errors are fatal, retryable, and never expose the secret URL', async () => {
-  for (const fail of [async () => { throw new Error(`request failed ${hook}`); }, async () => new Response('', { status: 503 }), async () => Response.json({ success: false })]) {
+  for (const [fail, message] of [
+    [async () => { throw new Error(`request failed ${hook}`); }, 'Cloudflare Pages deploy hook request failed; rerun the mirror to retry'],
+    [async () => new Response('', { status: 503 }), 'Cloudflare Pages deploy hook HTTP 503'],
+    [async () => Response.json({ success: false }), 'Cloudflare Pages did not accept the deployment'],
+  ]) {
     const f = fixture();
     f.options.fetcher = (url, options) => url === hook ? fail() : f.fetcher(url, options);
-    await assert.rejects(deployWebsite(f.report, hook, f.options), error => !error.message.includes(hook) && /Cloudflare Pages/.test(error.message));
+    await assert.rejects(deployWebsite(f.report, hook, f.options), { message });
   }
   const f = fixture();
   await assert.rejects(deployWebsite(f.report, 'https://example.com/hook', f.options), /Invalid Cloudflare/);
