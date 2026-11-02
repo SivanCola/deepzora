@@ -1259,6 +1259,7 @@ export interface MCPMarketplaceView {
 }
 
 export interface ModelInfo {
+	modelDisplayName?: string;
   displayName?: string;
   ref: string; // "provider/model" — pass to SetModel
   provider: string;

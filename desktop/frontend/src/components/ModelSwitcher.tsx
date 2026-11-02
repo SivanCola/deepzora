@@ -128,6 +128,7 @@ export function ModelSwitcher({
     if (activeFilter !== "all" && activeFilter !== "favorites" && model.provider !== activeFilter) return false;
     return !keyword
       || model.model.toLowerCase().includes(keyword)
+      || (model.modelDisplayName ?? "").toLowerCase().includes(keyword)
       || model.provider.toLowerCase().includes(keyword)
       || (model.displayName ?? "").toLowerCase().includes(keyword);
   }), [activeFilter, favorites, keyword, models]);
@@ -293,7 +294,7 @@ export function ModelSwitcher({
                 >
                   <ProviderMark provider={m.provider} label={m.displayName?.trim() || providerLabel(m.provider, t)} />
                   <span className="modelsw__copy">
-                    <span className="modelsw__model">{m.model}</span>
+                    <span className="modelsw__model" title={m.model}>{m.modelDisplayName || m.model}</span>
                     <span className="modelsw__meta">{modelMeta(m, t)}</span>
                   </span>
                   {m.contextWindow ? <span className="badge badge--neutral">{formatTokens(m.contextWindow)}</span> : null}

@@ -461,5 +461,26 @@ await act(async () => { root.render(renderSwitcher("shared", "tab-restored", tru
 await act(async () => { root.render(renderSwitcher("shared", "tab-restored", true, "session-two", false, 1)); });
 if (document.querySelector(".modelsw__menu")) throw new Error("suspended model menu reopened after recovery");
 
+currentCatalog = [{ ref: "magpie-fixture/opencode-go/deepseek-v4-pro", provider: "magpie-fixture", displayName: "Magpie", model: "opencode-go/deepseek-v4-pro", modelDisplayName: "DeepSeek V4 Pro (New) · OpenCode Go", current: false }];
+await act(async () => {
+  window.dispatchEvent(new Event("deepzora:model-catalog-changed"));
+  await new Promise(resolve => setTimeout(resolve, 0));
+  (document.querySelector(".modelsw__trigger") as HTMLButtonElement).click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+});
+const magpieLabel = document.querySelector(".modelsw__model");
+if (magpieLabel?.textContent !== "DeepSeek V4 Pro (New) · OpenCode Go" || magpieLabel.getAttribute("title") !== "opencode-go/deepseek-v4-pro") throw new Error("gateway label lost or routing ID changed");
+const magpieSearch = document.querySelector<HTMLInputElement>(".modelsw__search-input")!;
+await act(async () => {
+  Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")!.set!.call(magpieSearch, "OpenCode Go");
+  magpieSearch.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+});
+if (document.querySelectorAll("[role='option']").length !== 1) throw new Error("friendly gateway labels are not searchable");
+await act(async () => {
+  (document.querySelector("[role='option']") as HTMLButtonElement).click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+});
+if (picked.at(-1) !== "magpie-fixture/opencode-go/deepseek-v4-pro") throw new Error("picker sent a display label instead of the stable routing ref");
+
 await act(async () => root.unmount());
 console.log("model switcher refresh: PASS");

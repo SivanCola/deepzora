@@ -11,6 +11,7 @@ import (
 
 	"deepzora/internal/config"
 	"deepzora/internal/control"
+	"deepzora/internal/provider"
 	"deepzora/internal/secrets"
 )
 
@@ -144,6 +145,29 @@ func (a *App) ApplyModelSettings(change ModelSettingsChange) (result ModelSettin
 		result.Issues = append(result.Issues, modelSettingsIssue("validation", fmt.Errorf("requestId and expectedFingerprint are required; reload settings before saving")))
 		return result
 	}
+	var connectionCatalog []provider.ModelInfo
+	if change.Kind == "connection_add" {
+		var err error
+		connectionCatalog, err = a.discoverMagpieConnection(change.PresetID, change.Name, modelSettingsKey(change), change.BaseURL, change.Protocol)
+		if err != nil {
+			result.Issues = append(result.Issues, modelSettingsIssue("discovery_failed", err))
+			return result
+		}
+	}
+	addedConnections, err := a.commitModelSettingsChange(change, digest, connectionCatalog, &result)
+	if err != nil {
+		result.Issues = append(result.Issues, modelSettingsIssue("save_failed", err))
+		return result
+	}
+	cacheConnectionCatalog(addedConnections, connectionCatalog)
+	a.modelSettingsSaved(change.Kind)
+	status := a.GetModelSettingsApplication()
+	result.Application, result.Targets, result.Issues = status.Application, status.Targets, status.Issues
+	return result
+}
+
+func (a *App) commitModelSettingsChange(change ModelSettingsChange, digest string, connectionCatalog []provider.ModelInfo, result *ModelSettingsResult) ([]config.ProviderEntry, error) {
+	var addedConnections []config.ProviderEntry
 	err := func() error {
 		unlock := config.LockUserConfigEdits()
 		defer unlock()
@@ -179,8 +203,12 @@ func (a *App) ApplyModelSettings(change ModelSettingsChange) (result ModelSettin
 			return fmt.Errorf("model settings changed; reload and review the current values before saving")
 		}
 		baseline := c.ModelSettingsBaseline()
-		if err := applyModelSettingsChange(c, change, &result); err != nil {
+		beforeProviders := len(c.Providers)
+		if err := applyModelSettingsChange(c, change, result, connectionCatalog); err != nil {
 			return err
+		}
+		if change.Kind == "connection_add" {
+			addedConnections = append(addedConnections, c.Providers[beforeProviders:]...)
 		}
 		if change.Kind == "preference" && change.Field == "search" {
 			err = c.SaveWebSearchModelTo(path)
@@ -205,14 +233,7 @@ func (a *App) ApplyModelSettings(change ModelSettingsChange) (result ModelSettin
 		}
 		return nil
 	}()
-	if err != nil {
-		result.Issues = append(result.Issues, modelSettingsIssue("save_failed", err))
-		return result
-	}
-	a.modelSettingsSaved(change.Kind)
-	status := a.GetModelSettingsApplication()
-	result.Application, result.Targets, result.Issues = status.Application, status.Targets, status.Issues
-	return result
+	return addedConnections, err
 }
 
 // GetModelSettingsRequest recovers a known result after a bridge interruption.
@@ -248,7 +269,7 @@ func (a *App) GetModelSettingsRequest(requestID string) ModelSettingsResult {
 	return result
 }
 
-func applyModelSettingsChange(c *config.Config, change ModelSettingsChange, result *ModelSettingsResult) error {
+func applyModelSettingsChange(c *config.Config, change ModelSettingsChange, result *ModelSettingsResult, catalogs ...[]provider.ModelInfo) error {
 	switch change.Kind {
 	case "preference":
 		return applyModelPreference(c, change)
@@ -281,7 +302,7 @@ func applyModelSettingsChange(c *config.Config, change ModelSettingsChange, resu
 		}
 		return setProviderWebSearchConfig(c, change.Names, *change.Enabled)
 	case "connection_add":
-		return addProviderConnectionConfig(c, change.PresetID, change.Name, modelSettingsKey(change), change.BaseURL, change.Protocol)
+		return addProviderConnectionConfig(c, change.PresetID, change.Name, modelSettingsKey(change), change.BaseURL, change.Protocol, catalogs...)
 	case "official_add":
 		return addOfficialProviderAccessConfig(c, change.Name, modelSettingsKey(change))
 	case "preset_add":

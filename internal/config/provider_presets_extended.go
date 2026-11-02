@@ -32,6 +32,17 @@ var extendedProviderPresets = []ProviderPreset{
 	newCatalogPreset("mistral", "Mistral AI", "MISTRAL_API_KEY", "openai", "https://api.mistral.ai/v1", "mistral-small-latest"),
 	newCatalogPreset("ollama-local", "Ollama", "OLLAMA_LOCAL_API_KEY", "openai", "http://localhost:11434/v1", "qwen3:8b"),
 	newCatalogPreset("lmstudio", "LM Studio", "LM_STUDIO_API_KEY", "openai", "http://localhost:1234/v1", "qwen3-8b"),
+	{
+		ID: "magpie", Label: "Magpie", KeyEnv: "MAGPIE_API_KEY",
+		Description: "Local Magpie gateway. Start Magpie, then fetch the models configured in its providers.",
+		Entries: []ProviderEntry{{
+			Name: "magpie", Kind: "openai", BaseURL: "http://127.0.0.1:3425/v1",
+			ModelsURL: "http://127.0.0.1:3425/v1/models", APIKeyEnv: "MAGPIE_API_KEY",
+			// Example from Magpie's README; refresh /v1/models for this gateway's catalog.
+			Models: []string{"deepseek/deepseek-v4-pro"}, Default: "deepseek/deepseek-v4-pro",
+			NoProxy: true, WebSearch: boolPointer(false),
+		}},
+	},
 }
 
 func newCatalogPreset(id, label, keyEnv, kind, baseURL string, models ...string) ProviderPreset {

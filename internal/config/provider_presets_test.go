@@ -33,6 +33,7 @@ func TestCuratedProviderPresetsCoverRequestedProviders(t *testing.T) {
 		"longcat-openai",
 		"longcat-anthropic",
 		"token-rhythm",
+		"magpie",
 		"kimi-cn",
 		"kimi-global",
 		"kimi-coding-plan",

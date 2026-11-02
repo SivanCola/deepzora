@@ -2446,6 +2446,7 @@ export const en = {
   "settings.catalog.variant": "Model route",
   "settings.catalog.anthropicHint": "Uses an Anthropic API key and API billing. Native server tools are not enabled by this preset.",
   "settings.catalog.localHint": "Example model names must match your local installation. Configure or fetch the installed models after adding.",
+  "settings.catalog.magpieHint": "Start Magpie and configure its providers first. Adding this connection fetches and enables all models from its gateway. For the local gateway, the API Key can be magpie; remote gateways require a key created in Magpie.",
   "settings.catalog.models": "Models",
   "settings.catalog.hint": "Choose a provider, then select your access plan, region and API format.",
   "settings.connections.restartRequired": "The desktop backend has not loaded the rename API. Stop it with Ctrl+C in the launch terminal, then start the desktop app again and retry.",

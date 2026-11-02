@@ -65,6 +65,7 @@ type ModelCapabilityCacheFile struct {
 }
 
 type ModelCapabilityCacheEntry struct {
+	DisplayName         string                   `json:"displayName,omitempty"`
 	ProviderFingerprint string                   `json:"providerFingerprint"`
 	ModelID             string                   `json:"modelID"`
 	InputModalities     []provider.ModelModality `json:"inputModalities"`
@@ -149,6 +150,15 @@ func (r *ModelCapabilityResolver) resolveWithCredentialRevision(entry *ProviderE
 		resolved.ImageInputBlockReason = "official_deepseek_text_model"
 	}
 	resolved.ModelInfo.ID = resolved.Model
+	if r != nil {
+		key := r.entryKeyWithCredentialRevision(entry, resolved.Model, credentialsRevision)
+		r.mu.RLock()
+		cached, ok := r.entries[key]
+		r.mu.RUnlock()
+		if ok && time.Now().Before(cached.ExpiresAt) && cached.DisplayName != "" {
+			resolved.ModelInfo.Name = cached.DisplayName
+		}
+	}
 	resolved.ModelInfo.InputModalities = append([]provider.ModelModality(nil), resolved.InputModalities...)
 	return resolved
 }
@@ -283,6 +293,7 @@ func (r *ModelCapabilityResolver) PutCatalogAt(entry ProviderEntry, catalog []pr
 			continue
 		}
 		r.entries[key] = ModelCapabilityCacheEntry{
+			DisplayName:         strings.TrimSpace(model.Name),
 			ProviderFingerprint: providerFingerprint,
 			ModelID:             id,
 			InputModalities:     modalities,

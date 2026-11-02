@@ -2,6 +2,7 @@ package main
 
 import (
 	"deepzora/internal/config"
+	"strings"
 	"testing"
 )
 
@@ -36,5 +37,55 @@ func TestProviderCatalogViewsAndInstallPreserveExistingConnections(t *testing.T)
 	}
 	if !found {
 		t.Fatal("missing installed route")
+	}
+}
+
+func TestMagpieConnectionsUseCatalogProtocolsAndIndependentKeys(t *testing.T) {
+	isolateDesktopUserDirs(t)
+	a := NewApp()
+	for _, tc := range []struct{ kind, baseURL, requestURL string }{
+		{"openai", "http://127.0.0.1:3425/v1", "http://127.0.0.1:3425/v1/chat/completions"},
+		{"responses", "http://127.0.0.1:3425/v1", "http://127.0.0.1:3425/v1/responses"},
+		{"anthropic", "http://127.0.0.1:3425", "http://127.0.0.1:3425/v1/messages"},
+	} {
+		if _, err := a.applyModelConfigChangeWithWarning("provider access", func(c *config.Config) error {
+			return addProviderConnectionConfig(c, "magpie", "", "magpie-deepzora", tc.baseURL, tc.kind)
+		}); err != nil {
+			t.Fatal(err)
+		}
+		cfg, _, err := a.loadDesktopUserConfigForView()
+		if err != nil {
+			t.Fatal(err)
+		}
+		var found bool
+		for _, p := range cfg.Providers {
+			if p.PresetID != "magpie" || p.Kind != tc.kind {
+				continue
+			}
+			found = true
+			if config.ProviderEffectiveRequestURL(&p) != tc.requestURL || !p.NoProxy || p.AuthHeader != (tc.kind == "anthropic") {
+				t.Fatalf("incorrect Magpie protocol/network settings: %+v", p)
+			}
+			if p.APIKeyEnv == "MAGPIE_API_KEY" || p.APIKey() != "magpie-deepzora" {
+				t.Fatal("Magpie connection did not stage its own credential")
+			}
+			if p.DefaultModel() != "deepseek/deepseek-v4-pro" {
+				t.Fatalf("upstream example model was not preserved: %s", p.DefaultModel())
+			}
+			if _, ok := cfg.ResolveModel(p.Name + "/" + p.DefaultModel()); !ok {
+				t.Fatal("namespaced gateway model did not resolve")
+			}
+			candidates, err := config.BuildModelFetchURLs(p.BaseURL, p.ModelsURL)
+			if err != nil || len(candidates) == 0 || !strings.Contains(strings.Join(candidates, " "), "http://127.0.0.1:3425/v1/models") {
+				t.Fatalf("Magpie catalog unreachable: %v, %v", candidates, err)
+			}
+		}
+		if !found {
+			t.Fatalf("missing Magpie %s connection", tc.kind)
+		}
+	}
+	preset, _ := config.CuratedProviderPreset("magpie")
+	if preset.Entries[0].Kind != "openai" || preset.Entries[0].APIKeyEnv != "MAGPIE_API_KEY" {
+		t.Fatal("installing connections mutated the preset")
 	}
 }

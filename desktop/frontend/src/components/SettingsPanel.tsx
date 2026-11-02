@@ -1077,6 +1077,7 @@ export function normalizeProviderView(p: ProviderView): ProviderView {
     const model = String(raw.model ?? "").trim();
     if (!model) return [];
     return [{
+      displayName: raw.displayName,
       automaticState: raw.automaticState,
       automaticSource: raw.automaticSource,
       imageInputEnableAllowed: raw.imageInputEnableAllowed,
@@ -3524,7 +3525,7 @@ export const ProviderEditorModelPicker = memo(function ProviderEditorModelPicker
   }, [query]);
   const q = debouncedQuery.trim().toLowerCase();
   const visibleCandidates = q
-    ? candidates.filter((model) => model.toLowerCase().includes(q))
+    ? candidates.filter((model) => `${model} ${modelCapabilities.find(item => item.model === model)?.displayName ?? ""}`.toLowerCase().includes(q))
     : candidates;
   const deferredCandidates = useDeferredValue(visibleCandidates);
   const selected = new Set(selectedModels);
@@ -3571,7 +3572,7 @@ export const ProviderEditorModelPicker = memo(function ProviderEditorModelPicker
                   disabled={disabled}
                   onChange={() => onToggleModel(model)}
                 />
-                <span title={model}>{model}</span>
+                <span title={model}>{modelCapabilities.find(item => item.model === model)?.displayName || model}</span>
                 {conversationModel === model && <small className="provider-conversation-model">{t("onboarding.conversationModel")}</small>}
               </label>
               <div className="provider-model-draft__capabilities" aria-label={t("settings.modelCapabilitiesAria", { model })}>

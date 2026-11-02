@@ -147,7 +147,7 @@ export function ProviderCatalogPicker({ choices, busy, onConnect, onView, onRese
         </SettingsSelect>
       </div>}
       {selected.catalog.brandId === "anthropic" && <div className="mem-hint">{t("settings.catalog.anthropicHint")}</div>}
-      {selected.catalog.region === "local" && <div className="mem-hint">{t("settings.catalog.localHint")}</div>}
+      {selected.catalog.region === "local" && <div className="mem-hint">{t(selected.catalog.brandId === "magpie" ? "settings.catalog.magpieHint" : "settings.catalog.localHint")}</div>}
       {selected.catalog.baseUrl && <div className="provider-catalog__field">
         <label className="set-label" htmlFor={`${uid}-url`}>Base URL</label>
         <div className="provider-catalog__url-control">
@@ -162,7 +162,7 @@ export function ProviderCatalogPicker({ choices, busy, onConnect, onView, onRese
         disabled={busy || !selected.canAdd} onChange={e => setKeyDraft({id: selected.id, keyEnv: selected.keyEnv, value: e.target.value})} />
       {selected.keySet && <div className="mem-hint">{t("settings.catalog.savedKey")}</div>}
       <div className="provider-catalog__models"><span className="set-label">{t("settings.catalog.models")}</span>
-        <span>{selected.models.join(", ") || t("settings.catalog.modelsAfterConnect")}</span>
+        <span>{selected.catalog.brandId === "magpie" ? t("settings.catalog.modelsAfterConnect") : selected.models.join(", ") || t("settings.catalog.modelsAfterConnect")}</span>
       </div>
       {selected.statusLabel && <div role="status" className="mem-hint">{selected.statusLabel}</div>}
       <div className="prov-card__actions">

@@ -22,7 +22,8 @@ func modelCapabilityView(capability config.ResolvedModelCapability) ProviderMode
 		modalities[i] = string(modality)
 	}
 	return ProviderModelCapabilityView{
-		Model: capability.Model, InputModalities: modalities,
+		DisplayName: capability.ModelInfo.Name,
+		Model:       capability.Model, InputModalities: modalities,
 		State: string(capability.State), Source: string(capability.Source),
 		AutomaticState: string(capability.AutomaticState), AutomaticSource: string(capability.AutomaticSource),
 		ImageInputEnableAllowed: capability.ImageInputEnableAllowed, ImageInputBlockReason: capability.ImageInputBlockReason,

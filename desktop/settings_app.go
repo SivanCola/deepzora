@@ -82,6 +82,7 @@ type ProviderView struct {
 }
 
 type ProviderModelCapabilityView struct {
+	DisplayName             string                        `json:"displayName,omitempty"`
 	Reasoning               *config.ResolvedReasoningView `json:"reasoning,omitempty"`
 	Model                   string                        `json:"model"`
 	InputModalities         []string                      `json:"inputModalities"`
@@ -2398,12 +2399,26 @@ func (a *App) AddProviderConnectionWithOptions(presetID, sourceName, key, baseUR
 }
 
 func (a *App) addProviderConnection(presetID, sourceName, key, baseURL, kind string) (string, error) {
-	return a.applyModelConfigChangeWithWarning("provider access", func(c *config.Config) error {
-		return addProviderConnectionConfig(c, presetID, sourceName, key, baseURL, kind)
+	catalog, err := a.discoverMagpieConnection(presetID, sourceName, key, baseURL, kind)
+	if err != nil {
+		return "", err
+	}
+	var added []config.ProviderEntry
+	warning, err := a.applyModelConfigChangeWithWarning("provider access", func(c *config.Config) error {
+		before := len(c.Providers)
+		if err := addProviderConnectionConfig(c, presetID, sourceName, key, baseURL, kind, catalog); err != nil {
+			return err
+		}
+		added = append(added, c.Providers[before:]...)
+		return nil
 	})
+	if err == nil {
+		cacheConnectionCatalog(added, catalog)
+	}
+	return warning, err
 }
 
-func addProviderConnectionConfig(c *config.Config, presetID, sourceName, key, baseURL, kind string) error {
+func addProviderConnectionConfig(c *config.Config, presetID, sourceName, key, baseURL, kind string, catalogs ...[]provider.ModelInfo) error {
 	if kind != "" && kind != "openai" && kind != "responses" && kind != "anthropic" {
 		return fmt.Errorf("invalid provider protocol")
 	}
@@ -2425,6 +2440,15 @@ func addProviderConnectionConfig(c *config.Config, presetID, sourceName, key, ba
 	var prepared []config.ProviderEntry
 	for _, entry := range entries {
 		applyConnectionOverrides(&entry, kind, baseURL, endpoints)
+		if len(catalogs) > 0 && len(catalogs[0]) > 0 {
+			entry.Models = make([]string, 0, len(catalogs[0]))
+			for _, model := range catalogs[0] {
+				entry.Models = append(entry.Models, model.ID)
+			}
+			if !slices.Contains(entry.Models, entry.Default) {
+				entry.Default = entry.Models[0]
+			}
+		}
 		originalName := entry.Name
 		entry.Name = fmt.Sprintf("%s-%x", originalName, connectionID)
 		if entry.DisplayName == "" {
