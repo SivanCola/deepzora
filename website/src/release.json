@@ -1,0 +1,279 @@
+{
+  "schema": 1,
+  "version": "0.0.2",
+  "repository": "SivanCola/deepzora",
+  "publicBase": "https://downloads.deepzora.app",
+  "files": [
+    {
+      "name": "Deepzora-0.0.2-macOS-arm64.dmg",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-arm64.dmg",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-macOS-arm64.dmg",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-arm64.dmg",
+      "size": 170621569,
+      "sha256": "3552c259bfc51da63c427fc78819df5251a9a1521d6ef519a1b939599d45d7ea"
+    },
+    {
+      "name": "Deepzora-0.0.2-macOS-arm64.dmg.minisig",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-arm64.dmg.minisig",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-macOS-arm64.dmg.minisig",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-arm64.dmg.minisig",
+      "size": 287,
+      "sha256": "fb3b723e16c69e0bf92d2c9417445eb5b6f00843474509cedbcfba1e9a9c5189"
+    },
+    {
+      "name": "Deepzora-0.0.2-macOS-x64.dmg",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-x64.dmg",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-macOS-x64.dmg",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-x64.dmg",
+      "size": 178588015,
+      "sha256": "f7fd3b206a14cc5c5cbd2254d3599248defa023ebecbcecbd06ae24b480eb37b"
+    },
+    {
+      "name": "Deepzora-0.0.2-macOS-x64.dmg.minisig",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-x64.dmg.minisig",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-macOS-x64.dmg.minisig",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-x64.dmg.minisig",
+      "size": 285,
+      "sha256": "6c14358f2eb620d35e59dd9d7b95942622c561fc2ce280d5c13469e116851167"
+    },
+    {
+      "name": "Deepzora-0.0.2-macOS-universal.dmg",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-universal.dmg",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-macOS-universal.dmg",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-universal.dmg",
+      "size": 307019175,
+      "sha256": "b368d8ca448b51c3eeef27d059a8d32faf7cf23d4565916b396cf74b40641c99"
+    },
+    {
+      "name": "Deepzora-0.0.2-macOS-universal.dmg.minisig",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-universal.dmg.minisig",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-macOS-universal.dmg.minisig",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-universal.dmg.minisig",
+      "size": 291,
+      "sha256": "aeb95d42958087fa3f9f87da45844557a337435b2210b77e7b00143a5a54b119"
+    },
+    {
+      "name": "Deepzora-0.0.2-Windows-x64-Setup.exe",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-Windows-x64-Setup.exe",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-Windows-x64-Setup.exe",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-Windows-x64-Setup.exe",
+      "size": 150344245,
+      "sha256": "178f6a4f207152a38441a49eec23f7900a5acb871680609058a3404f3fb03e00"
+    },
+    {
+      "name": "Deepzora-0.0.2-Windows-x64-Setup.exe.minisig",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-Windows-x64-Setup.exe.minisig",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-Windows-x64-Setup.exe.minisig",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-Windows-x64-Setup.exe.minisig",
+      "size": 293,
+      "sha256": "ec0526acf1f1af74844adba36dc693bd10247bb98ca45cf37aa55758e98cc8aa"
+    },
+    {
+      "name": "Deepzora-0.0.2-Windows-arm64-Setup.exe",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-Windows-arm64-Setup.exe",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-Windows-arm64-Setup.exe",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-Windows-arm64-Setup.exe",
+      "size": 138628685,
+      "sha256": "cec02eb3c788f624699bef1ed59e03f9b939d17626fd8052c79d2ebd3df02b50"
+    },
+    {
+      "name": "Deepzora-0.0.2-Windows-arm64-Setup.exe.minisig",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-Windows-arm64-Setup.exe.minisig",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-Windows-arm64-Setup.exe.minisig",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-Windows-arm64-Setup.exe.minisig",
+      "size": 295,
+      "sha256": "31863b160849e92de44f0e0b937ba17d5a7e38ed3cd739b2b4bd2165efa84aab"
+    },
+    {
+      "name": "Deepzora-0.0.2-Linux-x64.deb",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-Linux-x64.deb",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-Linux-x64.deb",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-Linux-x64.deb",
+      "size": 151020566,
+      "sha256": "9e1fd4c2ac664b8c6ec9f16e56a4062bc2b42c909261bb3ce729307d5c27f4d8"
+    },
+    {
+      "name": "Deepzora-0.0.2-Linux-x64.deb.minisig",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-Linux-x64.deb.minisig",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-Linux-x64.deb.minisig",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-Linux-x64.deb.minisig",
+      "size": 285,
+      "sha256": "75afbbac5c02e11243c4b9dd21a2360722b9ed8f22ad7e4b1f8ceba9d5d7fdc6"
+    },
+    {
+      "name": "Deepzora-0.0.2-Windows-x64-Portable.zip",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-Windows-x64-Portable.zip",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-Windows-x64-Portable.zip",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-Windows-x64-Portable.zip",
+      "size": 213148604,
+      "sha256": "97b8db157e0d93148e3f753745670b0e6fbe2b2e69d309fe21a0f7eb669ffa2a"
+    },
+    {
+      "name": "Deepzora-0.0.2-Windows-x64-Portable.zip.minisig",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-Windows-x64-Portable.zip.minisig",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-Windows-x64-Portable.zip.minisig",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-Windows-x64-Portable.zip.minisig",
+      "size": 296,
+      "sha256": "521595868b28c5efc05c57311bbacaa37a0e9394fa3d9ee2bf1a9b865c102b4d"
+    },
+    {
+      "name": "Deepzora-0.0.2-Windows-arm64-Portable.zip",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-Windows-arm64-Portable.zip",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-Windows-arm64-Portable.zip",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-Windows-arm64-Portable.zip",
+      "size": 207407717,
+      "sha256": "d9496dc858a35b46e8702c4df1b93c70e055ad2e0f15d6c5ad2e877739ea3a9a"
+    },
+    {
+      "name": "Deepzora-0.0.2-Windows-arm64-Portable.zip.minisig",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-Windows-arm64-Portable.zip.minisig",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-Windows-arm64-Portable.zip.minisig",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-Windows-arm64-Portable.zip.minisig",
+      "size": 298,
+      "sha256": "5cdd92d4f5f8479c545589aaefd7431cac577af8bb2c1a0a58d6b440ff8dedf6"
+    },
+    {
+      "name": "Deepzora-0.0.2-Linux-x64.tar.gz",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-Linux-x64.tar.gz",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-Linux-x64.tar.gz",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-Linux-x64.tar.gz",
+      "size": 166341730,
+      "sha256": "1e516fcabfef8ce3b8a90a717eefc6d4e6ab0fb0e6dc6a6b082368933d6350e2"
+    },
+    {
+      "name": "Deepzora-0.0.2-Linux-x64.tar.gz.minisig",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-Linux-x64.tar.gz.minisig",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-Linux-x64.tar.gz.minisig",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-Linux-x64.tar.gz.minisig",
+      "size": 288,
+      "sha256": "7b103cd8808988aea510376c92c73315aaf9a16c7d4cf36a932e5b56c18f2d54"
+    },
+    {
+      "name": "Deepzora-0.0.2-macOS-arm64.zip",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-arm64.zip",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-macOS-arm64.zip",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-arm64.zip",
+      "size": 171289891,
+      "sha256": "3e3686c32bd5e13ac4375de8d7574786c708afd87d634f075dcd7591bbc56799"
+    },
+    {
+      "name": "Deepzora-0.0.2-macOS-arm64.zip.minisig",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-arm64.zip.minisig",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-macOS-arm64.zip.minisig",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-arm64.zip.minisig",
+      "size": 287,
+      "sha256": "65f15ec3efe85b45ae438d614d3d3871f19ad5a3b03753d7040c2a6bcb5f92be"
+    },
+    {
+      "name": "Deepzora-0.0.2-macOS-x64.zip",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-x64.zip",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-macOS-x64.zip",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-x64.zip",
+      "size": 179241899,
+      "sha256": "f19ce63b4f1bf3605f18df3bf93a05a36899c7d2f10149cbeb0490065c718747"
+    },
+    {
+      "name": "Deepzora-0.0.2-macOS-x64.zip.minisig",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-x64.zip.minisig",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/Deepzora-0.0.2-macOS-x64.zip.minisig",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-macOS-x64.zip.minisig",
+      "size": 285,
+      "sha256": "179a6f799b2c6176ba8ee5094804984582b93e90aee85484c7dc5422bb84e7d3"
+    },
+    {
+      "name": "latest.json",
+      "tag": "desktop-v0.0.2",
+      "key": "desktop/desktop-v0.0.2/latest.json",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.2/latest.json",
+      "url": "https://downloads.deepzora.app/desktop/desktop-v0.0.2/latest.json",
+      "size": 7778,
+      "sha256": "d61a7503cf1c4913cddc72d1401843f051a96f4d7bbd35a53cf0268584df04e3"
+    },
+    {
+      "name": "deepzora-darwin-amd64.tar.gz",
+      "tag": "v0.0.2",
+      "key": "cli/v0.0.2/deepzora-darwin-amd64.tar.gz",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/v0.0.2/deepzora-darwin-amd64.tar.gz",
+      "url": "https://downloads.deepzora.app/cli/v0.0.2/deepzora-darwin-amd64.tar.gz",
+      "size": 16025106,
+      "sha256": "fb39a2ccea2be1f3138e91daf1bfbe0a5b2434aea0ed4c3607a50f7da22ace01"
+    },
+    {
+      "name": "deepzora-darwin-arm64.tar.gz",
+      "tag": "v0.0.2",
+      "key": "cli/v0.0.2/deepzora-darwin-arm64.tar.gz",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/v0.0.2/deepzora-darwin-arm64.tar.gz",
+      "url": "https://downloads.deepzora.app/cli/v0.0.2/deepzora-darwin-arm64.tar.gz",
+      "size": 15049440,
+      "sha256": "a7f6f802ce662d8b7d13f5d68610a427e27853d53438ec0352f63aab78d2bd3e"
+    },
+    {
+      "name": "deepzora-linux-amd64.tar.gz",
+      "tag": "v0.0.2",
+      "key": "cli/v0.0.2/deepzora-linux-amd64.tar.gz",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/v0.0.2/deepzora-linux-amd64.tar.gz",
+      "url": "https://downloads.deepzora.app/cli/v0.0.2/deepzora-linux-amd64.tar.gz",
+      "size": 15908801,
+      "sha256": "b9127f3a7393e9046c6f0804651527ee524be3dd57f6b4aa9a32baf911a445d5"
+    },
+    {
+      "name": "deepzora-linux-arm64.tar.gz",
+      "tag": "v0.0.2",
+      "key": "cli/v0.0.2/deepzora-linux-arm64.tar.gz",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/v0.0.2/deepzora-linux-arm64.tar.gz",
+      "url": "https://downloads.deepzora.app/cli/v0.0.2/deepzora-linux-arm64.tar.gz",
+      "size": 14604766,
+      "sha256": "78628da38e7316d88f27e027b560ec19362d29ee9c039d7bbb18a4e1a875208a"
+    },
+    {
+      "name": "deepzora-windows-amd64.zip",
+      "tag": "v0.0.2",
+      "key": "cli/v0.0.2/deepzora-windows-amd64.zip",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/v0.0.2/deepzora-windows-amd64.zip",
+      "url": "https://downloads.deepzora.app/cli/v0.0.2/deepzora-windows-amd64.zip",
+      "size": 17879564,
+      "sha256": "3ed0abe698cdc5f9b6420d31a5506a72185c2f259fd941c3602ba7353a384c98"
+    },
+    {
+      "name": "deepzora-windows-arm64.zip",
+      "tag": "v0.0.2",
+      "key": "cli/v0.0.2/deepzora-windows-arm64.zip",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/v0.0.2/deepzora-windows-arm64.zip",
+      "url": "https://downloads.deepzora.app/cli/v0.0.2/deepzora-windows-arm64.zip",
+      "size": 16217556,
+      "sha256": "98aeb98e26c4990c8d380c669330a6af1f50dd598a88f0334db994946e06eac8"
+    },
+    {
+      "name": "SHA256SUMS",
+      "tag": "v0.0.2",
+      "key": "cli/v0.0.2/SHA256SUMS",
+      "source": "https://github.com/SivanCola/deepzora/releases/download/v0.0.2/SHA256SUMS",
+      "url": "https://downloads.deepzora.app/cli/v0.0.2/SHA256SUMS",
+      "size": 564,
+      "sha256": "142366a9cda21c9a906b1f17f77712ca8bfb496a1d72f1da78ca0ad9dc78fcaf"
+    }
+  ],
+  "sourceSHA": "ea648c7920c24f712b59b8c4688c8dab70ac5481"
+}
