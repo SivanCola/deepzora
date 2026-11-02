@@ -148,7 +148,7 @@ await click(mode("replace"));
 assert.equal(mode("replace").checked, true);
 await click(mode("complete"));
 assert.equal(button("Save").disabled, true, "returning to the saved values disables a no-op save");
-await fill("Description", "Updated complete preset");
+await fill("Summary (optional)", "Updated complete preset");
 await click(button("Save"));
 assert.match(saves[2].content, /^complete: true$/mu);
 assert.match(saves[2].content, /^include-runtime-context: false$/mu);

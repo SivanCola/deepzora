@@ -270,6 +270,7 @@ try {
       await go("Agent presets");
       await page.locator(".agent-presets .settings-section__actions button").last().click();
       await page.locator(".agent-preset-editor input").first().fill("Unsaved preset");
+      await page.locator('.agent-preset-editor input[id$="-id"]').fill("INVALID ID");
       await page.locator(".agent-preset-editor .settings-back-button").click();
       await confirmation.waitFor();
       assert.equal(await confirmation.getByRole("button", { name: "Save and continue", exact: true }).isEnabled(), false);

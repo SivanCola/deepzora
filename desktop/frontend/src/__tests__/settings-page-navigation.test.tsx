@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
-import { baseSettings } from "../test-support/settingsTestFixtures";
+import { baseSettings, waitFor } from "../test-support/settingsTestFixtures";
 import { installDesktopHostStub } from "./desktopHostStub";
 import type { SettingsInitialFocus } from "../components/SettingsPanel";
 
@@ -74,6 +74,25 @@ await focusStats(2);
 await act(async () => decision("Discard and leave").click());
 assert.ok(page.querySelector(".settings-page--model-stats"), "accepting the external focus reaches the requested page");
 assert.deepEqual(useAppNavigationStore.getState().page, { kind: "settings", tab: "model-stats" });
+await act(async () => network.click());
+await act(async () => page.querySelector<HTMLButtonElement>('[role="radiogroup"] button:last-child')!.click());
+const focusPreset = async (requestId: number) => act(async () => root.render(<LocaleProvider><WorkspaceBoundary><RoutedSettings focus={{ target: "agent-preset-create", requestId }} /></WorkspaceBoundary></LocaleProvider>));
+await focusPreset(3);
+assert.ok(page.querySelector(".settings-page--network"), "preset creation cannot bypass another page's dirty draft");
+await act(async () => decision("Discard and leave").click());
+await waitFor("preset creation target", () => !!page.querySelector(".agent-preset-editor"));
+const nameInput = () => page.querySelector<HTMLInputElement>('.agent-preset-editor input[id$="-name"]')!;
+await act(async () => {
+  Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")!.set!.call(nameInput(), "Retained preset draft");
+  nameInput().dispatchEvent(new Event("input", { bubbles: true }));
+});
+await focusPreset(4);
+assert.ok(document.querySelector(".settings-leave-dialog"), "repeated creation protects the current editor");
+await act(async () => decision("Keep editing").click());
+assert.equal(nameInput().value, "Retained preset draft");
+await focusPreset(5);
+await act(async () => decision("Discard and leave").click());
+assert.equal(nameInput().value, "", "confirmed creation starts a fresh preset");
 const back = Array.from(page.querySelectorAll<HTMLButtonElement>("button")).find((button) => button.textContent?.trim() === "Back to workspace")!;
 await act(async () => back.click());
 assert.equal(closes, 1);
