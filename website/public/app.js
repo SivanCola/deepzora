@@ -1,6 +1,5 @@
 (() => {
   const t = JSON.parse(document.querySelector('#page-content').textContent);
-  const esc = value => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
   const code = {
     before: [
       ['// src/client.ts', 'comment'], ['', ''],
@@ -21,7 +20,15 @@
     ],
   };
   const renderCode = key => {
-    document.querySelector('[data-demo-code]').innerHTML = code[key].map(([line, kind]) => `<span class="code-line${kind === 'added' || kind === 'removed' ? ` ${kind}` : ''}"><span${kind === 'comment' ? ' class="code-comment"' : ''}>${esc(line) || ' '}</span></span>`).join('');
+    document.querySelector('[data-demo-code]').replaceChildren(...code[key].map(([line, kind]) => {
+      const row = document.createElement('span');
+      row.className = `code-line${kind === 'added' || kind === 'removed' ? ` ${kind}` : ''}`;
+      const text = document.createElement('span');
+      if (kind === 'comment') text.className = 'code-comment';
+      text.textContent = line || ' ';
+      row.append(text);
+      return row;
+    }));
   };
   const switchDemo = button => {
     const index = Number(button.dataset.step), step = t.steps[index];
@@ -32,7 +39,11 @@
       tab.tabIndex = active ? 0 : -1;
     });
     for (const [selector, value] of Object.entries({ user: step.user, title: step.title, body: step.body, tool: step.tool, status: step.status, file: step.file })) document.querySelector(`[data-demo-${selector}]`).textContent = value;
-    document.querySelector('[data-demo-files]').innerHTML = step.files.map(file => `<span>↳ ${esc(file)}</span>`).join('');
+    document.querySelector('[data-demo-files]').replaceChildren(...step.files.map(file => {
+      const item = document.createElement('span');
+      item.textContent = `↳ ${file}`;
+      return item;
+    }));
     document.querySelector('#demo-panel').setAttribute('aria-labelledby', button.id);
     renderCode(step.code);
   };
