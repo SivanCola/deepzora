@@ -25,6 +25,9 @@ func TestDocumentedProtocolEndpoints(t *testing.T) {
 		{"amd-gpu-cloud", "openai", "https://developer.amd.com.cn/radeon/api/v1"},
 		{"lmstudio", "responses", "http://localhost:1234/v1"},
 		{"mimo-api", "responses", "https://api.xiaomimimo.com/v1"},
+		{"magpie", "openai", "http://127.0.0.1:3425/v1"},
+		{"magpie", "responses", "http://127.0.0.1:3425/v1"},
+		{"magpie", "anthropic", "http://127.0.0.1:3425"},
 	}
 	for _, tc := range cases {
 		p, ok := CuratedProviderPreset(tc.id)

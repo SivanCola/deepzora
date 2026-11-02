@@ -6,6 +6,8 @@ import { installDesktopHostStub } from "./desktopHostStub";
 import { makeSessionUIMock } from "../lib/sessionUIMock";
 import { flushAllSessionComposers, resumeSessionComposerEditing, sendPersistedComposer, useSessionComposerPersistence } from "../lib/sessionComposerPersistence";
 import type { SessionRef } from "../lib/sessionRef";
+import { SessionInputRecovery } from "../components/SessionInputRecovery";
+import { LocaleProvider } from "../lib/i18n";
 
 const dom = new JSDOM("<div id='root'></div>", {url:"http://localhost"});
 Object.assign(globalThis,{window:dom.window,document:dom.window.document,IS_REACT_ACT_ENVIRONMENT:true});
@@ -13,7 +15,7 @@ const backend = makeSessionUIMock(async()=>{});
 installDesktopHostStub(backend);
 let editor!: ReturnType<typeof useSessionComposerPersistence>;
 const a:SessionRef={hostId:"local",sessionId:"persist-a"}, b:SessionRef={hostId:"local",sessionId:"persist-b"};
-function Probe({refValue}:{refValue:SessionRef}) { editor=useSessionComposerPersistence(refValue,refValue.sessionId); return null; }
+function Probe({refValue}:{refValue:SessionRef}) { editor=useSessionComposerPersistence(refValue,refValue.sessionId); return <LocaleProvider><SessionInputRecovery input={editor}/></LocaleProvider>; }
 const root=createRoot(document.getElementById("root")!);
 async function paint(ref:SessionRef) { await act(async()=>{root.render(<Probe refValue={ref}/>); await new Promise(resolve=>setTimeout(resolve,0));}); }
 function patch(text:string) { const target=editor.target!; target.onPatch!(target.draftId,target.generation,{text}); }
@@ -49,6 +51,24 @@ try {
  assert.equal(editor.blocked,false);
  assert.equal(JSON.parse((await backend.GetSessionComposerState(b)).contentJson).text,"local window");
 
+ // A normal in-flight send keeps its durable occupancy without flashing the
+ // recovery warning while the host acknowledgement is delayed.
+ let acknowledge!: () => void, started!: () => void;
+ const acknowledgement = new Promise<void>(resolve => { acknowledge = resolve; });
+ const sendingStarted = new Promise<void>(resolve => { started = resolve; });
+ let normalSend!: Promise<void>;
+ await act(async()=>{
+  normalSend = sendPersistedComposer(b.sessionId,"local window","local window","normal-delayed",async()=>{started();await acknowledgement;});
+  await sendingStarted;
+ });
+ assert.equal(editor.blocked,true,"normal send still owns the draft until acknowledged");
+ assert.equal(editor.attention,false,"normal submission marker is not an uncertain outcome");
+ assert.equal(document.querySelector('.session-input-recovery'),null,"no recovery warning during normal send");
+ await act(async()=>{acknowledge();await normalSend;});
+ assert.equal(editor.blocked,false);
+ assert.equal(document.querySelector('.session-input-recovery'),null,"normal acknowledgement does not flash a recovery warning");
+ await act(async()=>patch("local window"));
+
  // A lost response preserves input and must never call the send callback again.
  const rejected=Object.assign(new Error("settings pending"),{data:{submissionOutcome:"not_accepted"}});
  await act(async()=>{await assert.rejects(sendPersistedComposer(b.sessionId,"local window","local window","configuration-rejected",async()=>{throw rejected;}));});
@@ -59,6 +79,8 @@ try {
  await act(async()=>{await assert.rejects(sendPersistedComposer(b.sessionId,"local window","local window","submission-lost",async()=>{sends++;throw unknown;}));});
  await act(async()=>editor.retry());
  assert.equal(sends,1); assert.equal(editor.blocked,true);
+ assert.equal(editor.attention,true,"a genuinely unknown result still needs attention");
+ assert.ok(document.querySelector('.session-input-recovery'),"unknown outcome retains the recovery prompt");
  assert.equal(JSON.parse((await backend.GetSessionComposerState(b)).contentJson).text,"local window");
  await act(async()=>{await assert.rejects(sendPersistedComposer(b.sessionId,"local window","local window","different-id",async()=>{sends++;}));});
  assert.equal(sends,1);

@@ -3,7 +3,7 @@
 
 export const DESKTOP_PROTOCOL_VERSION = 11;
 
-export const DESKTOP_CONTRACT_DIGEST = "sha256:cad994b5e12ac19bb868be1f529e3c96f0ebf65854abd8e2a57eb6f273b6b287";
+export const DESKTOP_CONTRACT_DIGEST = "sha256:d5fba25757cd2cc269ea28b0881a5871c72adf79ca4ad1d2fc12cf1fe8973ef8";
 
 export const DESKTOP_COMMANDS = [
   "AIRenameSessionTarget",
@@ -2526,6 +2526,7 @@ export interface Meta {
 }
 
 export interface ModelInfo {
+  modelDisplayName?: string;
   ref: string;
   provider: string;
   model: string;
@@ -2819,6 +2820,7 @@ export interface ProviderModelCapabilityUpdate {
 }
 
 export interface ProviderModelCapabilityView {
+  displayName?: string;
   reasoning?: ResolvedReasoningView | null;
   model: string;
   inputModalities: string[];

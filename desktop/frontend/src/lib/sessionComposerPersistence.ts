@@ -8,7 +8,7 @@ import { submissionOutcome, modelApplicationError, type ModelApplicationDetails 
 
 export const emptySessionInput = (): PersistentComposerDraft => ({ text: "", invocations: [], attachments: [], workspaceRefs: [], pastedBlocks: [], openPastedLabels: [], sessionRefs: [], selectedTextRefs: [] });
 type Entry = { ref: SessionRef; state?: SessionComposerState; content: PersistentComposerDraft; generation: number; version: number; saved: number; users: number; touched: number;
-  application?: ModelApplicationDetails; error?: string; unreadable?: boolean; registering?: boolean; recovering?: Promise<void>; unsubmittedId?: string; settledId?: string; tasks: Set<Promise<unknown>>; loading?: Promise<void>; saving?: Promise<void>; timer?: ReturnType<typeof setTimeout> };
+  application?: ModelApplicationDetails; error?: string; unreadable?: boolean; registering?: boolean; recovering?: Promise<void>; inFlightSubmissionId?: string; unsubmittedId?: string; settledId?: string; tasks: Set<Promise<unknown>>; loading?: Promise<void>; saving?: Promise<void>; timer?: ReturnType<typeof setTimeout> };
 const entries = new Map<string, Entry>();
 const tabs = new Map<string, string>();
 const tabOwners = new Map<string, symbol>();
@@ -158,6 +158,7 @@ export async function beginPersistedComposerSubmission(tabId: string, submission
   if (expectedEdit !== undefined && entry.version !== expectedEdit) throw new Error("Input changed while preparing submission; review and send again");
   if (exiting || !entry.state || locked(entry)) throw new Error("Review the saved input before sending");
   const submittedVersion = entry.version;
+  entry.inFlightSubmissionId = submissionId;
   entry.registering = true;
   notify();
   try {
@@ -166,12 +167,22 @@ export async function beginPersistedComposerSubmission(tabId: string, submission
     // The host may have committed despite transport failure. Reconcile before
     // allowing edits or another send; never infer rejection from a lost reply.
     entry.unsubmittedId = submissionId;
+    if (entry.inFlightSubmissionId === submissionId) entry.inFlightSubmissionId = undefined;
     entry.unreadable = true; entry.error = String(error);
     throw error;
   } finally { entry.registering = false; notify(); }
-  if (entry.state.conflict) { notify(); throw new Error("The input changed before submission"); }
+  if (entry.state.conflict) {
+    if (entry.inFlightSubmissionId === submissionId) entry.inFlightSubmissionId = undefined;
+    notify(); throw new Error("The input changed before submission");
+  }
   notify();
-  return (outcome: "accepted" | "not_accepted" | "unknown") => settleSubmission(entry, submissionId, outcome, submittedVersion);
+  return async (outcome: "accepted" | "not_accepted" | "unknown") => {
+    try { await settleSubmission(entry, submissionId, outcome, submittedVersion); }
+    finally {
+      if (entry.inFlightSubmissionId === submissionId) entry.inFlightSubmissionId = undefined;
+      notify();
+    }
+  };
 }
 
 async function settleSubmission(entry: Entry, submissionId: string, outcome: "accepted" | "not_accepted" | "unknown", submittedVersion: number) {
@@ -260,7 +271,9 @@ export function useSessionComposerPersistence(ref: SessionRef | undefined, tabId
     goalDraft:!entry?.state?.historyChanged && entry?.content.goalDraft,
     setGoalDraft:(enabled:boolean) => { if (entry) edit(entry,{...entry.content,goalDraft:enabled}); },
     settleSubmission:async (id:string) => { if (entry?.state?.submissionId === id) await settleSubmission(entry,id,"accepted",entry.version); },
-    attention: Boolean(entry?.state?.submissionId),
+    // A durable marker is normal while this renderer owns the pending send.
+    // Restored markers and uncertain results still need recovery attention.
+    attention: Boolean(entry?.state?.submissionId && entry.state.submissionId !== entry.inFlightSubmissionId),
     recovering: Boolean(entry?.recovering),
     settledId: entry?.settledId,
     retry:async () => { if (!entry) return; await recoverInput(entry); if (!locked(entry)) await flush(entry); },

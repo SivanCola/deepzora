@@ -24480,6 +24480,13 @@
     "main.ModelInfo": {
       "fields": [
         {
+          "name": "modelDisplayName",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
           "name": "ref",
           "type": {
             "kind": "string"
@@ -26067,6 +26074,13 @@
     },
     "main.ProviderModelCapabilityView": {
       "fields": [
+        {
+          "name": "displayName",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
         {
           "name": "reasoning",
           "optional": true,

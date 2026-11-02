@@ -47,6 +47,37 @@ and full license are in `desktop/frontend/public/provider-icons/`. Brands withou
 a bundled icon use an initial. No third-party scripts or remote icon requests are
 needed at runtime.
 
+## Magpie local gateway
+
+Magpie appears as one brand in Recommended presets. It starts with Chat
+Completions at `http://127.0.0.1:3425/v1`; Responses uses the same base URL,
+and Anthropic Messages uses `http://127.0.0.1:3425` with Bearer authentication.
+Local connections bypass the configured proxy. The API key reference is
+`MAGPIE_API_KEY`: enter the documented local placeholder `magpie`, or a gateway
+key created in Magpie. Remote deployments require their own address and gateway key.
+
+Start Magpie and configure its providers first. Adding a connection discovers
+the actual `provider/model` IDs from `/v1/models` and enables all returned chat
+models. Empty or failed discovery leaves the connection and credentials unsaved.
+Requests happen before the config edit lock; settings preconditions are checked
+again before committing. Existing connections and manual model selections are
+preserved. Refresh remains available for later changes to the gateway catalog.
+
+The UI uses the gateway's `magpie_label` (model and source), falling back to
+`display_name` or `name`, while requests and selections keep the original IDs.
+Labels live in the disposable capability cache, scoped to endpoint/protocol and
+credential identity. This optional cache field is compatible with existing
+version-2 entries; an older writer can drop it and a refresh restores it.
+No personal keys, account names or local model lists are bundled. The template's
+internal README example exists only for schema validation; a successful addition
+always replaces it with the discovered catalog.
+
+All defaults come from upstream, independently of local user configuration:
+[integration guide](https://github.com/yetone/magpie/blob/541102eba26084476d7a2feba09b66279ef2af0b/docs/integrating.md#1-talk-to-the-gateway),
+[README model example](https://github.com/yetone/magpie/blob/541102eba26084476d7a2feba09b66279ef2af0b/README.md#quick-start)
+and [official icon](https://github.com/yetone/magpie/blob/541102eba26084476d7a2feba09b66279ef2af0b/build/icon/magpie-small.svg)
+(MIT, bundled with its license).
+
 ## Maintenance and compatibility
 
 `internal/config/provider_catalog.go` owns brand/platform/plan metadata. Protocol

@@ -602,6 +602,24 @@
       "checkedOn": "2026-09-07"
     }
   },
+  "magpie|local|local": {
+    "openai": {
+      "baseUrl": "http://127.0.0.1:3425/v1",
+      "source": "https://github.com/yetone/magpie/blob/541102eba26084476d7a2feba09b66279ef2af0b/docs/reference.md#providers-and-the-gateway",
+      "checkedOn": "2026-11-02"
+    },
+    "responses": {
+      "baseUrl": "http://127.0.0.1:3425/v1",
+      "source": "https://github.com/yetone/magpie/blob/541102eba26084476d7a2feba09b66279ef2af0b/docs/reference.md#providers-and-the-gateway",
+      "checkedOn": "2026-11-02"
+    },
+    "anthropic": {
+      "baseUrl": "http://127.0.0.1:3425",
+      "source": "https://github.com/yetone/magpie/blob/541102eba26084476d7a2feba09b66279ef2af0b/docs/reference.md#providers-and-the-gateway",
+      "checkedOn": "2026-11-02",
+      "authHeader": true
+    }
+  },
   "mistral|global|api": {
     "openai": {
       "baseUrl": "https://api.mistral.ai/v1",

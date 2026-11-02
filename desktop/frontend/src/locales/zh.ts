@@ -2459,6 +2459,7 @@ export const zh: Record<DictKey, string> = {
   "settings.catalog.variant": "模型路由",
   "settings.catalog.anthropicHint": "使用 Anthropic API 密钥与 API 计费，此预设不启用服务端原生工具。",
   "settings.catalog.localHint": "示例模型名需要与本地安装一致，添加后请配置或获取已安装模型。",
+  "settings.catalog.magpieHint": "请先启动 Magpie 并配置其中的服务商。添加连接时会自动获取并启用网关中的全部模型。本机网关的 API Key 可填 magpie；远程网关需填写在 Magpie 中创建的密钥。",
   "settings.catalog.models": "模型列表",
   "settings.catalog.hint": "选择服务商，再选择接入方式、地区和 API 格式。",
   "settings.connections.restartRequired": "当前桌面后端尚未加载重命名接口。请在启动终端按 Ctrl+C 停止桌面后端，再重新启动后重试。",
