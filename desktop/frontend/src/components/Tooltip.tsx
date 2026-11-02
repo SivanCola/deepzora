@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
+import type { CSSProperties, FocusEvent as ReactFocusEvent, KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
   elementLayoutSize,
@@ -40,6 +40,10 @@ function samePosition(
   );
 }
 
+function hasExpandedPopup(trigger: HTMLElement | null): boolean {
+  return !!trigger?.querySelector('[aria-haspopup]:not([aria-haspopup="false"])[aria-expanded="true"]');
+}
+
 export function Tooltip({
   label,
   children,
@@ -75,11 +79,11 @@ export function Tooltip({
   }, []);
 
   const show = (delay = 180) => {
-    if (!active) return;
+    if (!active || hasExpandedPopup(triggerRef.current)) return;
     clearTimer();
     showTimerRef.current = window.setTimeout(() => {
       showTimerRef.current = null;
-      if (validAnchorRect(triggerRef.current)) setOpen(true);
+      if (!hasExpandedPopup(triggerRef.current) && validAnchorRect(triggerRef.current)) setOpen(true);
     }, delay);
   };
 
@@ -98,6 +102,10 @@ export function Tooltip({
     const updatePosition = () => {
       frame = null;
       const trigger = triggerRef.current;
+      if (hasExpandedPopup(trigger)) {
+        hide();
+        return;
+      }
       const rect = validAnchorRect(trigger);
       const tip = tooltipRef.current;
       const tipSize = tip ? elementLayoutSize(tip) : null;
@@ -174,7 +182,10 @@ export function Tooltip({
     onMouseEnter: () => show(delay),
     onMouseLeave: hide,
     onPointerDownCapture: hide,
-    onFocus: () => show(0),
+    onFocus: (event: ReactFocusEvent<HTMLElement>) => {
+      // React portal events bubble through their owner even outside this trigger.
+      if (event.currentTarget.contains(event.target)) show(0);
+    },
     onBlur: hide,
     onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => {
       if (event.key === "Escape" || event.key === "Enter" || event.key === " ") hide();

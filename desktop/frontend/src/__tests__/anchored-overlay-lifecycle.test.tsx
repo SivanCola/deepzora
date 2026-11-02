@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
+import { createPortal } from "react-dom";
 import { ComposerChoice } from "../components/ComposerChoice";
 import { Tooltip } from "../components/Tooltip";
 
@@ -95,6 +96,69 @@ assert.equal((document.querySelector<HTMLElement>("[role=tooltip]")?.style.visib
 tooltipHasLayout = true;
 await settle();
 assert.equal((document.querySelector<HTMLElement>("[role=tooltip]")?.style.visibility), "visible", "tooltip becomes visible after delayed layout");
+
+// A tooltip can be scheduled by focus after pointerdown has already hidden it.
+// Portaled menu items also send React focus events back through the Tooltip.
+await act(async () => root.render(<Tooltip label="Preset help" delay={0}>
+  <span><ComposerChoice label="Preset" value="default"
+    options={[{ value: "default", label: "Default" }, { value: "review", label: "Review" }]}
+    onPick={() => {}} /></span>
+</Tooltip>));
+const presetButton = document.querySelector<HTMLButtonElement>(".composer-choice")!;
+await act(async () => presetButton.focus());
+await settle();
+assert.ok(document.querySelector("[role=tooltip]"), "closed picker keeps keyboard help");
+await act(async () => {
+  presetButton.dispatchEvent(new dom.window.Event("pointerdown", { bubbles: true }));
+  presetButton.click();
+});
+await settle();
+await settle();
+assert.equal(document.activeElement?.getAttribute("role"), "menuitemradio", "picker focuses its portaled selection");
+assert.equal(document.querySelector("[role=tooltip]"), null, "opening and focusing a picker does not revive its tooltip");
+await act(async () => presetButton.dispatchEvent(new dom.window.MouseEvent("mouseover", { bubbles: true })));
+await settle();
+assert.equal(document.querySelector("[role=tooltip]"), null, "hovering an expanded picker keeps help hidden");
+await act(async () => document.activeElement!.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+await settle();
+assert.equal(document.activeElement, presetButton, "Escape restores trigger focus");
+await act(async () => presetButton.dispatchEvent(new dom.window.MouseEvent("mouseover", { bubbles: true })));
+await settle();
+assert.ok(document.querySelector("[role=tooltip]"), "help is available again after closing the picker");
+await act(async () => presetButton.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true })));
+await settle();
+await settle();
+assert.ok(document.querySelector('[role="menu"]'), "keyboard opens the picker");
+assert.equal(document.querySelector("[role=tooltip]"), null, "keyboard opening also suppresses help");
+
+for (const popup of ["menu", "listbox", "dialog"] as const) {
+  const renderPopup = async (expanded: boolean) => {
+    await act(async () => root.render(<Tooltip key={popup} label="Popup help" delay={0}>
+      <button aria-haspopup={popup} aria-expanded={expanded}>Open popup</button>
+    </Tooltip>));
+  };
+  await renderPopup(false);
+  const button = document.querySelector<HTMLButtonElement>(".tooltip-trigger button")!;
+  await act(async () => button.focus());
+  await settle();
+  assert.ok(document.querySelector("[role=tooltip]"), `${popup}: collapsed trigger shows help`);
+  await renderPopup(true);
+  await settle();
+  assert.equal(document.querySelector("[role=tooltip]"), null, `${popup}: programmatic expansion dismisses visible help`);
+  await renderPopup(false);
+  await act(async () => button.dispatchEvent(new dom.window.MouseEvent("mouseover", { bubbles: true })));
+  await renderPopup(true);
+  await settle();
+  assert.equal(document.querySelector("[role=tooltip]"), null, `${popup}: expansion cancels pending help`);
+}
+
+await act(async () => root.render(<Tooltip label="Owner help" delay={0}>
+  <button>Owner</button>
+  {createPortal(<button id="portal-focus">Portal content</button>, document.body)}
+</Tooltip>));
+await act(async () => document.getElementById("portal-focus")!.focus());
+await settle();
+assert.equal(document.querySelector("[role=tooltip]"), null, "focus outside the trigger DOM does not open the owner's tooltip");
 
 await act(async () => root.unmount());
 dom.window.close();
