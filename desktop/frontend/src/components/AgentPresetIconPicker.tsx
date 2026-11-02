@@ -3,6 +3,7 @@ import { Shuffle, Upload } from "lucide-react";
 import { useT } from "../lib/i18n";
 import { decodePresetIcon, drawPresetIcon, isPresetIconImage, PRESET_ICON_SIZE } from "../lib/agentPresetImage";
 import { AGENT_PRESET_ICONS, AgentPresetIcon, DEFAULT_AGENT_PRESET_ICON } from "./AgentPresetIcon";
+import { ErrorMessage } from "./ErrorMessage";
 
 const COLORS = { default: "", red: "#fb7185", orange: "#fb923c", yellow: "#fbbf24", green: "#4ade80",
   teal: "#2dd4bf", blue: "#60a5fa", purple: "#c084fc", pink: "#f472b6", gray: "#94a3b8" };
@@ -93,7 +94,7 @@ export function AgentPresetIconPicker({ icon, image, color, disabled, onChange, 
     </div>
     <span className="set-hint">{t("agentPresets.uploadIconHint")}</span>
     {loading && <span role="status">{t("agentPresets.iconLoading")}</span>}
-    {error && <span className="agent-preset-editor__error" role="alert">{error}</span>}
+    {error && <span className="agent-preset-editor__error" role="alert"><ErrorMessage error={error} /></span>}
     {(source || loading) && <div className="agent-preset-icon-crop" role="group" aria-label={t("agentPresets.cropIcon")}>
       {source && <>
         <canvas ref={preview} width={192} height={192} role="img" aria-label={t("agentPresets.iconPreview")} />

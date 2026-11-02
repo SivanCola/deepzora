@@ -28,7 +28,7 @@ export const AGENT_PRESET_ICONS: Record<string, LucideIcon> = {
 
 export function AgentPresetIcon({ icon, image, color, size = 16 }: { icon?: string; image?: string; color?: string; size?: number }) {
   const [failedImage, setFailedImage] = useState<string>();
-  const Glyph = (icon && AGENT_PRESET_ICONS[icon]) || Bot;
+  const Glyph = icon && Object.prototype.hasOwnProperty.call(AGENT_PRESET_ICONS, icon) ? AGENT_PRESET_ICONS[icon] : Bot;
   if (image && image !== failedImage && isPresetIconImage(image)) return <img className="agent-preset-icon-image" src={image}
     width={size} height={size} alt="" aria-hidden="true" draggable={false} onError={() => setFailedImage(image)} />;
   return <Glyph size={size} aria-hidden="true" style={color && /^#[0-9a-f]{6}$/iu.test(color) ? { color } : undefined} />;

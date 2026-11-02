@@ -281,6 +281,10 @@ assert.ok(rootEl.querySelector("svg.lucide-search"), "failed image falls back to
 assert.equal(rootEl.querySelector("img"), null);
 await act(async () => root.render(<AgentPresetIcon image="https://example.com/icon.png" />));
 assert.ok(rootEl.querySelector("svg.lucide-bot"), "untrusted image locations use the default without a network fetch");
+for (const icon of ["unknown-glyph", "constructor"]) {
+  await act(async () => root.render(<AgentPresetIcon icon={icon} />));
+  assert.ok(rootEl.querySelector("svg.lucide-bot"), `unknown icon ${icon} uses the default glyph`);
+}
 await act(async () => root.unmount());
 stub.uninstall();
 dom.window.close();
