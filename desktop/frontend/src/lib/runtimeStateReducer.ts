@@ -1,9 +1,14 @@
 import type { RuntimeProjection, RuntimeState, createRuntimeStateStore } from "./runtimeStateStore";
 
+// Every phase the controller commits (internal/control setRuntimePhase). One
+// session in an unlisted phase turns the whole projection into a conflict and
+// marks every session disconnected, so this list must track the producer.
+const runtimePhases: readonly string[] = ["idle", "executing", "finishing", "cancelling", "recovery_required", "closed"] satisfies RuntimeState["phase"][];
+
 function validState(state: RuntimeState) {
   if (!state || state.schemaVersion !== 1) return Boolean(state);
   return Boolean(state.runtimeEpoch) && Number.isSafeInteger(state.revision) && state.revision > 0
-    && ["idle", "executing", "finishing", "closed"].includes(state.phase)
+    && runtimePhases.includes(state.phase)
     && [state.running, state.pendingPrompt, state.cancelRequested, state.cancellable].every(value => typeof value === "boolean")
     && Number.isSafeInteger(state.backgroundJobs) && state.backgroundJobs >= 0;
 }

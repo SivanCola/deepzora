@@ -77,6 +77,21 @@ assert.equal(store.getSnapshot()!.sessions[0].state.running, true, "caller mutat
 const malformed = projection(11);
 delete (malformed.sessions[0].state as Partial<RuntimeState>).cancellable;
 assert.equal(store.accept(malformed), "conflict", "partial new-schema booleans cannot imply idle or uncancellable");
+// Issue #126: the controller commits cancelling and recovery_required. Rejecting
+// either marked every session in every workspace as disconnected.
+assert.equal(store.accept(projection(12, { phase: "cancelling", cancelRequested: true })), "accepted");
+assert.equal(selectRuntime(store.getSnapshot()!.sessions[0], store.getFailed()).kind, "cancelling");
+assert.equal(store.accept(projection(13, { phase: "recovery_required", running: false, cancellable: false })), "accepted");
+assert.equal(selectRuntime(store.getSnapshot()!.sessions[0], store.getFailed()).kind, "recovery_required");
+{
+  // A tab whose controller is still building carries an unversioned state.
+  const building = projection(14);
+  building.sessions.push({ ...building.sessions[0], tabId: "building", sessionPath: "/fixture/new",
+    state: { todos: [], pendingInteractions: [] } as unknown as RuntimeState });
+  assert.equal(store.accept(building), "accepted", "a controllerless tab cannot poison the projection");
+  assert.equal(store.getFailed(), false);
+  assert.equal(selectRuntime(store.getSnapshot()!.sessions[1]).unknown, false);
+}
 
 function deferred<T>() { let resolve!: (value: T) => void; let reject!: (err: unknown) => void;
   const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; }

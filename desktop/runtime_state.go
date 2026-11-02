@@ -192,7 +192,10 @@ func controllerRuntimeState(ctrl control.SessionAPI) event.RuntimeStateSnapshot 
 		return reader.PublishedRuntimeStateSnapshot()
 	}
 	if ctrl == nil {
-		return event.RuntimeStateSnapshot{SchemaVersion: 1, Phase: "idle"}
+		// No controller yet (building or failed start): unversioned, as before a
+		// controller's first commit. A schema-1 state lacking epoch/revision made
+		// the frontend reject the whole projection (#126).
+		return event.RuntimeStateSnapshot{Todos: []event.Todo{}, Interactions: []event.PendingInteraction{}}
 	}
 	return event.RuntimeStateSnapshot{SchemaVersion: 1, Phase: "unknown"}
 }
