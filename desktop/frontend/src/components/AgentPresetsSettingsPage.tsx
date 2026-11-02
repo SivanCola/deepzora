@@ -90,7 +90,7 @@ function AgentPresetRow({ preset, busy, current, onCopy, onEdit, onDelete }: {
   const name = builtin && preset.id === "default" ? t("agentPresets.default") : preset.name;
   return <article className="cap-skill-card agent-preset-row" aria-label={name}>
     <div className="agent-preset-row__head">
-      <span className="agent-preset-row__icon"><AgentPresetIcon icon={preset.icon} image={preset.iconImage} /></span>
+      <span className="agent-preset-row__icon"><AgentPresetIcon icon={preset.icon} image={preset.iconImage} color={preset.iconColor} /></span>
       <h3>{name}</h3><code>{preset.id}</code>
       <span className="cap-skill-badge">{t(`agentPresets.scope.${preset.scope}`)}</span>
       {current && <span className="cap-skill-badge">{t("agentPresets.current")}</span>}

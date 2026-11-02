@@ -9,6 +9,7 @@ export interface AgentPreset {
   icon?: string;
   /** Portable, display-only PNG data URL. */
   iconImage?: string;
+  iconColor?: string;
   body: string;
   keepCoding: boolean;
   complete: boolean;
@@ -59,7 +60,7 @@ export function agentPresetTools(text: string): string[] {
   return [...new Set(text.split(/[,\r\n]+/u).map(tool => tool.trim()).filter(Boolean))];
 }
 
-export function renderAgentPreset(preset: Pick<AgentPreset, "name" | "description" | "icon" | "iconImage" | "body" | "keepCoding" | "complete" | "includeRuntimeContext" | "tools">): string {
+export function renderAgentPreset(preset: Pick<AgentPreset, "name" | "description" | "icon" | "iconImage" | "iconColor" | "body" | "keepCoding" | "complete" | "includeRuntimeContext" | "tools">): string {
   // JSON scalars are valid YAML. Quoting every value prevents names and tool
   // patterns from becoming YAML keys, aliases, booleans or frontmatter fences.
   const fields = [
@@ -69,6 +70,7 @@ export function renderAgentPreset(preset: Pick<AgentPreset, "name" | "descriptio
   ];
   if (preset.icon) fields.push(`icon: ${JSON.stringify(preset.icon)}`);
   if (preset.iconImage) fields.push(`icon-image: ${JSON.stringify(preset.iconImage)}`);
+  if (preset.iconColor) fields.push(`icon-color: ${JSON.stringify(preset.iconColor)}`);
   if (preset.complete) fields.push("complete: true");
   if (preset.includeRuntimeContext === false) fields.push("include-runtime-context: false");
   if (preset.tools !== null) fields.push(`tools: ${JSON.stringify(preset.tools)}`);

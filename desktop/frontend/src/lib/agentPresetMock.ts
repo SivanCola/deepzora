@@ -14,11 +14,11 @@ function parseContent(id: string, content: string): Omit<AgentPreset, "scope" | 
   for (const line of match[1].split(/\r?\n/u)) {
     const split = line.indexOf(":");
     const key = line.slice(0, split);
-    if (split < 1 || !["name", "description", "icon", "icon-image", "keep-coding-instructions", "complete", "include-runtime-context", "tools"].includes(key)) throw new Error(`Unknown field: ${key}`);
+    if (split < 1 || !["name", "description", "icon", "icon-image", "icon-color", "keep-coding-instructions", "complete", "include-runtime-context", "tools"].includes(key)) throw new Error(`Unknown field: ${key}`);
     if (key in fields) throw new Error(`Duplicate field: ${key}`);
     fields[key] = JSON.parse(line.slice(split + 1).trim());
   }
-  for (const key of ["name", "description", "icon", "icon-image"]) {
+  for (const key of ["name", "description", "icon", "icon-image", "icon-color"]) {
     if (key in fields && typeof fields[key] !== "string") throw new Error(`${key} must be a string`);
   }
   for (const key of ["keep-coding-instructions", "complete", "include-runtime-context"]) {
@@ -27,9 +27,11 @@ function parseContent(id: string, content: string): Omit<AgentPreset, "scope" | 
   if (fields.tools != null && (!Array.isArray(fields.tools) || fields.tools.some(tool => typeof tool !== "string"))) throw new Error("tools must be a list of strings");
   if (fields.icon && !/^[a-z][a-z0-9-]{0,31}$/u.test(String(fields.icon))) throw new Error("Invalid icon key");
   if (fields["icon-image"] && !isPresetIconImage(String(fields["icon-image"]))) throw new Error("Invalid icon image");
+  if (fields["icon-color"] && !/^#[0-9a-f]{6}$/iu.test(String(fields["icon-color"]))) throw new Error("Invalid icon color");
   return {
     id, name: String(fields.name ?? id).trim() || id, description: String(fields.description ?? "").trim(),
     icon: String(fields.icon ?? ""), iconImage: String(fields["icon-image"] ?? ""),
+    iconColor: String(fields["icon-color"] ?? ""),
     body: match[2].trim(), keepCoding: fields["keep-coding-instructions"] !== false,
     complete: fields.complete === true, includeRuntimeContext: fields["include-runtime-context"] !== false,
     tools: fields.tools == null ? null : [...fields.tools as string[]],

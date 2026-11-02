@@ -27,11 +27,12 @@ func TestIconImageStoredAndCopiedWithDefinition(t *testing.T) {
 	dir := t.TempDir()
 	p := Default()
 	p.ID, p.Name, p.Icon, p.IconImage = "avatar", "Avatar", "search", presetTestImage(t, 128, 128)
+	p.IconColor = "#60a5fa"
 	if _, err := Write(dir, p.ID, Render(p)); err != nil {
 		t.Fatal(err)
 	}
 	loaded, err := Resolve(Dirs{User: dir}, p.ID)
-	if err != nil || loaded.IconImage != p.IconImage || loaded.Icon != p.Icon {
+	if err != nil || loaded.IconImage != p.IconImage || loaded.Icon != p.Icon || loaded.IconColor != p.IconColor {
 		t.Fatalf("image did not survive save/reload: %v", err)
 	}
 	copyDir := t.TempDir()
@@ -52,6 +53,16 @@ func TestIconImageStoredAndCopiedWithDefinition(t *testing.T) {
 	reset, err := Resolve(Dirs{User: copyDir}, "avatar-copy")
 	if err != nil || reset.IconImage != "" || reset.Icon != "search" {
 		t.Fatalf("reset did not retain glyph fallback: %v", err)
+	}
+}
+
+func TestIconColorRejectsInvalidValues(t *testing.T) {
+	for _, value := range []string{"red", "#123", "#1234567", "url(https://example.com)", "#12xx12"} {
+		preset := Default()
+		preset.IconColor = value
+		if _, err := Parse("color", Render(preset)); err == nil {
+			t.Fatalf("accepted icon color %q", value)
+		}
 	}
 }
 

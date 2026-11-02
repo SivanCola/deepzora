@@ -34,7 +34,9 @@ let tabs = [{ id: "a", active: true, workspaceRoot: "/project-a", topicId: "blan
 const changed: string[] = [];
 const mock = makeMockAgentPresetBindings({ tabs: () => tabs, update: tab => { tabs = tabs.map(item => item.id === tab.id ? tab : item); }, isBlank: id => id === "blank", changed: async id => { changed.push(id); } });
 const image = "data:image/png;base64,iVBORw0KGgo=";
-const withImage = await mock.SaveAgentPreset("a", "user", "avatar", renderAgentPreset({ ...special, icon: "search", iconImage: image }));
+const withImage = await mock.SaveAgentPreset("a", "user", "avatar", renderAgentPreset({ ...special, icon: "search", iconImage: image, iconColor: "#60a5fa" }));
+assert.equal(withImage.iconColor, "#60a5fa");
+await assert.rejects(mock.SaveAgentPreset("a", "user", "bad-color", renderAgentPreset({ ...special, iconColor: "url(https://example.com/)" })), /Invalid icon color/u);
 assert.equal(withImage.iconImage, image);
 assert.equal(withImage.icon, "search", "mock and backend preserve glyph fallback alongside custom images");
 const imageCopy = await mock.SaveAgentPreset("a", "user", "avatar-copy", renderAgentPreset(withImage));

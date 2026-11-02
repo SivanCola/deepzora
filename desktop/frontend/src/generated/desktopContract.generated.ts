@@ -3,7 +3,7 @@
 
 export const DESKTOP_PROTOCOL_VERSION = 11;
 
-export const DESKTOP_CONTRACT_DIGEST = "sha256:25d547359f2e3fc88d1c7c474c6f0de72a0a0ed5865d56a4985857c1b00993cb";
+export const DESKTOP_CONTRACT_DIGEST = "sha256:13e335b3158ed3acfbe30ede21335360a474fb3c9ed7a22d05f9efc80211f96e";
 
 export const DESKTOP_COMMANDS = [
   "AIRenameSessionTarget",
@@ -559,6 +559,7 @@ export interface Preset {
   description: string;
   icon?: string;
   iconImage?: string;
+  iconColor?: string;
   body: string;
   keepCoding: boolean;
   complete: boolean;

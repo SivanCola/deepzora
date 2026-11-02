@@ -52,24 +52,41 @@
 .agent-preset-editor__field input { width: 100%; }
 .agent-preset-editor__error { display: block; color: var(--err); font-size: 12px; margin-top: 4px; }
 .agent-preset-editor__error:empty { display: none; }
+.agent-preset-modes { display: grid; gap: 8px; width: 100%; }
+.agent-preset-modes__option { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
+.agent-preset-modes__option:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.agent-preset-modes__option:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.agent-preset-modes__option input { flex-shrink: 0; margin: 3px 0 0; accent-color: var(--accent); }
+.agent-preset-modes__option > span { display: grid; gap: 4px; }
+.agent-preset-modes__option strong { font-size: 13px; font-weight: 600; }
+.agent-preset-modes__option span span { font-size: 12px; line-height: 1.5; color: var(--fg-dim); }
+.agent-preset-advanced { border-top: 1px solid var(--border); }
+.agent-preset-advanced summary { cursor: pointer; padding: 14px 0; font-weight: 600; font-size: 13px; }
+.agent-preset-advanced summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .agent-preset-editor .settings-field__control > .mem-textarea { width: 100%; min-width: 0; }
 :root .agent-preset-editor .settings-options > button { flex: 1 0 auto; }
 .agent-preset-editor__restrict { display: flex; align-items: center; gap: 8px; }
 .agent-preset-editor__tools-footer { width: 100%; justify-content: space-between; flex-wrap: nowrap; }
 .agent-preset-editor__tools-footer .set-hint { margin-top: 0; }
-.agent-preset-editor__icons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.agent-preset-editor__icons { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; width: 100%; }
 .agent-preset-editor__icon {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; padding: 0;
-  border: 1px solid var(--border-soft); border-radius: 8px;
-  background: var(--bg); color: var(--fg-dim); cursor: pointer;
+  width: 100%; min-height: 48px; padding: 8px;
+  border: 1px solid transparent; border-radius: 10px;
+  background: transparent; color: var(--accent); cursor: pointer;
 }
 .agent-preset-editor__icon:hover:not(:disabled) { background: var(--bg-elev); color: var(--fg); }
 .agent-preset-editor__icon:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .agent-preset-editor__icon--on { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--bg)); }
 .agent-preset-icon-image { display: block; flex-shrink: 0; object-fit: cover; border-radius: 3px; }
-.agent-preset-icon-picker { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; min-width: 0; width: 100%; }
-.agent-preset-icon-picker__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.agent-preset-icon-picker { display: flex; flex-direction: column; align-items: center; gap: 16px; min-width: 0; width: min(100%, 480px); padding: 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg); }
+.agent-preset-icon-picker__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.agent-preset-icon-picker > .set-hint { margin: 0; font-size: 12px; color: var(--fg-dim); text-align: center; }
+.agent-preset-icon-picker__colors { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; width: 100%; }
+.agent-preset-icon-picker__color { --preset-color: var(--accent); width: 24px; height: 24px; padding: 0; border: 3px solid var(--bg); border-radius: 50%; background: var(--preset-color); cursor: pointer; }
+.agent-preset-icon-picker__color[aria-checked="true"] { outline: 2px solid var(--fg); outline-offset: 1px; }
+.agent-preset-icon-picker__color:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.agent-preset-icon-picker__color:disabled { opacity: .5; cursor: default; }
 .agent-preset-icon-crop { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; width: 100%; }
 .agent-preset-icon-crop canvas { width: min(192px, 100%); height: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-soft); }
 .agent-preset-icon-crop__controls { display: flex; flex-direction: column; flex: 1 1 120px; min-width: 0; gap: 8px; }

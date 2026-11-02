@@ -1,12 +1,15 @@
-import { useEffect, useId, useRef, useState } from "react";
-import { Upload } from "lucide-react";
+import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import { Shuffle, Upload } from "lucide-react";
 import { useT } from "../lib/i18n";
 import { decodePresetIcon, drawPresetIcon, isPresetIconImage, PRESET_ICON_SIZE } from "../lib/agentPresetImage";
 import { AGENT_PRESET_ICONS, AgentPresetIcon, DEFAULT_AGENT_PRESET_ICON } from "./AgentPresetIcon";
 
-export function AgentPresetIconPicker({ icon, image, disabled, onChange, onEditingChange }: {
-  icon?: string; image?: string; disabled: boolean;
-  onChange: (icon: string, image: string) => void;
+const COLORS = { default: "", red: "#fb7185", orange: "#fb923c", yellow: "#fbbf24", green: "#4ade80",
+  teal: "#2dd4bf", blue: "#60a5fa", purple: "#c084fc", pink: "#f472b6", gray: "#94a3b8" };
+
+export function AgentPresetIconPicker({ icon, image, color, disabled, onChange, onEditingChange }: {
+  icon?: string; image?: string; color?: string; disabled: boolean;
+  onChange: (icon: string, image: string, color: string) => void;
   onEditingChange: (editing: boolean) => void;
 }) {
   const t = useT();
@@ -52,7 +55,7 @@ export function AgentPresetIconPicker({ icon, image, disabled, onChange, onEditi
       drawPresetIcon(canvas, source, zoom, x, y);
       const value = canvas.toDataURL("image/png");
       if (!isPresetIconImage(value)) throw new Error("invalid image");
-      onChange("", value); cancel();
+      onChange("", value, ""); cancel();
     } catch { setError(t("agentPresets.iconDecodeError")); }
   };
   return <div className="agent-preset-icon-picker" aria-busy={loading}>
@@ -60,11 +63,23 @@ export function AgentPresetIconPicker({ icon, image, disabled, onChange, onEditi
       {Object.keys(AGENT_PRESET_ICONS).map(key => <button type="button" key={key} role="radio"
         aria-checked={!image && (icon || DEFAULT_AGENT_PRESET_ICON) === key} aria-label={key} title={key} disabled={disabled}
         className={`agent-preset-editor__icon${!image && (icon || DEFAULT_AGENT_PRESET_ICON) === key ? " agent-preset-editor__icon--on" : ""}`}
-        onClick={() => { cancel(); onChange(key === DEFAULT_AGENT_PRESET_ICON ? "" : key, ""); }}><AgentPresetIcon icon={key} /></button>)}
+        onClick={() => { cancel(); onChange(key === DEFAULT_AGENT_PRESET_ICON ? "" : key, "", color || ""); }}><AgentPresetIcon icon={key} color={color} size={26} /></button>)}
       {image && <button type="button" role="radio" aria-checked="true" aria-label={t("agentPresets.customIcon")} disabled={disabled}
         className="agent-preset-editor__icon agent-preset-editor__icon--on"><AgentPresetIcon image={image} size={24} /></button>}
     </div>
+    {!image && <div className="agent-preset-icon-picker__colors" role="radiogroup" aria-label={t("agentPresets.iconColor")}>
+      {Object.entries(COLORS).map(([key, value]) => <button type="button" key={key} role="radio" disabled={disabled}
+        aria-label={t(`agentPresets.color.${key as keyof typeof COLORS}`)} aria-checked={(color || "") === value}
+        title={t(`agentPresets.color.${key as keyof typeof COLORS}`)} className="agent-preset-icon-picker__color"
+        style={{ "--preset-color": value || "var(--accent)" } as CSSProperties}
+        onClick={() => { cancel(); onChange(icon || "", "", value); }} />)}
+    </div>}
     <div className="agent-preset-icon-picker__actions">
+      <button type="button" className="btn btn--small" disabled={disabled} onClick={() => {
+        const keys = Object.keys(AGENT_PRESET_ICONS);
+        const colors = Object.values(COLORS);
+        cancel(); onChange(keys[Math.floor(Math.random() * keys.length)], "", colors[Math.floor(Math.random() * colors.length)]);
+      }}><Shuffle size={14} aria-hidden="true" />{t("agentPresets.randomIcon")}</button>
       <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" hidden disabled={disabled}
         aria-label={t("agentPresets.uploadIcon")} onChange={event => {
           const file = event.currentTarget.files?.[0]; event.currentTarget.value = "";
@@ -74,7 +89,7 @@ export function AgentPresetIconPicker({ icon, image, disabled, onChange, onEditi
         <Upload size={14} aria-hidden="true" />{t(image ? "agentPresets.replaceIcon" : "agentPresets.uploadIcon")}
       </button>
       {!!image && <button type="button" className="btn btn--small" disabled={disabled}
-        onClick={() => { cancel(); onChange("", ""); }}>{t("agentPresets.resetIcon")}</button>}
+        onClick={() => { cancel(); onChange("", "", ""); }}>{t("agentPresets.resetIcon")}</button>}
     </div>
     <span className="set-hint">{t("agentPresets.uploadIconHint")}</span>
     {loading && <span role="status">{t("agentPresets.iconLoading")}</span>}

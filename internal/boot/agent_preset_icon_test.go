@@ -11,6 +11,7 @@ func TestAgentPresetIconsDoNotChangeRuntimeFingerprintOrPrompt(t *testing.T) {
 	preset.ID, preset.Body = "reviewer", "Review carefully."
 	fingerprint, prompt := agentPresetFingerprint(preset), preset.Apply("Base instructions")
 	preset.Icon, preset.IconImage = "search", "data:image/png;base64,display-only"
+	preset.IconColor = "#60a5fa"
 	if agentPresetFingerprint(preset) != fingerprint || preset.Apply("Base instructions") != prompt {
 		t.Fatal("display-only icon changed the runtime fingerprint or prompt")
 	}

@@ -57,7 +57,7 @@ export function AgentPresetChoice({ tabId, sessionKey, current, locked = false, 
       <span>
         <ComposerChoice label={loading && !view ? t("agentPresets.loading") : name}
           ariaLabel={`${t("agentPresets.picker")}: ${name}${isLocked ? ` · ${t("agentPresets.locked")}` : ""}`}
-          icon={isLocked ? <LockKeyhole size={16} aria-hidden="true" /> : <AgentPresetIcon icon={preset?.icon} image={preset?.iconImage} />}
+          icon={isLocked ? <LockKeyhole size={16} aria-hidden="true" /> : <AgentPresetIcon icon={preset?.icon} image={preset?.iconImage} color={preset?.iconColor} />}
           showChevron={!isLocked} value={selected} disabled={disabled || pending || loading && !view || isLocked}
           dismissSignal={dismissSignal} onPick={id => void choose(id)}
           actions={[{ label: t("agentPresets.createFromPicker"), icon: <Plus size={16} aria-hidden="true" />, onSelect: () => {
@@ -67,7 +67,7 @@ export function AgentPresetChoice({ tabId, sessionKey, current, locked = false, 
           } }]}
           options={(view?.presets ?? []).map(item => ({ value: item.id, label: item.id === "default" ? t("agentPresets.default") : item.name,
             description: item.id === "default" ? t("agentPresets.defaultDescription") : item.description,
-            badge: t(`agentPresets.scope.${item.scope}`), icon: <AgentPresetIcon icon={item.icon} image={item.iconImage} /> }))} />
+            badge: t(`agentPresets.scope.${item.scope}`), icon: <AgentPresetIcon icon={item.icon} image={item.iconImage} color={item.iconColor} /> }))} />
       </span>
     </Tooltip>
     {isLocked && <span className="sr-only">{t("agentPresets.lockedHint")}</span>}

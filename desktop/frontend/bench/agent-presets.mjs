@@ -33,6 +33,31 @@ try {
   await page.waitForFunction(() => document.activeElement?.id.endsWith("-name"));
   console.log("PASS picker action opens the creation form and focuses its name");
   await editor.getByLabel("Name", { exact: true }).fill("Custom avatar");
+
+  const modes = editor.getByRole("radiogroup", { name: "Prompt mode", exact: true });
+  assert.equal(await modes.getByRole("radio").count(), 3);
+  assert.equal(await editor.getByRole("switch", { name: "Include runtime context", exact: true }).isVisible(), false);
+  await modes.getByRole("radio", { name: "Custom complete system prompt", exact: true }).check();
+  assert.equal(await editor.getByRole("button", { name: "Save", exact: true }).isDisabled(), true, "empty complete prompt blocks save");
+  await editor.getByLabel("System prompt (required)", { exact: true }).fill("Retain this draft across modes.");
+  await modes.getByRole("radio", { name: "Replace coding instructions", exact: true }).check();
+  assert.equal(await editor.getByLabel("Coding instructions (required)").inputValue(), "Retain this draft across modes.");
+  await editor.locator(".agent-preset-advanced summary").press("Enter");
+  const context = editor.getByRole("switch", { name: "Include runtime context", exact: true });
+  await context.press("Space");
+  assert.equal(await context.isChecked(), false, "context switch is keyboard accessible");
+  await modes.getByRole("radio", { name: "Extend default instructions (recommended)", exact: true }).check();
+  assert.equal(await context.isChecked(), false, "mode changes retain runtime setting");
+  await editor.getByLabel("Role instructions (optional)").fill("");
+  assert.equal(await editor.getByRole("button", { name: "Save", exact: true }).isEnabled(), true);
+  await context.check();
+  await editor.locator(".agent-preset-advanced summary").press("Enter");
+  const restrict = editor.getByRole("switch", { name: "Restrict available tools", exact: true });
+  await restrict.press("Space");
+  await editor.getByRole("button", { name: "Choose tools (0 selected)", exact: true }).waitFor();
+  await restrict.uncheck();
+  assert.equal(await editor.getByRole("button", { name: "Choose tools (0 selected)", exact: true }).count(), 0);
+  console.log("PASS three prompt modes, dynamic required body, advanced disclosure and keyboard switches");
   assert.equal(await editor.getByLabel("ID", { exact: true }).inputValue(), "custom-avatar");
   await editor.getByLabel("ID", { exact: true }).fill("avatar-manual");
   await editor.getByLabel("Name", { exact: true }).fill("Custom avatar renamed");
@@ -119,9 +144,22 @@ try {
   await page.evaluate(() => window.releasePresetImage());
   assert.equal(await page.locator(".agent-preset-icon-crop").count(), 0, "late decode cannot reopen crop");
   assert.equal(await page.getByRole("radio", { name: "search", exact: true }).getAttribute("aria-checked"), "true");
+  await editor.getByRole("radiogroup", { name: "Icon color", exact: true }).getByRole("radio", { name: "Blue", exact: true }).click();
   await page.getByRole("form").getByRole("button", { name: "Save", exact: true }).click();
   await row.waitFor();
   assert.equal(await row.locator("img").count(), 0, "reset and built-in choice persist");
+  assert.equal(await row.locator(".agent-preset-row__icon svg").evaluate(node => getComputedStyle(node).color), "rgb(96, 165, 250)", "chosen color persists in list");
+  await row.getByRole("button", { name: "Copy", exact: true }).click();
+  assert.equal(await editor.getByRole("radiogroup", { name: "Icon color", exact: true }).getByRole("radio", { name: "Blue", exact: true }).getAttribute("aria-checked"), "true", "copy retains color");
+  await editor.getByRole("button", { name: "Random", exact: true }).click();
+  assert.equal(await editor.locator('.agent-preset-editor__icons [aria-checked="true"]').count(), 1, "random chooses one built-in glyph");
+  assert.equal(await editor.locator('.agent-preset-icon-picker__colors [aria-checked="true"]').count(), 1, "random chooses one palette color");
+  if (evidence) {
+    await page.screenshot({ path: path.join(evidence, "icon-grid-prompt-modes.png"), fullPage: true });
+    await page.setViewportSize({ width: 800, height: 1000 });
+    await page.waitForFunction(() => document.documentElement.scrollWidth <= innerWidth);
+    await page.screenshot({ path: path.join(evidence, "preset-compact.png"), fullPage: true });
+  }
   assert.deepEqual(errors, []);
   console.log("PASS preset picker creation, keyboard navigation, image crop/save/copy/readback, upload validation, cancel/reset and stale decode");
 } finally {
