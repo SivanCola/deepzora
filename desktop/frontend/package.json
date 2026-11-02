@@ -49,6 +49,7 @@
     "test:composer": "node scripts/run-ci-tests.mjs --group composer",
     "test:composer-browser": "node bench/composer-transcript-stability.mjs",
     "test:popover-browser": "node bench/anchored-popover-lifecycle.mjs",
+    "test:agent-presets-browser": "node bench/agent-presets.mjs",
     "test:popover-electron": "node bench/anchored-popover-lifecycle.mjs --electron",
     "test": "node scripts/run-ci-tests.mjs",
     "test:performance": "node scripts/run-ci-tests.mjs --group performance",

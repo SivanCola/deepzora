@@ -2,13 +2,14 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { AnchoredPopover } from "./AnchoredPopover";
 
-export function ComposerChoice({ label, ariaLabel, icon, showChevron, value, options, disabled, dismissSignal, onPick, tone }: {
+export function ComposerChoice({ label, ariaLabel, icon, showChevron, value, options, actions, disabled, dismissSignal, onPick, tone }: {
   label: string;
   ariaLabel?: string;
   showChevron?: boolean;
   icon?: ReactNode;
   value: string;
   options: { value: string; label: string; badge?: string; description?: string; icon?: ReactNode; title?: string }[];
+  actions?: { label: string; icon?: ReactNode; onSelect: () => void }[];
   disabled?: boolean;
   dismissSignal?: number;
   onPick: (value: string) => void;
@@ -55,6 +56,12 @@ export function ComposerChoice({ label, ariaLabel, icon, showChevron, value, opt
             {option.description && <span className="composer-access-menu__desc">{option.description}</span>}</span>
           {value === option.value && <Check size={14} />}
         </button>)}
+        {!!actions?.length && <div className="composer-choice__actions" role="group">
+          {actions.map(action => <button key={action.label} type="button" role="menuitem" tabIndex={-1}
+            className="composer-access-menu__item" onClick={() => { closeAndFocus(); action.onSelect(); }}>
+            {action.icon}<span className="composer-access-menu__title">{action.label}</span>
+          </button>)}
+        </div>}
       </div>
     </AnchoredPopover>
   </>;

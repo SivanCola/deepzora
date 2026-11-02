@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
-import { agentPresetTools, nextAgentPresetCopyID, renderAgentPreset, type AgentPreset } from "../lib/agentPresets";
+import { AGENT_PRESET_ID_PATTERN, agentPresetTools, nextAgentPresetCopyID, suggestedAgentPresetID, renderAgentPreset, type AgentPreset } from "../lib/agentPresets";
 import { makeMockAgentPresetBindings } from "../lib/agentPresetMock";
 import type { TabMeta } from "../lib/types";
+import { isPresetIconImage, presetIconCrop } from "../lib/agentPresetImage";
 
 const special = { name: 'Reviewer: "safe"\n---', description: "true # comment\n&alias", body: "# Review\n\n---\nCheck everything.", keepCoding: false, complete: true, includeRuntimeContext: false, tools: ["read_*", "mcp:research"] };
 const content = renderAgentPreset(special);
@@ -15,11 +16,37 @@ assert.doesNotMatch(renderAgentPreset({ ...special, tools: null }), /^tools:/mu,
 assert.match(renderAgentPreset({ ...special, tools: [] }), /^tools: \[\]$/mu, "an explicit empty surface remains empty");
 assert.deepEqual(agentPresetTools("read_file, grep\nread_file\r\nmcp:research, \n"), ["read_file", "grep", "mcp:research"]);
 assert.equal(nextAgentPresetCopyID("review", [{ id: "review-copy" }, { id: "review-copy-2" }] as AgentPreset[]), "review-copy-3");
+assert.equal(suggestedAgentPresetID("Code Reviewer", "user", []), "code-reviewer");
+assert.equal(suggestedAgentPresetID("Café & Docs", "user", []), "cafe-docs");
+assert.equal(suggestedAgentPresetID("default", "user", []), "default-2");
+assert.equal(suggestedAgentPresetID("Review", "user", [{ id: "review", scope: "user" }, { id: "review-2", scope: "user" }] as AgentPreset[]), "review-3");
+assert.equal(suggestedAgentPresetID("Review", "project", [{ id: "review", scope: "user" }] as AgentPreset[]), "review", "project override remains possible");
+assert.equal(suggestedAgentPresetID("  ", "user", []), "");
+for (const name of ["代码审查员", "🎨", "a".repeat(100)]) {
+  const generated = suggestedAgentPresetID(name, "user", []);
+  assert.match(generated, AGENT_PRESET_ID_PATTERN);
+  assert.equal(suggestedAgentPresetID(name, "user", []), generated, "non-Latin fallback is deterministic");
+  assert.match(suggestedAgentPresetID(name, "user", [{ id: generated, scope: "user" }] as AgentPreset[]), AGENT_PRESET_ID_PATTERN);
+}
 
 let tabs = [{ id: "a", active: true, workspaceRoot: "/project-a", topicId: "blank", agentPreset: "default" },
   { id: "b", workspaceRoot: "/project-b", topicId: "blank" }] as TabMeta[];
 const changed: string[] = [];
 const mock = makeMockAgentPresetBindings({ tabs: () => tabs, update: tab => { tabs = tabs.map(item => item.id === tab.id ? tab : item); }, isBlank: id => id === "blank", changed: async id => { changed.push(id); } });
+const image = "data:image/png;base64,iVBORw0KGgo=";
+const withImage = await mock.SaveAgentPreset("a", "user", "avatar", renderAgentPreset({ ...special, icon: "search", iconImage: image, iconColor: "#60a5fa" }));
+assert.equal(withImage.iconColor, "#60a5fa");
+await assert.rejects(mock.SaveAgentPreset("a", "user", "bad-color", renderAgentPreset({ ...special, iconColor: "url(https://example.com/)" })), /Invalid icon color/u);
+assert.equal(withImage.iconImage, image);
+assert.equal(withImage.icon, "search", "mock and backend preserve glyph fallback alongside custom images");
+const imageCopy = await mock.SaveAgentPreset("a", "user", "avatar-copy", renderAgentPreset(withImage));
+await mock.DeleteAgentPreset("a", "user", "avatar");
+assert.equal(imageCopy.iconImage, image, "copies embed their own image");
+assert.equal(isPresetIconImage("https://example.com/avatar.png"), false);
+assert.equal(isPresetIconImage("data:image/svg+xml;base64,PHN2Zy8+"), false);
+assert.equal(isPresetIconImage("data:image/png;base64," + "A".repeat(128 * 1024)), false);
+assert.deepEqual(presetIconCrop(400, 200, 1, 50, 50), { side: 200, left: 100, top: 0 });
+assert.deepEqual(presetIconCrop(400, 200, 2, 100, 100), { side: 100, left: 300, top: 100 });
 const saved = await mock.SaveAgentPreset("a", "user", "review", content);
 assert.deepEqual({ name: saved.name, description: saved.description, body: saved.body, keepCoding: saved.keepCoding, complete: saved.complete, includeRuntimeContext: saved.includeRuntimeContext, tools: saved.tools }, special, "canonical YAML preserves prompt options, special scalars and persona body");
 const legacy = await mock.SaveAgentPreset("a", "user", "legacy", '---\nname: "Legacy"\n---\n');

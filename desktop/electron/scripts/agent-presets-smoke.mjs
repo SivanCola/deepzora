@@ -102,12 +102,12 @@ try {
   assert.equal(await editor().getByLabel("ID", { exact: true }).inputValue(), "default-copy");
   await editor().getByLabel("Name", { exact: true }).fill("Native reviewer");
   await editor().getByLabel("ID", { exact: true }).fill("native-reviewer");
-  await editor().getByLabel("Description", { exact: true }).fill("Native preset acceptance");
-  await editor().getByLabel("Persona body", { exact: true }).fill("NATIVE_PERSONA_FIRST");
-  await editor().getByLabel("Complete system prompt", { exact: true }).check();
-  await editor().getByLabel("Include runtime context", { exact: true }).uncheck();
-  assert.equal(await editor().getByRole("button", { name: "Keep", exact: true }).isDisabled(), true);
-  await editor().getByLabel("Restrict available tools", { exact: true }).check();
+  await editor().getByLabel("Summary (optional)", { exact: true }).fill("Native preset acceptance");
+  await editor().getByRole("radio", { name: "Custom complete system prompt", exact: true }).check();
+  await editor().getByLabel("System prompt (required)", { exact: true }).fill("NATIVE_PERSONA_FIRST");
+  await editor().locator(".agent-preset-advanced summary").click();
+  await editor().getByRole("switch", { name: "Include runtime context", exact: true }).uncheck();
+  await editor().getByRole("switch", { name: "Restrict available tools", exact: true }).check();
   await page.screenshot({ path: join(home, "preset-editor.png") });
   await editor().getByRole("button", { name: "Save", exact: true }).click();
   await row("Native reviewer").waitFor();
@@ -170,7 +170,7 @@ try {
   check("first native turn sends only the complete body, required cwd and admitted schemas, then locks the picker");
   await settings();
   await row("Native reviewer").getByRole("button", { name: "Edit", exact: true }).click();
-  await editor().getByLabel("Persona body", { exact: true }).fill("NATIVE_PERSONA_LATEST");
+  await editor().getByLabel("System prompt (required)", { exact: true }).fill("NATIVE_PERSONA_LATEST");
   await editor().getByRole("button", { name: "Save", exact: true }).click();
   await row("Native reviewer").waitFor();
   await composer();

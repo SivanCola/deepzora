@@ -69,6 +69,8 @@ func resolveAgentPreset(ctx context.Context, root string, opts Options, sink eve
 func agentPresetFingerprint(p agentpreset.Preset) string {
 	// The icon is display-only; changing it must not look like a runtime change.
 	p.Icon = ""
+	p.IconImage = ""
+	p.IconColor = ""
 	return p.ID + "\x00" + agentpreset.Render(p)
 }
 

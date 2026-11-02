@@ -33,6 +33,8 @@ type Preset struct {
 	Name                  string   `json:"name"`
 	Description           string   `json:"description"`
 	Icon                  string   `json:"icon,omitempty"`
+	IconImage             string   `json:"iconImage,omitempty"`
+	IconColor             string   `json:"iconColor,omitempty"`
 	Body                  string   `json:"body"`
 	KeepCoding            bool     `json:"keepCoding"`
 	Complete              bool     `json:"complete"`
@@ -70,6 +72,7 @@ var idPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,63}$`)
 // iconPattern bounds the icon key; which keys render is the authoring
 // surface's choice, so an unknown key falls back to its default glyph.
 var iconPattern = regexp.MustCompile(`^[a-z][a-z0-9-]{0,31}$`)
+var iconColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 
 // ValidID checks the id before it becomes a file name, so no path is ever
 // assembled from untrusted input.
@@ -193,6 +196,8 @@ type fileMeta struct {
 	Name                  string    `yaml:"name"`
 	Description           string    `yaml:"description"`
 	Icon                  string    `yaml:"icon"`
+	IconImage             string    `yaml:"icon-image"`
+	IconColor             string    `yaml:"icon-color"`
 	KeepCoding            *bool     `yaml:"keep-coding-instructions"`
 	Complete              *bool     `yaml:"complete"`
 	IncludeRuntimeContext *bool     `yaml:"include-runtime-context"`
@@ -217,6 +222,14 @@ func Parse(id, text string) (Preset, error) {
 		}
 		p.Icon = icon
 	}
+	if err := validateIconImage(meta.IconImage); err != nil {
+		return Preset{}, err
+	}
+	p.IconImage = meta.IconImage
+	if meta.IconColor != "" && !iconColorPattern.MatchString(meta.IconColor) {
+		return Preset{}, errors.New("icon-color: expected a six-digit hex color")
+	}
+	p.IconColor = meta.IconColor
 	if meta.KeepCoding != nil {
 		p.KeepCoding = *meta.KeepCoding
 	}
@@ -279,6 +292,12 @@ func Render(p Preset) string {
 	}
 	if p.Icon != "" {
 		fmt.Fprintf(&b, "icon: %s\n", yamlScalar(p.Icon))
+	}
+	if p.IconImage != "" {
+		fmt.Fprintf(&b, "icon-image: %s\n", yamlScalar(p.IconImage))
+	}
+	if p.IconColor != "" {
+		fmt.Fprintf(&b, "icon-color: %s\n", yamlScalar(p.IconColor))
 	}
 	if !p.KeepCoding {
 		b.WriteString("keep-coding-instructions: false\n")
