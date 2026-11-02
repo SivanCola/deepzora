@@ -7,6 +7,8 @@ import { makeMockAgentPresetBindings } from "./agentPresetMock";
 import { mockProviderTemplate, mockPreset, mockBundlePreset, mockKimiAPIModels, mockLongCatModels, mockTokenRhythmModels, mockTokenRhythmModelOverrides, mockMiMoDefaults, mockMiniMaxModels, mockGLMAPIModels, mockGLMCodingModels, mockGLMAnthropicModels, mockQwenAPIModels, mockQwenPlanModels, mockQwenPlanVisionModels, mockStepFunModels, mockOpenCodeGoModels, mockNovitaModels, mockGMIModels, mockVercelModels, mockOllamaCloudModels } from "./mockProviderTemplates";
 // The Electron host and the browser mock share this React-to-Go contract.
 import type {
+  BackgroundJobInspection,
+  SubagentRunView,
   CancelReceipt,
   ChatFileReferenceRequest,
   ChatFileReferenceResult,
@@ -349,6 +351,12 @@ export interface AppBindings extends AttachmentBindings, SessionExportBindings, 
   Jobs(): Promise<JobView[]>;
   OpenTaskSessionForTab(tabID: string, taskID: string): Promise<ControlResult>;
   JobsForTab(tabID: string): Promise<JobView[]>;
+  InspectBackgroundJobForTab(tabID: string, jobID: string): Promise<BackgroundJobInspection>;
+  ListSubagentRunsForTab(tabID: string): Promise<SubagentRunView[]>;
+  ReadSubagentHistoryForTab(tabID: string, childRef: string, request: HistoryWindowRequest): Promise<HistoryWindowPage>;
+  ReadSubagentMessageForTab(tabID: string, childRef: string, messageID: string, version: number, offset: number): Promise<{ text: string; nextOffset: number }>;
+  CancelSubagentForTab(tabID: string, childRef: string): Promise<boolean>;
+  RunWorkspaceGitActionForTab(tabID: string, workspaceRoot: string, action: string, message: string): Promise<string>;
   CancelJob(jobID: string): Promise<boolean>;
   CancelJobForTab(tabID: string, jobID: string): Promise<boolean>;
   CancelJobsForTab(tabID: string, jobIDs: string[]): Promise<JobCancelBatchView>;
@@ -445,7 +453,6 @@ export interface AppBindings extends AttachmentBindings, SessionExportBindings, 
   GitBranchesForTab(tabID: string, workspaceRoot: string): Promise<string[]>;
   GitCheckoutForTab(tabID: string, workspaceRoot: string, branch: string): Promise<void>;
   GitCreateBranchForTab(tabID: string, workspaceRoot: string, name: string): Promise<void>;
-  WorkspaceGitStatsForTab(tabID: string, workspaceRoot: string): Promise<WorkspaceChangesView>;
   WorkspaceGitHistory(tabID: string, path: string): Promise<GitCommitView[]>;
   WorkspaceGitCommitDetail(tabID: string, hash: string, path: string): Promise<GitCommitDetailView>;
   OpenWorkspacePathForTab(tabID: string, rel: string): Promise<void>;
@@ -2949,6 +2956,16 @@ function makeMockApp(): MockAppBindings {
           async JobsForTab() {
             return this.Jobs();
           },
+          async InspectBackgroundJobForTab(_tabID: string, jobID: string) {
+            return { id: jobID, kind: "bash", label: "Background command", status: "done", output: "Command completed successfully.\n" };
+          },
+          async ListSubagentRunsForTab() { return []; },
+          async ReadSubagentHistoryForTab() {
+            return { messages: [], status: "ready", snapshotSequence: 0, coverageSequence: 0, totalTurns: 0, hasOlder: false, hasNewer: false };
+          },
+          async CancelSubagentForTab() { return true; },
+          async ReadSubagentMessageForTab() { return { text: "Child conversation message", nextOffset: 0 }; },
+          async RunWorkspaceGitActionForTab(_tabID: string, _root: string, action: string) { return `Git ${action} completed`; },
           async CancelJob() {
             return false;
           },
@@ -3597,6 +3614,8 @@ function makeMockApp(): MockAppBindings {
       return {
         gitAvailable: true,
         gitBranch: "main",
+        added: 223,
+        removed: 0,
         files: [
           {
             path: "desktop/frontend/src/components/WorkspacePanel.tsx",
@@ -3630,7 +3649,6 @@ function makeMockApp(): MockAppBindings {
     async GitBranchesForTab(_tabID: string, _workspaceRoot: string) { return this.GitBranches(); },
     async GitCheckoutForTab(_tabID: string, _workspaceRoot: string, branch: string) { await this.GitCheckout(branch); },
     async GitCreateBranchForTab(_tabID: string, _workspaceRoot: string, name: string) { await this.GitCreateBranch(name); },
-    async WorkspaceGitStatsForTab(tabID: string, _workspaceRoot: string) { return this.WorkspaceChanges(tabID); },
     async GitCheckout(_branch: string) {
       console.info("mock GitCheckout", _branch);
     },

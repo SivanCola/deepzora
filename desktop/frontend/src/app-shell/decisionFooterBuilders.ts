@@ -323,7 +323,7 @@ export function buildComposerSurface(input: ComposerSurfaceInput): DecisionFoote
       sessionKey: input.sessionKey,
       inboxSessionPath: sessionIdentityRoute(input.tab),
       workspaceScopeKey: input.workspaceScopeKey,
-      // Match the workspace launcher's ownership boundary: project/branch
+      // Match the workspace branch menu's ownership boundary: project/branch
       // selection configures a new empty session. Once the transcript has
       // content, the session keeps its established workspace and the composer
       // returns to the compact follow-up layout.

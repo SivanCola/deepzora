@@ -92,6 +92,13 @@ func (t *TaskTool) FailedSubagentResult(run *SubagentRun, cause error) (string, 
 	return subErr.SubagentOutput(), errors.Join(subErr, saveErr)
 }
 
+func (t *TaskTool) failSubagentWithLifecycle(run *SubagentRun, cause error, sink event.Sink, parentID, name, model, effort string) (string, error) {
+	result, err := t.FailedSubagentResult(run, cause)
+	phase, outcome := terminalSubagentLifecycle(err)
+	emitSubagentLifecycle(sink, phase, parentID, name, model, effort, run, outcome)
+	return result, err
+}
+
 // failBeforeSubagentRelease preserves the run envelope on setup failures that
 // occur after a reference was allocated but before the normal RunProfileSpec
 // cleanup/defer is installed.

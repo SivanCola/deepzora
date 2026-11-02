@@ -66,12 +66,27 @@ try {
   const draftAfterModel = await composer.inputValue();
   assert(draftAfterModel === 'layout-owned draft' && JSON.stringify(transcriptAfterModel) === JSON.stringify(transcriptBeforeModel),
     'real model selection preserves source transcript, Composer draft and writable readiness');
-  // The current workspace starts with the launcher. Open Overview through
-  // its user-facing entry before exercising the dock tabs and file preview.
-  await page.locator('.dock-launcher').getByRole('button', { name: 'Overview', exact: true }).click();
+  // Open the workspace through its titlebar button before exercising tabs.
+  const dockToggle = page.locator('.topicbar__chrome-btn--workspace');
+  if (await dockToggle.getAttribute('aria-pressed') === 'false') await dockToggle.click();
   await page.getByRole('tab', { name: 'Overview', exact: true }).waitFor();
   assert(await page.getByRole('tab', { name: 'Overview', exact: true }).count() === 1,
-    'workspace launcher opens one Overview tab');
+    'workspace panel opens one Overview tab');
+  await page.locator('.workspace-changes-badge').click();
+  const statusPanel = page.getByRole('dialog', { name: 'Session status', exact: true });
+  await statusPanel.waitFor();
+  assert((await statusPanel.innerText()).includes('Environment / Git')
+    && (await statusPanel.innerText()).includes('Background terminals')
+    && (await statusPanel.innerText()).includes('Workflows / Automations')
+    && (await statusPanel.innerText()).includes('Subagents'), 'summary pill expands the integrated status sections');
+  if (process.env.DEEPZORA_STATUS_SCREENSHOT) {
+    await page.mouse.move(40, 40);
+    await page.screenshot({ path: process.env.DEEPZORA_STATUS_SCREENSHOT, animations: 'disabled' });
+  }
+  await statusPanel.locator('.conversation-status-row').filter({ hasText: /^Changes/ }).click();
+  await page.getByRole('tab', { name: 'Changes', exact: true }).waitFor();
+  assert(await page.getByRole('tab', { name: 'Changes', exact: true }).count() === 1,
+    'status changes action opens the existing Changes dock');
   if (await page.getByRole('tab', { name: 'Files', exact: true }).count() === 0) {
     await page.locator('.workbench-dock__tab-add').click();
     await page.locator('.tab-add-menu__item', { hasText: 'Files' }).first().click();

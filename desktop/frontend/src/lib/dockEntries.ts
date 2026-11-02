@@ -1,11 +1,5 @@
-// dockEntries lists the right-dock entry points shown in the floating launcher
-// and used to map an entry id to its default tab: an id, a translated label
-// key, and the default tab type each entry opens. Kept icon-free so the
-// composition layer can import it synchronously without pulling lucide into
-// the initial bundle — DockLauncher (lazy) attaches the icons.
-//
-// DockLauncher hides the changed (改动) entry for non-git projects, and the branch
-// row only renders when the active workspace reports a git branch.
+// Entry configuration for the workspace tab picker and tab labels. Kept
+// icon-free so the composition layer can import it synchronously.
 
 import type { TabType } from "../store/activityBar";
 

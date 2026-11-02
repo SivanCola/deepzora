@@ -727,6 +727,8 @@ func (t *TaskTool) RunProfileSpec(ctx context.Context, spec ProfileExecSpec) (re
 		mutationObserver = t.mutationObserver.CloneForSubagent(recoveryTaskID, turn, backgroundWriter)
 	}
 	runSession := func(runCtx context.Context, sink event.Sink, writerAlreadyRegistered bool) (string, error) {
+		runCtx, cancelRun := run.CancellableContext(runCtx)
+		defer cancelRun()
 		if mutationObserver != nil && backgroundWriter && !writerAlreadyRegistered {
 			turn := mutationObserver.OwnershipTurn()
 			if err := mutationObserver.RegisterWriter(recoveryTaskID, "background_subagent", turn); err != nil {
@@ -757,17 +759,11 @@ func (t *TaskTool) RunProfileSpec(ctx context.Context, spec ProfileExecSpec) (re
 	emitSubagentLifecycle(parentSink, "child_running", parentID, spec.Worker.Name, usageModelRef, effortRef, run, nil)
 	answer, err := runSession(ctx, trk.wrap(), false)
 	if err != nil {
-		result, runErr := t.FailedSubagentResult(run, err)
-		phase, outcome := terminalSubagentLifecycle(runErr)
-		emitSubagentLifecycle(parentSink, phase, parentID, spec.Worker.Name, usageModelRef, effortRef, run, outcome)
-		return result, runErr
+		return t.failSubagentWithLifecycle(run, err, parentSink, parentID, spec.Worker.Name, usageModelRef, effortRef)
 	}
 	if t.transcripts != nil && run.Ref != "" {
 		if err := t.transcripts.SaveCompleted(run); err != nil {
-			result, runErr := t.FailedSubagentResult(run, err)
-			phase, outcome := terminalSubagentLifecycle(runErr)
-			emitSubagentLifecycle(parentSink, phase, parentID, spec.Worker.Name, usageModelRef, effortRef, run, outcome)
-			return result, runErr
+			return t.failSubagentWithLifecycle(run, err, parentSink, parentID, spec.Worker.Name, usageModelRef, effortRef)
 		}
 		emitSubagentLifecycle(parentSink, "child_completed", parentID, spec.Worker.Name, usageModelRef, effortRef, run, &SubagentOutcome{Status: SubagentOutcomeCompleted, FinalAnswer: answer})
 		return FormatSubagentRunResult(answer, run, false), nil
@@ -819,6 +815,8 @@ func (t *TaskTool) runBackgroundProfileSpec(ctx context.Context, spec ProfileExe
 	slotReq := acquireReq
 	trk.queued()
 	job, startErr := jm.TryStartForSession(jobs.SessionFromContext(ctx), "task", label, func(jobCtx context.Context, _ io.Writer) (result string, err error) {
+		jobCtx, cancelRun := run.CancellableContext(jobCtx)
+		defer cancelRun()
 		if writerRegistered {
 			defer mutationObserver.UnregisterWriter(recoveryTaskID)
 		}

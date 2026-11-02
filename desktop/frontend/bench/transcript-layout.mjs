@@ -75,13 +75,11 @@ try {
       const chat = document.querySelector(".chat-pane");
       const content = document.querySelector(".transcript-navigation-content");
       const transcript = document.querySelector(".transcript");
-      const launcher = document.querySelector(".dock-launcher");
       return { viewport: innerWidth, chat: rect(chat), content: rect(content),
         documentWidth: document.documentElement.scrollWidth,
         dockOpen: document.querySelector(".layout").classList.contains("layout--workspace-open"),
         clientWidth: transcript.clientWidth, scrollWidth: transcript.scrollWidth,
-        userBubbles: [...document.querySelectorAll(".msg--user .msg__body")].map(rect),
-        launcher: launcher ? rect(launcher) : null };
+        userBubbles: [...document.querySelectorAll(".msg--user .msg__body")].map(rect) };
     });
     samples.push({ label, ...sample });
     if (sample.scrollWidth > sample.clientWidth + 1) console.error(label, sample, await page.locator(".chat-flow-scroll").evaluate(root => [...root.querySelectorAll("*")].filter(el => el.getBoundingClientRect().right > root.getBoundingClientRect().right + 1).slice(0, 12).map(el => ({ class: el.className, width: el.getBoundingClientRect().width, css: { width: getComputedStyle(el).width, minWidth: getComputedStyle(el).minWidth, padding: getComputedStyle(el).padding, box: getComputedStyle(el).boxSizing, overflow: getComputedStyle(el).overflow } }))));
@@ -91,10 +89,6 @@ try {
     for (const bubble of sample.userBubbles) {
       assert.ok(bubble.left >= sample.content.left - 1 && bubble.right <= sample.content.right + 1, label + ": complete user bubble fits");
     }
-    if (sample.launcher) {
-      assert.ok(sample.launcher.right <= sample.chat.right + 1, label + ": launcher fits");
-      if (!sample.dockOpen) assert.ok(sample.content.right <= sample.launcher.left + 1, label + ": launcher and history do not overlap");
-    }
     return sample;
   };
   // This first case is the original full-width disappearing-message regression.
@@ -103,34 +97,25 @@ try {
     for (const width of ["standard", "full"]) {
       for (const viewport of [760, 820, 1000, 1280, 1920]) {
         await setViewport({ width: viewport, height: 1080 });
-        await configure({ layout, width, sidebar: true, dock: false, launcher: false });
+        await configure({ layout, width, sidebar: true, dock: false });
         await measure(`${layout}/${width}/${viewport}`);
       }
     }
   }
   await setViewport({ width: 1920, height: 1080 });
   for (const sidebar of [false, true]) for (const dock of [false, true]) {
-    await configure({ sidebar, dock, launcher: true });
+    await configure({ sidebar, dock });
     await measure(`sidebar=${sidebar}/dock=${dock}`);
   }
-  await configure({ layout: "workbench", sidebar: false, dock: false, launcher: true });
-  // Account for native DPI rounding and the chat pane's border when straddling
-  // the CSS threshold; assert against the actual rendered surface.
+  await configure({ sidebar: false, dock: false });
   for (const width of [1006, 1010, 1014]) {
     await setViewport({ width, height: 1080 });
-    await page.waitForFunction(() => document.querySelector(".chat-pane").getBoundingClientRect().width >= innerWidth - 2);
-    const surfaceWidth = await page.locator(".chat-pane").evaluate(element => element.getBoundingClientRect().width);
-    if (width < 1010) assert.ok(surfaceWidth < 1010, "fixture reaches below launcher threshold");
-    if (width > 1010) assert.ok(surfaceWidth > 1010, `fixture reaches above launcher threshold: window=${width}, surface=${surfaceWidth}`);
-    await page.waitForFunction(hidden => Boolean(document.querySelector(".dock-launcher")) !== hidden, surfaceWidth < 1010).catch(async error => {
-      console.error("launcher threshold geometry", await page.evaluate(() => ({ innerWidth, devicePixelRatio, mode: document.documentElement.dataset.dockLauncher,
-        surface: document.querySelector(".chat-pane")?.getBoundingClientRect().width,
-        launcherParent: document.querySelector(".dock-launcher")?.parentElement?.getBoundingClientRect().width })));
-      throw error;
-    });
-    await measure("launcher threshold " + width);
+    await measure("compact chat " + width);
   }
-  await configure({ launcher: false });
+  // Finish the sidebar/dock transitions before measuring shifts caused by
+  // replacing message content alone.
+  await page.waitForFunction(() => document.getAnimations().every(animation =>
+    animation.playState !== "running" || animation.effect?.getComputedTiming().iterations === Infinity));
   await page.evaluate(() => {
     window.layoutMotion = { active: true, widths: [] };
     const sample = () => {

@@ -3206,6 +3206,95 @@ a[href] {
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
+.workspace-changes-bar {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 16px 0;
+  min-width: 0;
+}
+
+.workspace-changes-badge {
+  --deepzora-draggable: no-drag;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  max-width: 100%;
+  padding: 4px 11px;
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  background: var(--bg-elev);
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--fg) 8%, transparent);
+}
+
+.workspace-changes-badge:hover {
+  background: color-mix(in srgb, var(--fg) 6%, var(--bg-elev));
+}
+
+.workspace-changes-badge:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.workspace-changes-badge__added { color: var(--ok); }
+.workspace-changes-badge__removed { color: var(--danger); }
+.workspace-changes-badge__estimate { color: var(--fg-dim); }
+
+.conversation-status { flex: 0 0 auto; min-width: 0; }
+.conversation-status-trigger > span { overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+.conversation-status-popover {
+  width: min(320px, calc(100vw - 24px));
+  max-height: min(680px, calc(100dvh - 80px));
+  overflow: hidden;
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  background: var(--bg-elev);
+  color: var(--fg);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--fg) 14%, transparent);
+}
+.conversation-status-panel { display: flex; flex-direction: column; max-height: inherit; font-size: 12px; }
+.conversation-status-panel > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--border-soft); }
+.conversation-status-panel__sections { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 4px 8px 10px; }
+.conversation-status-section { border-bottom: 1px solid var(--border-soft); padding: 5px 0; }
+.conversation-status-section:last-child { border-bottom: 0; }
+.conversation-status-section > summary { padding: 8px 6px; cursor: pointer; font-weight: 600; }
+.conversation-status-section > summary > span { float: right; color: var(--fg-dim); font-variant-numeric: tabular-nums; }
+.conversation-status-section__body { padding: 0 4px 5px; }
+.conversation-status-row { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; padding: 7px 6px; border: 0; border-radius: 6px; background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer; }
+.conversation-status-row > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.conversation-status-row__trailing { margin-left: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.conversation-status-row:hover:not(:disabled) { background: color-mix(in srgb, var(--fg) 6%, var(--bg-elev)); }
+.conversation-status-row:disabled { cursor: default; opacity: 0.55; }
+.conversation-status-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0; }
+.conversation-status-actions button, .conversation-status-git-actions button, .conversation-status-output > button, .conversation-status-icon {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 5px 8px; border: 1px solid var(--border-soft); border-radius: 6px; background: var(--bg); color: inherit; font: inherit; cursor: pointer;
+}
+.conversation-status-panel button:disabled { cursor: default; opacity: 0.5; }
+.conversation-status-panel button:focus-visible, .conversation-status-panel summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.conversation-status-panel input { box-sizing: border-box; min-width: 0; width: 100%; padding: 7px 8px; margin: 5px 0; border: 1px solid var(--border-soft); border-radius: 6px; background: var(--bg); color: inherit; font: inherit; }
+.conversation-status-branch-menu { max-height: 230px; overflow: auto; padding: 4px; background: var(--bg); border-radius: 8px; }
+.conversation-status-git-actions > summary, .conversation-status-item > summary { padding: 7px 6px; cursor: pointer; }
+.conversation-status-item { padding: 3px 0 7px; border-top: 1px solid var(--border-soft); }
+.conversation-status-item > summary > small { float: right; color: var(--fg-dim); }
+.conversation-status-note { margin: 5px 4px; color: var(--fg-dim); font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.conversation-status-objective { margin: 5px 4px; line-height: 1.6; overflow-wrap: anywhere; }
+.conversation-status-plan, .conversation-status-output pre, .conversation-status-message pre { max-height: 240px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0; padding: 8px; border-radius: 6px; background: var(--bg); font-family: var(--mono); font-size: 11px; line-height: 1.6; }
+.conversation-status-message { padding: 7px 0; border-bottom: 1px solid var(--border-soft); }
+.conversation-status-message small { color: var(--fg-dim); }
+.conversation-status-todos { list-style: none; margin: 4px 0; padding: 0; }
+.conversation-status-todos li { display: flex; gap: 8px; align-items: flex-start; padding: 6px 4px; line-height: 1.5; }
+.conversation-status-todos li > :first-child { flex: 0 0 13px; width: 13px; height: 13px; margin-top: 2px; }
+.conversation-status-todos li[data-status="completed"] { color: var(--fg-dim); }
+.conversation-status-todos li[data-status="completed"] > svg { color: var(--ok); }
+.conversation-status-todo--active { border-radius: 50%; background: var(--accent); }
+
 .transcript-shell {
   position: relative;
   flex: 1 1 auto;
@@ -3218,9 +3307,6 @@ a[href] {
   min-height: 0;
   height: 100%;
   display: flex;
-  /* Row layout so the dock launcher (rendered before the content) occupies
-     the right edge and PUSHES the transcript history left into the remaining
-     space — the two never overlap. */
   flex-direction: row;
 }
 .transcript-navigation-content {
@@ -33320,7 +33406,7 @@ body > .mermaid-diagram--fullscreen {
 }
 :root .composer-choice--permission-read-only { color: var(--composer-permission-ask); }
 :root .composer-choice--permission-danger-full-access { color: var(--err); }
-/* Right-dock launcher + tab container (ported from the right-dock redesign). */
+/* Right-dock tab container. */
 
 
 .context-menu__item > .context-menu__chevron {
@@ -33329,40 +33415,6 @@ body > .mermaid-diagram--fullscreen {
   color: var(--fg-faint);
   font-size: 13px;
   pointer-events: none;
-}
-
-
-/* Floating launcher card (悬浮工作区面板) show/hide toggle. Lives in the
-   topic bar's actions row while the dock is collapsed (tight after the
-   command palette button). The chevron reflects the card's state: left (show)
-   when dismissed, right (hide) when visible. */
-.app__launcher-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  --deepzora-draggable: no-drag;
-  pointer-events: auto;
-}
-
-.app__launcher-toggle .topicbar__chrome-btn {
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-.app__launcher-toggle .topicbar__chrome-btn:hover:not(:disabled),
-.app__launcher-toggle .topicbar__chrome-btn:focus-visible:not(:disabled) {
-  background: color-mix(in srgb, var(--fg) 10%, var(--bg-elev)) !important;
-  color: var(--fg) !important;
-}
-
-.app__launcher-toggle .topicbar__chrome-btn--launcher:not(:hover):not(:focus-visible) {
-  color: var(--fg-faint);
-}
-
-.app__launcher-toggle .topicbar__chrome-btn--launcher.topicbar__chrome-btn--active {
-  background: color-mix(in srgb, var(--fg) 10%, var(--bg-elev)) !important;
-  color: var(--fg) !important;
 }
 
 
@@ -33470,332 +33522,6 @@ body > .mermaid-diagram--fullscreen {
   background: var(--bg-elev);
   color: var(--fg);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16);
-}
-
-
-/* --- Dock launcher: workspace panel docked to the RIGHT of the transcript.
-   It is a layout sibling of the transcript content (not an overlay): it
-   consumes the right margin and the history column flows in the remaining
-   space. Rounded card with a title header, icon rows and trailing chevrons;
-   hides entirely when the surface is too narrow. --- */
-.dock-launcher {
-  --deepzora-draggable: no-drag;
-  position: relative;
-  z-index: var(--z-local-popover);
-  order: 2;
-  flex: 0 0 auto;
-  align-self: flex-start;
-  margin: 8px 8px 0 0;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  width: 232px;
-  padding: 6px;
-  border-radius: 14px;
-  background: var(--bg-elev);
-  border: 1px solid var(--border-soft);
-}
-
-
-.dock-launcher__header {
-  display: flex;
-  align-items: center;
-  padding: 6px 10px 5px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--fg-faint);
-  user-select: none;
-}
-
-
-.dock-launcher__entry {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 34px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--fg);
-  cursor: pointer;
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 520;
-  white-space: nowrap;
-  text-align: left;
-}
-
-
-.dock-launcher__entry:hover {
-  background: var(--bg-hover, rgba(128, 128, 128, 0.08));
-}
-
-
-.dock-launcher__entry svg {
-  color: var(--fg-dim);
-  flex: 0 0 auto;
-}
-
-
-.dock-launcher__entry-label {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  /* Long text clips flat at the row edge (reference: pill chips cut at the
-     window margin) — no ellipsis, no pre-edge fade. */
-}
-
-
-.dock-launcher__entry-chevron {
-  color: var(--fg-faint);
-  opacity: 0;
-  transition: opacity 120ms ease;
-}
-
-
-.dock-launcher__entry:hover .dock-launcher__entry-chevron,
-.dock-launcher__entry:focus-visible .dock-launcher__entry-chevron {
-  opacity: 1;
-}
-
-
-.dock-launcher__entry-stats {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-  font-family: var(--mono);
-  font-size: 11px;
-  white-space: nowrap;
-}
-
-
-.dock-launcher__entry-stats-added {
-  color: var(--ok);
-}
-
-
-.dock-launcher__entry-stats-removed {
-  color: var(--danger);
-}
-
-
-.dock-launcher__entry-stats + .dock-launcher__entry-chevron {
-  margin-left: 2px;
-}
-
-
-/* The docked launcher consumes the transcript's right edge, so EVERY footer
-   panel (composer, todo bar, rewind banner, decision cards) reserves the same
-   inset and lines up with the history bubbles: footer keeps its 32px left
-   pad, rows keep their 32px inline pad, and children mirror the launcher's
-   width+margin (232+8) on the right. Applied as margin on the children — NOT
-   footer padding — because later .footer shorthand rules would reset
-   padding-right. Creation-hero layout is centered and excluded. */
-/* The docked launcher consumes the transcript's right edge, so the footer
-   reserves the same inset on ITS OWN box: 240px (launcher 232 + margin 8)
-   plus the shared inline pad. The inset must be footer PADDING, not margins
-   on the children — todo bar, rewind banner, prompt-shelf/decision cards all
-   center themselves with `margin: X auto`, and overriding one side of that
-   shorthand with margin-right made `margin-left: auto` absorb the free space
-   and shoved the panel to the column's right edge. With the inset on the
-   footer, every child resolves its own centering against the same content
-   box as the history rows. Higher specificity than the themed .footer
-   shorthand rules, which would otherwise reset padding-right; creation-hero
-   layout centers itself and is excluded. */
-html[data-dock-launcher="full"] .app:not(.app--creation) .layout:not(.layout--workspace-open) .footer {
-  padding-right: calc(240px + var(--transcript-inline-pad, 16px));
-}
-
-/* While the dock column is open the card overlays the transcript instead of
-   competing for the already-narrow chat column; no space is reserved for it,
-   which is why the footer inset above skips this state. */
-.layout--workspace-open .dock-launcher {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  margin: 0;
-  z-index: var(--z-local-popover);
-}
-
-
-/* Branch row: click to open the inline branch switcher. */
-.dock-launcher__branch-wrap {
-  position: relative;
-}
-
-
-/* The wrap is a plain block, so the button inside shrink-to-fits and stops
-   short of the card edge — force it full width or the chevron floats far
-   from the right border. */
-.dock-launcher__branch-wrap > .dock-launcher__entry {
-  width: 100%;
-}
-
-
-.dock-launcher__entry--open {
-  background: var(--bg-hover, rgba(128, 128, 128, 0.08));
-}
-
-
-.dock-launcher__entry-chevron--down {
-  margin-left: auto;
-  opacity: 1;
-  transform: rotate(90deg);
-}
-
-
-/* The switcher opens to the LEFT of the launcher (ChatGPT reference), not
-   below it: the launcher hugs the window's right edge, so leftward is where
-   the room is. Top-aligned with the branch row. */
-.dock-launcher__branch-menu {
-  position: absolute;
-  top: 0;
-  right: calc(100% + 6px);
-  z-index: var(--z-local-popover);
-  width: 248px;
-  max-height: 320px;
-  overflow: auto;
-  padding: 6px;
-  border-radius: 10px;
-  background: var(--bg-elev);
-  border: 1px solid var(--border-soft);
-}
-
-
-.dock-launcher__branch-search {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  height: 30px;
-  margin-bottom: 4px;
-  padding: 0 8px;
-  border-radius: 8px;
-  border: 1px solid var(--border-soft);
-  color: var(--fg-faint);
-}
-
-
-.dock-launcher__branch-search:focus-within {
-  border-color: var(--border);
-}
-
-
-.dock-launcher__branch-search input {
-  flex: 1 1 auto;
-  min-width: 0;
-  border: 0;
-  background: transparent;
-  color: var(--fg);
-  font: inherit;
-  font-size: 12.5px;
-  outline: none;
-}
-
-
-.dock-launcher__branch-search input::placeholder {
-  color: var(--fg-faint);
-}
-
-
-.dock-launcher__branch-section {
-  padding: 4px 8px;
-  font-size: 11px;
-  color: var(--fg-faint);
-  user-select: none;
-}
-
-
-.dock-launcher__branch-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  max-height: 200px;
-  overflow: auto;
-}
-
-
-.dock-launcher__branch-create {
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px solid var(--border-soft);
-}
-
-
-.dock-launcher__branch-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  height: 30px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--fg);
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  white-space: nowrap;
-  text-align: left;
-}
-
-
-.dock-launcher__branch-item:hover:not(:disabled) {
-  background: var(--bg-hover, rgba(128, 128, 128, 0.08));
-}
-
-
-.dock-launcher__branch-item:disabled {
-  cursor: default;
-  opacity: 0.6;
-}
-
-
-.dock-launcher__branch-item--active {
-  color: var(--fg);
-  font-weight: 600;
-}
-
-
-.dock-launcher__branch-item-name {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  /* Clip flat at the menu edge, same as launcher rows. */
-}
-
-
-.dock-launcher__branch-item svg {
-  color: var(--ok);
-  flex: 0 0 auto;
-}
-
-
-.dock-launcher__branch-menu-note {
-  padding: 6px 8px;
-  font-size: 11.5px;
-  color: var(--fg-faint);
-}
-
-
-.dock-launcher__branch-menu-note--err {
-  color: var(--danger);
-  overflow-wrap: anywhere;
-}
-
-
-.dock-launcher__branch-menu-spinner {
-  width: 12px;
-  height: 12px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  border: 1.5px solid var(--border-soft);
-  border-top-color: var(--fg-dim);
-  animation: spin 0.8s linear infinite;
 }
 
 

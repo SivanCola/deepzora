@@ -1310,6 +1310,35 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/conversation_status.go",
+      "name": "CancelSubagentForTab",
+      "owner": "App.CancelSubagentForTab",
+      "params": [
+        {
+          "kind": "string"
+        },
+        {
+          "kind": "string"
+        }
+      ],
+      "result": {
+        "kind": "boolean"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "tabID",
+          "childRef"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.CancelSubagentForTab"
+      },
+      "sources": [
+        "desktop/conversation_status.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/app.go",
       "name": "CancelTab",
       "owner": "App.CancelTab",
@@ -4244,6 +4273,36 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/conversation_status.go",
+      "name": "InspectBackgroundJobForTab",
+      "owner": "App.InspectBackgroundJobForTab",
+      "params": [
+        {
+          "kind": "string"
+        },
+        {
+          "kind": "string"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.BackgroundJobInspection"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "tabID",
+          "jobID"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.InspectBackgroundJobForTab"
+      },
+      "sources": [
+        "desktop/conversation_status.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/topic_removal.go",
       "name": "InspectTopicRemoval",
       "owner": "App.InspectTopicRemoval",
@@ -4798,6 +4857,35 @@
       },
       "sources": [
         "desktop/session_history_listing.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/conversation_status.go",
+      "name": "ListSubagentRunsForTab",
+      "owner": "App.ListSubagentRunsForTab",
+      "params": [
+        {
+          "kind": "string"
+        }
+      ],
+      "result": {
+        "elem": {
+          "kind": "object",
+          "ref": "main.SubagentRunView"
+        },
+        "kind": "array"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "tabID"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.ListSubagentRunsForTab"
+      },
+      "sources": [
+        "desktop/conversation_status.go"
       ]
     },
     {
@@ -7200,6 +7288,83 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/conversation_status.go",
+      "name": "ReadSubagentHistoryForTab",
+      "owner": "App.ReadSubagentHistoryForTab",
+      "params": [
+        {
+          "kind": "string"
+        },
+        {
+          "kind": "string"
+        },
+        {
+          "kind": "object",
+          "ref": "session.HistoryWindowRequest"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "session.HistoryWindowPage"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "tabID",
+          "childRef",
+          "request"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.ReadSubagentHistoryForTab"
+      },
+      "sources": [
+        "desktop/conversation_status.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/conversation_status.go",
+      "name": "ReadSubagentMessageForTab",
+      "owner": "App.ReadSubagentMessageForTab",
+      "params": [
+        {
+          "kind": "string"
+        },
+        {
+          "kind": "string"
+        },
+        {
+          "kind": "string"
+        },
+        {
+          "kind": "integer"
+        },
+        {
+          "kind": "integer"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.SubagentMessageText"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "tabID",
+          "childRef",
+          "messageID",
+          "version",
+          "offset"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.ReadSubagentMessageForTab"
+      },
+      "sources": [
+        "desktop/conversation_status.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/attachment_targets.go",
       "name": "RebindDraftImageForTarget",
       "owner": "App.RebindDraftImageForTarget",
@@ -9091,6 +9256,43 @@
       },
       "sources": [
         "desktop/app.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/conversation_status.go",
+      "name": "RunWorkspaceGitActionForTab",
+      "owner": "App.RunWorkspaceGitActionForTab",
+      "params": [
+        {
+          "kind": "string"
+        },
+        {
+          "kind": "string"
+        },
+        {
+          "kind": "string"
+        },
+        {
+          "kind": "string"
+        }
+      ],
+      "result": {
+        "kind": "string"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "tabID",
+          "workspaceRoot",
+          "action",
+          "message"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.RunWorkspaceGitActionForTab"
+      },
+      "sources": [
+        "desktop/conversation_status.go"
       ]
     },
     {
@@ -13625,36 +13827,6 @@
       },
       "sources": [
         "desktop/workspace_changes.go"
-      ]
-    },
-    {
-      "cancellation": "before-dispatch",
-      "domain": "desktop/workspace_git_branches.go",
-      "name": "WorkspaceGitStatsForTab",
-      "owner": "App.WorkspaceGitStatsForTab",
-      "params": [
-        {
-          "kind": "string"
-        },
-        {
-          "kind": "string"
-        }
-      ],
-      "result": {
-        "kind": "object",
-        "ref": "main.WorkspaceChangesView"
-      },
-      "returnsError": true,
-      "scope": {
-        "inputs": [
-          "tabID",
-          "workspaceRoot"
-        ],
-        "kind": "owner-inputs",
-        "resolver": "App.WorkspaceGitStatsForTab"
-      },
-      "sources": [
-        "desktop/workspace_git_branches.go"
       ]
     },
     {
@@ -19532,6 +19704,40 @@
               "kind": "string"
             },
             "kind": "array"
+          }
+        }
+      ]
+    },
+    "main.BackgroundJobInspection": {
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "kind",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "label",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "status",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "output",
+          "type": {
+            "kind": "string"
           }
         }
       ]
@@ -29594,6 +29800,22 @@
         }
       ]
     },
+    "main.SubagentMessageText": {
+      "fields": [
+        {
+          "name": "text",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "nextOffset",
+          "type": {
+            "kind": "integer"
+          }
+        }
+      ]
+    },
     "main.SubagentProfileInput": {
       "fields": [
         {
@@ -29651,6 +29873,53 @@
           "name": "scope",
           "type": {
             "kind": "string"
+          }
+        }
+      ]
+    },
+    "main.SubagentRunView": {
+      "fields": [
+        {
+          "name": "ref",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "name",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "kind",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "status",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "outcome",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "createdAt",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "updatedAt",
+          "type": {
+            "kind": "integer"
           }
         }
       ]

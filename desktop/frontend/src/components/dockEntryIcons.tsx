@@ -1,6 +1,5 @@
-// Icons for the dock's entry points, shared by the floating launcher and the
-// tab picker. Kept out of lib/dockEntries so that module stays icon-free for
-// the synchronous composition imports; both consumers here are lazy.
+// Icons for workspace tabs and the tab picker, kept separate from the
+// synchronous entry configuration.
 import { Activity, FileDiff, FileText } from "lucide-react";
 import type { ComponentType } from "react";
 import type { TabType } from "../store/activityBar";

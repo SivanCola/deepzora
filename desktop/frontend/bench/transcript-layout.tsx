@@ -1,7 +1,6 @@
 import { useLayoutEffect, useMemo, useState, type CSSProperties } from "react";
 import { createRoot } from "react-dom/client";
 import { ChatPaneRegion, type ChatPaneTranscriptInput } from "../src/app-shell/ChatPaneRegion";
-import { DockLauncher } from "../src/components/DockLauncher";
 import { initialState, type Item } from "../src/lib/useController";
 import { applyConversationWidth } from "../src/lib/conversationWidth";
 import { LocaleProvider, useT } from "../src/lib/i18n";
@@ -13,7 +12,6 @@ type Options = {
   width: "standard" | "full";
   sidebar: boolean;
   dock: boolean;
-  launcher: boolean;
   long: boolean;
   turns: number;
   text: string | null;
@@ -31,7 +29,7 @@ declare global {
   }
 }
 
-// Only the backend boundary is stubbed: layout, launcher, projection, windowing
+// Only the backend boundary is stubbed: layout, projection, windowing
 // and message/code rendering below are the production components and stylesheet.
 installDesktopHostStub({
   ReportFrontendDiagnostic: async () => {},
@@ -54,7 +52,7 @@ const commands = {
 function Fixture() {
   const t = useT();
   const [options, setOptions] = useState<Options>({
-    layout: "workbench", width: "full", sidebar: true, dock: false, launcher: false, long: true, turns: 2, text: null, streaming: false, shell: false,
+    layout: "workbench", width: "full", sidebar: true, dock: false, long: true, turns: 2, text: null, streaming: false, shell: false,
   });
   const [revision, setRevision] = useState(0);
   const items = useMemo(() => Array.from({ length: options.turns }, (_, index): Item[] => [
@@ -91,9 +89,7 @@ function Fixture() {
       <aside className="sidebar">Sidebar</aside>
       <div className="chat-pane">
         <ChatPaneRegion t={t} commands={commands}
-          transcript={transcript} onRetryHistory={async () => {}}
-          launcher={options.launcher ? <DockLauncher tabId="layout-fixture" scopeKey="layout-fixture"
-            workspaceRoot="" visible onSelect={noAction} overlay={options.dock} /> : undefined} />
+          transcript={transcript} onRetryHistory={async () => {}} />
         <footer className="footer"><div className="composer-wrap"><textarea aria-label="Draft" defaultValue="Draft remains inside the chat pane" /></div></footer>
       </div>
       {options.dock && <aside className="workbench-dock" style={{ gridColumn: 3, gridRow: 2 }}>Workspace</aside>}

@@ -21,6 +21,7 @@ const emptySnapshot = (): WorkspaceRefreshSnapshot => EMPTY_SNAPSHOT;
 const snapshots = new Map<string, WorkspaceRefreshSnapshot>();
 const listeners = new Map<string, Set<() => void>>();
 const activeScopeByTab = new Map<string, string>();
+const activeConsumers = new Map<string, number>();
 
 function key(tabId: string, scopeKey: string): string {
   return `${tabId}\u0000${scopeKey}`;
@@ -112,6 +113,7 @@ export function disposeWorkspaceRefreshStore(): void {
   snapshots.clear();
   listeners.clear();
   activeScopeByTab.clear();
+  activeConsumers.clear();
 }
 
 export function useWorkspaceRefresh(tabId: string, scopeKey: string, enabled: boolean): WorkspaceRefreshSnapshot {
@@ -137,6 +139,7 @@ export function useWorkspaceRefresh(tabId: string, scopeKey: string, enabled: bo
 
   useEffect(() => {
     if (!enabled) return;
+    activeConsumers.set(snapshotKey, (activeConsumers.get(snapshotKey) ?? 0) + 1);
     activeScopeByTab.set(tabId, scopeKey);
     ensureEvents();
     let live = true;
@@ -156,9 +159,14 @@ export function useWorkspaceRefresh(tabId: string, scopeKey: string, enabled: bo
     }).catch(() => undefined);
     return () => {
       live = false;
-      if (activeScopeByTab.get(tabId) === scopeKey) activeScopeByTab.delete(tabId);
+      const remaining = (activeConsumers.get(snapshotKey) ?? 1) - 1;
+      if (remaining > 0) activeConsumers.set(snapshotKey, remaining);
+      else {
+        activeConsumers.delete(snapshotKey);
+        if (activeScopeByTab.get(tabId) === scopeKey) activeScopeByTab.delete(tabId);
+      }
     };
-  }, [enabled, scopeKey, tabId]);
+  }, [enabled, scopeKey, snapshotKey, tabId]);
 
   return snapshot;
 }

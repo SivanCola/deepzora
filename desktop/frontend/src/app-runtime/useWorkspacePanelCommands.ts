@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { useCommittedCommand } from "../lib/useCommittedCommand";
 import { DOCK_ENTRIES } from "../lib/dockEntries";
-import { resolveLauncherCardState, type SpaceMode } from "../lib/launcherCardState";
 import type { Translator } from "../lib/i18n";
 import { loadWorkspacePanelOpen, saveWorkspacePanelOpen, useLayoutStore } from "../store/layout";
 import { dockModeForTab, selectRightDockMode, useActivityBarStore, type RightDockMode, type TabType } from "../store/activityBar";
@@ -14,9 +13,6 @@ type Input = {
   closeOverlays: () => void;
   clearLiveWidth: (width: null) => void;
   setTreeWidth: (width: number) => void;
-  /** True while the dock column occupies grid space: the card then overlays
-   *  the transcript instead of taking layout space from it. */
-  gridOpen: boolean;
   t: Translator;
 };
 
@@ -29,7 +25,7 @@ function tabForDockMode(mode: RightDockMode): TabType {
   }
 }
 
-// Browser tabs have no launcher entry, so they carry their own label key; every other tab type is labelled by its DOCK_ENTRIES entry.
+// Resolve the label for each workspace tab from its entry configuration.
 function labelKeyForTab(type: TabType): string {
   if (type === "browser") return "rightDock.browser";
   return DOCK_ENTRIES.find(entry => entry.defaultTab === type)?.labelKey ?? "workspace.filesTab";
@@ -43,25 +39,6 @@ export function useWorkspacePanelCommands(input: Input) {
   const noteLayoutChoice = () => {
     if (input.globalWorkspace && !input.workspaceRoot) unboundLayoutTouched.current = true;
   };
-  // The floating launcher card is on screen only while the dock column is
-  // collapsed, the surface is wide enough and the user has not dismissed it —
-  // one shared decision for the card's render condition and the toggle's
-  // pressed state.
-  const [launcherDismissed, setLauncherDismissed] = useState(false);
-  const [launcherSpaceMode, setLauncherSpaceMode] = useState<SpaceMode>("full");
-  // The narrow-surface yield only matters while the card takes layout space
-  // from the chat column; over an open dock it overlays and never squeezes.
-  const launcherCardSpaceMode = input.gridOpen ? "full" : launcherSpaceMode;
-  const launcherCard = resolveLauncherCardState({ spaceMode: launcherCardSpaceMode, dismissed: launcherDismissed });
-  // The card stays mounted whenever it could be shown, even while the space
-  // mode hides it: only the mounted card measures its host, so unmounting on
-  // "hidden" would leave the toggle permanently unable to bring it back.
-  const launcherCardMounted = !launcherDismissed;
-  // Opening the panel replaces the card on screen; the toggle can still summon
-  // it back over the panel afterwards.
-  useEffect(() => {
-    if (input.gridOpen) setLauncherDismissed(true);
-  }, [input.gridOpen]);
   const openRightDockMode = useCommittedCommand((requestedMode?: RightDockMode) => {
     noteLayoutChoice();
     input.closeOverlays();
@@ -95,13 +72,6 @@ export function useWorkspacePanelCommands(input: Input) {
     if (state.workspaceRoot !== previous.workspaceRoot || state.workspaceRoot !== input.workspaceRoot) return;
     if (previous.tabs.length > 0 && state.tabs.length === 0) closeWorkspacePanel();
   }), [input.workspaceRoot, closeWorkspacePanel]);
-  // The toggle owns the card and nothing else — the dock panel has its own
-  // button. It is inert only while the surface is too narrow for the card to
-  // occupy space at all.
-  const toggleLauncherCard = useCallback(() => {
-    if (launcherCardSpaceMode === "hidden") return;
-    setLauncherDismissed((dismissed) => !dismissed);
-  }, [launcherCardSpaceMode]);
   const prepareBlankWorkspace = useCommittedCommand((workspaceRoot = input.workspaceRoot) => {
     unboundLayoutTouched.current = false;
     input.closeOverlays();
@@ -112,7 +82,7 @@ export function useWorkspacePanelCommands(input: Input) {
     // Seed the destination preference before project restoration can run.
     saveWorkspacePanelOpen(false, workspaceRoot);
   });
-  // Opening a launcher entry expands the dock to that entry's tab.
+  // The workspace tab picker opens the selected entry through the dock owner.
   const openDockEntry = useCommittedCommand((entryId: string) => {
     const entry = DOCK_ENTRIES.find(candidate => candidate.id === entryId);
     if (!entry) return;
@@ -182,7 +152,5 @@ export function useWorkspacePanelCommands(input: Input) {
     openRightDockMode, closeWorkspacePanel, prepareBlankWorkspace, openDockEntry,
     toggleWorkspacePanel, toggleWorkspaceMaximized, handleWorkspacePreviewModeChange,
     restoreWorkspaceDockWidths,
-    launcherCard, launcherCardMounted, launcherCardOverlay: input.gridOpen,
-    toggleLauncherCard, setLauncherSpaceMode,
   };
 }

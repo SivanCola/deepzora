@@ -64,12 +64,10 @@ export function TopicbarActionsStack(props: {
   onCloseTasks: () => void;
   onOpenTaskSession: (tabID: string, taskID: string) => Promise<boolean>;
   dockToggle: ReactNode;
-  launcherToggle?: ReactNode;
 }) {
   const { t, activeTab } = props;
   return (
     <div className="topicbar__actions">
-      {props.launcherToggle}
       <TopicbarActionsRegion sessionIdentity={activeTab?.id}
         external={shouldMountExternalOpener(activeTab) && activeTab
           ? { tabId: activeTab.id, dismissSignal: props.dismissSignal } : undefined}

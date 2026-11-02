@@ -24,9 +24,9 @@ import { SidebarRegion } from "./SidebarRegion";
 import { TopicbarRegion } from "./TopicbarRegion";
 import { buildTopicbarView, TopicbarActionsStack } from "./TopicbarActionsStack";
 import { DockToggleButton } from "./DockToggleButton";
-import { LauncherToggleButton } from "./LauncherToggleButton";
 import { SessionStatusBanners } from "./SessionStatusBanners";
 import { ChatPaneRegion } from "./ChatPaneRegion";
+import { WorkspaceChangesProvider } from "../components/WorkspaceChangesProvider";
 import { DecisionFooterRegion } from "./DecisionFooterRegion";
 import { WorkspaceDockRegion } from "./WorkspaceDockRegion";
 import { AppBottomRegions } from "./AppBottomRegions";
@@ -38,7 +38,7 @@ import { buildComposerSurface, buildDecisionFooterSurface, buildFooterTodo, buil
 import { submitBlockReason } from "../lib/sessionAvailability";
 
 const WindowsWindowControls = lazy(() => import("./WindowsWindowControls").then((module) => ({ default: module.WindowsWindowControls })));
-const DockLauncher = lazy(() => import("../components/DockLauncher").then((module) => ({ default: module.DockLauncher })));
+const ConversationStatusPanel = lazy(() => import("../components/ConversationStatusPanel").then(module => ({ default: module.ConversationStatusPanel })));
 
 const WORKSPACE_RESIZER_WIDTH = 8;
 const SHOW_CONTEXT_DOCK = true;
@@ -192,6 +192,9 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
   return (
     <ShellExpandProvider>
     <UpdaterProvider>
+    <WorkspaceChangesProvider tabId={activeTabId ?? ""} scopeKey={session.workspaceScopeKey}
+      enabled={Boolean(activeTabId && controllerReady && !runtimeTransitioning && state.meta?.cwd && !shell.managementActive && !session.transcript.emptyHero)}
+      running={state.running}>
     <ShellHotkeys />
     <TextSizeHotkeys />
     <WindowChromeLifecycle />
@@ -265,11 +268,6 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
               onCloseTasks={() => local.setTasksOpen(false)}
               onOpenTaskSession={navigationCommands.openTaskMonitorSession}
               dockToggle={<DockToggleButton renderable={surfaceWorkspacePanelRenderable} t={t} onToggle={session.workspacePanelCommands.toggleWorkspacePanel} />}
-              launcherToggle={<LauncherToggleButton
-                visible={session.workspacePanelCommands.launcherCard.visible}
-                t={t}
-                onToggle={session.workspacePanelCommands.toggleLauncherCard}
-              />}
             />
           </TopicbarRegion>
 
@@ -289,22 +287,30 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
           startupError={navigationCommands.manualCreation && navigationCommands.manualCreation.operation?.phase !== "ready" ? undefined : state.meta?.startupErr}
           />
 
+          {!session.transcript.emptyHero && controllerReady && !runtimeTransitioning && <Suspense fallback={null}><ConversationStatusPanel
+            key={session.workspaceScopeKey}
+            tabId={activeTabId ?? ""}
+            scopeKey={session.workspaceScopeKey}
+            workspaceRoot={activeTab?.workspaceRoot || state.meta?.cwd || ""}
+            readOnly={Boolean(activeTab?.readOnly)}
+            running={state.running}
+            goal={state.meta?.goal || ""}
+            goalView={state.meta?.goalView}
+            goalRuntime={state.meta?.goalRuntime}
+            todos={session.todoPanel.todos}
+            planText={state.approval?.kind === "plan" ? state.approval.subject : undefined}
+            jobs={state.jobs}
+            tabs={session.tabMetas}
+            onPauseGoal={session.goalActions.pauseGoal}
+            onResumeGoal={session.goalActions.resumeGoal}
+            onContinueTodos={session.todoPanel.handleTodoContinue}
+            onOpenAutomation={() => shell.openPage({ kind: "automation" })}
+            onOpenTopic={(...args) => { void navigationCommands.handleOpenTopic(...args); }}
+            onCancelJob={session.controlCommands.cancelRuntimeJob}
+            onOpenChanges={() => session.workspacePanelCommands.openRightDockMode("changed")}
+          /></Suspense>}
           <ChatPaneRegion
             t={t}
-            launcher={session.workspacePanelCommands.launcherCardMounted ? (
-              <Suspense fallback={null}>
-                <DockLauncher
-                  tabId={activeTabId ?? ""}
-                  scopeKey={session.workspaceScopeKey}
-                  workspaceRoot={activeTab?.workspaceRoot ?? state.meta?.cwd ?? ""}
-                  visible={!shell.managementActive}
-                  onSelect={session.workspacePanelCommands.openDockEntry}
-                  gitBranch={state.meta?.gitBranch}
-                  onSpaceModeChange={session.workspacePanelCommands.setLauncherSpaceMode}
-                  overlay={session.workspacePanelCommands.launcherCardOverlay}
-                />
-              </Suspense>
-            ) : null}
             transcript={{
               state,
               items: session.transcript.visibleTranscriptItems,
@@ -496,6 +502,7 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
         />
       )}
     </div>
+    </WorkspaceChangesProvider>
     </UpdaterProvider>
     </ShellExpandProvider>
   );

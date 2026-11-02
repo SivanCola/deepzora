@@ -122,11 +122,29 @@ type transcript struct {
 	generation uint64
 	closed     bool
 	closeErr   error
+	cancel     context.CancelFunc
 }
 
 // Parent job lifecycle owns cancellation. This record-only execution binding
 // exists to fence competing continuations, not to introduce another task loop.
-func (t *transcript) Cancel() bool { return false }
+func (t *transcript) SetCancellation(cancel context.CancelFunc) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if !t.closed {
+		t.cancel = cancel
+	}
+}
+func (t *transcript) Cancel() bool {
+	t.mu.Lock()
+	cancel := t.cancel
+	closed := t.closed
+	t.mu.Unlock()
+	if cancel == nil || closed {
+		return false
+	}
+	cancel()
+	return true
+}
 func (t *transcript) Snapshot() session.RuntimeSnapshot {
 	return session.RuntimeSnapshot{Ref: t.runtime.Ref(), Phase: session.RuntimeRunning, Activity: "subagent"}
 }

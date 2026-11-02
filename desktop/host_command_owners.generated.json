@@ -696,6 +696,21 @@
       ]
     }
   },
+  "CancelSubagentForTab": {
+    "domain": "desktop/conversation_status.go",
+    "owner": "App.CancelSubagentForTab",
+    "sources": [
+      "desktop/conversation_status.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.CancelSubagentForTab",
+      "inputs": [
+        "tabID",
+        "childRef"
+      ]
+    }
+  },
   "CancelTab": {
     "domain": "desktop/app.go",
     "owner": "App.CancelTab",
@@ -2275,6 +2290,21 @@
       ]
     }
   },
+  "InspectBackgroundJobForTab": {
+    "domain": "desktop/conversation_status.go",
+    "owner": "App.InspectBackgroundJobForTab",
+    "sources": [
+      "desktop/conversation_status.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.InspectBackgroundJobForTab",
+      "inputs": [
+        "tabID",
+        "jobID"
+      ]
+    }
+  },
   "InspectTopicRemoval": {
     "domain": "desktop/topic_removal.go",
     "owner": "App.InspectTopicRemoval",
@@ -2552,6 +2582,20 @@
     "scope": {
       "kind": "owner-inputs",
       "resolver": "App.ListSessionsForTab",
+      "inputs": [
+        "tabID"
+      ]
+    }
+  },
+  "ListSubagentRunsForTab": {
+    "domain": "desktop/conversation_status.go",
+    "owner": "App.ListSubagentRunsForTab",
+    "sources": [
+      "desktop/conversation_status.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.ListSubagentRunsForTab",
       "inputs": [
         "tabID"
       ]
@@ -3821,6 +3865,40 @@
       ]
     }
   },
+  "ReadSubagentHistoryForTab": {
+    "domain": "desktop/conversation_status.go",
+    "owner": "App.ReadSubagentHistoryForTab",
+    "sources": [
+      "desktop/conversation_status.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.ReadSubagentHistoryForTab",
+      "inputs": [
+        "tabID",
+        "childRef",
+        "request"
+      ]
+    }
+  },
+  "ReadSubagentMessageForTab": {
+    "domain": "desktop/conversation_status.go",
+    "owner": "App.ReadSubagentMessageForTab",
+    "sources": [
+      "desktop/conversation_status.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.ReadSubagentMessageForTab",
+      "inputs": [
+        "tabID",
+        "childRef",
+        "messageID",
+        "version",
+        "offset"
+      ]
+    }
+  },
   "RebindDraftImageForTarget": {
     "domain": "desktop/attachment_targets.go",
     "owner": "App.RebindDraftImageForTarget",
@@ -4895,6 +4973,23 @@
       "inputs": [
         "tabID",
         "command"
+      ]
+    }
+  },
+  "RunWorkspaceGitActionForTab": {
+    "domain": "desktop/conversation_status.go",
+    "owner": "App.RunWorkspaceGitActionForTab",
+    "sources": [
+      "desktop/conversation_status.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.RunWorkspaceGitActionForTab",
+      "inputs": [
+        "tabID",
+        "workspaceRoot",
+        "action",
+        "message"
       ]
     }
   },
@@ -7287,21 +7382,6 @@
       "inputs": [
         "tabID",
         "path"
-      ]
-    }
-  },
-  "WorkspaceGitStatsForTab": {
-    "domain": "desktop/workspace_git_branches.go",
-    "owner": "App.WorkspaceGitStatsForTab",
-    "sources": [
-      "desktop/workspace_git_branches.go"
-    ],
-    "scope": {
-      "kind": "owner-inputs",
-      "resolver": "App.WorkspaceGitStatsForTab",
-      "inputs": [
-        "tabID",
-        "workspaceRoot"
       ]
     }
   },

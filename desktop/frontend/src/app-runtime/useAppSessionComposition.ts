@@ -568,7 +568,6 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
     visible: surfaceWorkspacePanelRenderable,
     closeOverlays: closeTransientOverlays, clearLiveWidth: setLiveWorkspacePanelRenderWidth,
     setTreeWidth: setRightDockTreeWidth,
-    gridOpen: surfaceWorkspacePanelGridOpen,
     t,
   });
   const { openRightDockMode } = workspacePanelCommands;
@@ -647,6 +646,7 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
     showChat: enterConversation,
   });
   return {
+    tabMetas,
     insertCommands,
     clearCommands,
     tabBarCommands,
