@@ -282,13 +282,18 @@ macOS 公证与 Windows 代码签名仍需各自的凭据。
 
 All releases and update artifacts use `SivanCola/deepzora`. The CLI reads
 `cli-latest.json` from GitHub latest, falling back to the repository's Releases
-API. Desktop reads `latest.json` from the same GitHub latest release. Stable
+API. Desktop clients containing the R2 transport read the unchanged official
+manifest from `https://downloads.deepzora.app/desktop/latest.json`, with GitHub
+latest as fallback. Their package/signature downloads also prefer exact
+immutable R2 paths, falling back to GitHub while retaining Minisign and SHA-256
+verification. Older clients continue to use GitHub. Stable
 promotion validates the Desktop manifest, attaches both pointers to the matching
 CLI release, and attaches the CLI pointer to the Desktop release before marking
 Desktop latest. The repository sidebar therefore opens the Desktop downloads.
 Recovery cannot move latest backward or overwrite a conflicting immutable manifest.
 
-发布与更新不依赖上游域名、R2 或 Cloudflare。完成正式发布后，GitHub latest 同时
+发布与更新不依赖上游域名。新版桌面客户端优先使用已验证的 R2 镜像，失败时回退
+GitHub；CLI 和旧版桌面客户端保留 GitHub 更新渠道。完成正式发布后，GitHub latest 同时
 提供 CLI 与桌面更新指针，仓库首页默认展示 Desktop Release；恢复旧版本不会回退
 最新版本或覆盖冲突文件。
 
@@ -301,9 +306,11 @@ Optional mirror diagnostics require your own `CLOUDFLARE_API_TOKEN` and
 `CLOUDFLARE_ZONE_NAME`, `CLOUDFLARE_DOWNLOAD_HOST`, `CLOUDFLARE_MANIFEST_URL`
 variables; mirror publishing additionally needs `R2_ACCESS_KEY_ID`,
 `R2_SECRET_ACCESS_KEY`, `R2_ACCOUNT_ID`, `R2_BUCKET`, and `R2_PUBLIC_BASE`.
-Leave `ENABLE_R2_MIRROR` unset for the GitHub-only update channel. Upstream artifact-run reuse and unsigned legacy exceptions are rejected.
+Leave `ENABLE_R2_MIRROR` unset unless intentionally maintaining the legacy mirror.
+Upstream artifact-run reuse and unsigned legacy exceptions are rejected.
 The legacy R2 mirror is opt-in only
-and is not required by Deepzora's GitHub update channel.
+and is separate from the current `ENABLE_R2_DOWNLOADS` workflow that publishes
+the verified download mirror, App pointer, and website pointer.
 
 Crash/metrics uploads are disabled until explicitly configured via
 `DEEPZORA_REPORT_ENDPOINT`, `DEEPZORA_TELEMETRY_ENDPOINT`, `DEEPZORA_PING_ENDPOINT`, or
@@ -315,9 +322,10 @@ upstream collector or guessed Deepzora domain is contacted by default.
 
 ## Deepzora rename and CI / 改名与 CI
 
-The canonical homepage is [deepzora.com](https://deepzora.com). See
-[domain setup](DOMAIN.md) for Tencent Cloud DNSPod and the pending hosting target.
-Releases and update pointers stay on GitHub until a download service exists.
+The official website is [deepzora.app](https://deepzora.app), hosted on Cloudflare
+Pages; see [website configuration](../website/README.md). GitHub remains the
+canonical release source, with verified downloads and the App update mirror on
+`downloads.deepzora.app`; see [the mirror runbook](R2_DOWNLOAD_MIRROR.md).
 
 Root and desktop Go modules, commands, npm package names, installers, app ID,
 project files, user directories, protocol handlers, release links, and tap links
