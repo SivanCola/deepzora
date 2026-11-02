@@ -81,15 +81,21 @@ Restrict R2 credentials to reading and writing `deepzora-releases`. The historic
 branch `main`, root `website`, build command `npm run check`, output `dist`.
 See [website configuration](../website/README.md) and [R2 configuration](R2_DOWNLOAD_MIRROR.md).
 
-**Windows release prerequisite, checked on 2026-11-02:** the three `CERTUM_*`
-Secrets above were not configured. The current
-[signing policy](../scripts/release-windows-policy.mjs) permits approved unsigned
-exceptions only for `0.0.1` and `0.0.2`; versions `0.0.3` and later require Certum.
-Configure valid signing credentials before preparing the next release, or the
-candidate job will fail with `Certum signing configuration is incomplete for this Windows version`.
-Recheck live settings and policy when releasing. A different signing solution
-requires a separately reviewed policy change; missing credentials do not enable
-an unsigned fallback, and old exceptions must not be copied without approval.
+**Check Windows signing policy for the target version:** the current
+[signing policy](../scripts/release-windows-policy.mjs) explicitly permits the
+maintainer-approved unsigned exceptions for stable `0.0.1`, `0.0.2` and `0.0.3`.
+Windows `0.0.3` does not require Certum configuration, but Minisign integrity
+signatures, provenance verification and native acceptance of the final installers
+remain mandatory. Keep the unknown-publisher and SmartScreen risks in the release
+notes. This exception does not cover prereleases or unlisted versions such as `0.0.4`.
+
+Before preparing each candidate, check the reviewed source policy and live
+configuration. Run `node scripts/release-windows-policy.mjs 0.0.3 stable` to inspect
+the target mode. A `certum` result requires all three `CERTUM_*` Secrets and a valid
+signing service; otherwise the job fails with
+`Certum signing configuration is incomplete for this Windows version`.
+Missing credentials never select an unsigned fallback. Adding an exception or
+changing the signing solution requires a separately reviewed policy change.
 
 ## 2. Prepare and review bilingual release notes
 
@@ -123,6 +129,10 @@ Rendering uses `GH_TOKEN`, or attempts `gh auth token` when it is unset; the acc
 must be able to read the referenced issues and PRs. Resolve authentication,
 rate-limit, or reference problems before proceeding instead of publishing
 incomplete notes without credits.
+
+Review the notes against every product change planned for the final release and
+its known issues. A `status: reviewed` field or a passing schema check does not
+prove coverage. Keep the date aligned with the actual release plan.
 
 ## 3. Prepare candidate packages
 
@@ -162,6 +172,13 @@ The ID format is `v0.0.3-<12-character source identity>-<12-character catalog di
 Copy it exactly; do not guess it from the version or use a rehearsal candidate for
 publication. Record the Product / Control SHAs from Candidate input and confirm
 the source includes the intended changes.
+
+If `main` gains code or notes intended for this release after candidate preparation,
+the existing candidate does not update automatically. Verify CI for the final
+source and prepare a new candidate from it; do not approve an older candidate that
+omits those changes. Later pushes changing only other files do not automatically
+prepare a candidate, so use the manual command above when needed. Record the final
+candidate source SHA and compare it with the intended release scope before publishing.
 
 Download the sealed installers from that run's Artifacts. Check installation,
 startup, version, main features, and upgrade paths for the intended release scope.

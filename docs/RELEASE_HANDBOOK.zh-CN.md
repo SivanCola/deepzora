@@ -69,12 +69,17 @@ R2 凭据仅允许读写 `deepzora-releases`。不要用历史变量 `ENABLE_R2_
 为 `main`、根目录 `website`、命令 `npm run check`、输出目录 `dist`；详见
 [官网配置](../website/README.md)和 [R2 配置](R2_DOWNLOAD_MIRROR.md)。
 
-**Windows 当前发布前置项（2026-11-02 核对）：**上述三个 `CERTUM_*` Secret 尚未配置。
-当前[签名策略](../scripts/release-windows-policy.mjs)只允许 `0.0.1`、`0.0.2`
-使用已批准的未签名例外，`0.0.3` 及之后版本要求 Certum。因此发布下一版前需要先
-补齐有效签名配置；否则候选任务会报 `Certum signing configuration is incomplete for
-this Windows version`。后续以实时设置与策略为准；更换签名方案需要独立修改并审核
-发布策略，不能靠缺少凭据自动降级，也不要直接复用旧版本的例外。
+**Windows 按目标版本核对签名策略：**当前
+[签名策略](../scripts/release-windows-policy.mjs)明确允许稳定版 `0.0.1`、`0.0.2`
+和 `0.0.3` 使用维护者批准的未签名例外。Windows `0.0.3` 不以配置 Certum 为前提，
+但仍必须通过 Minisign 完整性签名、来源验证和最终安装包的原生验收；发布说明须保留
+未知发布者与 SmartScreen 风险。该例外不适用于预发布版或 `0.0.4` 等未列出的版本。
+
+每次准备候选前，以已审核源码中的策略和实时配置为准，可运行
+`node scripts/release-windows-policy.mjs 0.0.3 stable` 核对目标模式。返回 `certum`
+时必须配置全部三个 `CERTUM_*` Secret 及有效签名服务，否则任务会报
+`Certum signing configuration is incomplete for this Windows version`。
+凭据缺失不会自动降级；新增例外或更换签名方案需要独立修改并审核发布策略。
 
 ## 二、准备并审核中英发布说明
 
@@ -104,6 +109,9 @@ node scripts/release-notes.mjs render --version "$release_version" --lang en --o
 打开生成文件人工审核后，经 PR 合并至 `main`。渲染时使用 `GH_TOKEN`，未设置时会
 尝试 `gh auth token`；账号需能读取相关 issue/PR。失败时先修复鉴权、限流或关联编号，
 不要发布缺少署名的半成品说明。
+
+审核应覆盖最终计划发布的所有产品改动及已知问题，不能仅凭 `status: reviewed`
+或结构校验通过判断说明已完整。发布日期应与本次发布计划一致。
 
 ## 三、准备候选安装包
 
@@ -138,6 +146,11 @@ gh run watch RUN_ID --repo SivanCola/deepzora --exit-status
 候选 ID 格式是 `v0.0.3-<12位源码标识>-<12位目录摘要>`。原样复制，不按版本号猜测，
 也不要拿 rehearsal 候选发版。记录 Candidate input 中的 Product / Control SHA，
 确认源码包含计划发布的修改。
+
+若准备候选后 `main` 又合入计划随本版发布的代码或说明，旧候选不会自动更新。
+重新核对最终源码的 CI，并从该源码准备新候选；不要批准缺少这些修改的旧候选。
+仅修改其他文件的后续推送不会触发候选自动构建，必要时使用上面的手动触发命令。
+发布前记录最终候选源码 SHA，与计划发布范围逐项核对。
 
 从该运行的 Artifacts 获取封存安装包，按发布范围检查安装、启动、版本号、主要功能
 和升级路径。人工发现问题时停止发布，修复后合入 `main` 并准备新候选。候选封存后
