@@ -6,6 +6,7 @@ import { app } from "../lib/bridge";
 import { useT } from "../lib/i18n";
 import { readModelFavorites, writeModelFavorites } from "../lib/modelFavorites";
 import { providerBrandIcons } from "../lib/providerBrandIcons";
+import { providerBrandID } from "../lib/providerBrand";
 import type { ModelInfo } from "../lib/types";
 import { AnchoredPopover } from "./AnchoredPopover";
 import { Tooltip } from "./Tooltip";
@@ -112,6 +113,7 @@ export function ModelSwitcher({
       return [{
         id: model.provider,
         label: model.displayName?.trim() || providerLabel(model.provider, t),
+        brandId: model.brandId,
       }];
     });
   }, [models, t]);
@@ -270,7 +272,7 @@ export function ModelSwitcher({
             {providers.length > 0 && <span className="modelsw__rail-divider" aria-hidden="true" />}
             {providers.map((provider) => (
               <button key={provider.id} type="button" className="modelsw__rail-item" aria-label={provider.label} title={provider.label} aria-pressed={activeFilter === provider.id} onClick={() => setActiveFilter(provider.id)}>
-                <ProviderMark provider={provider.id} label={provider.label} />
+                <ProviderMark provider={provider.id} label={provider.label} brandId={provider.brandId} />
               </button>
             ))}
           </nav>
@@ -292,7 +294,7 @@ export function ModelSwitcher({
                   className={`modelsw__item ${m.current ? "modelsw__item--current" : ""}`}
                   onClick={() => pick(m)}
                 >
-                  <ProviderMark provider={m.provider} label={m.displayName?.trim() || providerLabel(m.provider, t)} />
+                  <ProviderMark provider={m.provider} label={m.displayName?.trim() || providerLabel(m.provider, t)} brandId={m.brandId} />
                   <span className="modelsw__copy">
                     <span className="modelsw__model" title={m.model}>{m.modelDisplayName || m.model}</span>
                     <span className="modelsw__meta">{modelMeta(m, t)}</span>
@@ -341,24 +343,9 @@ function modelMeta(model: ModelInfo, t: ReturnType<typeof useT>): string {
   return model.current ? `${provider} · ${t("modelSwitcher.currentModel")}` : provider;
 }
 
-function providerBrandID(provider: string): string {
-  const normalized = provider.trim().toLowerCase();
-  if (providerBrandIcons.has(normalized)) return normalized;
-  if (normalized.includes("deepseek")) return "deepseek";
-  if (normalized.includes("openai") || normalized.includes("gpt")) return "openai";
-  if (normalized.includes("anthropic") || normalized.includes("claude")) return "anthropic";
-  if (normalized.includes("google") || normalized.includes("gemini")) return "gemini";
-  if (normalized.includes("glm") || normalized.includes("zhipu") || normalized.includes("zai")) return "zai";
-  if (normalized.includes("minimax")) return "minimax";
-  if (normalized.includes("qwen") || normalized.includes("dashscope")) return "qwen";
-  if (normalized.includes("kimi") || normalized.includes("moonshot")) return "kimi";
-  if (normalized.includes("xai") || normalized.includes("grok")) return "xai";
-  return "";
-}
-
-function ProviderMark({ provider, label }: { provider: string; label: string }) {
-  const brandID = providerBrandID(provider);
-  if (brandID) {
+function ProviderMark({ provider, label, brandId }: { provider: string; label: string; brandId?: string }) {
+  const brandID = providerBrandID(provider, label, brandId);
+  if (providerBrandIcons.has(brandID)) {
     const icon = `url(/provider-icons/${brandID}.svg)`;
     return <span className="modelsw__provider-icon" aria-hidden="true" style={{ maskImage: icon, WebkitMaskImage: icon }} />;
   }

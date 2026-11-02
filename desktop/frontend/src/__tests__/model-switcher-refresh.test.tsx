@@ -6,6 +6,10 @@ import { ModelSwitcher, normalizeModelInfo } from "../components/ModelSwitcher";
 import { LocaleProvider } from "../lib/i18n";
 import type { ModelInfo } from "../lib/types";
 import { installDesktopHostStub } from "./desktopHostStub";
+import providerCatalog from "../lib/providerCatalog.generated.json";
+import { providerBrandIcons } from "../lib/providerBrandIcons";
+import { providerBrandID } from "../lib/providerBrand";
+import { access } from "node:fs/promises";
 
 class TestResizeObserver {
   observe() {}
@@ -470,6 +474,11 @@ await act(async () => {
 });
 const magpieLabel = document.querySelector(".modelsw__model");
 if (magpieLabel?.textContent !== "DeepSeek V4 Pro (New) · OpenCode Go" || magpieLabel.getAttribute("title") !== "opencode-go/deepseek-v4-pro") throw new Error("gateway label lost or routing ID changed");
+for (const selector of ['.modelsw__rail-item[aria-label="Magpie"]', '[role="option"]']) {
+  if (!document.querySelector(`${selector} .modelsw__provider-icon`)?.getAttribute("style")?.includes("magpie.svg")) {
+    throw new Error(`Magpie official icon missing from ${selector}`);
+  }
+}
 const magpieSearch = document.querySelector<HTMLInputElement>(".modelsw__search-input")!;
 await act(async () => {
   Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")!.set!.call(magpieSearch, "OpenCode Go");
@@ -482,5 +491,80 @@ await act(async () => {
 });
 if (picked.at(-1) !== "magpie-fixture/opencode-go/deepseek-v4-pro") throw new Error("picker sent a display label instead of the stable routing ref");
 
+// Brand metadata survives renamed connections and takes precedence over vendor
+// names. Legacy catalogs still recognize Magpie aliases and exact display names.
+const brands = [
+  { provider: "openai-work", displayName: "Local gateway", brandId: "magpie", icon: "magpie" },
+  { provider: "connection-42", displayName: "  mAgPiE  ", icon: "magpie" },
+  { provider: "MAGPIE_2", displayName: "Backup gateway", icon: "magpie" },
+  { provider: "magpie", displayName: "Magpie preset", icon: "magpie" },
+  { provider: "magpie-custom", displayName: "Another preset", brandId: "deepseek", icon: "deepseek" },
+  { provider: "magpiex", displayName: "Unknown gateway", icon: "" },
+  { provider: "openai-proxy", displayName: "Missing icon", brandId: "unbundled-brand", icon: "" },
+];
+currentCatalog = brands.map(({ provider, displayName, brandId }) => ({
+  ref: `${provider}/model`, provider, displayName, brandId, model: "model", current: false,
+}));
+await act(async () => {
+  window.dispatchEvent(new Event("deepzora:model-catalog-changed"));
+  await new Promise(resolve => setTimeout(resolve, 0));
+  (document.querySelector(".modelsw__trigger") as HTMLButtonElement).click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+});
+for (const [index, fixture] of brands.entries()) {
+  const rail = document.querySelector(`.modelsw__rail-item[aria-label="${fixture.displayName.trim()}"]`)!;
+  const row = document.querySelectorAll('[role="option"]')[index];
+  for (const element of [rail, row]) {
+    const icon = element.querySelector(".modelsw__provider-icon");
+    if (fixture.icon) {
+      if (!icon?.getAttribute("style")?.includes(`${fixture.icon}.svg`) || element.querySelector(".modelsw__provider-monogram")) {
+        throw new Error(`wrong brand icon for ${fixture.provider}`);
+      }
+    } else if (icon || !element.querySelector(".modelsw__provider-monogram")) {
+      throw new Error(`unknown connection ${fixture.provider} lost its monogram fallback`);
+    }
+  }
+  await act(async () => (rail as HTMLButtonElement).click());
+  if (document.querySelectorAll('[role="option"]').length !== 1 || !document.querySelector('.modelsw__meta')?.textContent?.includes(fixture.displayName.trim())) {
+    throw new Error(`brand matching changed provider filtering for ${fixture.provider}`);
+  }
+  await act(async () => (document.querySelectorAll<HTMLButtonElement>('.modelsw__rail-item')[1]).click());
+}
+
+// Audit every preset route in both surfaces, with old and new host payloads.
+// In particular, protocol suffixes must not turn third-party brands into
+// OpenAI/Anthropic, including brands that have no bundled icon yet.
+const presetBrands = Object.entries(providerCatalog.catalogs).flatMap(([id, catalog], index) => [
+  { provider: id, displayName: `Legacy ${id}`, expectedBrand: catalog.brandId },
+  { provider: `${id}_2`, displayName: `Alias ${id}`, expectedBrand: catalog.brandId },
+  { provider: `renamed-${index}-openai-anthropic`, displayName: `Renamed ${id}`, brandId: catalog.brandId, expectedBrand: catalog.brandId },
+  { provider: `legacy-renamed-${index}`, displayName: catalog.brandLabel, expectedBrand: catalog.brandId },
+]);
+currentCatalog = presetBrands.map(({ expectedBrand: _expectedBrand, ...fixture }) => ({
+  ...fixture, ref: `${fixture.provider}/model`, model: "model", current: false,
+}));
+await act(async () => {
+  window.dispatchEvent(new Event("deepzora:model-catalog-changed"));
+  await new Promise(resolve => setTimeout(resolve, 0));
+});
+const presetRail = document.querySelectorAll('.modelsw__rail-item');
+const presetRows = document.querySelectorAll('[role="option"]');
+if (presetRail.length !== presetBrands.length + 2 || presetRows.length !== presetBrands.length) throw new Error("preset icon audit did not render all connections");
+for (const [index, fixture] of presetBrands.entries()) {
+  if (providerBrandID(fixture.provider, fixture.displayName, fixture.brandId) !== fixture.expectedBrand) {
+    throw new Error(`incorrect brand identity for ${fixture.provider}`);
+  }
+  for (const element of [presetRail[index + 2], presetRows[index]]) {
+    const icon = element.querySelector('.modelsw__provider-icon');
+    const monogram = element.querySelector('.modelsw__provider-monogram');
+    if (providerBrandIcons.has(fixture.expectedBrand)) {
+      if (!icon?.getAttribute('style')?.includes(`/${fixture.expectedBrand}.svg`) || monogram) throw new Error(`incorrect preset icon for ${fixture.provider}`);
+    } else if (icon || !monogram) {
+      throw new Error(`unbundled brand ${fixture.expectedBrand} borrowed another vendor's icon`);
+    }
+  }
+}
+await Promise.all([...providerBrandIcons].map(id => access(new URL(`../../public/provider-icons/${id}.svg`, import.meta.url))));
+
 await act(async () => root.unmount());
-console.log("model switcher refresh: PASS");
+console.log(`model switcher refresh: PASS (${Object.keys(providerCatalog.catalogs).length} presets, ${presetBrands.length} brand cases in rail and list)`);

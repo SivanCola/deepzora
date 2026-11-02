@@ -5737,6 +5737,7 @@ func removeServerOrder(order []string, name string) []string {
 // model") is what SetModel takes; Provider/Model are for display.
 type ModelInfo struct {
 	ModelDisplayName string `json:"modelDisplayName,omitempty"`
+	BrandID          string `json:"brandId,omitempty"`
 	Ref              string `json:"ref"`
 	Provider         string `json:"provider"`
 	Model            string `json:"model"`
