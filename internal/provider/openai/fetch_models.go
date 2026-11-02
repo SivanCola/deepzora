@@ -125,6 +125,9 @@ func FetchModelCatalogWithOptions(ctx context.Context, baseURL, apiKey string, o
 			continue
 		}
 		if previous, exists := modelsByID[model.ID]; exists {
+			if model.Name == "" {
+				model.Name = previous.Name
+			}
 			switch {
 			case conflicts[model.ID]:
 				model.InputModalities = nil
@@ -163,7 +166,13 @@ func parseModelInfo(baseURL string, raw json.RawMessage) provider.ModelInfo {
 		return provider.ModelInfo{}
 	}
 	modalities, _ := parseModalities(entry)
-	return provider.ModelInfo{ID: id, InputModalities: modalities}
+	var name string
+	for _, field := range []string{"magpie_label", "display_name", "name"} {
+		if json.Unmarshal(entry[field], &name) == nil && strings.TrimSpace(name) != "" {
+			break
+		}
+	}
+	return provider.ModelInfo{ID: id, Name: strings.TrimSpace(name), InputModalities: modalities}
 }
 
 func parseModalities(entry map[string]json.RawMessage) ([]provider.ModelModality, bool) {

@@ -13,11 +13,12 @@ window.matchMedia = (() => ({matches: true, addEventListener(){}, removeEventLis
 const rootEl = document.getElementById("root")!;
 const root = createRoot(rootEl);
 const choices: CatalogChoice[] = Object.entries(data.catalogs).map(([id, catalog]) => ({
- id, catalog, label: id, keyEnv: catalog.brandId === "mimo" ? (catalog.product === "token" ? "MIMO_TOKEN_PLAN_API_KEY" : "MIMO_API_KEY") : `${catalog.region}_KEY`, keySet: false, models: [`${id}-model`], status: "available", statusLabel: "", actionLabel: "Add", canAdd: true,
+ id, catalog, label: id, keyEnv: data.templates.find(p => p.id === id)?.keyEnv ?? (catalog.brandId === "mimo" ? (catalog.product === "token" ? "MIMO_TOKEN_PLAN_API_KEY" : "MIMO_API_KEY") : `${catalog.region}_KEY`), keySet: false, models: [`${id}-model`], status: "available", statusLabel: "", actionLabel: "Add", canAdd: true,
 }));
 let installed = "";
 let submittedFormat: string | undefined;
-const render = (busy = false, rows = choices) => root.render(<LocaleProvider><ProviderCatalogPicker choices={rows} busy={busy} onConnect={(id, _key, _url, format) => {installed = id; submittedFormat = format;}} onView={() => {}} onReset={() => {throw new Error("unexpected reset");}} /></LocaleProvider>);
+let submittedURL: string | undefined;
+const render = (busy = false, rows = choices) => root.render(<LocaleProvider><ProviderCatalogPicker choices={rows} busy={busy} onConnect={(id, _key, url, format) => {installed = id; submittedFormat = format; submittedURL = url;}} onView={() => {}} onReset={() => {throw new Error("unexpected reset");}} /></LocaleProvider>);
 await act(async () => {render();});
 const select = (dimension: string) => rootEl.querySelector<HTMLButtonElement>(`button.settings-select[id$="-${dimension}"]`)!;
 async function change(dimension: string, value: string) {
@@ -73,6 +74,25 @@ assert.equal(rootEl.querySelector<HTMLButtonElement>(".btn--primary")!.disabled,
 assert.equal(select("format").value,"responses","host refresh preserves explicit selection");
 await change("format","openai");
 assert.equal(rootEl.querySelector<HTMLButtonElement>(".btn--primary")!.disabled,false,"another uninstalled route stays available");
+await brand("Magpie");
+assert.equal(select("format").value, "openai");
+assert.equal(select("region"), null);
+assert.ok(rootEl.querySelector('.provider-catalog__brand[aria-pressed="true"] .provider-catalog__icon')?.getAttribute("style")?.includes("magpie.svg"));
+assert.match(rootEl.querySelector<HTMLInputElement>('input[id$="-key"]')!.placeholder, /MAGPIE_API_KEY/);
+assert.match(rootEl.textContent!, /Magpie.*magpie/);
+for (const [format, url] of [["openai", "http://127.0.0.1:3425/v1"], ["responses", "http://127.0.0.1:3425/v1"], ["anthropic", "http://127.0.0.1:3425"]]) {
+ await change("format", format);
+ assert.equal(rootEl.querySelector<HTMLInputElement>('input[id$="-url"]')!.value, url);
+ await act(async () => { rootEl.querySelector<HTMLButtonElement>(".btn--primary")!.click(); });
+ assert.equal(installed, "magpie");
+ assert.equal(submittedURL, url);
+ assert.equal(submittedFormat ?? "openai", format);
+}
+const magpieTemplate = data.templates.find(p => p.id === "magpie")!;
+assert.deepEqual(magpieTemplate.provider.models, ["deepseek/deepseek-v4-pro"]);
+assert.equal(magpieTemplate.provider.default, "deepseek/deepseek-v4-pro");
+assert.equal(magpieTemplate.provider.modelsUrl, "http://127.0.0.1:3425/v1/models");
+assert.equal(magpieTemplate.provider.noProxy, true);
 await brand("OpenCode");
 await change("product","go");
 await change("format","anthropic");

@@ -494,6 +494,32 @@
         }
       }
     },
+    "magpie": {
+      "brandId": "magpie",
+      "brandLabel": "Magpie",
+      "region": "local",
+      "product": "local",
+      "format": "openai",
+      "baseUrl": "http://127.0.0.1:3425/v1",
+      "protocols": {
+        "anthropic": {
+          "baseUrl": "http://127.0.0.1:3425",
+          "source": "https://github.com/yetone/magpie/blob/541102eba26084476d7a2feba09b66279ef2af0b/docs/reference.md#providers-and-the-gateway",
+          "checkedOn": "2026-11-02",
+          "authHeader": true
+        },
+        "openai": {
+          "baseUrl": "http://127.0.0.1:3425/v1",
+          "source": "https://github.com/yetone/magpie/blob/541102eba26084476d7a2feba09b66279ef2af0b/docs/reference.md#providers-and-the-gateway",
+          "checkedOn": "2026-11-02"
+        },
+        "responses": {
+          "baseUrl": "http://127.0.0.1:3425/v1",
+          "source": "https://github.com/yetone/magpie/blob/541102eba26084476d7a2feba09b66279ef2af0b/docs/reference.md#providers-and-the-gateway",
+          "checkedOn": "2026-11-02"
+        }
+      }
+    },
     "mimo-anthropic": {
       "brandId": "mimo",
       "brandLabel": "MiMo",
@@ -2005,6 +2031,25 @@
           "qwen3-8b"
         ],
         "name": "lmstudio",
+        "webSearch": false
+      }
+    },
+    {
+      "description": "Local Magpie gateway. Start Magpie, then fetch the models configured in its providers.",
+      "id": "magpie",
+      "keyEnv": "MAGPIE_API_KEY",
+      "label": "Magpie",
+      "provider": {
+        "apiKeyEnv": "MAGPIE_API_KEY",
+        "baseUrl": "http://127.0.0.1:3425/v1",
+        "default": "deepseek/deepseek-v4-pro",
+        "kind": "openai",
+        "models": [
+          "deepseek/deepseek-v4-pro"
+        ],
+        "modelsUrl": "http://127.0.0.1:3425/v1/models",
+        "name": "magpie",
+        "noProxy": true,
         "webSearch": false
       }
     }

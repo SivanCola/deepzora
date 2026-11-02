@@ -34,6 +34,7 @@ var providerCatalog = map[string]ProviderCatalog{
 	"ollama-local":                      {BrandID: "ollama", BrandLabel: "Ollama", Region: "local", Product: "local"},
 	"ollama-cloud":                      {BrandID: "ollama", BrandLabel: "Ollama", Region: "global", Product: "api"},
 	"lmstudio":                          {BrandID: "lmstudio", BrandLabel: "LM Studio", Region: "local", Product: "local"},
+	"magpie":                            {BrandID: "magpie", BrandLabel: "Magpie", Region: "local", Product: "local"},
 	"deepseek-anthropic":                {BrandID: "deepseek", BrandLabel: "DeepSeek", Region: "global", Product: "api"},
 	"longcat-openai":                    {BrandID: "longcat", BrandLabel: "LongCat", Region: "global", Product: "api"},
 	"longcat-anthropic":                 {BrandID: "longcat", BrandLabel: "LongCat", Region: "global", Product: "api"},

@@ -17,6 +17,7 @@ func TestProviderCatalogGroupsRoutesWithoutChangingPresets(t *testing.T) {
 		{"openai-chat", "openai", "global", "api", "openai"},
 		{"ollama-local", "ollama", "local", "local", "openai"},
 		{"ollama-cloud", "ollama", "global", "api", "openai"},
+		{"magpie", "magpie", "local", "local", "openai"},
 	} {
 		p, ok := CuratedProviderPreset(tc.id)
 		if !ok {

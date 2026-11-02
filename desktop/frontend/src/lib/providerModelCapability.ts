@@ -1,4 +1,5 @@
 export interface ProviderModelCapabilityView {
+	displayName?: string;
   reasoning?: { state?: "supported" | "unsupported" | "unknown" | string; options: { id: string; name: string; description?: string }[]; default?: string; error?: string };
 	automaticState?: string;
 	automaticSource?: string;

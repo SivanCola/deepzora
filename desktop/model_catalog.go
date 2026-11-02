@@ -84,6 +84,7 @@ func configuredModelInfo(cfg *config.Config, name, model string, current bool) M
 		info.DisplayName = entry.DisplayName
 		info.ContextWindow = entry.ContextWindow
 		capability := config.NewModelCapabilityResolver().Resolve(entry)
+		info.ModelDisplayName = capability.ModelInfo.Name
 		info.Vision = string(capability.State) == "supported"
 	}
 	return info

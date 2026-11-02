@@ -5736,13 +5736,14 @@ func removeServerOrder(order []string, name string) []string {
 // ModelInfo is one (provider, model) the bottom switcher can pick. Ref ("provider/
 // model") is what SetModel takes; Provider/Model are for display.
 type ModelInfo struct {
-	Ref           string `json:"ref"`
-	Provider      string `json:"provider"`
-	Model         string `json:"model"`
-	Current       bool   `json:"current"`
-	ContextWindow int    `json:"contextWindow,omitempty"`
-	Vision        bool   `json:"vision,omitempty"`
-	DisplayName   string `json:"displayName,omitempty"`
+	ModelDisplayName string `json:"modelDisplayName,omitempty"`
+	Ref              string `json:"ref"`
+	Provider         string `json:"provider"`
+	Model            string `json:"model"`
+	Current          bool   `json:"current"`
+	ContextWindow    int    `json:"contextWindow,omitempty"`
+	Vision           bool   `json:"vision,omitempty"`
+	DisplayName      string `json:"displayName,omitempty"`
 }
 
 type EffortInfo struct {
