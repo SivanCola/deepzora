@@ -185,6 +185,8 @@ func TestDownloadVerifiedAssetMirrorFallbackAndIntegrity(t *testing.T) {
 		t.Fatal(err)
 	}
 	signature := minisign.Sign(priv, body)
+	otherBody := bytes.Repeat([]byte("x"), len(body))
+	otherSignature := minisign.Sign(priv, otherBody)
 	digest := sha256.Sum256(body)
 	verify := func(data, sig []byte) error { return update.VerifyWithKey(string(key), data, sig) }
 	m := validDesktopManifest(t, "stable", "v0.0.3")
@@ -193,7 +195,7 @@ func TestDownloadVerifiedAssetMirrorFallbackAndIntegrity(t *testing.T) {
 		t.Fatal("fixture has no current platform")
 	}
 	asset.Size, asset.SHA256 = int64(len(body)), hex.EncodeToString(digest[:])
-	for _, mode := range []string{"healthy", "404", "403", "500", "timeout", "reset", "short", "oversized", "corrupt bytes", "signature 404", "oversized signature", "corrupt signature", "both corrupt", "wrong hash"} {
+	for _, mode := range []string{"healthy", "404", "403", "500", "timeout", "reset", "short", "oversized", "corrupt bytes", "other signed payload", "signature 404", "oversized signature", "corrupt signature", "both corrupt", "wrong hash"} {
 		t.Run(mode, func(t *testing.T) {
 			var calls []string
 			var resets int
@@ -221,6 +223,9 @@ func TestDownloadVerifiedAssetMirrorFallbackAndIntegrity(t *testing.T) {
 					}
 				}
 				if isSignature {
+					if mirror && mode == "other signed payload" {
+						return updateResponse(200, otherSignature), nil
+					}
 					if mirror && mode == "oversized signature" {
 						return updateResponse(200, bytes.Repeat([]byte("x"), int(maxDesktopSignatureSize)+1)), nil
 					}
@@ -232,8 +237,8 @@ func TestDownloadVerifiedAssetMirrorFallbackAndIntegrity(t *testing.T) {
 					}
 					return updateResponse(200, signature), nil
 				}
-				if mirror && mode == "corrupt bytes" {
-					return updateResponse(200, bytes.Repeat([]byte("x"), len(body))), nil
+				if mirror && (mode == "corrupt bytes" || mode == "other signed payload") {
+					return updateResponse(200, otherBody), nil
 				}
 				return updateResponse(200, body), nil
 			})}
