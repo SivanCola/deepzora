@@ -51,7 +51,10 @@
 }
 .chat-surface { position: relative; isolation: isolate; height: 100%; display: flex; flex-direction: column; min-height: 0; }
 .chat-transcript .chat-surface > .chat-flow-scroll.transcript { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overflow-anchor: none; scrollbar-width: auto; padding: 24px; display: block; }
-.chat-transcript .chat-column { width: 100%; max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 0; padding-bottom: 24px; }
+/* The column follows the conversation-width preference (--maxw, owned by
+   lib/conversationWidth.ts) so it matches the composer. A fixed cap here would
+   silently override the setting and ignore a collapsed sidebar (#127). */
+.chat-transcript .chat-column { width: 100%; max-width: var(--maxw); margin: 0 auto; display: flex; flex-direction: column; gap: 0; padding-bottom: 24px; }
 /* Harness ChatView: only nonempty seats contribute the 16px flow rhythm. */
 .chat-column > :not(.chat-node:empty) ~ :not(.chat-node:empty) { margin-top: var(--dsh-chat-flow-gap, 16px); }
 .chat-node[data-turn-process-answer] { --dsh-chat-flow-gap: 8px; }
@@ -190,7 +193,7 @@
   .chat-node:focus-within .chat-turn-tail > .chat-actions[data-actions-reveal="hover"] { opacity: 1; }
 }
 .chat-running { color: var(--fg-dim); font-size: 13px; }
-.chat-transcript .chat-to-bottom { position: absolute; bottom: 16px; right: max(24px, calc((100% - 800px) / 2)); display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border: 0.5px solid var(--border-soft); border-radius: 100px; background: var(--bg-elev); box-shadow: 0 2px 8px #0001; }
+.chat-transcript .chat-to-bottom { position: absolute; bottom: 16px; right: max(24px, calc((100% - var(--maxw)) / 2)); display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border: 0.5px solid var(--border-soft); border-radius: 100px; background: var(--bg-elev); box-shadow: 0 2px 8px #0001; }
 .chat-transcript .chat-to-bottom[hidden] { display: none; }
 .chat-turn-navigation-status { position: absolute; right: 12px; top: 8px; max-width: 240px; font-size: 12px; color: var(--fg-dim); }
 .chat-details { position: absolute; inset: 0 0 0 auto; width: min(560px, 60%); background: var(--bg); border-left: 1px solid var(--border); box-shadow: -8px 0 24px #0002; display: flex; flex-direction: column; z-index: 3; }

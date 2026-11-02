@@ -73,7 +73,14 @@ ok(attrs.get("data-conversation-width") === "full", "active width is exposed on 
 ok(storage.get(CONVERSATION_WIDTH_STORAGE_KEY) === "full", "applied width refreshes the early-paint cache");
 
 ok(stylesSource.includes("--maxw-inner: 100%;"), "nested transcript content uses an unbounded inner width");
-ok(readFileSync(resolve(testDir, "../components/ChatTranscript.css"), "utf8").includes("max-width: 800px"), "chat column has its own width independent of legacy preferences");
+const chatTranscriptSource = readFileSync(resolve(testDir, "../components/ChatTranscript.css"), "utf8");
+const chatColumnRule = /\.chat-transcript \.chat-column \{([^}]*)\}/.exec(chatTranscriptSource)?.[1] ?? "";
+ok(/max-width:\s*var\(--maxw\)/.test(chatColumnRule), "chat column honors the conversation width preference (#127)");
+ok(!/max-width:\s*\d/.test(chatColumnRule), "chat column has no fixed cap that overrides the preference (#127)");
+ok(
+  /\.chat-to-bottom \{[^}]*calc\(\(100% - var\(--maxw\)\) \/ 2\)/.test(chatTranscriptSource),
+  "jump-to-bottom button aligns with the preference-driven column edge",
+);
 ok(!stylesSource.includes("--maxw: 90%;"), "stylesheets cannot reintroduce the narrow 90 percent override");
 
 ok(
