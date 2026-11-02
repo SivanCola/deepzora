@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { app } from "../lib/bridge";
 import { useProviderT } from "../lib/providerSettingsLocale";
 import { ErrorMessage } from "./ErrorMessage";
+import { SettingsFeedback, useSettingsDraft } from "./SettingsExperience";
 
 export function FeedbackReportForm() {
   const t = useProviderT();
@@ -10,6 +11,7 @@ export function FeedbackReportForm() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const inFlight = useRef(false);
+  useSettingsDraft({ label: t("feedback.message"), dirty: Boolean(message.trim()) && !sent, busy: sending, discard: () => setMessage("") });
 
   async function submit() {
     const text = message.trim();
@@ -42,8 +44,8 @@ export function FeedbackReportForm() {
     <div className="settings-inline-controls">
       <button type="button" className="btn btn--small" disabled={sending || !message.trim() || sent}
         onClick={() => void submit()}>{t(sending ? "crash.sending" : "feedback.send")}</button>
-      {sent && <span role="status">{t("feedback.sent")}</span>}
+      {sent && <SettingsFeedback kind="success">{t("feedback.sent")}</SettingsFeedback>}
     </div>
-    {error != null && <div role="alert"><ErrorMessage error={error} /></div>}
+    {error != null && <SettingsFeedback kind="error"><ErrorMessage error={error} /></SettingsFeedback>}
   </div>;
 }

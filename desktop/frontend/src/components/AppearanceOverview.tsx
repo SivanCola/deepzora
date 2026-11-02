@@ -22,9 +22,10 @@ import {
   restoreGraphiteAppearance,
   setThemeMode,
 } from "../lib/themeExperience";
-import { useToast } from "../lib/toast";
+import { useSettingsNotice as useToast } from "./SettingsExperience";
 import { ThemeGallery } from "./ThemeGallery";
 import { TypographySettings } from "./TypographySettings";
+import { SettingsFeedback } from "./SettingsExperience";
 
 const STYLE_NAME_KEY: Record<ThemeStyle, DictKey> = {
   graphite: "settings.style.graphite.zh",
@@ -136,14 +137,17 @@ export function AppearanceOverview({
   const [galleryIntent, setGalleryIntent] = useState<"browse" | "copy-base">("browse");
   const [experience, setExperience] = useState<ThemeExperienceView | null>(null);
   const [busy, setBusy] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const refresh = useCallback(async () => {
+    setLoadError(false);
     try {
       const exp = await loadThemeExperience();
       setExperience(exp);
       applyExperienceToDOM(exp);
     } catch (err) {
       console.warn("theme experience load failed", err);
+      setLoadError(true);
     }
   }, []);
 
@@ -293,8 +297,8 @@ export function AppearanceOverview({
 
   return (
     <div className="appearance-overview">
-
-
+      {loadError && <SettingsFeedback kind="error" onRetry={() => void refresh()}>{t("settings.loadFailed")}</SettingsFeedback>}
+      <p className="settings-context-hint">{t("settings.appearanceScopeHint")}</p>
       <section className="appearance-overview__current" aria-labelledby="appearance-current-label">
         <h3 id="appearance-current-label" className="appearance-overview__section-label">
           {t("settings.themeGallery.currentAppearance")}

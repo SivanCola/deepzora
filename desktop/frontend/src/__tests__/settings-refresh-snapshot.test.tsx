@@ -375,7 +375,7 @@ await act(async () => {
   );
   await flushPromises();
 });
-await waitFor("settings load failure", () => Boolean(document.querySelector(".banner--error")));
+await waitFor("settings load failure", () => Boolean(document.querySelector('[role="alert"]')));
 
 ok(document.body.textContent?.includes("Settings could not be loaded.") === true, "failed initial settings load shows a visible error");
 ok(document.body.textContent?.includes("Loading…") === false, "failed initial settings load stops showing the loading state");
@@ -658,6 +658,9 @@ await waitFor("provider model discovery", () => providerRefreshCancelRootEl.text
 const providerModelDraftCancelButton = providerRefreshCancelRootEl.querySelector<HTMLButtonElement>('.provider-editor-footer button');
 if (!providerModelDraftCancelButton) throw new Error("provider draft cancel action did not render");
 await act(async () => { providerModelDraftCancelButton.click(); await flushPromises(); });
+const discardDiscovery = Array.from(document.querySelectorAll<HTMLButtonElement>(".settings-leave-dialog button")).find(button => button.textContent === "Discard and leave");
+if (!discardDiscovery) throw new Error("provider discovery cancel must confirm unsaved changes");
+await act(async () => { discardDiscovery.click(); await flushPromises(); });
 ok(!providerRefreshCancelRootEl.textContent?.includes("deepseek-v4-pro"), "cancelling discovery discards fetched candidates");
 ok(providerRefreshCancelSettings.providers[0].models.length === 1, "cancelling discovery preserves configured models");
 await act(async () => {

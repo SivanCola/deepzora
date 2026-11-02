@@ -68,6 +68,7 @@ import {
 } from "../lib/fontFamily";
 import { SessionExperienceSettings } from "./SessionExperienceSettings";
 import { SettingsField, SettingsSection } from "./SettingsForm";
+import { SettingsExperienceProvider, SettingsFeedback, SettingsSubpageHeader, useSettingsDraft, useSettingsExperience } from "./SettingsExperience";
 import { normalizeStatusBarItems, type StatusBarItemId } from "../lib/statusBarItems";
 import { normalizeToolApprovalMode } from "../lib/types";
 import {
@@ -115,7 +116,11 @@ const BrowserControlSettingsPage = lazy(() => import("./BrowserControlSettingsPa
 const UsageStatsPanel = lazy(() => import("./UsageStatsPanel").then((module) => ({ default: module.UsageStatsPanel })));
 
 // SettingsPanel owns a full-window settings page while the workspace stays mounted.
-export function SettingsPanel({
+export function SettingsPanel(props: Parameters<typeof SettingsPanelContent>[0]) {
+  return <SettingsExperienceProvider><SettingsPanelContent {...props} /></SettingsExperienceProvider>;
+}
+
+function SettingsPanelContent({
   onClose,
   onOnboardingStart,
   onChanged,
@@ -142,6 +147,7 @@ export function SettingsPanel({
   activeTabId?: string;
 }) {
   const t = useT();
+  const { requestLeave, announce } = useSettingsExperience();
   const [s, setS] = useState<SettingsView | null>(null);
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [settingsLoadFailed, setSettingsLoadFailed] = useState(false);
@@ -163,14 +169,15 @@ export function SettingsPanel({
   const [customFontName, setCustomFontNameState] = useState<string>(getCustomFontName());
   const [customMonoFontName, setCustomMonoFontNameState] = useState<string>(getCustomMonoFontName());
   const [tab, setTab] = useState<SettingsTab>(initialTab ?? "general");
+  const [acceptedFocus, setAcceptedFocus] = useState(initialFocus);
   const settingsContentRef = useRef<HTMLElement>(null);
   const pendingSubagentCommandRef = useRef<string | null>(null);
-  const requestClose = useCallback(() => {
+  const requestClose = useCallback(() => requestLeave(() => {
     const command = pendingSubagentCommandRef.current;
     pendingSubagentCommandRef.current = null;
     onClose();
     if (command) onUseSubagent(command);
-  }, [onClose, onUseSubagent]);
+  }), [onClose, onUseSubagent, requestLeave]);
   const zoomSaveSeq = useRef(0);
   const terminalThemeSaveSeq = useRef(0);
   const terminalThemeSavePending = useRef(false);
@@ -227,14 +234,20 @@ export function SettingsPanel({
     const timer = window.setInterval(() => { void refreshModelApplication(); }, 2000);
     return () => window.clearInterval(timer);
   }, [modelApplication?.application, refreshModelApplication]);
+  const externalTarget = useRef(initialTab);
   useEffect(() => {
-    if (initialTab) setTab(initialTab);
-  }, [initialTab]);
+    if (externalTarget.current === initialTab) return;
+    externalTarget.current = initialTab;
+    if (initialTab && initialTab !== tab) requestLeave(() => setTab(initialTab), undefined, () => onNavigate?.(tab));
+  }, [initialTab, tab, requestLeave, onNavigate]);
+  const externalFocus = useRef("");
   useEffect(() => {
-    if (initialFocus?.target === "model-access") setTab("providers");
-    if (initialFocus?.target === "model-stats") setTab("model-stats");
-    if (initialFocus?.target === "agent-preset-create") setTab("agent-presets");
-  }, [initialFocus?.target, initialFocus?.requestId]);
+    const key = `${initialFocus?.target ?? ""}:${initialFocus?.requestId ?? ""}:${initialFocus?.target === "model-access" ? initialFocus.providerName ?? "" : ""}`;
+    if (externalFocus.current === key) return;
+    externalFocus.current = key;
+    const target = initialFocus?.target === "model-access" ? "providers" : initialFocus?.target === "model-stats" ? "model-stats" : initialFocus?.target === "agent-preset-create" ? "agent-presets" : null;
+    if (target) requestLeave(() => { setAcceptedFocus(initialFocus); setTab(target); onNavigate?.(target); }, undefined, () => onNavigate?.(tab));
+  }, [initialFocus, requestLeave, tab, onNavigate]);
   useEffect(() => {
     const content = settingsContentRef.current;
     if (!content) return;
@@ -299,6 +312,7 @@ export function SettingsPanel({
       if (typeof result === "string" && result.trim()) {
         setWarning(result.trim());
       }
+      announce("success", isModelSettingsResult(result) && result.application !== "applied" ? t("settings.models.savedPending") : undefined);
       return true;
     } catch (e) {
       if (seq !== settingsApplySeq.current) return false;
@@ -321,7 +335,7 @@ export function SettingsPanel({
       pendingSettingsApplies.current -= 1;
       setBusy(pendingSettingsApplies.current > 0);
     }
-  }, [reload, onChanged, t]);
+  }, [reload, onChanged, t, announce]);
   const backgroundApply = useCallback(async (fn: () => Promise<void>) => {
     const seq = ++settingsApplySeq.current;
     setErr(null);
@@ -389,11 +403,11 @@ export function SettingsPanel({
     }
   }, [t]);
 
-  const selectTab = (next: SettingsTab) => { setTab(next); onNavigate?.(next); };
+  const selectTab = (next: SettingsTab) => { if (next !== tab) requestLeave(() => { setTab(next); onNavigate?.(next); }); };
 
   // These pages need SettingsView; capability pages load their own data.
   const needsSettings = tab === "general" || tab === "models" || tab === "providers" || tab === "model-stats" || tab === "subagents" || tab === "network" || tab === "permissions" || tab === "sandbox" || tab === "appearance" || tab === "updates";
-  const lazySettingsPageFallback = <div className="empty">{t("settings.loading")}</div>;
+  const lazySettingsPageFallback = <SettingsFeedback kind="loading" />;
   const settingsNavigationItems = useMemo(() => SETTINGS_NAV_TABS.map((id) => ({
     id,
     label: settingsTabLabel(id, t),
@@ -411,13 +425,12 @@ export function SettingsPanel({
       navigation={<SettingsNavigation items={settingsNavigationItems} activeTab={tab} onSelect={selectTab} />}>
       <div className="settings-page-content">
             {needsSettings && settingsLoadFailed && (
-              <div className="banner banner--error settings-load-error" role="alert">
-                <span>{t("settings.loadFailed")}</span>
-                <button className="btn btn--small" type="button" onClick={() => void reload()}>{t("common.retry")}</button>
+              <div className="settings-load-error">
+                <SettingsFeedback kind="error" onRetry={() => void reload()}>{t("settings.loadFailed")}</SettingsFeedback>
               </div>
             )}
-            {needsSettings && err && <div className="banner banner--error"><ErrorMessage error={err} /></div>}
-            {needsSettings && warning && <div className="banner banner--warning"><ErrorMessage error={warning} /></div>}
+            {needsSettings && err && <SettingsFeedback kind="error"><ErrorMessage error={err} /></SettingsFeedback>}
+            {needsSettings && warning && <div className="banner banner--warning" role="status"><ErrorMessage error={warning} /></div>}
             {needsSettings && (tab === "models" || tab === "providers") && modelApplication && (modelApplication.application === "pending" || modelApplication.application === "failed") && (
               <div className="banner banner--warning" role="status">
                 <span>{t(modelApplication.application === "pending" ? "settings.models.savedPending" : "settings.models.savedApplyFailed")}</span>
@@ -428,14 +441,14 @@ export function SettingsPanel({
               </div>
             )}
             {needsSettings && !s ? (
-              loadingSettings ? <div className="empty">{t("settings.loading")}</div> : null
+              loadingSettings ? <SettingsFeedback kind="loading" /> : null
             ) : (
               <>
                 {tab === "general" && s && <SettingsPageShell key={tab} s={s} tab={tab} busy={busy} apply={apply}><GeneralSection s={s} busy={busy} apply={apply} agentRunning={agentRunning} /></SettingsPageShell>}
-                {(tab === "models" || tab === "providers" || tab === "model-stats") && s && <SettingsPageShell key="model-pages" s={s} tab={tab} busy={busy} apply={apply}><ModelsSection onOpenProviders={() => selectTab("providers")} s={s} busy={busy} apply={apply} backgroundApply={backgroundApply} onboarding={initialFocus?.target === "model-access" && initialFocus.onboarding} focusProvider={initialFocus?.target === "model-access" ? initialFocus.providerName : undefined} focusRequestId={initialFocus?.target === "model-access" ? initialFocus.requestId : undefined} onOnboardingComplete={onClose} onOnboardingStart={onOnboardingStart} subtab={tab === "providers" ? "access" : tab === "model-stats" ? "stats" : "usage"} /></SettingsPageShell>}
+                {(tab === "models" || tab === "providers" || tab === "model-stats") && s && <SettingsPageShell key="model-pages" s={s} tab={tab} busy={busy} apply={apply}><ModelsSection onOpenProviders={() => selectTab("providers")} s={s} busy={busy} apply={apply} backgroundApply={backgroundApply} onboarding={acceptedFocus?.target === "model-access" && acceptedFocus.onboarding} focusProvider={acceptedFocus?.target === "model-access" ? acceptedFocus.providerName : undefined} focusRequestId={acceptedFocus?.target === "model-access" ? acceptedFocus.requestId : undefined} onOnboardingComplete={requestClose} onOnboardingStart={onOnboardingStart} subtab={tab === "providers" ? "access" : tab === "model-stats" ? "stats" : "usage"} /></SettingsPageShell>}
                 {tab === "mcp" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><MCPServersSettingsPage /></Suspense></SettingsPageShell>}
                 {tab === "skills" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><SkillsSettingsPage activeWorkspaceKey={activeWorkspaceKey} /></Suspense></SettingsPageShell>}
-                {tab === "agent-presets" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><AgentPresetsSettingsPage key={activeWorkspaceKey} tabId={activeTabId} workspaceKey={activeWorkspaceKey} /></Suspense></SettingsPageShell>}
+                {tab === "agent-presets" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><AgentPresetsSettingsPage key={activeWorkspaceKey} tabId={activeTabId} workspaceKey={activeWorkspaceKey} createRequestId={acceptedFocus?.target === "agent-preset-create" ? acceptedFocus.requestId : null} /></Suspense></SettingsPageShell>}
                 {tab === "subagents" && s && <SettingsPageShell key={tab} s={s} tab={tab} busy={busy} apply={apply}><Suspense fallback={lazySettingsPageFallback}><SubagentsSettingsPage s={s} onUseInChat={(command) => {
                   pendingSubagentCommandRef.current = command;
                   requestClose();
@@ -531,8 +544,14 @@ export function SettingsPanel({
 
 function SettingsPageShell({ s: _s, tab, children }: { s: SettingsView | null; tab: SettingsTab; busy: boolean; apply: (fn: () => Promise<unknown>) => Promise<boolean>; children: ReactNode }) {
   const t = useT();
+  const automatic = ["general", "models", "permissions", "sandbox", "appearance", "shortcuts", "browser"].includes(tab);
+  const manual = ["providers", "network", "hooks"].includes(tab);
   return (
     <div aria-label={settingsTabPageTitle(tab, t)} className={`settings-page settings-page--${settingsPageKind(tab)} settings-page--${tab}`} data-layout={settingsPageLayout(tab)}>
+      <header className="settings-page__header">
+        <h1 className="settings-page__title">{settingsTabPageTitle(tab, t)}</h1>
+        {(automatic || manual) && <p className="settings-page__desc">{t(automatic ? "settings.saveAutomatically" : "settings.saveExplicitly")}</p>}
+      </header>
       {children}
     </div>
   );
@@ -1584,17 +1603,19 @@ function NetworkSection({ s, busy, apply }: SectionProps) {
   const setProxy = (next: Partial<NetworkView["proxy"]>) => {
     setDraft({ ...draft, proxy: { ...draft.proxy, ...next } });
   };
+  const valid = draft.proxyMode !== "custom" || Boolean(draft.proxyUrl.trim() || (draft.proxy.server.trim() && draft.proxy.port > 0 && draft.proxy.port <= 65535));
+  useSettingsDraft({ label: t("settings.tab.network"), dirty, busy, canSave: valid,
+    save: () => apply(() => app.SetNetwork(draft)), discard: () => setDraft(savedNetwork) });
 
   return (
-    <SettingsSection
-      title={t("settings.tab.network")}
-
-    >
-      <SettingsField label={t("settings.proxyMode")}>
-        <SettingsOptions layout="field" className="set-seg">
+    <SettingsSection>
+      <SettingsField label={t("settings.proxyMode")} hint={t(`settings.proxyMode.${draft.proxyMode}Hint` as DictKey)}>
+        <SettingsOptions layout="field" className="set-seg" role="radiogroup" aria-label={t("settings.proxyMode")}>
           {PROXY_MODES.map((mode) => (
             <button
               key={mode}
+              role="radio"
+              aria-checked={draft.proxyMode === mode}
               className={`set-seg__btn${draft.proxyMode === mode ? " set-seg__btn--on" : ""}`}
               disabled={busy}
               onClick={() => setDraft({ ...draft, proxyMode: mode })}
@@ -1608,10 +1629,12 @@ function NetworkSection({ s, busy, apply }: SectionProps) {
       {draft.proxyMode === "custom" && (
         <>
           <SettingsField label={t("settings.proxyType")}>
-            <SettingsOptions layout="field" className="set-seg">
+            <SettingsOptions layout="field" className="set-seg" role="radiogroup" aria-label={t("settings.proxyType")}>
               {PROXY_TYPES.map((typ) => (
                 <button
                   key={typ}
+                  role="radio"
+                  aria-checked={draft.proxy.type === typ}
                   className={`set-seg__btn${draft.proxy.type === typ ? " set-seg__btn--on" : ""}`}
                   disabled={busy}
                   onClick={() => setProxy({ type: typ })}
@@ -1626,6 +1649,7 @@ function NetworkSection({ s, busy, apply }: SectionProps) {
             <input
               className="mem-input set-grow"
               placeholder="127.0.0.1"
+              aria-label={t("settings.proxyServer")}
               value={draft.proxy.server}
               disabled={busy || !!draft.proxyUrl.trim()}
               onChange={(e) => setProxy({ server: e.target.value })}
@@ -1634,6 +1658,7 @@ function NetworkSection({ s, busy, apply }: SectionProps) {
             <input
               className="mem-input set-narrow"
               placeholder="7890"
+              aria-label={t("settings.proxyPort")}
               value={draft.proxy.port ? String(draft.proxy.port) : ""}
               disabled={busy || !!draft.proxyUrl.trim()}
               inputMode="numeric"
@@ -1646,6 +1671,7 @@ function NetworkSection({ s, busy, apply }: SectionProps) {
             <input
               className="mem-input set-grow"
               value={draft.proxy.username}
+              aria-label={t("settings.proxyUsername")}
               disabled={busy || !!draft.proxyUrl.trim()}
               onChange={(e) => setProxy({ username: e.target.value })}
             />
@@ -1653,6 +1679,7 @@ function NetworkSection({ s, busy, apply }: SectionProps) {
             <input
               className="mem-input set-grow"
               type="password"
+              aria-label={t("settings.proxyPassword")}
               value={draft.proxy.password}
               disabled={busy || !!draft.proxyUrl.trim()}
               onChange={(e) => setProxy({ password: e.target.value })}
@@ -1682,7 +1709,7 @@ function NetworkSection({ s, busy, apply }: SectionProps) {
       <div className="settings-save-bar">
         <span role="status">{t(dirty ? "settings.models.unsaved" : "settings.models.saved")}</span>
         <button className="btn btn--small" disabled={busy || !dirty} onClick={() => setDraft(savedNetwork)}>{t("common.cancel")}</button>
-        <button className="btn btn--primary btn--small" disabled={busy || !dirty} onClick={() => void apply(() => app.SetNetwork(draft))}>{t("settings.saveNetwork")}</button>
+        <button className="btn btn--primary btn--small" disabled={busy || !dirty || !valid} onClick={() => void apply(() => app.SetNetwork(draft))}>{t("settings.saveNetwork")}</button>
       </div>
     </SettingsSection>
   );
@@ -1817,14 +1844,19 @@ export function ModelsSection({ s, busy, apply, backgroundApply, subtab, onboard
       && percent >= COMPACT_RATIO_MIN_PERCENT
       && percent <= COMPACT_RATIO_MAX_PERCENT;
     const dirty = valid && Math.abs(percent / 100 - compactRatio) > 0.0001;
-    if (!valid && rawValue !== "") return;
+    if (!valid && rawValue !== "") return false;
     if (!valid || busy) {
       setCompactRatioCustomEditing(false);
-      return;
+      return !busy;
     }
-    if (dirty && !await persistCompactRatio(percent / 100)) return;
+    if (dirty && !await persistCompactRatio(percent / 100)) return false;
     setCompactRatioCustomEditing(false);
+    return true;
   };
+  useSettingsDraft({ label: t("settings.compactRatio"),
+    dirty: subtab === "usage" && compactRatioCustomEditing && compactRatioDraft !== "" && (!compactRatioDraftValid || Math.abs(compactRatioDraftPercent / 100 - compactRatio) > 0.0001),
+    busy, canSave: compactRatioDraftValid, save: () => commitCompactRatioDraft(compactRatioDraft),
+    discard: () => { setCompactRatioCustomEditing(false); setCompactRatioDraft(compactRatioPreset ? "" : String(compactRatioPercent)); } });
 
   useEffect(() => {
     const generation = ++autoRefreshGenerationRef.current;
@@ -1912,7 +1944,7 @@ export function ModelsSection({ s, busy, apply, backgroundApply, subtab, onboard
     <>
       {subtab === "usage" ? (
         <div className="model-preferences">
-          <SettingsSection className="model-assignment-section" title={t("settings.models.preferences")} description={t("settings.models.preferencesApplyHint")}>
+          <SettingsSection className="model-assignment-section" title={t("settings.models.assignments")} description={t("settings.models.preferencesApplyHint")}>
             <div className="model-assignment-head"><span>{t("settings.modelPurpose")}</span><span>{t("settings.modelUsage")}</span><span>{t("settings.modelConnection")}</span></div>
             <SettingsField className="model-assignment-row" label={<ModelSettingHelp label={t("settings.defaultModel")} text={t("providerUI.defaultModelHelp")} />}>
               <ModelPicker
@@ -2176,7 +2208,7 @@ export function ModelsSection({ s, busy, apply, backgroundApply, subtab, onboard
         <ProvidersSection s={s} busy={busy} apply={apply} onboarding={onboarding} focusProvider={focusProvider} focusRequestId={focusRequestId} onOnboardingComplete={onOnboardingComplete} onOnboardingStart={onOnboardingStart} />
       </div>
       {subtab === "stats" && (
-        <Suspense fallback={<div className="empty">{t("settings.loading")}</div>}>
+        <Suspense fallback={<SettingsFeedback kind="loading" />}>
           <UsageStatsPanel />
         </Suspense>
       )}
@@ -2365,20 +2397,20 @@ function proxyModeLabel(mode: ProxyMode, t: ReturnType<typeof useT>): string {
 
 export function ProvidersSection({ s, busy, apply, onboarding, focusProvider, focusRequestId, onOnboardingComplete, onOnboardingStart }: SectionProps & { onboarding?: boolean; focusProvider?: string; focusRequestId?: number; onOnboardingComplete?: () => void; onOnboardingStart?: () => Promise<void> }) {
   const t = useT();
+  const { requestLeave } = useSettingsExperience();
+  const handledFocus = useRef("");
   const existingConnection = s.providers.find(p => p.added);
   const [editing, setEditing] = useState<string | null>(() => onboarding ? existingConnection?.name ?? null : null);
   const [adding, setAdding] = useState<AddProviderMode>(() => onboarding && !existingConnection ? "official" : null);
   const [revealedProvider, setRevealedProvider] = useState<string | null>(() => onboarding ? existingConnection?.name ?? null : null);
   useEffect(() => {
     if (!focusProvider) return;
-    if (s.providers.some((provider) => provider.name === focusProvider)) {
-      setRevealedProvider(focusProvider);
-      setEditing(focusProvider);
-    } else {
-      setRevealedProvider(null);
-      setEditing(null);
-    }
-  }, [focusProvider, focusRequestId, s.providers]);
+    const exists = s.providers.some((provider) => provider.name === focusProvider);
+    const key = `${focusProvider}:${focusRequestId ?? ""}:${exists}`;
+    if (handledFocus.current === key) return;
+    handledFocus.current = key;
+    requestLeave(() => { setRevealedProvider(exists ? focusProvider : null); setEditing(exists ? focusProvider : null); });
+  }, [focusProvider, focusRequestId, s.providers, requestLeave]);
   const [startingConversation, setStartingConversation] = useState(false);
   const startingConversationRef = useRef(false);
   const startUsing = async (provider: ProviderView) => {
@@ -2572,7 +2604,7 @@ export function ProvidersSection({ s, busy, apply, onboarding, focusProvider, fo
     const draft = modelDrafts[group.id];
     const provider = draft ? group.providers.find((p) => p.name === draft.providerName) : null;
     const models = uniqueStrings(draft?.selected ?? []);
-    if (!draft || !provider || models.length === 0) return;
+    if (!draft || !provider || models.length === 0) return false;
     let saved = false;
     await apply(async () => {
       const result = await saveModelSettings(s, {kind: "provider_save", provider: {
@@ -2585,12 +2617,13 @@ export function ProvidersSection({ s, busy, apply, onboarding, focusProvider, fo
       saved = true;
       return result;
     });
-    if (!saved) return;
+    if (!saved) return false;
     setGroupModelDraft(group.id, null);
     setGroupFetchResult(group.id, {
       kind: "ok",
       text: t("settings.enabledModelsSavedForProvider", { provider: group.label, n: models.length }),
     });
+    return true;
   };
 
   return (
@@ -2635,7 +2668,7 @@ export function ProvidersSection({ s, busy, apply, onboarding, focusProvider, fo
               setAdding(null);
             }}
             onResetPreset={(id) => apply(() => saveModelSettings(s, {kind: "preset_reset", presetId: id})).then(saved => { if (saved) setAdding(null); })}
-            onAddCustom={(pv, key) => apply(() => saveProvider(pv, key ?? "", true)).then(saved => { if (saved) setAdding(null); })}
+            onAddCustom={(pv, key) => apply(() => saveProvider(pv, key ?? "", true)).then(saved => { if (!saved) throw new Error(t("settings.saveFailedKeepDraft")); setAdding(null); })}
           />
         )}
         <ProviderConnections groups={groups} presets={s.providerPresets} revealedProvider={revealedProvider} hidden={adding !== null} busy={busy} onAdd={() => setAdding("official")} onSelect={() => setRevealedProvider(null)} renderDetail={(group) => (
@@ -2678,7 +2711,7 @@ export function ProvidersSection({ s, busy, apply, onboarding, focusProvider, fo
               setGroupModelDraft(group.id, null);
               setGroupFetchResult(group.id, null);
             }}
-            onSaveDraftModels={() => void saveModelDraft(group)}
+            onSaveDraftModels={() => saveModelDraft(group)}
             onToggleWebSearch={(enabled) => {
               if (group.id === "custom:opencode-go") {
                 const searchProviderNames = group.providers
@@ -2821,14 +2854,12 @@ export function AddProviderPanel({
       };
     }),
   ];
+  const { requestLeave } = useSettingsExperience();
   return <div className="provider-add-panel">
-    <div className="provider-add-panel__head">
-      <div><strong>{t("settings.addProvider.chooseTitle")}</strong><span>{t("settings.catalog.hint")}</span></div>
-      <button type="button" className="btn btn--small" disabled={busy} onClick={onCancel}>{t("common.cancel")}</button>
-    </div>
+    <SettingsSubpageHeader className="provider-add-panel__head" title={t("settings.addProvider.chooseTitle")} description={t("settings.catalog.hint")} onBack={onCancel} backLabel={t("settings.connections.back")} mode="action" />
     <SettingsOptions className="provider-add-segmented" role="tablist" aria-label={t("settings.addProvider.chooseTitle")}>
-      <button type="button" role="tab" aria-selected={mode === "official"} className="provider-add-segmented__item" disabled={busy} onClick={() => onMode("official")}>{t("settings.addProvider.officialChoice")}</button>
-      <button type="button" role="tab" aria-selected={mode === "custom"} className="provider-add-segmented__item" disabled={busy} onClick={() => onMode("custom")}>{t("settings.addProvider.customChoice")}</button>
+      <button type="button" role="tab" aria-selected={mode === "official"} className="provider-add-segmented__item" disabled={busy} onClick={() => requestLeave(() => onMode("official"))}>{t("settings.addProvider.officialChoice")}</button>
+      <button type="button" role="tab" aria-selected={mode === "custom"} className="provider-add-segmented__item" disabled={busy} onClick={() => requestLeave(() => onMode("custom"))}>{t("settings.addProvider.customChoice")}</button>
     </SettingsOptions>
     {mode === "official" && <ProviderCatalogPicker choices={choices} busy={busy}
       onConnect={(id, key, baseURL, format) => { if (id.startsWith("official:")) void onAddOfficial("deepseek", key, baseURL, format); else void onAddPreset(id.slice(7), key, baseURL, format); }}
@@ -2886,7 +2917,7 @@ export function ProviderAccessCard({
   onSelectAllDraftModels: () => void;
   onClearDraftModels: () => void;
   onCancelDraftModels: () => void;
-  onSaveDraftModels: () => void;
+  onSaveDraftModels: () => void | Promise<boolean>;
   onToggleWebSearch: (enabled: boolean) => void;
   onSaveEditorKey: (apiKeyEnv: string, value: string) => Promise<void>;
   onClearEditorKey?: (apiKeyEnv: string) => Promise<void>;
@@ -3202,7 +3233,7 @@ function ProviderModelDraftPicker({
   onSelectAll: () => void;
   onClear: () => void;
   onCancel: () => void;
-  onSave: () => void;
+  onSave: () => void | Promise<boolean>;
 }) {
   const t = useT();
   const [query, setQuery] = useState("");
@@ -3220,6 +3251,8 @@ function ProviderModelDraftPicker({
   );
   const deferredCandidates = useDeferredValue(visibleCandidates);
   const disabled = busy || fetching;
+  const guard = useSettingsDraft({ label: t("settings.saveEnabledModels"), dirty: true, busy: disabled,
+    canSave: draft.selected.length > 0, save: async () => await onSave() !== false, discard: onCancel });
 
   return (
     <div className="provider-model-draft">
@@ -3276,8 +3309,9 @@ function ProviderModelDraftPicker({
           <div className="provider-model-draft__empty">{t("settings.noMatchingCandidateModels")}</div>
         )}
       </div>
-      <div className="provider-model-draft__actions">
-        <button type="button" className="btn btn--small" disabled={disabled} onClick={onCancel}>
+      <div className="provider-model-draft__actions settings-save-bar">
+        <span role="status">{t("settings.models.unsaved")}</span>
+        <button type="button" className="btn btn--small" disabled={disabled} onClick={() => guard.leave(onCancel)}>
           {t("common.cancel")}
         </button>
         <button type="button" className="btn btn--primary btn--small" disabled={disabled || draft.selected.length === 0} onClick={onSave}>
@@ -3789,7 +3823,7 @@ export function ProviderEditor({
   };
 
   const save = async () => {
-    if (extraBodyInvalid) return;
+    if (extraBodyInvalid) return false;
     const generation = ++saveGeneration.current;
     setFetchStatus(null);
     setFetchFallback(null);
@@ -3831,7 +3865,7 @@ export function ProviderEditor({
     };
     try {
       await onSave(provider, keyDraft.trim() || undefined);
-      if (generation !== saveGeneration.current) return;
+      if (generation !== saveGeneration.current) return false;
       setShowKey(false);
       if (latestDraftSnapshot.current === draftSnapshot) {
         const committed = JSON.parse(draftSnapshot) as unknown[];
@@ -3841,12 +3875,17 @@ export function ProviderEditor({
       } else {
         setSavedSnapshot(draftSnapshot);
       }
+      return true;
     } catch (e) {
       if (generation === saveGeneration.current && latestDraftSnapshot.current === draftSnapshot) {
         setFetchFallback(String((e as Error)?.message ?? e));
       }
+      return false;
     }
   };
+  const draftGuard = useSettingsDraft({ label: displayName || name || t("settings.models.services"), dirty, busy: busy || fetchingModels,
+    canSave: Boolean(name.trim() && effectiveBaseUrl && models.trim() && !extraBodyInvalid && !endpointMismatch.mismatch), save,
+    discard: onCancel });
 
   const canFetch = Boolean(name.trim() && effectiveBaseUrl);
 
@@ -4050,8 +4089,8 @@ export function ProviderEditor({
             placeholder={initial?.keySet ? "••••••••••••••••••••" : "API Key"}
             value={keyDraft} disabled={busy}
             onChange={e => setKeyDraft(e.target.value)} />
-          <button type="button" className="btn provider-icon-action" aria-label={showKey ? "Hide API Key" : "Show API Key"}
-            title={showKey ? "Hide API Key" : "Show API Key"} aria-pressed={showKey}
+          <button type="button" className="btn provider-icon-action" aria-label={t(showKey ? "settings.hideApiKey" : "settings.showApiKey")}
+            title={t(showKey ? "settings.hideApiKey" : "settings.showApiKey")} aria-pressed={showKey}
             disabled={!keyDraft} onClick={() => setShowKey(value => !value)}>
             {showKey ? <EyeOff size={17} /> : <Eye size={17} />}
           </button>
@@ -4100,7 +4139,7 @@ export function ProviderEditor({
         </div>
       </div> : <div className="prov-card__actions provider-editor-footer">
         <span role="status">{t(dirty ? "settings.models.unsaved" : "settings.models.saved")}</span>
-        <button className="btn btn--small" onClick={onCancel} disabled={busy}>
+        <button className="btn btn--small" onClick={() => draftGuard.leave(onCancel)} disabled={busy}>
           {t("common.cancel")}
         </button>
         <button className="btn btn--primary btn--small" onClick={() => void save()} disabled={busy || fetchingModels || (Boolean(initial) && !dirty) || !name.trim() || !effectiveBaseUrl || !models.trim() || extraBodyInvalid || endpointMismatch.mismatch}>
@@ -4239,22 +4278,28 @@ function HooksSection({ onChanged }: { onChanged: (settings?: SettingsView | nul
     setErr(null);
     try {
       const parsed = parseHooksEditorJSON();
-      if (!parsed) return;
+      if (!parsed) return false;
       await app.SaveHooksSettingsForRoot(scope, view?.projectRoot?.trim() ?? "", parsed.hooks);
-      await load(scope);
+      setView(current => current ? { ...current, hooks: parsed.hooks } : current);
+      setJsonText(parsed.text);
+      setJsonMessage(t("settings.changesSaved"));
       onChanged();
+      return true;
     } catch (e) {
       setErr(String((e as Error)?.message ?? e));
+      return false;
     } finally {
       setBusy(false);
     }
   };
+  const hooksGuard = useSettingsDraft({ label: t("settings.hooks"), dirty: Boolean(view && jsonText !== formatHooksJSON(view.hooks, view.events)), busy,
+    canSave: Boolean(view), save, discard: () => { if (view) setJsonText(formatHooksJSON(view.hooks, view.events)); } });
   return (
     <>
-      {err && <div className="banner banner--error"><ErrorMessage error={err} /></div>}
+      {err && <SettingsFeedback kind="error" onRetry={!view ? () => void load(scope) : undefined}><ErrorMessage error={err} /></SettingsFeedback>}
       <SettingsSection title={t("settings.hooksScopeSection")} description={t("settings.hooksScopeHint")}>
         <SettingsField label={t("settings.hooksScopeField")}>
-          <SettingsSelect name="hooks-scope" className="mem-select set-grow" value={scope} disabled={busy} onValueChange={(value) => setScope(value === "project" ? "project" : "global")}>
+          <SettingsSelect name="hooks-scope" className="mem-select set-grow" value={scope} disabled={busy} onValueChange={(value) => hooksGuard.leave(() => setScope(value === "project" ? "project" : "global"))}>
             <option value="global">{t("settings.hooksGlobal")}</option>
             <option value="project">{t("settings.hooksProject")}</option>
           </SettingsSelect>
@@ -4279,7 +4324,7 @@ function HooksSection({ onChanged }: { onChanged: (settings?: SettingsView | nul
         {view && scope === "project" && !view.trusted && view.hooks.length > 0 && (
           <div className="banner banner--warning" role="status">
             <span>{t("settings.hooksAwaitingApproval")}</span>
-            <button className="btn btn--small" disabled={busy} onClick={() => void approve()}>{t("settings.hooksApprove")}</button>
+            <button className="btn btn--small" disabled={busy} onClick={() => hooksGuard.leave(() => void approve())}>{t("settings.hooksApprove")}</button>
           </div>
         )}
         {view && (
@@ -4307,14 +4352,14 @@ function HooksSection({ onChanged }: { onChanged: (settings?: SettingsView | nul
                 setJsonError(null);
               }}
             />
-            {jsonError && <div className="hooks-json-panel__message hooks-json-panel__message--error"><ErrorMessage error={jsonError} /></div>}
-            {jsonMessage && <div className="hooks-json-panel__message">{jsonMessage}</div>}
+            {jsonError && <SettingsFeedback kind="error"><ErrorMessage error={jsonError} /></SettingsFeedback>}
+            {jsonMessage && <SettingsFeedback kind="info">{jsonMessage}</SettingsFeedback>}
           </div>
         )}
-        {!view && <div className="empty">{t("settings.loading")}</div>}
+        {!view && !err && <SettingsFeedback kind="loading" />}
         <div className="settings-save-bar">
           <span role="status">{t(view && jsonText !== formatHooksJSON(view.hooks, view.events) ? "settings.models.unsaved" : "settings.models.saved")}</span>
-          <button className="btn" disabled={busy || !view} onClick={() => { if (view) { setJsonText(formatHooksJSON(view.hooks, view.events)); setJsonError(null); setJsonMessage(null); } }}>{t("common.cancel")}</button>
+          <button className="btn" disabled={busy || !view || jsonText === formatHooksJSON(view.hooks, view.events)} onClick={() => { if (view) { setJsonText(formatHooksJSON(view.hooks, view.events)); setJsonError(null); setJsonMessage(null); } }}>{t("common.cancel")}</button>
           <button className="btn btn--primary" disabled={busy || !view || jsonText === formatHooksJSON(view.hooks, view.events)} onClick={() => void save()}>{t("common.save")}</button>
         </div>
       </SettingsSection>
@@ -4447,15 +4492,19 @@ function SandboxSection({ s, busy, apply, windows }: SectionProps & { windows: b
     return result;
   };
   const saveRoot = async () => {
-    if (busy || rootSaving.current || root === sb.workspaceRoot) return;
+    if (busy || rootSaving.current) return false;
+    if (root === sb.workspaceRoot) return true;
     rootSaving.current = true;
     try {
       if (await set({ workspaceRoot: root })) {
         setRootDraft(current => current?.base === sb.workspaceRoot && current.value === root ? null : current);
+        return true;
       }
+      return false;
     }
     finally { rootSaving.current = false; }
   };
+  useSettingsDraft({ label: t("settings.workspaceRoot"), dirty: root !== sb.workspaceRoot, busy, save: saveRoot, discard: () => setRootDraft(null) });
   const reloadSession = async () => {
     if (await apply(() => app.ReloadSettings())) { setRootDraft(null); setSaveResult(null); }
   };
@@ -4501,7 +4550,7 @@ function SandboxSection({ s, busy, apply, windows }: SectionProps & { windows: b
         />
           <div className="sandbox-write-roots">
             <span>{t("settings.effectiveWriteRoots")}</span>
-            {effectiveWriteRoots.length === 0 && <span className="mem-empty">{t("settings.noEffectiveWriteRoots")}</span>}
+            {effectiveWriteRoots.length === 0 && <span className="mem-empty" role="status">{t("settings.noEffectiveWriteRoots")}</span>}
             {effectiveWriteRoots.map((path, index) => (
               <span className="set-rule set-rule--path" key={`${path}-${index}`}>
                 <span>{path}</span><CopyButton text={path} showInlineLabel={false} label={t("settings.copyDirectory")} />

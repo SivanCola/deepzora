@@ -1,6 +1,7 @@
 import { ErrorMessage } from "./ErrorMessage";
 import { SettingsOptions } from "./SettingsOptions";
 import { SettingsSelect } from "./SettingsSelect";
+import { SettingsSubpageHeader, SettingsFeedback, useSettingsDraft, useSettingsExperience } from "./SettingsExperience";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { app } from "../lib/bridge";
@@ -68,6 +69,7 @@ function shortModelRef(ref: string): string {
 // redundant, parallel backend list endpoint.
 export function SubagentsSettingsPage({ s, onUseInChat }: { s: SettingsView; onUseInChat: (command: string) => void }) {
   const t = useT();
+  const { announce } = useSettingsExperience();
   const [skills, setSkills] = useState<SkillView[] | null>(null);
   const [tools, setTools] = useState<MCPToolView[]>([]);
   const [busy, setBusy] = useState(false);
@@ -79,13 +81,13 @@ export function SubagentsSettingsPage({ s, onUseInChat }: { s: SettingsView; onU
 
   const reload = useCallback(async () => {
     const [settingsView, availableTools] = await Promise.all([
-      app.SkillsSettings().catch(() => ({ skills: [], skillRoots: [] })),
+      app.SkillsSettings(),
       app.AvailableSubagentTools().catch(() => []),
     ]);
     setSkills(asArray<SkillView>(settingsView?.skills).filter((sk) => sk.runAs === "subagent"));
     setTools(asArray<MCPToolView>(availableTools));
   }, []);
-  useEffect(() => { void reload(); }, [reload]);
+  useEffect(() => { void reload().catch(cause => setErr(String((cause as Error)?.message ?? cause))); }, [reload]);
 
   const mutate = async (fn: () => Promise<unknown>) => {
     setBusy(true);
@@ -93,6 +95,7 @@ export function SubagentsSettingsPage({ s, onUseInChat }: { s: SettingsView; onU
     try {
       await fn();
       await reload();
+      announce("success");
       return true;
     } catch (e) {
       setErr(activeWorkBusyNoticeText(e, t) ?? String((e as Error)?.message ?? e));
@@ -122,11 +125,11 @@ export function SubagentsSettingsPage({ s, onUseInChat }: { s: SettingsView; onU
     [filtered],
   );
 
-  if (!skills) return <div className="empty">{t("caps.loading")}</div>;
+  if (!skills) return err ? <SettingsFeedback kind="error" onRetry={() => { setErr(null); void reload().catch(cause => setErr(String(cause))); }}><ErrorMessage error={err} /></SettingsFeedback> : <SettingsFeedback kind="loading" />;
 
   return (
     <section className="mem-section">
-      {err && <div className="banner banner--error"><ErrorMessage error={err} /></div>}
+      {err && <div className="banner banner--error" role="alert"><ErrorMessage error={err} /></div>}
       {!formOpen && (
         <div className="cap-search subagents-toolbar settings-toolbar">
           <input
@@ -160,6 +163,7 @@ export function SubagentsSettingsPage({ s, onUseInChat }: { s: SettingsView; onU
           onSave={(input) =>
             mutate(() => app.CreateSubagentProfile(input)).then((ok) => {
               if (ok) setAdding(false);
+              return ok;
             })
           }
         />
@@ -176,6 +180,7 @@ export function SubagentsSettingsPage({ s, onUseInChat }: { s: SettingsView; onU
           onSave={(input) =>
             mutate(() => app.UpdateSubagentProfile(editingSkill.name, editingSkill.scope, input)).then((ok) => {
               if (ok) setEditingSkill(null);
+              return ok;
             })
           }
         />
@@ -191,7 +196,7 @@ export function SubagentsSettingsPage({ s, onUseInChat }: { s: SettingsView; onU
               </div>
             </div>
             {custom.length === 0 && external.length === 0 ? (
-              <div className="mem-empty">{query.trim() ? t("subagents.noMatches") : t("subagents.noCustom")}</div>
+              <div className="mem-empty" role="status">{query.trim() ? t("subagents.noMatches") : t("subagents.noCustom")}</div>
             ) : (
               <div className="cap-skills">
                 {custom.map((sk) => (
@@ -564,6 +569,11 @@ function SubagentProfileForm({
   const submit = () => {
     void onSave(currentInput());
   };
+  const snapshot = JSON.stringify([name, description, color, model, effort, toolMode, [...selectedTools], systemPrompt, readOnly, scope]);
+  const baseline = useRef(snapshot);
+  const guard = useSettingsDraft({ label: t(isEditing ? "subagents.editTitle" : "subagents.newTitle"), dirty: snapshot !== baseline.current,
+    busy: busy || tryRunning, canSave: ready, save: async () => ready && await onSave(currentInput()) !== false,
+    discard: onCancel });
 
   const runTry = async () => {
     setTryRunning(true);
@@ -580,10 +590,7 @@ function SubagentProfileForm({
 
   return (
     <div ref={formRef} className="prov-card prov-card--edit">
-      <button className="subagents-form-back" type="button" onClick={onCancel} disabled={busy}>
-        <span aria-hidden="true">←</span> {t("subagents.backToList")}
-      </button>
-      <div className="cap-skills-head__title">{isEditing ? t("subagents.editTitle") : t("subagents.newTitle")}</div>
+      <SettingsSubpageHeader className="subagents-form-header" title={t(isEditing ? "subagents.editTitle" : "subagents.newTitle")} backLabel={t("subagents.backToList")} onBack={onCancel} />
       <label className="set-label">{t("subagents.name")}</label>
       <input
         className="mem-input"
@@ -698,7 +705,7 @@ function SubagentProfileForm({
           {tryRunning ? t("subagents.cancelRun") : t("subagents.run")}
         </button>
       </div>
-      {tryError && <div className="banner banner--error"><ErrorMessage error={tryError} /></div>}
+      {tryError && <div className="banner banner--error" role="alert"><ErrorMessage error={tryError} /></div>}
       {tryResult && <pre className="subagents-tryit-result">{tryResult}</pre>}
 
       <label className="set-label">{t("subagents.scope")}</label>
@@ -714,11 +721,12 @@ function SubagentProfileForm({
 
       <div className="subagents-hint">{t("subagents.manualInvocationHint", { name: trimmedName || "…" })}</div>
 
-      <div className="prov-card__actions">
-        <button className="btn btn--small" onClick={onCancel} disabled={busy}>
+      <div className="settings-save-bar">
+        <span role="status">{t(snapshot === baseline.current ? "settings.models.saved" : "settings.models.unsaved")}</span>
+        <button className="btn btn--small" onClick={() => guard.leave(onCancel)} disabled={busy}>
           {t("common.cancel")}
         </button>
-        <button className="btn btn--primary btn--small" onClick={submit} disabled={busy || !ready}>
+        <button className="btn btn--primary btn--small" onClick={submit} disabled={busy || !ready || (isEditing && snapshot === baseline.current)}>
           {t("common.save")}
         </button>
       </div>

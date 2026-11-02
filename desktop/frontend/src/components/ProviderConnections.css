@@ -195,6 +195,9 @@
 
 .provider-connections__item--flat { align-items: center; gap: 12px; min-height: 52px; }
 .provider-connections__item--flat strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.provider-connections__identity { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
+.provider-connections__identity > strong { flex: none; }
+.provider-connections__item .provider-connections__state { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--fg-dim); font-size: var(--font-caption); }
 .provider-connections__item--flat .provider-catalog__icon, .provider-connections__item--flat .provider-catalog__monogram { width: 24px; height: 24px; flex: 0 0 24px; }
 
 .provider-key-single { display: flex; flex-direction: column; gap: 8px; }
@@ -229,7 +232,9 @@
   gap: 0;
 }
 :root .settings-page:has(.model-access-page:not([hidden])) > .settings-page__header {
-  display: none;
+  display: flex;
+  padding: 24px 24px 16px;
+  margin: 0;
 }
 :root .settings-center .model-access-page > .settings-section {
   margin: 0;
@@ -283,4 +288,42 @@
 }
 .settings-page-content:has(.model-access-page:not([hidden]) .provider-connections:not([hidden])) > .banner {
   flex-shrink: 0;
+}
+.settings-page-content:has(.model-access-page:not([hidden])) > .settings-feedback { flex-shrink: 0; }
+
+/* Keep the editor readable on wide displays and within the available pane. */
+:root .settings-screen .provider-connections { grid-template-columns: minmax(176px, 216px) minmax(0, 1fr); }
+:root .settings-screen .provider-connections__detail { padding: 24px; background: transparent; }
+:root .settings-screen .provider-connections .provider-access-card--detail { padding: 20px; border: 1px solid var(--border-soft); border-radius: 10px; background: var(--bg-elev); }
+:root .settings-screen .provider-connections__detail > div:not([hidden]) { width: 100%; max-width: 920px; margin-inline: auto; }
+:root .settings-screen .provider-connections .provider-editor { background: transparent; }
+.provider-editor--compact { container: provider-editor / inline-size; }
+.provider-model-draft--inline .provider-model-draft__empty { padding: 12px; line-height: 1.5; }
+:root .settings-screen .provider-editor-footer { flex-wrap: wrap; gap: 10px; background: transparent; }
+:root .settings-screen .provider-editor-footer > [role="status"] { flex: 1 1 160px; color: var(--fg-dim); }
+:root .settings-screen .provider-add-panel { box-sizing: border-box; width: calc(100% - 48px); max-width: 1120px; margin: 24px auto; padding: 20px; }
+.provider-model-dialog { overflow-y: auto; overscroll-behavior: contain; }
+.provider-model-dialog :is(header, footer) { flex-wrap: wrap; }
+.provider-model-dialog :is(h2, small) { min-width: 0; overflow-wrap: anywhere; }
+@container provider-editor (max-width: 480px) {
+  .provider-model-draft--inline .provider-model-draft__option { flex-wrap: wrap; gap: 8px; }
+  .provider-model-draft--inline .provider-model-draft__model { flex: 1 1 100%; }
+  .provider-model-draft--inline .provider-model-draft__option > button { margin-left: auto; }
+}
+@media (max-width: 1000px) {
+  :root .settings-screen .provider-connections { grid-template-columns: minmax(0, 1fr); }
+  :root .settings-screen .provider-connections__nav { border-right: 0; }
+  :root .settings-screen .provider-connections__detail { display: none; }
+  :root .settings-screen .provider-connections--detail > .provider-connections__nav { display: none; }
+  :root .settings-screen .provider-connections--detail > .provider-connections__detail { display: flex; }
+  :root .settings-screen .provider-connections .provider-connections__back { display: inline-flex; align-self: flex-start; }
+}
+@media (max-width: 600px) {
+  :root .settings-screen .provider-connections__detail { padding: 16px; }
+  :root .settings-screen .provider-connections .provider-access-card--detail { padding: 16px; }
+  :root .settings-screen .provider-add-panel { width: calc(100% - 32px); margin: 16px auto; padding: 16px; }
+  .provider-model-dialog header h2 { flex-basis: calc(100% - 48px); }
+}
+@media (max-width: 760px) {
+  :root .settings-screen .settings-center:has(.model-access-page:not([hidden]) .provider-connections:not([hidden])) { grid-template-rows: auto minmax(0, 1fr); }
 }

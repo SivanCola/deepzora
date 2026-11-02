@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Check, Pencil, X } from "lucide-react";
 import { useT } from "../lib/i18n";
+import { useSettingsDraft } from "./SettingsExperience";
 
 export function ConnectionTitle({ label, busy, onSave }: {
   label: string; busy: boolean; onSave: (label: string) => Promise<boolean>;
@@ -14,13 +15,15 @@ export function ConnectionTitle({ label, busy, onSave }: {
   const trigger = useRef<HTMLButtonElement>(null);
   const close = () => { setEditing(false); setError(false); requestAnimationFrame(() => trigger.current?.focus()); };
   const save = async () => {
-    if (pending.current || busy) return;
+    if (pending.current || busy) return false;
     pending.current = true; setSaving(true); setError(false);
     try {
-      if (await onSave(draft.trim())) close(); else setError(true);
-    } catch { setError(true); }
+      if (await onSave(draft.trim())) { close(); return true; } else { setError(true); return false; }
+    } catch { setError(true); return false; }
     finally { pending.current = false; setSaving(false); }
   };
+  const guard = useSettingsDraft({ label: t("settings.connections.name"), dirty: editing && draft.trim() !== label, busy: saving || busy,
+    canSave: Boolean(draft.trim()), save, discard: close });
   if (!editing) return <button ref={trigger} type="button" className="connection-title" disabled={busy}
     aria-label={`${t("settings.connections.rename")}: ${label}`}
     onClick={() => { setDraft(label); setError(false); setEditing(true); }}>
@@ -34,10 +37,10 @@ export function ConnectionTitle({ label, busy, onSave }: {
         onKeyDown={e => {
           if (e.nativeEvent.isComposing || e.keyCode === 229) return;
           if (e.key === "Enter") { e.preventDefault(); void save(); }
-          if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); if (!saving) close(); }
+          if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); if (!saving) guard.leave(close); }
         }} />
       <button type="button" className="btn provider-icon-action" title={t("common.save")} aria-label={t("common.save")} disabled={saving || busy} onClick={() => void save()}><Check size={16} /></button>
-      <button type="button" className="btn provider-icon-action" title={t("common.cancel")} aria-label={t("common.cancel")} disabled={saving} onClick={close}><X size={16} /></button>
+      <button type="button" className="btn provider-icon-action" title={t("common.cancel")} aria-label={t("common.cancel")} disabled={saving} onClick={() => guard.leave(close)}><X size={16} /></button>
     </span>
     {error && <small role="alert">{t("settings.connections.renameFailed")}</small>}
   </span>;

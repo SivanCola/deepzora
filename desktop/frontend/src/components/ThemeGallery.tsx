@@ -1,7 +1,8 @@
 import { SettingsOptions } from "./SettingsOptions";
+import { SettingsSubpageHeader, SettingsFeedback, useSettingsDraft } from "./SettingsExperience";
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, Check, CircleHelp, Copy, Download, ImagePlus, MoreHorizontal, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
+import { Check, CircleHelp, Copy, Download, ImagePlus, MoreHorizontal, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
 import { app } from "../lib/bridge";
 import { useT } from "../lib/i18n";
 import { THEME_STYLES, type ThemeStyle, isThemeStyle } from "../lib/theme";
@@ -35,7 +36,7 @@ import {
   selectionFromPack,
   startGlobalPreview,
 } from "../lib/themeExperience";
-import { useToast } from "../lib/toast";
+import { useSettingsNotice as useToast } from "./SettingsExperience";
 import { themePreviewPalette } from "../lib/themePreviewPalette";
 import { useConfirmDialog } from "./ConfirmDialog";
 import { ThemePreviewSurface } from "./ThemePreviewSurface";
@@ -243,6 +244,7 @@ export function ThemeGallery({
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [packs, setPacks] = useState<ThemePackView[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<GalleryTab>("catalog");
   const [selected, setSelected] = useState<ThemeSelection | null>(null);
@@ -259,15 +261,16 @@ export function ThemeGallery({
 
   const reload = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const list = await app.ListThemePacks();
       setPacks(list || []);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : String(err), "error");
+      setLoadError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, []);
 
   useEffect(() => {
     void reload();
@@ -523,7 +526,7 @@ export function ThemeGallery({
   };
 
   const saveEditor = async (activate: boolean) => {
-    if (!editor) return;
+    if (!editor) return false;
     setBusy(true);
     try {
       const input: ThemeSaveInput = {
@@ -562,8 +565,10 @@ export function ThemeGallery({
       await reload();
       setTab("user");
       setSelected(selectionFromPack(saved));
+      return true;
     } catch (err) {
       showToast(err instanceof Error ? err.message : String(err), "error");
+      return false;
     } finally {
       setBusy(false);
     }
@@ -572,20 +577,14 @@ export function ThemeGallery({
   if (immersive && selectedPack) {
     return (
       <div className="theme-gallery theme-gallery--immersive">
-        <header className="theme-gallery__top">
-          <button type="button" className="btn btn--small" onClick={closeImmersivePreview}>
-            <ArrowLeft size={14} /> {t("settings.themeGallery.back")}
-          </button>
-          <h2 className="theme-gallery__title">{t("settings.themeGallery.previewTitle")}</h2>
-          <div className="theme-gallery__top-actions">
+        <SettingsSubpageHeader className="theme-gallery__top" title={t("settings.themeGallery.previewTitle")} onBack={closeImmersivePreview} backLabel={t("settings.themeGallery.back")} mode="preview" actions={<div className="theme-gallery__top-actions">
             <button type="button" className="btn btn--small" onClick={() => void doImport()} disabled={busy}>
               <Upload size={13} /> {t("settings.themeLibrary.import")}
             </button>
             <button type="button" className="btn btn--small" onClick={openCreate} disabled={busy}>
               <Plus size={13} /> {t("settings.themeLibrary.new")}
             </button>
-          </div>
-        </header>
+          </div>} />
         <div className="theme-gallery__immersive-toolbar">
           <ThemePreviewControls
             mode={detailMode}
@@ -663,26 +662,14 @@ export function ThemeGallery({
 
   return (
     <div className="theme-gallery">
-      <header className="theme-gallery__top">
-        <div className="theme-gallery__crumbs">
-          <button type="button" className="theme-gallery__back" onClick={onBack}>
-            <ArrowLeft size={14} />
-            <span>
-              {t("settings.appearance")} / {t("settings.themeGallery.title")}
-            </span>
-          </button>
-          <h2 className="theme-gallery__title">{t("settings.themeGallery.title")}</h2>
-          <p className="theme-gallery__sub">{t("settings.themeGallery.subtitle")}</p>
-        </div>
-        <div className="theme-gallery__top-actions">
+      <SettingsSubpageHeader className="theme-gallery__top" backClassName="theme-gallery__back" title={t("settings.themeGallery.title")} description={t("settings.themeGallery.subtitle")} onBack={onBack} backLabel={t("settings.appearance")} mode="preview" actions={<div className="theme-gallery__top-actions">
           <button type="button" className="btn btn--small" onClick={openCreate} disabled={busy}>
             <Plus size={13} /> {t("settings.themeLibrary.new")}
           </button>
           <button type="button" className="btn btn--small" onClick={() => void doImport()} disabled={busy}>
             <Upload size={13} /> {t("settings.themeLibrary.import")}
           </button>
-        </div>
-      </header>
+        </div>} />
 
       <div className="theme-gallery__tabs" role="tablist">
         {(
@@ -705,11 +692,12 @@ export function ThemeGallery({
       </div>
 
       <div className="theme-gallery__body">
+        {loadError && <SettingsFeedback kind="error" onRetry={() => void reload()}>{loadError}</SettingsFeedback>}
         <div className="theme-gallery__grid" role="listbox" aria-label={t("settings.themeGallery.title")}>
           {loading ? (
-            <div className="theme-lib-card__sub">{t("settings.themeLibrary.loading")}</div>
+            <SettingsFeedback kind="loading">{t("settings.themeLibrary.loading")}</SettingsFeedback>
           ) : visible.length === 0 ? (
-            <div className="theme-lib-card__sub">{tab === "user" ? t("settings.themeLibrary.emptyUser") : t("settings.themeGallery.empty")}</div>
+            !loadError && <SettingsFeedback kind="empty">{tab === "user" ? t("settings.themeLibrary.emptyUser") : t("settings.themeGallery.empty")}</SettingsFeedback>
           ) : (
             visibleSections.map((section) => (
               <div key={section.id} className="theme-gallery__grid-section" role="group" aria-label={section.label || undefined}>
@@ -863,7 +851,7 @@ export function ThemeGallery({
             cancelThemePreview();
             setEditor(null);
           }}
-          onSave={(activate) => void saveEditor(activate)}
+          onSave={saveEditor}
         />
       ) : null}
       {confirmDialog}
@@ -882,7 +870,7 @@ function ThemeEditorInline({
   busy: boolean;
   onChange: (patch: Partial<EditorState>) => void;
   onCancel: () => void;
-  onSave: (activate: boolean) => void;
+  onSave: (activate: boolean) => Promise<boolean>;
 }) {
   const t = useT();
   const { showToast } = useToast();
@@ -893,9 +881,13 @@ function ThemeEditorInline({
   const initialFocusRef = useRef<HTMLInputElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const busyRef = useRef(busy);
+  const snapshot = JSON.stringify(state);
+  const baseline = useRef(snapshot);
+  const draftGuard = useSettingsDraft({ label: t("settings.themeLibrary.editorCreate"), dirty: snapshot !== baseline.current, busy,
+    canSave: Boolean(state.id.trim() && state.name.trim()), save: () => onSave(false), discard: onCancel });
   const onCancelRef = useRef(onCancel);
   busyRef.current = busy;
-  onCancelRef.current = onCancel;
+  onCancelRef.current = () => draftGuard.leave(onCancel);
 
   const homeUrl = state.backgroundDataUrl || state.existingBackgroundUrl;
   const taskUrl = state.taskBackgroundDataUrl || state.existingTaskBackgroundUrl;
@@ -934,6 +926,7 @@ function ThemeEditorInline({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.target instanceof Node && !editorRef.current?.contains(event.target)) return;
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopPropagation();
@@ -1019,12 +1012,12 @@ function ThemeEditorInline({
         aria-labelledby={titleId}
         tabIndex={-1}
       >
-        <header className="theme-editor__header">
+        <header className="theme-editor__header" data-settings-subpage="" data-save-mode="preview">
           <div>
             <strong id={titleId}>{state.mode === "create" ? t("settings.themeLibrary.editorCreate") : t("settings.themeLibrary.editorEdit")}</strong>
             <p>{t("settings.themeEditor.subtitle")}</p>
           </div>
-          <button type="button" className="btn btn--icon" aria-label={t("common.close")} disabled={busy} onClick={onCancel}>
+          <button type="button" className="btn btn--icon" aria-label={t("common.close")} disabled={busy} onClick={() => draftGuard.leave(onCancel)}>
             <X size={16} />
           </button>
         </header>
@@ -1162,14 +1155,15 @@ function ThemeEditorInline({
           </aside>
         </div>
 
-        <div className="theme-editor__actions">
-          <button type="button" className="btn" disabled={busy} onClick={onCancel}>
+        <div className="theme-editor__actions settings-save-bar">
+          <span role="status">{t(snapshot === baseline.current ? "settings.models.saved" : "settings.models.unsaved")}</span>
+          <button type="button" className="btn" disabled={busy} onClick={() => draftGuard.leave(onCancel)}>
             {t("common.cancel")}
           </button>
-          <button type="button" className="btn" disabled={busy} onClick={() => onSave(false)}>
+          <button type="button" className="btn" disabled={busy || !state.id.trim() || !state.name.trim() || (state.mode === "edit" && snapshot === baseline.current)} onClick={() => onSave(false)}>
             {t("common.save")}
           </button>
-          <button type="button" className="btn btn--primary" disabled={busy} onClick={() => onSave(true)}>
+          <button type="button" className="btn btn--primary" disabled={busy || !state.id.trim() || !state.name.trim()} onClick={() => onSave(true)}>
             {t("settings.themeGallery.saveAndApply")}
           </button>
         </div>

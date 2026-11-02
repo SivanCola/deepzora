@@ -1,4 +1,5 @@
 import { SettingsSelect } from "./SettingsSelect";
+import { useSettingsDraft } from "./SettingsExperience";
 import { protocolsForCatalog } from "../lib/providerCatalog";
 import { RotateCcw } from "lucide-react";
 import { providerProtocolLabel } from "../lib/providerProtocol";
@@ -51,6 +52,8 @@ export function ProviderCatalogPicker({ choices, busy, onConnect, onView, onRese
   const [formatDrafts, setFormatDrafts] = useState<Record<string, string>>({});
   const [query, setQuery] = useState("");
   const [confirmReset, setConfirmReset] = useState(false);
+  const guard = useSettingsDraft({ label: t("settings.addProvider.chooseTitle"), dirty: Boolean(keyDraft.value || Object.keys(urlDrafts).length), busy,
+    discard: () => { setKeyDraft({ id: "", keyEnv: "", value: "" }); setUrlDrafts({}); } });
   const selected = choices.find(c => c.id === selectedID) ?? choices[0];
   const brands = useMemo(() => {
     const entries = [...new Map(choices.map(c => [c.catalog.brandId,
@@ -80,9 +83,7 @@ export function ProviderCatalogPicker({ choices, busy, onConnect, onView, onRese
   const formatChoices = productChoices.filter(c => c.catalog.region === selected.catalog.region);
   const pick = (choice: CatalogChoice | undefined) => {
     if (!choice) return;
-    setSelectedID(choice.id);
-    setKeyDraft({id: "", keyEnv: "", value: ""});
-    setConfirmReset(false);
+    guard.leave(() => { setSelectedID(choice.id); setKeyDraft({id: "", keyEnv: "", value: ""}); setConfirmReset(false); });
   };
   const chooseDimension = (dimension: "region" | "product", value: string) => {
     const candidates = (dimension === "product" ? siblings : productChoices)

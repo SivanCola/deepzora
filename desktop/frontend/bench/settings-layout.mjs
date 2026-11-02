@@ -23,7 +23,7 @@ async function settle(page) {
 async function verifySaveBars(page, context) {
   for (const [tab, fields] of [["Hooks", ".hooks-json-panel__textarea"], ["Network", ".settings-page--network input"]]) {
     await page.getByRole("navigation", { name: "Settings", exact: true }).getByRole("button", { name: tab, exact: true }).click();
-    if (tab === "Network") await page.getByRole("button", { name: "custom", exact: true }).click();
+    if (tab === "Network") await page.getByRole("radio", { name: "custom", exact: true }).click();
     await page.locator(fields).first().waitFor();
     for (const zoom of [1, 1.5]) {
       await page.evaluate(zoom => { document.documentElement.style.zoom = String(zoom); }, zoom);
@@ -54,6 +54,7 @@ async function verifySaveBars(page, context) {
     }
     await page.evaluate(() => { document.documentElement.style.zoom = "1"; });
     await page.setViewportSize({ width: 1600, height: 1100 });
+    if (tab === "Network") await page.locator(".settings-save-bar").getByRole("button", { name: "Cancel", exact: true }).click();
   }
   console.log(`PASS ${context} Hooks and Network save bars`);
 }

@@ -5,6 +5,7 @@ import { AgentPresetIconPicker } from "./AgentPresetIconPicker";
 import { AgentPresetToolPicker } from "./AgentPresetToolPicker";
 import { SettingsField, SettingsSection } from "./SettingsForm";
 import { SettingsSelect } from "./SettingsSelect";
+import { SettingsSubpageHeader, useSettingsDraft } from "./SettingsExperience";
 
 export type AgentPresetDraft = Pick<AgentPreset, "id" | "name" | "description" | "icon" | "iconImage" | "iconColor" | "body" | "keepCoding" | "complete" | "includeRuntimeContext" | "tools"> & { scope: WritableAgentPresetScope };
 
@@ -13,7 +14,7 @@ export function AgentPresetEditor({ initial, editing, presets, busy, onSave, onC
   editing: boolean;
   presets: AgentPreset[];
   busy: boolean;
-  onSave: (draft: AgentPresetDraft) => Promise<void>;
+  onSave: (draft: AgentPresetDraft) => Promise<boolean | void>;
   onCancel: () => void;
 }) {
   const t = useT();
@@ -33,12 +34,15 @@ export function AgentPresetEditor({ initial, editing, presets, busy, onSave, onC
   const replacementMissing = bodyRequired && !draft.body.trim();
   const invalid = idInvalid || idTaken || !draft.name.trim() || replacementMissing || imageEditing;
   const patch = (next: Partial<AgentPresetDraft>) => setDraft(previous => ({ ...previous, ...next }));
+  const dirty = imageEditing || JSON.stringify(draft) !== JSON.stringify(initial);
+  const guard = useSettingsDraft({ label: t(editing ? "agentPresets.edit" : "agentPresets.new"), dirty, busy, canSave: !invalid,
+    save: async () => !invalid && await onSave({ ...draft, id }) !== false, discard: () => setDraft(initial) });
   useEffect(() => { nameRef.current?.focus(); }, []);
 
   return <form className="agent-preset-editor" aria-label={t(editing ? "agentPresets.edit" : "agentPresets.new")}
-    onSubmit={event => { event.preventDefault(); if (!invalid && !busy) void onSave({ ...draft, id }); }}>
-    <button className="subagents-form-back" type="button" disabled={busy} onClick={onCancel}>{t("agentPresets.back")}</button>
-    <SettingsSection title={<h2>{t(editing ? "agentPresets.edit" : "agentPresets.new")}</h2>}>
+    onSubmit={event => { event.preventDefault(); if (!invalid && !busy && (!editing || dirty)) void onSave({ ...draft, id }); }}>
+    <SettingsSubpageHeader title={t(editing ? "agentPresets.edit" : "agentPresets.new")} description={t("agentPresets.editHint")} backLabel={t("agentPresets.back")} onBack={onCancel} />
+    <SettingsSection>
       <SettingsField label={<label htmlFor={`${prefix}-name`}>{t("agentPresets.name")}</label>}>
         <input ref={nameRef} id={`${prefix}-name`} className="mem-input set-grow" required value={draft.name} disabled={busy} onChange={event => patch({ name: event.target.value })} />
       </SettingsField>
@@ -99,9 +103,9 @@ export function AgentPresetEditor({ initial, editing, presets, busy, onSave, onC
       </details>
     </SettingsSection>
     <div className="settings-save-bar">
-      <span role="status">{t("agentPresets.saveHint")}</span>
-      <button className="btn btn--small" type="button" disabled={busy} onClick={onCancel}>{t("common.cancel")}</button>
-      <button className="btn btn--primary btn--small" type="submit" disabled={busy || invalid}>{t(busy ? "agentPresets.saving" : "common.save")}</button>
+      <span role="status">{t(dirty ? "settings.models.unsaved" : "settings.models.saved")}</span>
+      <button className="btn btn--small" type="button" disabled={busy} onClick={() => guard.leave(onCancel)}>{t("common.cancel")}</button>
+      <button className="btn btn--primary btn--small" type="submit" disabled={busy || invalid || (editing && !dirty)}>{t(busy ? "agentPresets.saving" : "common.save")}</button>
     </div>
   </form>;
 }

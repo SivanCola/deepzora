@@ -205,6 +205,8 @@
 
 .usage-stats__heatmap {
   display: block;
+  width: 100%;
+  height: auto;
 }
 
 /* 5 heat levels: progressively stronger accent on the elevated background.

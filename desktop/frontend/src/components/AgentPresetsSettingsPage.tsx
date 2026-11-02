@@ -11,21 +11,28 @@ import { AgentPresetIcon } from "./AgentPresetIcon";
 import { ErrorMessage } from "./ErrorMessage";
 import { InlineConfirmButton } from "./InlineConfirmButton";
 import { SettingsSection } from "./SettingsForm";
+import { SettingsFeedback, useSettingsExperience } from "./SettingsExperience";
 
 function newPreset(): { draft: AgentPresetDraft; editing: boolean } {
   return { editing: false, draft: { id: "", name: "", description: "", icon: "", iconImage: "", body: "", keepCoding: true, complete: false, includeRuntimeContext: true, tools: null, scope: "user" } };
 }
 
-export function AgentPresetsSettingsPage({ tabId, workspaceKey }: { tabId: string; workspaceKey: string }) {
+export function AgentPresetsSettingsPage({ tabId, workspaceKey, createRequestId }: { tabId: string; workspaceKey: string; createRequestId?: number | null }) {
   const t = useT();
+  const { requestLeave } = useSettingsExperience();
   const { view, loading, error, reload } = useAgentPresets(tabId, workspaceKey);
-  const createRequest = useAppNavigationStore(state => state.settingsFocus?.target === "agent-preset-create" ? state.settingsFocus.requestId : undefined);
+  const storeRequest = useAppNavigationStore(state => state.settingsFocus?.target === "agent-preset-create" ? state.settingsFocus.requestId : undefined);
+  const createRequest = createRequestId === undefined ? storeRequest : createRequestId ?? undefined;
+  const handledCreateRequest = useRef<number | undefined>(undefined);
   const [editor, setEditor] = useState<{ draft: AgentPresetDraft; editing: boolean } | null>(() => createRequest !== undefined ? newPreset() : null);
   useEffect(() => {
-    if (createRequest === undefined) return;
-    setEditor(newPreset());
-    useAppNavigationStore.getState().setSettingsFocus(current => current?.target === "agent-preset-create" && current.requestId === createRequest ? null : current);
-  }, [createRequest]);
+    if (createRequest === undefined || handledCreateRequest.current === createRequest) return;
+    handledCreateRequest.current = createRequest;
+    requestLeave(() => {
+      setEditor(newPreset());
+      useAppNavigationStore.getState().setSettingsFocus(current => current?.target === "agent-preset-create" && current.requestId === createRequest ? null : current);
+    });
+  }, [createRequest, requestLeave]);
   const [busy, setBusy] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
@@ -62,17 +69,19 @@ export function AgentPresetsSettingsPage({ tabId, workspaceKey }: { tabId: strin
     {!!view?.problems.length && <div className="banner banner--warning" role="status"><span>{t("agentPresets.problems", { n: view.problems.length })}</span>
       {view.problems.map((problem, index) => <div key={`${index}:${problem}`}><ErrorMessage error={problem} /></div>)}
     </div>}
-    {notice && <div className="set-hint" role="status">{notice}</div>}
+    {notice && <SettingsFeedback kind="success">{notice}</SettingsFeedback>}
     {editor ? <AgentPresetEditor initial={editor.draft} editing={editor.editing} presets={view?.presets ?? []} busy={busy}
       onCancel={closeEditor} onSave={async draft => {
-        if (await mutate(() => app.SaveAgentPreset(tabId, draft.scope, draft.id, renderAgentPreset(draft)))) closeEditor();
-      }} /> : <SettingsSection title={<h2>{t("settings.tab.agentPresets")}</h2>} description={<p>{t("agentPresets.hint")}</p>}
+        const saved = await mutate(() => app.SaveAgentPreset(tabId, draft.scope, draft.id, renderAgentPreset(draft)));
+        if (saved) closeEditor();
+        return saved;
+      }} /> : <SettingsSection description={<p>{t("agentPresets.hint")}</p>}
       actions={<><button className="btn btn--small" type="button" disabled={busy || loading} onClick={() => void reload()} aria-label={t("agentPresets.refresh")}><RefreshCw size={14} aria-hidden="true" /></button>
         <button ref={addRef} className="btn btn--small" type="button" disabled={busy || !view} onClick={() => {
           setMutationError(null); setEditor(newPreset());
         }}><Plus size={14} aria-hidden="true" />{t("agentPresets.new")}</button></>}>
-      {!view && loading && <div className="empty" role="status">{t("agentPresets.loading")}</div>}
-      {view && !view.presets.length && <div className="mem-empty" role="status">{t("agentPresets.empty")}</div>}
+      {!view && loading && <SettingsFeedback kind="loading" />}
+      {view && !view.presets.length && <SettingsFeedback kind="empty">{t("agentPresets.empty")}</SettingsFeedback>}
       <div className="cap-skills">
         {view?.presets.map(preset => <AgentPresetRow key={`${preset.scope}:${preset.id}`} preset={preset} busy={busy} current={view.current === preset.id}
           onCopy={() => openCopy(preset)} onEdit={() => setEditor({ editing: true, draft: { ...preset, scope: preset.scope === "project" ? "project" : "user" } })}

@@ -1,4 +1,5 @@
 import { ErrorMessage } from "./ErrorMessage";
+import { SettingsFeedback } from "./SettingsExperience";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Cookie, Globe, ShieldCheck, Trash2 } from "lucide-react";
 import { SettingsField, SettingsSection } from "./SettingsForm";
@@ -109,12 +110,12 @@ export function BrowserControlSettingsPage() {
       </div>
     );
   }
-  if (!state) return <div className="empty">{t("settings.loading")}</div>;
+  if (!state) return error ? <SettingsFeedback kind="error" onRetry={() => { setError(null); void api.get().then(setState, () => setError(t("settings.browser.loadFailed"))); }}>{error}</SettingsFeedback> : <SettingsFeedback kind="loading" />;
 
   return (
     <>
-      {error && <div className="banner banner--error" role="alert"><span><ErrorMessage error={error} /></span></div>}
-      {notice && <div className="banner banner--success" role="status"><span>{notice}</span></div>}
+      {error && <SettingsFeedback kind="error"><ErrorMessage error={error} /></SettingsFeedback>}
+      {notice && <SettingsFeedback kind="success">{notice}</SettingsFeedback>}
       {state.warning && <div className="banner banner--warning" role="status"><span>{t(WARNING_KEYS[state.warning])}</span></div>}
       <SettingsSection title={t("settings.browser.basics")} description={t("settings.browser.basicsHint")}>
         <SettingsField label={t("settings.browser.control")} hint={t("settings.browser.controlHint")} icon={<Globe size={18} />}>

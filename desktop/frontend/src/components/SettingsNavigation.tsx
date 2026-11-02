@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useT, type DictKey } from "../lib/i18n";
 import type { SettingsTab } from "../lib/types";
+import { SettingsSelect } from "./SettingsSelect";
 
 export const SETTINGS_NAV_TABS: SettingsTab[] = [
   "general", "models", "providers", "model-stats", "mcp", "skills", "agent-presets", "subagents", "plugins", "memory",
@@ -77,6 +78,14 @@ export function SettingsNavigation({
 
   return (
     <nav className="settings-center__nav" aria-label={t("settings.title")}>
+      <div className="settings-center__compact-navigation">
+        <SettingsSelect value={activeTab} aria-label={t("settings.title")} searchPlaceholder={t("settings.searchPlaceholder")}
+          emptyLabel={t("settings.searchNoResults")} onValueChange={value => onSelect(value as SettingsTab)}
+          options={SETTINGS_TAB_GROUPS.flatMap(group => group.tabs.flatMap(id => {
+            const item = itemById.get(id);
+            return item ? [{ value: id, label: item.label, hint: item.meta, group: t(group.labelKey), searchText: item.searchTerms }] : [];
+          }))} />
+      </div>
       <label className="settings-center__search">
         <Search size={15} aria-hidden="true" />
         <input
