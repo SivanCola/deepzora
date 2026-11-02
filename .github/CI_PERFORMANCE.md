@@ -8,7 +8,9 @@
 It distinguishes frontend, Go, generated protocol, Electron, native and
 packaging inputs. Explicit documentation such as `desktop/AGENTS.md` skips
 build and soak work, while Markdown inside the frontend remains a build input.
-Unknown paths and unavailable diffs fail closed. Pull requests use merge-base
+Unknown paths and unavailable diffs fail closed. `website/`, `supabase/` and
+their workflow files belong to `website.yml` and `supabase-reports.yml`, so
+changes limited to them leave every main-CI surface unselected. Pull requests use merge-base
 diffs; pushes use `before..sha`; normal `main` pushes keep the complete
 qualification matrix after the existing release-notes-only exception.
 
@@ -22,7 +24,7 @@ Unknown paths select all checks; renames inspect both old and new paths.
 Windows native Go jobs set `TEMP` and `TMP` to an isolated directory under
 `RUNNER_TEMP`. This uses the hosted runner's workspace volume rather than its
 system-profile temporary volume, reducing synchronous test-file I/O. The same
-setup applies to root/desktop jobs, full main runs, and both benchmark modes.
+setup applies to root/desktop jobs, and full main runs.
 It does not change filesystem format, antivirus configuration, cache ownership,
 test selection, or timeout budgets. Logs retain the old and selected paths.
 
@@ -39,13 +41,12 @@ The Windows root runner runs at most two Go packages concurrently (`-p=2`), so
 filesystem-heavy packages do not compete with as many process/network fixtures.
 The complete `internal/cli` package runs alone first, followed by the complete
 `internal/control` package, preventing bounded shell and durable-turn checks from
-overlapping agent/session writers. Reports verify this schedule, result-cache
-policy and the complete package inventory. The baseline
-benchmark retains its original scheduling. All batches share the same deadline.
+overlapping agent/session writers. All batches share the same deadline.
 Both PowerShell runtimes are checked before the root suite, each retaining its
-two-minute limit and executing uncached tests. The existing required context
-`test (windows-latest)` verifies successful execution and complete package
-coverage; failed detection, unexpected skips and missing reports cannot pass.
+two-minute limit and executing uncached tests. `scripts/ci-windows-root.mjs`
+fails unless every discovered package reports pass or skip, so the existing
+required context `test (windows-latest)` only checks successful detection and the
+planned `windows-root` result; failed detection and unexpected skips cannot pass.
 The job limit remains 35 minutes; build/test share a 30-minute executor budget.
 PRs only restore existing caches, while main has one writer. Linux/macOS root
 jobs start independently. Raw JSON, package timings and reports last 14 days.
@@ -56,63 +57,32 @@ is added. The tests still resolve their fresh config files through real SSH.
 The same setup selects the installed Git Bash ahead of the WSL launcher and
 requires its existing three-second startup probe to pass. The checkpoint grader
 fails CI when Bash is unavailable or broken; only local runs may skip it.
-The manual `CI Windows root benchmark` runs three baseline/optimized pairs against
-one exact existing Windows build-cache key, failing on a cache miss. Each runner
-downloads modules into the same initially empty module-cache path; this is a
-restored-build comparison, not a claim that the module cache was warm. Reports
-require identical source, toolchain, package inventory, package outcomes and
-complete top-level test pass/skip outcomes. Build/test wall time excludes setup; evaluate total runner cost and
-required-gate latency separately using Actions timestamps.
-Both modes execute the complete module. The baseline explicitly retains Go's
-original default package parallelism and result caching; only optimized execution
-uses the production scheduling and `-count=1`. Version 2 reports record and verify
-this distinction, so throttling the baseline cannot inflate the measured gain.
 The `race` job checks root concurrency owners, and `desktop-go` checks focused
 desktop lifecycle races on macOS before merge.
 
 The full Windows desktop suite has a 35-minute test-process deadline and a
-65-minute job budget for cold compilation, vet, lint and cache work. A 25-minute
+65-minute job budget for cold compilation, lint and cache work. A 25-minute
 suite deadline has expired while an ordinary test had run for only three seconds;
 this budget covers the complete suite without skipping tests. Linux and macOS
 retain their 15-minute test-process deadlines and 35-minute job budgets.
 
 PRs requiring native validation, main and manual CI execute the complete desktop
-suite once on each platform, including all other desktop packages, vet, build
-and lint. The desktop gate requires every planned job to succeed. Ordinary
+suite once on each platform, including all other desktop packages, and lint.
+`go test` compiles every package, including those without tests, and the
+golangci-lint step runs govet natively, so no separate vet or build step repeats them. The desktop gate requires every planned job to succeed. Ordinary
 frontend-only PRs still skip native Go validation.
 
 After moving temporary files to runner storage, the [three warm-cache pairs](https://github.com/SivanCola/deepzora/actions/runs/38777142608)
 passed all coverage checks, but sharding reduced median test time by only 34.2%
 (6m14s to 4m06s) while increasing complete desktop runner minutes by 56.0%.
-Desktop PR sharding is therefore rolled back to whole-suite execution; routing,
-frontend parallelism and the benchmark tooling remain. The current critical path
+Desktop PR sharding is therefore rolled back to whole-suite execution; routing
+and frontend parallelism remain. The unused shard runners and the benchmark
+workflows that drove them have since been removed. The current critical path
 must be determined from each complete run rather than assumed from this sample.
 
-The benchmark runner compiles once per shard and splits long selectors below 12,000 UTF-16
-units. All batches share one 35-minute test budget; cancellation stops the child
-process tree. No global parallel-test flag or retry-to-green is introduced.
-Run `node scripts/ci-go-shard.mjs --index 1 --count 2 --output /tmp/shard-1` locally
-and repeat with index 2 to reproduce. `--count 1` executes the full main package
-in one process, including its normal shared state, for comparison.
-
-`CI Windows benchmark` is a manual, read-only-cache workflow with three full
-runs and three shard pairs on one checkout SHA, at most three concurrent jobs.
-It verifies coverage and skip outcomes, reports medians/ranges and execution
-cost, and does not change repository settings or enable sharding elsewhere.
-For restored mode, pass `cache_snapshot=MAIN_RUN_ID-ATTEMPT` from a successful
-main desktop cache save. Both module and Windows build archives must exactly
-match that snapshot; a missing archive fails instead of falling back to a newer
-cache. This benchmark-only reader leaves normal PR/main cache policy unchanged.
-Use `cache_mode=cold` for a separate measurement without persisted Actions
-cache restoration and leave `cache_snapshot` empty. The hosted image, dependency installation and executor
-fixtures remain normal preparation steps, so retain complete job cost rather
-than describing this as a bare-machine cold start. Cache modes cannot be mixed
-within one comparison, nor can different cache snapshots.
-Re-enabling desktop PR sharding requires results meeting the 35% test-time reduction
-target with no more than 25% additional compile/test/cleanup time; use Actions
-job timings separately to evaluate total runner cost and queue effects.
-Rollback PR sharding by restoring whole-suite Windows execution and removing
-its report requirement together; keep routing and frontend concurrency intact.
+Re-enabling desktop PR sharding requires new tooling whose results meet the 35%
+test-time reduction target with no more than 25% additional compile/test/cleanup
+time; use Actions job timings separately to evaluate total runner cost and queue effects.
 
 `desktop-frontend` regenerates the desktop host contract (failing on drift) and
 produces one `electron/stable` frontend build on Linux. `desktop-tests` runs unit,

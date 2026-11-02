@@ -87,22 +87,12 @@ jobs:
           dependency: go.sum
       - if: env.RUN_STEPS == 'true'
         run: go mod download
-      - name: Install Linux sandbox backend
-        if: env.RUN_STEPS == 'true' && runner.os == 'Linux'
-        run: |
-          sudo apt-get update && sudo apt-get install -y bubblewrap
-          if sysctl -n kernel.unprivileged_userns_clone >/dev/null 2>&1; then
-            sudo sysctl -w kernel.unprivileged_userns_clone=1
-          fi
-          if sysctl -n kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
-            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-          fi
-          bwrap --ro-bind / / --dev /dev --proc /proc -- true
+      - if: env.RUN_STEPS == 'true' && runner.os == 'Linux'
+        uses: ./.github/actions/linux-sandbox
+      # go test also compiles packages without test files and fails on their errors.
       - name: Build and test root module
         if: env.RUN_STEPS == 'true'
-        run: |
-          go build ./...
-          go test -timeout=15m ./...
+        run: go test -timeout=15m ./...
       - if: always() && env.RUN_STEPS == 'true'
         uses: ./.github/actions/go-build-cache
         with:
@@ -145,14 +135,15 @@ jobs:
             go test -count=1 -timeout=2m -run '^TestPowerShell' ./internal/persistentshell
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
-      - name: Build and test every assigned root package
-        run: node scripts/ci-root-shard.mjs run 1 1 "$RUNNER_TEMP/root-partition"
-      - name: Upload root package coverage
+      # The runner fails unless every discovered package reports pass or skip.
+      - name: Build and test every root package
+        run: node scripts/ci-windows-root.mjs "$RUNNER_TEMP/windows-root"
+      - name: Upload root package evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: windows-root-partition-1-${{ github.run_id }}
-          path: ${{ runner.temp }}/root-partition
+          name: windows-root-${{ github.run_id }}
+          path: ${{ runner.temp }}/windows-root
           overwrite: true
           retention-days: 14
           if-no-files-found: error
@@ -182,19 +173,6 @@ jobs:
             false) test "$ROOT_RESULT" = skipped ;;
             *) exit 1 ;;
           esac
-      - if: needs.changes.outputs.code == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - if: needs.changes.outputs.code == 'true'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with:
-          node-version-file: .node-version
-      - if: needs.changes.outputs.code == 'true'
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          pattern: windows-root-partition-*-${{ github.run_id }}
-          path: root-partitions
-      - if: needs.changes.outputs.code == 'true'
-        run: node scripts/ci-root-shard.mjs verify root-partitions 1
 
   timings:
     name: timings
@@ -298,16 +276,7 @@ jobs:
           module: root-race
           dependency: go.sum
       - run: go mod download
-      - name: Install Linux sandbox backend
-        run: |
-          sudo apt-get update && sudo apt-get install -y bubblewrap
-          if sysctl -n kernel.unprivileged_userns_clone >/dev/null 2>&1; then
-            sudo sysctl -w kernel.unprivileged_userns_clone=1
-          fi
-          if sysctl -n kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
-            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-          fi
-          bwrap --ro-bind / / --dev /dev --proc /proc -- true
+      - uses: ./.github/actions/linux-sandbox
       - name: Check concurrent runtime owners
         run: |
           go test -race -timeout=15m ./internal/agent/... ./internal/plugin/... ./internal/jobs/... \
@@ -486,23 +455,12 @@ jobs:
           module: desktop
           dependency: desktop/go.sum
       - run: go mod download
-      - name: Install Linux sandbox backend
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update && sudo apt-get install -y bubblewrap
-          if sysctl -n kernel.unprivileged_userns_clone >/dev/null 2>&1; then
-            sudo sysctl -w kernel.unprivileged_userns_clone=1
-          fi
-          if sysctl -n kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
-            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-          fi
-          bwrap --ro-bind / / --dev /dev --proc /proc -- true
+      - if: runner.os == 'Linux'
+        uses: ./.github/actions/linux-sandbox
       - uses: ./.github/actions/windows-test-temp
         if: runner.os == 'Windows'
-      - name: Vet desktop module
-        run: go vet ./...
-      - name: Build desktop module
-        run: go build ./...
+      # go test compiles every package, including those without tests, and the
+      # golangci-lint step below runs govet natively on each platform.
       - name: Test desktop module
         env:
           DESKTOP_TEST_TIMEOUT: ${{ runner.os == 'Windows' && '35m' || '15m' }}

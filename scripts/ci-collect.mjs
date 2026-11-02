@@ -52,34 +52,16 @@ for (const job of jobs.jobs.filter(job => /^(desktop-go|windows-root)/.test(job.
 }
 if (jobs.jobs.some(job => /^windows-root(?: \(|$)/.test(job.name) && job.conclusion !== "skipped")) {
   try {
-    const directory = path.join(output, "root-partitions");
+    const directory = path.join(output, "windows-root");
     execFileSync("gh", ["run", "download", String(run.id), "--repo", repository,
-      "--pattern", `windows-root-partition-*-${run.id}`, "--dir", directory], { encoding: "utf8" });
-    for (const file of readdirSync(directory, { recursive: true }).filter(file => file.endsWith(`${path.sep}tests.jsonl`))) {
+      "--name", `windows-root-${run.id}`, "--dir", directory], { encoding: "utf8" });
+    for (const file of readdirSync(directory, { recursive: true }).filter(file => path.basename(file) === "tests.jsonl")) {
       const timings = goTestTimings(readFileSync(path.join(directory, file), "utf8"));
       writeFileSync(path.join(directory, `${file}.timings.json`), JSON.stringify(timings, null, 2));
       markdown += `\n### ${file}: root package execution (seconds)\n\n| Package | Event duration | Test process | After successful output | Result |\n| --- | ---: | ---: | ---: | --- |\n`;
       for (const row of timings.packages.slice(0, 30)) markdown += `| ${row.package} | ${row.seconds ?? "unknown"} | ${row.testProcessSeconds ?? "unknown"} | ${row.postResultSeconds ?? "unknown"} | ${row.result} |\n`;
     }
-  } catch (error) { warnings.push(`Root partition timings: ${error.message}`); }
-}
-if (jobs.jobs.some(job => job.name.includes("windows-latest, shard"))) {
-  try {
-    const directory = path.join(output, "windows-shards");
-    execFileSync("gh", ["run", "download", String(run.id), "--repo", repository,
-      "--pattern", `windows-desktop-shard-*-${run.id}`, "--dir", directory], { encoding: "utf8" });
-    const reports = readdirSync(directory, { recursive: true }).filter(file => file.endsWith(`${path.sep}report.json`))
-      .map(file => JSON.parse(readFileSync(path.join(directory, file), "utf8")));
-    markdown += "\n### Windows shards: slowest top-level tests\n\n| Seconds | Result | Test |\n| ---: | --- | --- |\n";
-    for (const row of reports.flatMap(report => report.completed).sort((a, b) => b.seconds - a.seconds).slice(0, 30)) {
-      markdown += `| ${row.seconds} | ${row.result} | ${row.name} |\n`;
-    }
-    const durations = reports.map(report => report.timings.testMs).filter(Number.isFinite);
-    if (durations.length === 2) {
-      const imbalance = Math.max(...durations) / Math.min(...durations) - 1;
-      markdown += `\nShard duration imbalance: ${(imbalance * 100).toFixed(1)}%${imbalance > 0.25 ? " (investigate test contributions; do not automatically add runners)" : ""}.\n`;
-    }
-  } catch (error) { warnings.push(`Windows shard timings: ${error.message}`); }
+  } catch (error) { warnings.push(`Windows root timings: ${error.message}`); }
 }
 writeFileSync(path.join(output, "timings.json"), JSON.stringify({ ...report, warnings }, null, 2));
 writeFileSync(path.join(output, "summary.md"), markdown);

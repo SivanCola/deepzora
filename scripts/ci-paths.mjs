@@ -8,8 +8,10 @@ import { desktopPlan } from "./ci-plan.mjs";
 const ZERO_SHA = /^0{40}$/;
 const ROOT_DOC = /^[^/]+\.md$/;
 const DESKTOP_DOC = /^(?:desktop\/(?:AGENTS|README)\.md|desktop\/electron\/README\.md)$/;
-const ROOT_UNRELATED = /^(?:docs\/|release-notes\/|desktop\/|workers\/)/;
-const KNOWN_INDEPENDENT = /^(?:docs\/|release-notes\/|workers\/|npm\/|tools\/)/;
+// The website and report-ingest surfaces have their own path-filtered workflows.
+const OWN_WORKFLOW_SURFACE = String.raw`website\/|supabase\/|scripts\/configure-report-ingest-token\.mjs$|\.github\/workflows\/(?:website|supabase-reports)\.yml$`;
+const ROOT_UNRELATED = new RegExp(String.raw`^(?:docs\/|release-notes\/|desktop\/|workers\/|${OWN_WORKFLOW_SURFACE})`);
+const KNOWN_INDEPENDENT = new RegExp(String.raw`^(?:docs\/|release-notes\/|workers\/|npm\/|tools\/|${OWN_WORKFLOW_SURFACE})`);
 const ROOT_TOOLING = /^(?:Makefile|\.golangci[^/]*)$/;
 const FRONTEND = /^desktop\/frontend\//;
 const DESKTOP_MANIFEST = /^(?:desktop\/(?:package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc)|desktop\/frontend\/(?:package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc|\.node-version|vite\.config\.[cm]?[jt]s|tsconfig[^/]*\.json))$/;
