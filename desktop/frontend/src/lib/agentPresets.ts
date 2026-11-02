@@ -7,6 +7,8 @@ export interface AgentPreset {
   description: string;
   /** Display-only glyph key; unknown or absent keys render the default bot. */
   icon?: string;
+  /** Portable, display-only PNG data URL. */
+  iconImage?: string;
   body: string;
   keepCoding: boolean;
   complete: boolean;
@@ -34,11 +36,30 @@ export interface AgentPresetBindings {
 export const AGENT_PRESET_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 export const AGENT_PRESETS_CHANGED = "deepzora:agent-presets-changed";
 
+export function suggestedAgentPresetID(name: string, scope: WritableAgentPresetScope, presets: AgentPreset[]): string {
+  if (!name.trim()) return "";
+  let base = name.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase()
+    .replace(/[^a-z0-9]+/gu, "-").replace(/^-+|-+$/gu, "").slice(0, 64).replace(/-+$/u, "");
+  if (!base) {
+    // Non-Latin names still produce stable valid IDs without requiring a service.
+    let hash = 2166136261;
+    for (const character of name.trim().normalize("NFC")) hash = Math.imul(hash ^ character.codePointAt(0)!, 16777619);
+    base = `preset-${(hash >>> 0).toString(36)}`;
+  }
+  const taken = new Set(["default", ...presets.filter(preset => preset.scope === scope).map(preset => preset.id)]);
+  let candidate = base;
+  for (let suffix = 2; taken.has(candidate); suffix += 1) {
+    const ending = `-${suffix}`;
+    candidate = `${base.slice(0, 64 - ending.length).replace(/-+$/u, "")}${ending}`;
+  }
+  return candidate;
+}
+
 export function agentPresetTools(text: string): string[] {
   return [...new Set(text.split(/[,\r\n]+/u).map(tool => tool.trim()).filter(Boolean))];
 }
 
-export function renderAgentPreset(preset: Pick<AgentPreset, "name" | "description" | "icon" | "body" | "keepCoding" | "complete" | "includeRuntimeContext" | "tools">): string {
+export function renderAgentPreset(preset: Pick<AgentPreset, "name" | "description" | "icon" | "iconImage" | "body" | "keepCoding" | "complete" | "includeRuntimeContext" | "tools">): string {
   // JSON scalars are valid YAML. Quoting every value prevents names and tool
   // patterns from becoming YAML keys, aliases, booleans or frontmatter fences.
   const fields = [
@@ -47,6 +68,7 @@ export function renderAgentPreset(preset: Pick<AgentPreset, "name" | "descriptio
     `keep-coding-instructions: ${preset.keepCoding}`,
   ];
   if (preset.icon) fields.push(`icon: ${JSON.stringify(preset.icon)}`);
+  if (preset.iconImage) fields.push(`icon-image: ${JSON.stringify(preset.iconImage)}`);
   if (preset.complete) fields.push("complete: true");
   if (preset.includeRuntimeContext === false) fields.push("include-runtime-context: false");
   if (preset.tools !== null) fields.push(`tools: ${JSON.stringify(preset.tools)}`);

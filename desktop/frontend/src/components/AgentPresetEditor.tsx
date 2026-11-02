@@ -1,13 +1,13 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { AGENT_PRESET_ID_PATTERN, type AgentPreset, type WritableAgentPresetScope } from "../lib/agentPresets";
+import { AGENT_PRESET_ID_PATTERN, suggestedAgentPresetID, type AgentPreset, type WritableAgentPresetScope } from "../lib/agentPresets";
 import { useT } from "../lib/i18n";
-import { AGENT_PRESET_ICONS, AgentPresetIcon, DEFAULT_AGENT_PRESET_ICON } from "./AgentPresetIcon";
+import { AgentPresetIconPicker } from "./AgentPresetIconPicker";
 import { AgentPresetToolPicker } from "./AgentPresetToolPicker";
 import { SettingsField, SettingsSection } from "./SettingsForm";
 import { SettingsOptions } from "./SettingsOptions";
 import { SettingsSelect } from "./SettingsSelect";
 
-export type AgentPresetDraft = Pick<AgentPreset, "id" | "name" | "description" | "icon" | "body" | "keepCoding" | "complete" | "includeRuntimeContext" | "tools"> & { scope: WritableAgentPresetScope };
+export type AgentPresetDraft = Pick<AgentPreset, "id" | "name" | "description" | "icon" | "iconImage" | "body" | "keepCoding" | "complete" | "includeRuntimeContext" | "tools"> & { scope: WritableAgentPresetScope };
 
 export function AgentPresetEditor({ initial, editing, presets, busy, onSave, onCancel }: {
   initial: AgentPresetDraft;
@@ -21,14 +21,17 @@ export function AgentPresetEditor({ initial, editing, presets, busy, onSave, onC
   const prefix = useId();
   const nameRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState(initial);
+  const [idEdited, setIdEdited] = useState(editing || !!initial.id);
+  const [imageEditing, setImageEditing] = useState(false);
   // Unchecking "restrict" keeps the list so re-checking restores it.
   const [lastTools, setLastTools] = useState(initial.tools ?? []);
-  const id = draft.id.trim();
+  const displayedID = idEdited ? draft.id : suggestedAgentPresetID(draft.name, draft.scope, presets);
+  const id = displayedID.trim();
   const idInvalid = !AGENT_PRESET_ID_PATTERN.test(id) || id === "default";
   const idTaken = !editing && presets.some(preset => preset.id === id && preset.scope === draft.scope);
   const bodyRequired = draft.complete || !draft.keepCoding;
   const replacementMissing = bodyRequired && !draft.body.trim();
-  const invalid = idInvalid || idTaken || !draft.name.trim() || replacementMissing;
+  const invalid = idInvalid || idTaken || !draft.name.trim() || replacementMissing || imageEditing;
   const patch = (next: Partial<AgentPresetDraft>) => setDraft(previous => ({ ...previous, ...next }));
   useEffect(() => { nameRef.current?.focus(); }, []);
 
@@ -41,9 +44,9 @@ export function AgentPresetEditor({ initial, editing, presets, busy, onSave, onC
       </SettingsField>
       <SettingsField label={<label htmlFor={`${prefix}-id`}>{t("agentPresets.id")}</label>} hint={t(editing ? "agentPresets.idFixed" : "agentPresets.idHint")}>
         <div className="agent-preset-editor__field">
-          <input id={`${prefix}-id`} className="mem-input set-grow" required value={draft.id} disabled={editing || busy} autoCapitalize="none" spellCheck={false}
+          <input id={`${prefix}-id`} className="mem-input set-grow" required value={displayedID} disabled={editing || busy} autoCapitalize="none" spellCheck={false}
             aria-invalid={!!id && (idInvalid || idTaken)} aria-describedby={`${prefix}-id-error`}
-            onChange={event => patch({ id: event.target.value })} />
+            onChange={event => { setIdEdited(true); patch({ id: event.target.value }); }} />
           <span id={`${prefix}-id-error`} className="agent-preset-editor__error" role="status">{id && idInvalid ? t("agentPresets.idInvalid") : idTaken ? t("agentPresets.idTaken") : ""}</span>
         </div>
       </SettingsField>
@@ -51,14 +54,8 @@ export function AgentPresetEditor({ initial, editing, presets, busy, onSave, onC
         <input id={`${prefix}-description`} className="mem-input set-grow" value={draft.description} disabled={busy} onChange={event => patch({ description: event.target.value })} />
       </SettingsField>
       <SettingsField label={t("agentPresets.icon")} hint={t("agentPresets.iconHint")}>
-        <div className="agent-preset-editor__icons" role="radiogroup" aria-label={t("agentPresets.icon")}>
-          {Object.keys(AGENT_PRESET_ICONS).map(key => {
-            const on = (draft.icon || DEFAULT_AGENT_PRESET_ICON) === key;
-            return <button type="button" key={key} role="radio" aria-checked={on} aria-label={key} title={key} disabled={busy}
-              className={`agent-preset-editor__icon${on ? " agent-preset-editor__icon--on" : ""}`}
-              onClick={() => patch({ icon: key === DEFAULT_AGENT_PRESET_ICON ? "" : key })}><AgentPresetIcon icon={key} /></button>;
-          })}
-        </div>
+        <AgentPresetIconPicker icon={draft.icon} image={draft.iconImage} disabled={busy}
+          onChange={(icon, iconImage) => patch({ icon, iconImage })} onEditingChange={setImageEditing} />
       </SettingsField>
       <SettingsField label={t("agentPresets.scope")} hint={t("agentPresets.scopeHint")}>
         <SettingsSelect value={draft.scope} disabled={editing || busy} aria-label={t("agentPresets.scope")}

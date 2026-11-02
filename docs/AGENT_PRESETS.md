@@ -14,6 +14,18 @@ delete it. Choose **User** to reuse it across projects or **Project** to save it
 with the current workspace. The built-in **Default** definition is read-only;
 copy it to start your own preset.
 
+In an empty conversation, open the preset picker and choose **New agent preset…**
+to go straight to the creation form. The icon selector also accepts PNG, JPEG
+and WebP files up to 5 MB and 8192 × 8192 pixels. Adjust the square crop and zoom,
+then choose **Use icon**. You can replace the image or restore the default icon.
+The cropped 128 × 128 PNG is embedded in the definition, so copies keep their
+icon even if the original image moves. Lists and the composer use the same image.
+
+New presets suggest an ID as you type the name, avoiding reserved IDs and clashes
+in the selected scope. Once you edit the ID, name changes leave it alone. Latin
+names use a lowercase slug; names without Latin letters or digits use a stable
+`preset-…` ID. Saved IDs remain fixed, including when renaming a preset.
+
 Choose a preset beside the model and permissions in an empty conversation's
 composer. After the first turn starts, the selection is locked. Start another
 conversation to choose a different preset. Saving a definition does not change a
@@ -63,6 +75,7 @@ Supported frontmatter fields:
 | `name` | Display name; defaults to the file ID. |
 | `description` | Description shown in the picker and management page. |
 | `icon` | Optional display glyph for the Desktop list and composer picker: `bot` (default), `code`, `terminal`, `book-open`, `pen`, `search`, `bug`, `flask`, `shield`, `palette`, `rocket`, `brain`, `sparkles`, `database`, `globe`, or `school`. Unknown keys show the default glyph; changing the icon does not rebuild a session. |
+| `icon-image` | Optional embedded square PNG data URL, at most 128 KiB and 128 × 128 pixels. Overrides `icon` for display; image load failures fall back to the glyph. Display-only and excluded from runtime fingerprints. Older versions that do not recognize this field reject the definition; update the host/CLI before sharing image presets. |
 | `keep-coding-instructions` | Defaults to `true`: append the body to the base persona. `false` replaces that persona; a nonempty body is required. Core policies still apply unless `complete` is `true`. |
 | `complete` | Defaults to `false`. `true` uses a nonempty body as the entire system prompt, suppressing core policies, standing documents, skill instructions, and v4 system text. Takes precedence over `keep-coding-instructions`. |
 | `include-runtime-context` | Defaults to `true`. `false` reduces runtime context to the working directory (cwd) only, including in complete mode. |

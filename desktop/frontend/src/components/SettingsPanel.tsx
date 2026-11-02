@@ -98,6 +98,7 @@ import { SettingsNavigation, SETTINGS_NAV_TABS } from "./SettingsNavigation";
 import { StatusBarItemsEditor } from "./StatusBarItemsEditor";
 import { DesktopCloseBehaviorHint } from "./DesktopCloseBehaviorHint";
 export type SettingsInitialFocus =
+  | { target: "agent-preset-create"; requestId: number }
   | { target: "model-access"; requestId?: number; onboarding?: boolean; providerName?: string; sourceTabId?: string }
   | { target: "model-stats"; requestId: number };
 type DesktopPlatform = "darwin" | "windows" | "linux";
@@ -232,6 +233,7 @@ export function SettingsPanel({
   useEffect(() => {
     if (initialFocus?.target === "model-access") setTab("providers");
     if (initialFocus?.target === "model-stats") setTab("model-stats");
+    if (initialFocus?.target === "agent-preset-create") setTab("agent-presets");
   }, [initialFocus?.target, initialFocus?.requestId]);
   useEffect(() => {
     const content = settingsContentRef.current;

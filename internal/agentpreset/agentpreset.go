@@ -33,6 +33,7 @@ type Preset struct {
 	Name                  string   `json:"name"`
 	Description           string   `json:"description"`
 	Icon                  string   `json:"icon,omitempty"`
+	IconImage             string   `json:"iconImage,omitempty"`
 	Body                  string   `json:"body"`
 	KeepCoding            bool     `json:"keepCoding"`
 	Complete              bool     `json:"complete"`
@@ -193,6 +194,7 @@ type fileMeta struct {
 	Name                  string    `yaml:"name"`
 	Description           string    `yaml:"description"`
 	Icon                  string    `yaml:"icon"`
+	IconImage             string    `yaml:"icon-image"`
 	KeepCoding            *bool     `yaml:"keep-coding-instructions"`
 	Complete              *bool     `yaml:"complete"`
 	IncludeRuntimeContext *bool     `yaml:"include-runtime-context"`
@@ -217,6 +219,10 @@ func Parse(id, text string) (Preset, error) {
 		}
 		p.Icon = icon
 	}
+	if err := validateIconImage(meta.IconImage); err != nil {
+		return Preset{}, err
+	}
+	p.IconImage = meta.IconImage
 	if meta.KeepCoding != nil {
 		p.KeepCoding = *meta.KeepCoding
 	}
@@ -279,6 +285,9 @@ func Render(p Preset) string {
 	}
 	if p.Icon != "" {
 		fmt.Fprintf(&b, "icon: %s\n", yamlScalar(p.Icon))
+	}
+	if p.IconImage != "" {
+		fmt.Fprintf(&b, "icon-image: %s\n", yamlScalar(p.IconImage))
 	}
 	if !p.KeepCoding {
 		b.WriteString("keep-coding-instructions: false\n")
