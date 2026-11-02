@@ -1,5 +1,8 @@
 # Release candidates
 
+For step-by-step operations, prerequisites, commands, approval, and recovery,
+see the [Chinese release handbook](RELEASE_HANDBOOK.zh-CN.md).
+
 Release/download pages must link the [Code signing policy](../CODE_SIGNING_POLICY.md)
 and [Privacy policy](../PRIVACY.md); `scripts/release-notes.mjs` includes both links.
 Keep their approval status and data-flow disclosures current. Independent
@@ -62,11 +65,16 @@ a proven newer Stable pointer is preserved, never a failed HTTP observation.
 90 天台账保留产品/控制 SHA、已验证渠道及失败阶段。恢复时只有确证存在更新的 Stable 指针才予以保留，
 HTTP 失败不会被当作“新版已发布”。
 
-The website is not part of this pipeline. It is built and deployed from the
-`website` branch, and its changelog renders from that branch's own release
-catalog, so a new version's page is released there, not here.
+After product postflight succeeds, the R2 mirror verifies all public objects,
+advances the verified website release pointer, and triggers the `main` branch
+of Cloudflare Pages project `deepzora-website`. The mirror job waits for fresh
+production metadata and matching Chinese and English versions and downloads.
+End-to-end delivery requires both product postflight and mirror/website acceptance
+to succeed. See the [mirror runbook](R2_DOWNLOAD_MIRROR.md).
 
-官网不在此流程内：它由 `website` 分支独立构建和部署，更新日志由该分支自己的发布目录渲染，新版本页面在那里发布。
+产品 postflight 成功后，R2 镜像完成全部对象的公开校验，再推进官网版本指针并触发
+Cloudflare Pages 的 `main` 构建。镜像任务随后核验中英文生产页面的版本和下载链接；
+完整交付需要产品与镜像/官网两个阶段都成功。
 
 For qualification without publication, dispatch `Prepare release candidate` on
 protected `main` with `version` and `rehearsal=true`. An already reviewed
@@ -87,8 +95,9 @@ not a publication or a substitute for a later formal release's public checks.
 
 The candidate payload lasts 30 days and its record/evidence 90 days. If the
 payload expires before publication, prepare a new candidate. The release
-skill's public postflight remains the authority for tags, npm, Desktop
-updates, and Homebrew after an authorized publication.
+workflow's public postflight remains the authority for tags, npm, Desktop
+updates, and Homebrew after an authorized publication. The subsequent mirror job
+verifies R2 downloads and production website deployment separately.
 
 ## Tag publisher identity / 标签发布身份
 
