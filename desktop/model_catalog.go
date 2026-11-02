@@ -81,6 +81,9 @@ func (a *App) desktopModelCatalog(curModel, workspaceRoot string, ctrl control.S
 func configuredModelInfo(cfg *config.Config, name, model string, current bool) ModelInfo {
 	info := ModelInfo{Ref: name + "/" + model, Provider: name, Model: model, Current: current}
 	if entry, ok := cfg.ResolveModel(info.Ref); ok {
+		if _, catalog, ok := config.CatalogForProviderEntry(entry); ok {
+			info.BrandID = catalog.BrandID
+		}
 		info.DisplayName = entry.DisplayName
 		info.ContextWindow = entry.ContextWindow
 		capability := config.NewModelCapabilityResolver().Resolve(entry)

@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import { ProviderCatalogPicker, type CatalogChoice } from "../components/ProviderCatalogPicker";
 import { LocaleProvider } from "../lib/i18n";
 import data from "../lib/providerCatalog.generated.json";
+import { providerBrandIcons } from "../lib/providerBrandIcons";
 const dom = new JSDOM('<div id="root"></div>', {url: "http://localhost/", pretendToBeVisual: true});
 Object.assign(globalThis, {window: dom.window, document: dom.window.document, HTMLElement: dom.window.HTMLElement, Node: dom.window.Node, Event: dom.window.Event, localStorage: dom.window.localStorage, IS_REACT_ACT_ENVIRONMENT: true});
 Object.defineProperty(globalThis, "navigator", {configurable: true, value: dom.window.navigator});
@@ -28,6 +29,17 @@ async function brand(name: string) {
  await act(async () => {Array.from(rootEl.querySelectorAll<HTMLButtonElement>(".provider-catalog__brand")).find(el=>el.textContent?.endsWith(name))!.click();});
 }
 assert.equal(rootEl.querySelectorAll(".provider-catalog__brand").length, new Set(choices.map(c=>c.catalog.brandId)).size);
+assert.equal(rootEl.querySelectorAll(".provider-catalog__brand")[2].textContent, "Magpie", "Magpie is the third preset brand");
+for (const catalog of new Map(choices.map(choice => [choice.catalog.brandId, choice.catalog])).values()) {
+ const button = Array.from(rootEl.querySelectorAll(".provider-catalog__brand")).find(el => el.textContent?.endsWith(catalog.brandLabel))!;
+ const icon = button.querySelector(".provider-catalog__icon");
+ if (providerBrandIcons.has(catalog.brandId)) {
+  assert.ok(icon?.getAttribute("style")?.includes(`/${catalog.brandId}.svg`), `catalog icon missing for ${catalog.brandId}`);
+ } else {
+  assert.equal(icon, null, `unbundled ${catalog.brandId} borrowed another brand icon`);
+  assert.ok(button.querySelector(".provider-catalog__monogram"));
+ }
+}
 await brand("智谱 / Z.AI");
 await change("region","cn");
 await change("product","coding");

@@ -52,8 +52,16 @@ export function ProviderCatalogPicker({ choices, busy, onConnect, onView, onRese
   const [query, setQuery] = useState("");
   const [confirmReset, setConfirmReset] = useState(false);
   const selected = choices.find(c => c.id === selectedID) ?? choices[0];
-  const brands = useMemo(() => [...new Map(choices.map(c => [c.catalog.brandId,
-    c.catalog.brandId === "token-rhythm" ? t("settings.addProvider.preset.tokenRhythmLabel") : c.catalog.brandLabel])).entries()], [choices, t]);
+  const brands = useMemo(() => {
+    const entries = [...new Map(choices.map(c => [c.catalog.brandId,
+      c.catalog.brandId === "token-rhythm" ? t("settings.addProvider.preset.tokenRhythmLabel") : c.catalog.brandLabel])).entries()];
+    const magpieIndex = entries.findIndex(([id]) => id === "magpie");
+    if (magpieIndex >= 0) {
+      const [magpie] = entries.splice(magpieIndex, 1);
+      entries.splice(2, 0, magpie);
+    }
+    return entries;
+  }, [choices, t]);
   if (!selected) return null;
   const genericFormat = (value: string) => value === "dashscope-responses" ? "responses" : value;
   // Official DeepSeek and MiMo connections start with Chat Completions regardless

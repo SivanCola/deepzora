@@ -3,7 +3,7 @@
 
 export const DESKTOP_PROTOCOL_VERSION = 11;
 
-export const DESKTOP_CONTRACT_DIGEST = "sha256:13e335b3158ed3acfbe30ede21335360a474fb3c9ed7a22d05f9efc80211f96e";
+export const DESKTOP_CONTRACT_DIGEST = "sha256:571e746f14b6b0e20864aa68475895e406e9dcf7785403988d4b2bea2826a101";
 
 export const DESKTOP_COMMANDS = [
   "AIRenameSessionTarget",
@@ -2542,6 +2542,7 @@ export interface Meta {
 
 export interface ModelInfo {
   modelDisplayName?: string;
+  brandId?: string;
   ref: string;
   provider: string;
   model: string;
