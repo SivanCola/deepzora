@@ -428,7 +428,8 @@ func (a *App) ApplyUpdateRequest(selectedChannel, expectedVersion, requestID str
 }
 
 // downloadVerify downloads the asset (streaming progress), verifies its minisign
-// signature against the embedded public key, then its sha256. It returns the
+// signature against the embedded public key, then its SHA-256. Each source must
+// verify independently before fallback can return success. It returns the
 // verified bytes and the raw signature (needed for deb helper re-verification).
 func (a *App) downloadVerify(requestID, selectedChannel, expectedVersion string, asset update.Asset) (data, sig []byte, err error) {
 	c, err := updaterHTTPClient()
@@ -436,31 +437,16 @@ func (a *App) downloadVerify(requestID, selectedChannel, expectedVersion string,
 		return nil, nil, err
 	}
 	v4, _ := updaterHTTPClientIPv4() // best-effort IPv4 fallback; nil just means retries reuse c
-	data, err = downloadForChannel(a.reqCtx(), c, v4, selectedChannel, asset.URL, asset.Size, func(rcv, total int64) {
-		a.emitProgress(requestID, selectedChannel, expectedVersion, "downloading", rcv, total, "")
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-	a.emitProgress(requestID, selectedChannel, expectedVersion, "verifying", asset.Size, asset.Size, "")
-	sig, err = fetchBytesFallbackForChannelSized(
-		a.reqCtx(),
-		c,
-		v4,
-		selectedChannel,
-		asset.Sig,
-		maxDesktopSignatureSize,
+	return downloadVerifiedAsset(
+		a.reqCtx(), c, v4, selectedChannel, expectedVersion, asset,
+		func(rcv, total int64) {
+			a.emitProgress(requestID, selectedChannel, expectedVersion, "downloading", rcv, total, "")
+		},
+		func() {
+			a.emitProgress(requestID, selectedChannel, expectedVersion, "verifying", asset.Size, asset.Size, "")
+		},
+		update.Verify,
 	)
-	if err != nil {
-		return nil, nil, err
-	}
-	if err := update.Verify(data, sig); err != nil {
-		return nil, nil, err
-	}
-	if err := checkSHA256(data, asset.SHA256); err != nil {
-		return nil, nil, err
-	}
-	return data, sig, nil
 }
 
 // reqCtx is the context for updater HTTP calls — the service context once startup has

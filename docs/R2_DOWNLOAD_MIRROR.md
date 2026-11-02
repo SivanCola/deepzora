@@ -5,7 +5,8 @@ For the complete operator procedure, see the
 
 Public downloads use <https://downloads.deepzora.app/>. GitHub remains the
 canonical release source and the fallback shown beside every installer. Desktop
-automatic updates and Homebrew continue to use the existing GitHub URLs.
+updates in clients containing the R2 transport prefer the verified mirror and
+fall back to GitHub. Older clients and Homebrew retain their existing GitHub URLs.
 
 ## Configuration
 
@@ -68,6 +69,10 @@ The mirror contains:
 - `cli/vVERSION/`: six native CLI archives and the official `SHA256SUMS`.
 - `index.html`: a download page advanced only after all versioned files pass
   public readback. Its links identify immutable versions.
+- `desktop/latest.json`: the official GitHub Desktop manifest copied unchanged,
+  advanced only after all versioned files and the download index pass public
+  readback. Conditional writes and version checks prevent an older recovery from
+  downgrading this pointer or a same-version retry from changing its identity.
 - `website/latest.json`: a small, noncached pointer to the immutable inventory,
   with its version, source commit, size and SHA-256. Written last, after the
   entire mirror and download index are verified. Conditional writes prevent
@@ -77,6 +82,26 @@ The mirror contains:
 The workflow saves `r2-mirror-report.json` as a 90-day Actions artifact. The report
 records the source SHA and public URL, size, and SHA-256 of every verified object.
 It also records whether the website should deploy and the verified pointer hash.
+
+## In-app update transport
+
+Clients with the R2 transport first check `/desktop/latest.json`, then fall back
+to GitHub's `releases/latest/download/latest.json` if the mirror is unavailable or
+invalid. Both documents retain canonical GitHub asset identities. The client
+derives exact immutable `/desktop/desktop-vVERSION/NAME` mirror paths locally;
+no arbitrary mirror URL is admitted by a manifest. Packages and detached
+signatures prefer R2, with a five-minute source deadline, then retry GitHub as a
+complete pair. Every successful attempt must independently pass size, the
+embedded Minisign public key, and SHA-256 verification. Failed integrity checks
+never yield installable bytes; recovery from GitHub still applies all checks.
+
+After this change reaches protected `main`, rerun the mirror workflow for the
+current official version to create the App pointer. Until then, its 404 causes
+normal GitHub fallback. No existing immutable manifests, package bytes, or
+signatures need rewriting. Existing installations adopt R2 only after installing
+a client version containing this code; the old updater still uses GitHub to
+download that first upgrade. A valid but older R2 pointer remains the last fully
+mirrored release; later checks see the next version after mirror publication.
 
 ## Official website handoff
 

@@ -221,6 +221,18 @@ export async function mirrorRelease(value, env = process.env) {
       // verification query checks the newly committed bytes immediately.
       await verifyPublic({ ...root, url: `${root.url}?verify=${indexFile.sha256}` });
     } else console.log(`Preserved newer download index ${current.Metadata.version}`);
+    // Installed clients try this unchanged, GitHub-compatible manifest first.
+    // Never advertise a release until every versioned object has passed public
+    // readback. CAS and the version guard also apply to recovery runs.
+    const manifestFile = files.find(file => file.name === "latest.json");
+    const updaterFile = { ...manifestFile, key: "desktop/latest.json", url: `${publicBase}/desktop/latest.json` };
+    const currentUpdater = await head(updaterFile.key);
+    if (currentUpdater && (!currentUpdater.Metadata?.version || !currentUpdater.Metadata.sha256 || !currentUpdater.ETag)) throw new Error("Cannot identify current App update pointer; refusing to overwrite");
+    if (indexShouldAdvance(currentUpdater?.Metadata.version, version)) {
+      if (currentUpdater?.Metadata.version === version) checkExistingObject(currentUpdater, updaterFile);
+      await put(updaterFile, path.join(directory, `${manifestFile.tag}-${manifestFile.name}`), currentUpdater ? ["--if-match", currentUpdater.ETag] : ["--if-none-match", "*"], "no-store");
+      await verifyPublic({ ...updaterFile, url: `${updaterFile.url}?verify=${manifestFile.sha256}` });
+    } else console.log(`Preserved newer App update pointer ${currentUpdater.Metadata.version}`);
     // This pointer is the website's sole production release source. Advance it
     // only after the complete immutable mirror AND the download index pass.
     validateRelease(plan);

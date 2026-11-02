@@ -554,7 +554,7 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `runtime-state:changed` |  | desktop/project_tree_runtime.go:222 | keep-business (保留业务实现) | `desktop/event frame (seq + generation), same payload` |
 | `runtime:rebuilt` |  | desktop/tabs.go:1274 | keep-business (保留业务实现) | `desktop/event frame (seq + generation), same payload` |
 | `session_export_progress` |  | desktop/session_export.go:143 | keep-business (保留业务实现) | `desktop/event frame (seq + generation), same payload` |
-| `updater:progress` |  | desktop/updater_app.go:476 | keep-business (保留业务实现) | `desktop/event frame (seq + generation), same payload` |
+| `updater:progress` |  | desktop/updater_app.go:462 | keep-business (保留业务实现) | `desktop/event frame (seq + generation), same payload` |
 
 ## Frontend native bridge uses
 
@@ -598,7 +598,7 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `.deepzora-export-publication.lock` |  | desktop/session_export_journal.go:87 | keep-business (保留业务实现) | format unchanged; read by both shells |
 | `desktop-window.json` |  | desktop/window_state.go:46 | keep-business (保留业务实现) | format unchanged; read by both shells |
 | `desktop-zoom.json` |  | desktop/zoom_factor.go:20 | keep-business (保留业务实现) | format unchanged; read by both shells |
-| `downloaded.json` |  | desktop/updater.go:504 | keep-business (保留业务实现) | format unchanged; read by both shells |
+| `downloaded.json` |  | desktop/updater.go:511 | keep-business (保留业务实现) | format unchanged; read by both shells |
 | `fork-operations.json` |  | desktop/fork_operations.go:37 | keep-business (保留业务实现) | format unchanged; read by both shells |
 | `heartbeat-tasks.json` |  | desktop/heartbeat.go:158 | keep-business (保留业务实现) | format unchanged; read by both shells |
 | `heartbeat-tasks.runs.json` |  | desktop/heartbeat_sidecar.go:33 | keep-business (保留业务实现) | format unchanged; read by both shells |

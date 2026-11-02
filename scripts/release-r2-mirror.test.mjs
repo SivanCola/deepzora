@@ -110,6 +110,7 @@ if (tool === 'gh') {
   if (process.env.MIRROR_CORRUPT === 'source' && url.hostname === 'github.com' && url.pathname.endsWith('.dmg')) content += 'bad';
   if (process.env.MIRROR_CORRUPT === 'public' && url.hostname !== 'github.com') content += 'bad';
   if (process.env.MIRROR_CORRUPT === 'pointer' && url.pathname === '/website/latest.json') content += 'bad';
+  if (process.env.MIRROR_CORRUPT === 'updater' && url.pathname === '/desktop/latest.json') content += 'bad';
   fs.writeFileSync(option('--output'), content);
 } else if (tool === 'aws') {
   for (;;) {
@@ -123,6 +124,7 @@ if (tool === 'gh') {
     console.log(JSON.stringify({ContentLength:Buffer.byteLength(existing.body),Metadata:existing.metadata,ETag:existing.etag}));
   } else {
     if (process.env.MIRROR_CAS_FAIL === 'pointer' && key === 'website/latest.json') fail('An error occurred (PreconditionFailed)');
+    if (process.env.MIRROR_CAS_FAIL === 'updater' && key === 'desktop/latest.json') fail('An error occurred (PreconditionFailed)');
     if (args.includes('--if-none-match') && existing) fail('An error occurred (PreconditionFailed)');
     if (args.includes('--if-match') && option('--if-match') !== existing?.etag) fail('An error occurred (PreconditionFailed)');
     const metadata = Object.fromEntries(option('--metadata').split(',').map(value => value.split('=')));
@@ -150,22 +152,26 @@ test("sync verifies every object, retries without immutable overwrites, and pres
     let result = run(); assert.equal(result.status, 0, result.stderr);
     let state = JSON.parse(readFileSync(stateFile));
     const count = desktopAssets.length * 2 + 8 + 3;
-    assert.equal(Object.keys(state.objects).length, count + 2);
+    assert.equal(Object.keys(state.objects).length, count + 3);
     assert.match(state.objects["index.html"].body, /Deepzora 0.0.2/);
     assert.equal(JSON.parse(readFileSync(reportFile)).website.deploy, true);
     const pointer = JSON.parse(state.objects['website/latest.json'].body);
     assert.equal(pointer.inventory.sha256, hash(state.objects['desktop/desktop-v0.0.2/mirror.json'].body));
     assert.equal(state.writes.at(-1), 'website/latest.json', 'website promotion happens after all other objects');
+    assert.equal(state.writes.at(-2), 'desktop/latest.json', 'App update pointer is promoted after full mirror readback');
+    assert.equal(state.objects['desktop/latest.json'].body, f.payloads['desktop-v0.0.2/latest.json'], 'App pointer preserves the official GitHub manifest byte for byte');
     result = run(); assert.equal(result.status, 0, result.stderr);
     state = JSON.parse(readFileSync(stateFile));
-    assert.equal(state.writes.length, count + 4, "only the mutable index and website pointer are written again");
+    assert.equal(state.writes.length, count + 6, "only the mutable index, App pointer and website pointer are written again");
     state.objects["index.html"].metadata.version = "0.0.10";
     state.objects['website/latest.json'].metadata.version = '0.0.10';
+    state.objects['desktop/latest.json'].metadata.version = '0.0.10';
     writeFileSync(stateFile, JSON.stringify(state));
     result = run(); assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /Preserved newer/);
     assert.equal(JSON.parse(readFileSync(stateFile)).objects["index.html"].metadata.version, "0.0.10");
     assert.equal(JSON.parse(readFileSync(reportFile)).website.deploy, false);
+    assert.equal(JSON.parse(readFileSync(stateFile)).objects['desktop/latest.json'].metadata.version, '0.0.10');
     const firstKey = `desktop/desktop-v${f.version}/${desktopName(f.version, desktopAssets[0])}`;
     state.objects[firstKey].metadata.sha256 = "f".repeat(64);
     writeFileSync(stateFile, JSON.stringify(state));
@@ -174,6 +180,7 @@ test("sync verifies every object, retries without immutable overwrites, and pres
     result = run({ MIRROR_CORRUPT: "public" }); assert.notEqual(result.status, 0); assert.match(result.stderr, /Public mirror integrity mismatch/);
     assert.equal(JSON.parse(readFileSync(stateFile)).objects["index.html"], undefined);
     assert.equal(JSON.parse(readFileSync(stateFile)).objects['website/latest.json'], undefined);
+    assert.equal(JSON.parse(readFileSync(stateFile)).objects['desktop/latest.json'], undefined);
     assert.throws(() => readFileSync(reportFile), /ENOENT/);
     reset();
     result = run({ MIRROR_CAS_FAIL: 'pointer' }); assert.notEqual(result.status, 0); assert.match(result.stderr, /PreconditionFailed/);
@@ -182,6 +189,19 @@ test("sync verifies every object, retries without immutable overwrites, and pres
     assert.equal(JSON.parse(readFileSync(reportFile)).website.deploy, true, 'retry completes a conflicted website promotion');
     reset();
     result = run({ MIRROR_CORRUPT: 'pointer' }); assert.notEqual(result.status, 0); assert.match(result.stderr, /Public mirror integrity mismatch/);
+    assert.throws(() => readFileSync(reportFile), /ENOENT/);
+    reset();
+    result = run({ MIRROR_CAS_FAIL: 'updater' }); assert.notEqual(result.status, 0); assert.match(result.stderr, /PreconditionFailed/);
+    assert.equal(JSON.parse(readFileSync(stateFile)).objects['website/latest.json'], undefined);
+    assert.throws(() => readFileSync(reportFile), /ENOENT/);
+    result = run(); assert.equal(result.status, 0, result.stderr);
+    state = JSON.parse(readFileSync(stateFile));
+    state.objects['desktop/latest.json'].metadata.sha256 = 'f'.repeat(64);
+    writeFileSync(stateFile, JSON.stringify(state));
+    result = run(); assert.notEqual(result.status, 0); assert.match(result.stderr, /will not overwrite/);
+    reset();
+    result = run({ MIRROR_CORRUPT: 'updater' }); assert.notEqual(result.status, 0); assert.match(result.stderr, /Public mirror integrity mismatch/);
+    assert.equal(JSON.parse(readFileSync(stateFile)).objects['website/latest.json'], undefined);
     assert.throws(() => readFileSync(reportFile), /ENOENT/);
     reset(); rmSync(path.join(work, "downloads"), { recursive: true });
     result = run({ MIRROR_CORRUPT: "source" }); assert.notEqual(result.status, 0); assert.match(result.stderr, /GitHub artifact integrity mismatch/);

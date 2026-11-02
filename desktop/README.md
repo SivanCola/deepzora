@@ -249,25 +249,38 @@ their save/cancel actions and never show the onboarding completion controls.
 
 ## Releases & auto-update
 
-Desktop releases ride their own tag namespace, `desktop-v<semver>` (plain `v*`
-tags are the CLI release). Pushing one triggers `.github/workflows/release-desktop.yml`,
-which builds on a native runner per platform (Electron's Chromium can't
-cross-compile), packages each artifact, signs it with minisign, generates a
-`latest.json` manifest, publishes a GitHub release that does not claim the repository-wide `Latest`
-badge, mirrors everything to R2, and attaches the current desktop manifest to
-the matching CLI release for old clients.
+Desktop releases use `desktop-v<semver>` (plain `v*` tags identify CLI releases).
+Prepare and publish a sealed candidate from protected `main`, following the
+[candidate workflow](../docs/RELEASE_CANDIDATES.md). Native runners build and
+accept each platform's signed packages before maintainer approval. Publication
+validates the public product channels, then mirrors and verifies R2 downloads.
+Do not manually push release tags to initiate a new build.
 The Linux artifact bundles Electron's Chromium and ships a root-owned
 `chrome-sandbox` helper in the `.deb`; no system webview is required.
 
-```sh
-git tag desktop-v1.1.0 && git push origin desktop-v1.1.0
-```
+The app checks `https://downloads.deepzora.app/desktop/latest.json` first and
+falls back to `https://github.com/SivanCola/deepzora/releases/latest/download/latest.json`
+on timeout, HTTP errors, invalid JSON or an invalid official manifest. R2's
+pointer advances only after the entire versioned mirror passes public readback;
+a valid pointer describes the latest fully mirrored release. The documents keep
+canonical GitHub asset URLs so existing clients remain compatible.
 
-The app checks `latest.json` attached to the latest stable release in
-[SivanCola/deepzora](https://github.com/SivanCola/deepzora/releases) and shows an
-update banner when a newer version is published; **Settings → Software update**
-has a manual check. Stable promotion attaches the verified Desktop pointer to
-the CLI release before advancing GitHub latest. Self-update behavior by platform:
+Downloads derive the exact immutable R2 package and `.minisig` paths from that
+validated identity, then try GitHub if the mirror fails. Each source must pass
+size, embedded-key Minisign and SHA-256 verification independently; fallback
+restarts the complete package/signature pair without mixing partial data across
+origins. Transport retries retain IPv4 fallback and Range resume within one
+source. A five-minute mirror budget prevents a stalled transfer from blocking
+GitHub indefinitely. Untrusted redirects and cancellation cannot bypass checks.
+
+An update banner appears for a higher stable version; installation starts only
+after the user chooses **Update and restart**. Automatic checks are throttled to
+once per six hours; **Settings → Software update** has an immediate manual check.
+Old installed clients keep using GitHub until upgraded to a build containing
+this R2 transport. Before the R2 pointer is initialized, new clients automatically
+use GitHub. After deploying the mirror code, rerun `release-mirror.yml` for the
+current published version to initialize it; see the [mirror runbook](../docs/R2_DOWNLOAD_MIRROR.md).
+Self-update behavior by platform:
 
 - **Linux portable (`.tar.gz`)** — download, verify the minisign signature, replace
   the binaries in the install directory, and relaunch through Guard. No elevation.
@@ -286,11 +299,11 @@ the CLI release before advancing GitHub latest. Self-update behavior by platform
 
 ### Code signing — first launch
 
-- **Windows** — v0.0.1 is temporarily distributed without a Deepzora Authenticode
+- **Windows** — v0.0.1 and v0.0.2 are temporarily distributed without a Deepzora Authenticode
   publisher signature and may show unknown-publisher or SmartScreen warnings.
   Download/payload Minisign integrity verification and native installer acceptance
   remain required. Later stable versions require trusted Authenticode signing;
-  the exception is limited to v0.0.1. See the
+  the exception is limited to v0.0.1 and v0.0.2. See the
   [Code signing policy](../CODE_SIGNING_POLICY.md). Even signed new versions may
   show SmartScreen while publisher/download reputation develops.
 - **macOS** — official release builds are signed and notarized. Choose the Apple

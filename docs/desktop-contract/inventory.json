@@ -4172,7 +4172,7 @@
     {
       "kind": "event",
       "name": "updater:progress",
-      "location": "desktop/updater_app.go:476",
+      "location": "desktop/updater_app.go:462",
       "class": "keep-business",
       "owner": "desktop/event frame (seq + generation), same payload"
     },
@@ -4340,7 +4340,7 @@
     {
       "kind": "persistence",
       "name": "downloaded.json",
-      "location": "desktop/updater.go:504",
+      "location": "desktop/updater.go:511",
       "class": "keep-business",
       "owner": "format unchanged; read by both shells"
     },

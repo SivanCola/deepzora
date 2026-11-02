@@ -28,7 +28,7 @@ const promote = workflow("release-promote");
 const appMemory = workflow("app-memory");
 const goCache = readFileSync(new URL("../.github/actions/go-build-cache/action.yml", import.meta.url), "utf8");
 
-test("Windows root gate requires valid detection, planned success and exact report coverage", () => {
+test("Windows root gate requires valid detection and planned success", () => {
   const gate = job(ci, "test-windows"), worker = job(ci, "windows-root");
   const script = shellStep(gate, "Require successful detection and planned execution");
   for (const changes of ["success", "failure", "cancelled", "skipped", ""]) {
@@ -40,11 +40,12 @@ test("Windows root gate requires valid detection, planned success and exact repo
     }
   }
   assert.doesNotMatch(worker, /matrix|PARTITION_COUNT/);
-  assert.match(worker, /ci-root-shard.mjs run 1 1/);
+  assert.match(worker, /node scripts\/ci-windows-root\.mjs "\$RUNNER_TEMP\/windows-root"/);
   assert.match(worker, /@\('pwsh', 'powershell.exe'\)/);
   assert.match(worker, /go test -count=1 -timeout=2m -run '\^TestPowerShell'/);
-  assert.ok(worker.indexOf("name: Test both Windows PowerShell runtimes") < worker.indexOf("ci-root-shard.mjs run"));
-  assert.match(gate, /ci-root-shard.mjs verify root-partitions 1/);
+  assert.ok(worker.indexOf("name: Test both Windows PowerShell runtimes") < worker.indexOf("ci-windows-root.mjs"));
+  // The worker itself rejects missing or failed packages; the gate only needs results.
+  assert.doesNotMatch(gate, /checkout|download-artifact/);
   assert.doesNotMatch(gate + worker, /continue-on-error/);
 });
 

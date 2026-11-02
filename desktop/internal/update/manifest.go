@@ -13,7 +13,7 @@ import (
 const ElectronInstallLayout = "electron-v1"
 
 // Manifest is the latest.json published alongside a desktop release. The updater
-// fetches it from the R2 mirror (primary) or GitHub releases (fallback), compares
+// fetches the unchanged official document from R2 (primary) or GitHub (fallback), compares
 // Version against the running build, and looks up the running platform's artifact
 // via Asset / NativePackage.
 type Manifest struct {

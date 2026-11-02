@@ -16,6 +16,16 @@ test("explicit documentation skips build surfaces", () => {
   }
 });
 
+test("website and report-ingest inputs stay with their own workflows", () => {
+  for (const path of ["website/src/index.html", "website/.node-version", "supabase/functions/ingest/index.ts",
+    "scripts/configure-report-ingest-token.mjs", ".github/workflows/website.yml", ".github/workflows/supabase-reports.yml"]) {
+    const { flags, unknown } = classifyPaths([path]);
+    assert.deepEqual(Object.keys(flags).filter(name => flags[name]), [], path);
+    assert.deepEqual(unknown, [], path);
+  }
+  assert.equal(classifyPaths(["websites/index.html"]).unknown.length, 1);
+});
+
 test("frontend inputs select frontend checks and shared manifests also select native validation", () => {
   for (const path of ["desktop/frontend/src/components/Button.tsx", "desktop/frontend/public/help.md", "desktop/frontend/vite.config.ts", "desktop/pnpm-lock.yaml"]) {
     const { flags } = classifyPaths([path]);
@@ -223,7 +233,7 @@ test("CLI writes GitHub output and module import stays side-effect free", t => {
 });
 
 test("host bridges and CI execution infrastructure require native validation", () => {
-  for (const file of ["desktop/frontend/src/generated/desktopContract.generated.ts", "desktop/frontend/src/lib/bridge.ts", "desktop/frontend/src/lib/bridgeBenchFixtures.ts", "desktop/frontend/src/lib/hostEvents.ts", "desktop/frontend/src/lib/hostRecoverySteer.ts", "desktop/frontend/src/custom/features/heartbeat/heartbeat.bridge.ts", ".github/actions/go-build-cache/action.yml", "scripts/ci-collect.mjs", "scripts/ci-plan.mjs", "scripts/ci-go-shard.mjs"]) {
+  for (const file of ["desktop/frontend/src/generated/desktopContract.generated.ts", "desktop/frontend/src/lib/bridge.ts", "desktop/frontend/src/lib/bridgeBenchFixtures.ts", "desktop/frontend/src/lib/hostEvents.ts", "desktop/frontend/src/lib/hostRecoverySteer.ts", "desktop/frontend/src/custom/features/heartbeat/heartbeat.bridge.ts", ".github/actions/go-build-cache/action.yml", "scripts/ci-collect.mjs", "scripts/ci-plan.mjs", "scripts/ci-windows-root.mjs"]) {
     const { plan } = classifyPaths([file]);
     assert.equal(plan.native, true, file);
     assert.equal(plan.build, true, file);

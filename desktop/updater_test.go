@@ -615,8 +615,8 @@ func TestFetchManifestRejectsPrereleaseForLegacyPreviewSelection(t *testing.T) {
 	if _, err := fetchManifest(context.Background(), client, nil, "preview"); err == nil {
 		t.Fatal("prerelease manifest must not enter the stable channel")
 	}
-	if !reflect.DeepEqual(calls, []string{githubManifestEndpoint}) {
-		t.Fatalf("endpoint calls = %q, want only Deepzora's GitHub pointer", calls)
+	if len(calls) != 0 {
+		t.Fatalf("retired channel made requests: %q", calls)
 	}
 }
 
@@ -625,9 +625,7 @@ func TestFetchManifestRejectsMalformedSuccessfulResponse(t *testing.T) {
 	client := &http.Client{Transport: rtFunc(func(req *http.Request) (*http.Response, error) {
 		calls = append(calls, req.URL.String())
 		manifest := validDesktopManifest(t, "stable", "v1.18.0")
-		if strings.Contains(req.URL.Path, "/latest/") {
-			delete(manifest.Platforms, update.CurrentPlatform())
-		}
+		delete(manifest.Platforms, update.CurrentPlatform())
 		body, err := json.Marshal(manifest)
 		if err != nil {
 			t.Fatal(err)
@@ -640,11 +638,11 @@ func TestFetchManifestRejectsMalformedSuccessfulResponse(t *testing.T) {
 		}, nil
 	})}
 
-	if _, err := fetchManifest(context.Background(), client, nil, "preview"); err == nil {
+	if _, err := fetchManifest(context.Background(), client, nil, "stable"); err == nil {
 		t.Fatal("incomplete manifest must be rejected even after HTTP 200")
 	}
-	if !reflect.DeepEqual(calls, []string{githubManifestEndpoint}) {
-		t.Fatalf("endpoint calls = %q, want only Deepzora's GitHub pointer", calls)
+	if !reflect.DeepEqual(calls, []string{r2ManifestEndpoint, githubManifestEndpoint}) {
+		t.Fatalf("endpoint calls = %q, want R2 then GitHub", calls)
 	}
 }
 
@@ -657,6 +655,11 @@ func TestValidateUpdateRedirect(t *testing.T) {
 		{name: "Deepzora first-party redirect", target: "https://github.com/SivanCola/deepzora/releases/download/file"},
 		{name: "GitHub redirect", target: "https://github.com/file"},
 		{name: "GitHub HTTPS asset redirect", target: "https://release-assets.githubusercontent.com/file"},
+		{name: "Deepzora R2 redirect", target: "https://downloads.deepzora.app/desktop/desktop-v0.0.2/file"},
+		{name: "R2 suffix spoof", target: "https://downloads.deepzora.app.evil.invalid/file", wantError: true},
+		{name: "R2 sibling subdomain", target: "https://evil.downloads.deepzora.app/file", wantError: true},
+		{name: "R2 HTTPS downgrade", target: "http://downloads.deepzora.app/file", wantError: true},
+		{name: "R2 explicit port", target: "https://downloads.deepzora.app:443/file", wantError: true},
 		{name: "HTTPS downgrade", target: "http://release-assets.githubusercontent.com/file", wantError: true},
 		{name: "userinfo", target: "https://user@release-assets.githubusercontent.com/file", wantError: true},
 		{name: "missing hostname", target: "https:///file", wantError: true},

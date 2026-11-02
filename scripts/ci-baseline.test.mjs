@@ -24,10 +24,10 @@ test("required contexts retain real checks on each platform", () => {
   for (const name of ["test", "desktop-go"]) assert.match(job(name), /fail-fast: false/);
   assert.match(job("test-windows"), /name: test \(windows-latest\)/);
   assert.match(job("windows-root"), /runs-on: windows-latest/);
-  assert.match(job("windows-root"), /ci-root-shard\.mjs run/);
+  assert.match(job("windows-root"), /ci-windows-root\.mjs/);
   assert.match(job("windows-root"), /timeout-minutes: 35/);
   assert.match(job("windows-root"), /Test both Windows PowerShell runtimes/);
-  assert.match(job("test-windows"), /ci-root-shard\.mjs verify/);
+  assert.match(job("test-windows"), /ROOT_RESULT: \$\{\{ needs\.windows-root\.result \}\}/);
   assert.match(job("test"), /go test -timeout=15m \.\/\.\.\./);
   assert.match(job("desktop-go"), /DESKTOP_TEST_TIMEOUT: \$\{\{ runner\.os == 'Windows' && '35m' \|\| '15m' \}\}/);
   assert.match(job("desktop-go"), /timeout-minutes: \$\{\{ matrix\.os == 'windows-latest' && 65 \|\| 35 \}\}/);
@@ -42,7 +42,7 @@ test("Windows native validation configures the runner temporary volume first", (
   for (const name of ["windows-root", "desktop-go"]) {
     const body = job(name);
     const storage = body.indexOf("uses: ./.github/actions/windows-test-temp");
-    const execution = body.indexOf(name === "windows-root" ? "name: Build and test every assigned root package" : "name: Vet desktop module");
+    const execution = body.indexOf(name === "windows-root" ? "name: Build and test every root package" : "name: Test desktop module");
     assert.ok(storage >= 0 && storage < execution, `${name} must configure temporary storage before native validation`);
   }
 });
@@ -50,7 +50,7 @@ test("Windows native validation configures the runner temporary volume first", (
 test("Windows root CI selects and verifies its native shell tools", () => {
   const body = job("windows-root");
   const tools = body.indexOf("uses: ./.github/actions/windows-root-tools");
-  assert.ok(tools >= 0 && tools < body.indexOf("node scripts/ci-root-shard.mjs"));
+  assert.ok(tools >= 0 && tools < body.indexOf("node scripts/ci-windows-root.mjs"));
   const action = readFileSync(new URL("../.github/actions/windows-root-tools/action.yml", import.meta.url), "utf8");
   assert.match(action, /GITHUB_PATH/);
   assert.match(action, /Get-Command git/);
@@ -104,8 +104,8 @@ test("desktop native PR and main jobs execute complete suites on every platform"
   assert.match(native, /name: Test desktop module\n        env:/);
   assert.match(native, /args=\(-timeout="\$DESKTOP_TEST_TIMEOUT" -json\)/);
   assert.match(native, /go test "\$\{args\[@\]\}" \.\/\.\.\./);
-  assert.match(native, /name: Vet desktop module\n        run: go vet \.\/\.\.\./);
-  assert.match(native, /name: Build desktop module\n        run: go build \.\/\.\.\./);
+  // go test compiles every package and golangci-lint runs govet, so neither is repeated.
+  assert.doesNotMatch(native, /go vet|go build/);
   assert.match(native, /name: Check native build tags\n        uses: golangci/);
   assert.doesNotMatch(native + gate, /matrix\.shard|windows-shards|ci-go-shard/);
   assert.doesNotMatch(native + gate, /continue-on-error/);

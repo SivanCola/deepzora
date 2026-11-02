@@ -33,9 +33,10 @@ import (
 // has no shell dependency so the logic is unit-tested directly; updater_app.go is
 // the thin bridge binding that wires these into App methods and progress events.
 
-// Deepzora updates use the manifest attached to the latest stable CLI release.
+// The mirror publishes the unchanged official manifest after full readback.
 const (
 	githubReleaseAssetBase     = "https://github.com/SivanCola/deepzora/releases/download"
+	r2DesktopAssetBase         = "https://downloads.deepzora.app/desktop"
 	downloadPageURL            = "https://github.com/SivanCola/deepzora/releases"
 	manifestDownloadPageURL    = "https://github.com/SivanCola/deepzora/releases"
 	httpTimeout                = 15 * time.Second
@@ -52,7 +53,8 @@ var (
 	sha256RE               = regexp.MustCompile(`^[0-9a-f]{64}$`)
 )
 
-// GitHub latest is advanced only after CLI and Desktop artifacts are verified.
+// Both pointers advance only after their respective publication checks succeed.
+const r2ManifestEndpoint = r2DesktopAssetBase + "/latest.json"
 const githubManifestEndpoint = "https://github.com/SivanCola/deepzora/releases/latest/download/latest.json"
 
 func normalizeUpdateChannel(ch string) string {
@@ -82,7 +84,7 @@ func runningUpdateChannel() string {
 // in the order fetchManifest tries them.
 func manifestEndpoints(selected string) []string {
 	_ = selected
-	return []string{githubManifestEndpoint}
+	return []string{r2ManifestEndpoint, githubManifestEndpoint}
 }
 
 // updaterUserAgent identifies updater traffic. Go's default Go-http-client UA
@@ -212,6 +214,7 @@ func validateUpdateRedirect(req *http.Request, via []*http.Request) error {
 func isTrustedUpdateRedirectHost(host string) bool {
 	host = strings.ToLower(strings.TrimSuffix(strings.TrimSpace(host), "."))
 	return host == "github.com" ||
+		host == "downloads.deepzora.app" ||
 		strings.HasSuffix(host, ".githubusercontent.com")
 }
 
@@ -347,14 +350,18 @@ func validateDesktopManifest(selected string, m *update.Manifest) error {
 	return validateNamedDesktopAssets(selected, m)
 }
 
-// fetchManifest pulls latest.json from each endpoint in order until one both
-// responds, decodes, and matches an official release. Every endpoint's
-// failure is kept — a user staring at a gateway 403 (#6005) needs to see that
-// the R2 pointer failed too, not just whichever endpoint happened to die last.
+// fetchManifest tries the verified R2 pointer, then GitHub, retaining both
+// errors if neither responds with a complete official stable manifest.
 func fetchManifest(ctx context.Context, c, fallback *http.Client, selected string) (*update.Manifest, error) {
 	var errs []error
 	selected = normalizeUpdateChannel(selected)
+	if selected != "stable" {
+		return nil, fmt.Errorf("update: unsupported channel")
+	}
 	for _, url := range manifestEndpoints(selected) {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		endpointCtx, cancel := context.WithTimeout(ctx, manifestEndpointTimeout)
 		b, err := fetchManifestBytes(endpointCtx, c, fallback, selected, url)
 		cancel()
@@ -889,7 +896,7 @@ func downloadInto(ctx context.Context, c *http.Client, selected, url string, exp
 			*total = t
 		}
 	default:
-		return fmt.Errorf("GET %s: %s", url, resp.Status)
+		return &httpStatusError{url: url, status: resp.Status, code: resp.StatusCode}
 	}
 	have := int64(buf.Len())
 	if expectedSize > 0 && have > expectedSize {

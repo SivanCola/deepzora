@@ -14044,6 +14044,13 @@
           }
         },
         {
+          "name": "icon",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
           "name": "body",
           "type": {
             "kind": "string"
