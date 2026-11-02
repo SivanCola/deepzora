@@ -1,5 +1,8 @@
 # 发版候选
 
+实际操作请使用[中文发布手册](RELEASE_HANDBOOK.zh-CN.md)，其中包含发版前检查、
+逐步命令、审批、R2/官网自动更新和失败恢复。本页补充候选封存及验证机制。
+
 发布／下载页须链接[代码签名政策](../CODE_SIGNING_POLICY.zh-CN.md)及
 [隐私政策](../PRIVACY.zh-CN.md)，`scripts/release-notes.mjs` 会包含两个链接。
 应持续更新授权状态及数据流说明。独立 SignPath 授权仍待审核，见
@@ -44,5 +47,6 @@ Desktop 文件、执行最终安装包的原生验收并封存记录。`Publish 
 文件可以跨 run 复用，不等于公开发布，也不能代替下一次正式发布的公开验收。
 
 候选文件保留 30 天，记录和验收证据保留 90 天。尚未发布时若文件过期，需
-重新准备候选。正式发布后的标签、npm、Desktop 更新、Homebrew 与官网
-渲染结果仍以发布 skill 的公开 postflight 验证为准。
+重新准备候选。正式发布后的标签、npm、Desktop 更新和 Homebrew 以产品公开
+postflight 为准；通过后自动同步并完整校验 R2，再触发官网 `main` 构建及中英文
+生产页面验收。完整交付需确认这两个阶段都成功，见[发布手册](RELEASE_HANDBOOK.zh-CN.md)。

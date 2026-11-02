@@ -1,5 +1,8 @@
 # R2 release download mirror
 
+For the complete operator procedure, see the
+[release handbook](RELEASE_HANDBOOK.md) ([简体中文](RELEASE_HANDBOOK.zh-CN.md)).
+
 Public downloads use <https://downloads.deepzora.app/>. GitHub remains the
 canonical release source and the fallback shown beside every installer. Desktop
 automatic updates and Homebrew continue to use the existing GitHub URLs.
