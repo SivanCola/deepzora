@@ -53,7 +53,7 @@ export function AgentPresetChoice({ tabId, sessionKey, current, locked = false, 
     <button className="chip" type="button" disabled={loading} onClick={() => void reload()}>{t("common.retry")}</button>
   </div>;
   return <div className="agent-preset-choice" aria-busy={pending || loading}>
-    <Tooltip label={t(isLocked ? "agentPresets.lockedHint" : "agentPresets.chooseHint")}>
+    <Tooltip label={t(isLocked ? "agentPresets.lockedHint" : "agentPresets.chooseHint", { name })}>
       <span>
         <ComposerChoice label={loading && !view ? t("agentPresets.loading") : name}
           ariaLabel={`${t("agentPresets.picker")}: ${name}${isLocked ? ` · ${t("agentPresets.locked")}` : ""}`}
