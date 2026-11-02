@@ -1260,6 +1260,7 @@ export interface MCPMarketplaceView {
 
 export interface ModelInfo {
 	modelDisplayName?: string;
+  brandId?: string; // Persisted preset brand; independent of connection ID/name.
   displayName?: string;
   ref: string; // "provider/model" — pass to SetModel
   provider: string;

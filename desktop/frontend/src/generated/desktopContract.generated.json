@@ -24693,6 +24693,13 @@
           }
         },
         {
+          "name": "brandId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
           "name": "ref",
           "type": {
             "kind": "string"
