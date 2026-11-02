@@ -25,7 +25,10 @@ export type UpdateErrorDisposition = "retryable" | "recovery" | "manual";
 export interface Updater {
   status: UpdateStatus;
   check: () => Promise<void>;
-  /** Refresh an idle updater without superseding an active operation. */
+  /**
+   * Automatic, throttled check that never supersedes an active operation.
+   * Retryable failures stay quiet (logged, retried sooner); `check` reports them.
+   */
   refresh: () => Promise<void>;
   /** Single-action update: download + verify + install + relaunch. */
   apply: (info: UpdateInfo) => void;
@@ -72,6 +75,9 @@ let updaterRequestSequence = 0;
 const updaterRequestPrefix = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 export const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 export const UPDATE_CHECK_STORAGE_KEY = "deepzora-updater-last-check-v1";
+// A quiet automatic failure (offline at startup, slow release CDN) is retried
+// sooner than the regular interval instead of waiting six hours (#117).
+export const UPDATE_CHECK_FAILURE_RETRY_MS = 15 * 60 * 1000;
 let processLastUpdateCheckAttemptMs: number | null = null;
 
 function updateCheckStorage(): Storage | null {
@@ -116,6 +122,12 @@ function recordUpdateCheckAttempt(now = Date.now()): void {
   }
 }
 
+// Backdating the attempt makes the next automatic check due after the shorter
+// failure retry delay while still throttling focus/visibility bursts.
+function recordFailedAutomaticCheck(now = Date.now()): void {
+  recordUpdateCheckAttempt(Math.max(0, now - UPDATE_CHECK_INTERVAL_MS + UPDATE_CHECK_FAILURE_RETRY_MS));
+}
+
 function automaticUpdateCheckDue(now = Date.now()): boolean {
   const lastAttempt = lastUpdateCheckAttempt(now);
   return lastAttempt === null || now - lastAttempt >= UPDATE_CHECK_INTERVAL_MS;
@@ -145,6 +157,8 @@ function isBusyOperation(kind: UpdaterOperationKind): boolean {
 
 function useUpdaterInternal(): Updater {
   const [status, setStatus] = useState<UpdateStatus>({ kind: "idle" });
+  const statusRef = useRef(status);
+  statusRef.current = status;
   const operationRef = useRef<UpdaterOperation>({
     epoch: 0,
     requestId: "initial",
@@ -241,14 +255,30 @@ function useUpdaterInternal(): Updater {
     });
   }, []);
 
-  const check = useCallback(async () => {
+  const runCheck = useCallback(async (trigger: "manual" | "automatic") => {
     // A newer check may supersede an in-flight check (and historically may
     // interrupt apply). Discard owns exclusive recovery work and must not be
     // epoch-stolen by Check/Retry while AbandonPendingUpdate is outstanding.
     if (operationRef.current.kind === "abandoning") return;
     recordUpdateCheckAttempt();
     const operation = beginOperation("stable", "checking");
+    const before = statusRef.current;
     setStatus({ kind: "checking" });
+    // Automatic checks run unprompted at startup and on focus, often before the
+    // network is up. A retryable failure there is not actionable, so it stays
+    // out of the UI and is retried soon; the user-initiated check (Settings,
+    // banner Retry) still reports every failure. Recovery and manual-update
+    // dispositions are always surfaced because they need the user (#117).
+    const fail = (message: string, info?: UpdateInfo) => {
+      const next = updateError(message, info);
+      if (trigger === "automatic" && next.kind === "error" && next.disposition === "retryable") {
+        console.warn(`[updater] automatic update check failed: ${message}`);
+        recordFailedAutomaticCheck();
+        setStatus(before.kind === "available" || before.kind === "upToDate" ? before : { kind: "idle" });
+        return;
+      }
+      setStatus(next);
+    };
     try {
       const info = await app.CheckUpdate("stable");
       if (!isCurrentOperation(operation)) return;
@@ -260,14 +290,14 @@ function useUpdaterInternal(): Updater {
       const responseChannel = normalizedChannel(info.channel);
       if (operation.channel && responseChannel !== operation.channel) {
         completeOperation(operation);
-        setStatus(updateError(`update check returned ${responseChannel} for requested ${operation.channel} channel`));
+        fail(`update check returned ${responseChannel} for requested ${operation.channel} channel`);
         return;
       }
       operation.channel = responseChannel;
       operation.expectedVersion = info.latest;
       operationRef.current = { ...operation, kind: "ready" };
       if (info.err) {
-        setStatus(updateError(info.err, info));
+        fail(info.err, info);
         return;
       }
       if (!info.available) {
@@ -278,15 +308,17 @@ function useUpdaterInternal(): Updater {
     } catch (e) {
       if (!isCurrentOperation(operation)) return;
       completeOperation(operation);
-      setStatus(updateError(errMsg(e)));
+      fail(errMsg(e));
     }
   }, [beginOperation, completeOperation, isCurrentOperation]);
+
+  const check = useCallback(() => runCheck("manual"), [runCheck]);
 
   const refresh = useCallback(async () => {
     if (isBusyOperation(operationRef.current.kind)) return;
     if (!automaticUpdateCheckDue()) return;
-    await check();
-  }, [check]);
+    await runCheck("automatic");
+  }, [runCheck]);
 
   const apply = useCallback((info: UpdateInfo) => {
     const selectedChannel = normalizedChannel(info.channel);

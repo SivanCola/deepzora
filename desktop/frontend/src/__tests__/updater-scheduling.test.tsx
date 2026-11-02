@@ -6,6 +6,7 @@ import { UpdateBanner } from "../components/UpdateBanner";
 import { LocaleProvider } from "../lib/i18n";
 import {
   __resetUpdaterCheckScheduleForTests,
+  UPDATE_CHECK_FAILURE_RETRY_MS,
   UPDATE_CHECK_INTERVAL_MS,
   UPDATE_CHECK_STORAGE_KEY,
   UpdaterProvider,
@@ -30,10 +31,13 @@ const originalDateNow = Date.now;
 Date.now = () => now;
 
 let checkCalls = 0;
+let checkErr = "";
+const manifestTimeout = 'update: fetch manifest: Get "https://github.com/SivanCola/deepzora/releases/download/v0.0.2/latest.json": context deadline exceeded';
 const desktopStub = installDesktopHostStub({
   CheckUpdate: async () => {
     checkCalls += 1;
     return {
+      ...(checkErr ? { err: checkErr } : {}),
       available: false,
       current: "v1.2.3",
       latest: "v1.2.3",
@@ -140,7 +144,49 @@ try {
   assert.equal(checkCalls, 5, "process-local fallback throttles duplicate checks when storage is unavailable");
   if (localStorageDescriptor) Object.defineProperty(window, "localStorage", localStorageDescriptor);
 
-  console.log("PASS updater six-hour scheduling, persistence, manual bypass, disable, and storage recovery");
+  // #117: an automatic check that times out (e.g. first launch after an update,
+  // before the network is ready) must not surface an error banner.
+  const originalWarn = console.warn;
+  const warnings: string[] = [];
+  console.warn = (...args: unknown[]) => { warnings.push(args.map(String).join(" ")); };
+  try {
+    __resetUpdaterCheckScheduleForTests();
+    checkErr = manifestTimeout;
+    const callsBeforeFailure = checkCalls;
+    await act(async () => root.render(<LocaleProvider><UpdaterProvider key="offline"><UpdateBanner enabled /><ManualCheck /></UpdaterProvider></LocaleProvider>));
+    await act(async () => { await flush(); });
+    assert.equal(checkCalls, callsBeforeFailure + 1, "startup performs the automatic check");
+    assert.equal(document.querySelector(".banner--error"), null, "a transient automatic failure shows no error banner");
+    assert.ok(warnings.some((w) => w.includes("context deadline exceeded")), "the automatic failure is logged");
+
+    now += UPDATE_CHECK_FAILURE_RETRY_MS - 1;
+    await act(async () => { window.dispatchEvent(new Event("focus")); await flush(); });
+    assert.equal(checkCalls, callsBeforeFailure + 1, "a failed automatic check is not retried on every focus");
+
+    now += 1;
+    checkErr = "";
+    await act(async () => { window.dispatchEvent(new Event("focus")); await flush(); });
+    assert.equal(checkCalls, callsBeforeFailure + 2, "a failed automatic check is retried after the short failure delay");
+    assert.equal(document.querySelector(".banner--error"), null, "a successful retry leaves no banner");
+
+    checkErr = manifestTimeout;
+    await act(async () => {
+      (document.getElementById("manual-check") as HTMLButtonElement).click();
+      await flush();
+    });
+    assert.ok(document.querySelector(".banner--error"), "a user-initiated check still reports the failure");
+
+    checkErr = 'update: fetch manifest: https://example.invalid/latest.json: platforms windows-amd64 asset: unsupported install_layout "x" (keeping current version)';
+    __resetUpdaterCheckScheduleForTests();
+    await act(async () => root.render(<LocaleProvider><UpdaterProvider key="fresh"><UpdateBanner enabled /></UpdaterProvider></LocaleProvider>));
+    await act(async () => { await flush(); });
+    assert.ok(document.querySelector(".banner--error"), "automatic checks still surface failures that need the user");
+  } finally {
+    console.warn = originalWarn;
+    checkErr = "";
+  }
+
+  console.log("PASS updater six-hour scheduling, persistence, manual bypass, disable, storage recovery, and quiet automatic failures");
 } finally {
   await act(async () => root.unmount());
   desktopStub.uninstall();

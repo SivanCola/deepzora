@@ -26,8 +26,9 @@ export function subscribeToUpdateRefresh(
 // UpdateBanner checks on mount and while the app remains open and, when one is available,
 // shows a dismissible top banner with a single "update and restart" action
 // (or, on macOS manual builds, links out to the download page). It renders
-// nothing while idle, checking, or already current. A failed check can be
-// dismissed here; Settings is where a manual check shows errors inline.
+// nothing while idle, checking, or already current. A transient failure of the
+// automatic check is not shown; a failed manual check or Retry can be dismissed
+// here, and Settings shows manual check errors inline.
 export function UpdateBanner({
   enabled = true,
   onShowReleaseNotes,
