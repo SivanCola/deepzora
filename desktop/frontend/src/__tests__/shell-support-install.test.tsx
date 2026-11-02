@@ -39,7 +39,7 @@ function eq(actual: unknown, expected: unknown, label: string) {
 }
 
 async function shellOptionValues(rootEl: HTMLElement): Promise<string[]> {
-  const trigger = rootEl.querySelector<HTMLButtonElement>('[aria-haspopup="listbox"]');
+  const trigger = rootEl.querySelector<HTMLButtonElement>('.sandbox-shell-choice [aria-haspopup="listbox"]');
   await act(async () => {
     trigger?.click();
     await flushPromises();
@@ -161,7 +161,7 @@ function windowsSettings(overrides: {
   await waitFor("Windows Shell interpreter", () => rootEl.textContent?.includes("Shell interpreter") === true);
   const optionValues = await shellOptionValues(rootEl);
   eq(optionValues, ["auto", "bash", "pwsh", "powershell"], "Windows selector restores Git Bash alongside PowerShell");
-  const shellTrigger = rootEl.querySelector<HTMLButtonElement>('[aria-haspopup="listbox"]');
+  const shellTrigger = rootEl.querySelector<HTMLButtonElement>('.sandbox-shell-choice [aria-haspopup="listbox"]');
   await act(async () => {
     shellTrigger?.click();
     await flushPromises();
@@ -169,7 +169,7 @@ function windowsSettings(overrides: {
     await flushPromises();
   });
   eq(shellPreferenceCalls, ["bash"], "Git Bash selection persists the backward-compatible bash preference");
-  eq(rootEl.querySelector('[aria-haspopup="listbox"]')?.textContent, "Git Bash", "saved Bash preference remains selected after settings refresh");
+  eq(rootEl.querySelector('.sandbox-shell-choice [aria-haspopup="listbox"]')?.textContent, "Git Bash", "saved Bash preference remains selected after settings refresh");
   ok(rootEl.textContent?.includes("C:\\Program Files\\Git\\bin\\bash.exe") === true, "Windows displays the detected Git Bash executable");
   ok(rootEl.textContent?.includes("Git for Windows") !== true, "installed Git Bash needs no repair card");
   ok(rootEl.textContent?.includes("C:\\Windows\\System32\\WindowsPowerShell") === true,
