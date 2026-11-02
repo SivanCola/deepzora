@@ -16,7 +16,8 @@ const a = process.argv.slice(2), stamp = n => new Date(Date.UTC(2026,0,1,0,0,n))
 const event = {Action:'pass',Package:'deepzora/example',Test:'TestExample',Elapsed:2};
 if(a[0]==='run' && a[1]==='download') {
   if(process.env.FIXTURE_SKIP==='true') throw Error('download attempted for skipped job');
-  const folder=path.join(a[a.indexOf('--dir')+1], 'windows-root-partition-1-42');
+  if(a[a.indexOf('--name')+1]!=='windows-root-42') throw Error('unexpected artifact');
+  const folder=a[a.indexOf('--dir')+1];
   fs.mkdirSync(folder,{recursive:true}); fs.writeFileSync(path.join(folder,'tests.jsonl'),JSON.stringify(event)+'\\n');
 } else if(a[1]==='--help') { console.log('fixture API');
 } else if(a[1].includes('/jobs/7/logs')) { console.log(JSON.stringify(event));
@@ -33,7 +34,7 @@ if(a[0]==='run' && a[1]==='download') {
     });
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.deepEqual(JSON.parse(readFileSync(path.join(output, "timings.json"))).warnings, []);
-    const evidence = path.join(output, "root-partitions/windows-root-partition-1-42/tests.jsonl.timings.json");
+    const evidence = path.join(output, "windows-root/tests.jsonl.timings.json");
     assert.equal(existsSync(evidence), !skip);
     if (!skip) assert.equal(JSON.parse(readFileSync(evidence)).topLevel[0].name, "TestExample");
   }

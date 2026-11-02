@@ -32,11 +32,9 @@ function stageKind(job, step) {
   if (step === "Build frontend once") return "frontend build";
   if (step === "Check transcript and approval behavior in Chromium") return "browser group";
   if (step === "Test desktop module" || step === "Build and test root module") return "Go test";
-  if (/Windows desktop shard|desktop test shard/.test(step)) return "Go test shard";
-  if (step === "Build and test every assigned root package") return "Go root build / test";
+  if (step === "Build and test every root package") return "Go root build / test";
   if (/go-build-cache|cache\/(restore|save)|Cache/.test(step)) return "dependency cache";
   if (/go mod download|pnpm install|Install .*dependencies/.test(step)) return "dependency install";
-  if (/^(Vet|Build) desktop module/.test(step)) return "Go compile / vet";
   if (/native build tags|Lint/.test(step)) return "lint";
   if (/upload-artifact|Upload/.test(step)) return "artifact upload";
   if (job.startsWith("shard (") && step === "Run complete independent memory process") return "memory shard";

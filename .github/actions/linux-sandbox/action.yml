@@ -1,0 +1,17 @@
+name: Linux sandbox backend
+description: Install bubblewrap and allow unprivileged user namespaces so sandbox tests exercise the real backend.
+runs:
+  using: composite
+  steps:
+    - name: Install Linux sandbox backend
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" != Linux ]; then echo 'The Linux sandbox backend requires a Linux runner' >&2; exit 1; fi
+        sudo apt-get update && sudo apt-get install -y bubblewrap
+        if sysctl -n kernel.unprivileged_userns_clone >/dev/null 2>&1; then
+          sudo sysctl -w kernel.unprivileged_userns_clone=1
+        fi
+        if sysctl -n kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+        fi
+        bwrap --ro-bind / / --dev /dev --proc /proc -- true
