@@ -5,13 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"os/exec"
 	"slices"
 	"strings"
 	"time"
 
 	"mvdan.cc/sh/v3/syntax"
 
+	"deepzora/internal/proc"
 	"deepzora/internal/teamroster"
 )
 
@@ -60,7 +60,7 @@ func ReferencedPowerShellSecrets(ctx context.Context, executable, command string
 	}
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, executable, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", powershellSecretParser)
+	cmd := proc.CommandContext(ctx, executable, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", powershellSecretParser)
 	cmd.Stdin = strings.NewReader(command)
 	var out boundedSecretParserOutput
 	cmd.Stdout = &out
