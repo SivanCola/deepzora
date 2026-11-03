@@ -283,7 +283,7 @@ jobs:
             ./internal/proc/... ./internal/sandbox/... ./internal/filelock/... ./internal/eventwire/... \
             ./internal/extension/... ./internal/boot/... ./internal/control/... \
             ./internal/tool/... ./internal/config/... ./internal/session/... \
-            ./internal/sessioninbox/...
+            ./internal/sessioninbox/... ./internal/team/... ./internal/teamroster/... ./internal/hostframe/...
       - if: always()
         uses: ./.github/actions/go-build-cache
         with:
