@@ -71,6 +71,9 @@ func (m multiEdit) DeclareWriteAccess(args json.RawMessage) (tool.WriteAccessDec
 }
 
 func (m multiEdit) Execute(ctx context.Context, args json.RawMessage) (string, error) {
+	if err := rejectMaskedWrite(args); err != nil {
+		return "", err
+	}
 	var p struct {
 		Path  string     `json:"path"`
 		Edits []editStep `json:"edits"`

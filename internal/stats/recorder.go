@@ -199,7 +199,7 @@ func (r *Recorder) Emit(e event.Event) {
 	if r != nil && r.writer != nil && e.Kind == event.Usage {
 		r.recordUsage(e)
 	} else if r != nil && r.writer != nil && e.Kind == event.GuardianAssessment && e.Guardian.Usage != nil {
-		r.recordProviderUsage(e.ModelRef, e.Guardian.Usage, nil, "")
+		r.recordProviderUsage(e.ModelRef, e.Guardian.Usage, nil, "", e.Team)
 	} else if r != nil && r.writer != nil && e.Kind == event.TurnDone {
 		r.recordTurnCompletion()
 	}
@@ -310,10 +310,10 @@ func (r *Recorder) RecordSubagentLifecycle(info event.SubagentLifecycleInfo) {
 }
 
 func (r *Recorder) recordUsage(e event.Event) {
-	r.recordProviderUsage(e.ModelRef, e.Usage, e.CostQuote, e.UsageSource)
+	r.recordProviderUsage(e.ModelRef, e.Usage, e.CostQuote, e.UsageSource, e.Team)
 }
 
-func (r *Recorder) recordProviderUsage(modelRef string, usage *provider.Usage, quote *billing.CostQuote, usageSource string) {
+func (r *Recorder) recordProviderUsage(modelRef string, usage *provider.Usage, quote *billing.CostQuote, usageSource string, owners ...*event.TeamUsageAttribution) {
 	if usage == nil || (usage.TotalTokens <= 0 && usage.RequestCount <= 0) {
 		return
 	}
@@ -331,6 +331,9 @@ func (r *Recorder) recordProviderUsage(modelRef string, usage *provider.Usage, q
 		Total:       usage.TotalTokens,
 		Requests:    usageRequestCount(usage),
 		UsageSource: strings.TrimSpace(usageSource),
+	}
+	if len(owners) > 0 && owners[0] != nil {
+		rec.AgentID, rec.GroupID, rec.SeatID = owners[0].AgentID, owners[0].GroupID, owners[0].SeatID
 	}
 	if quote != nil {
 		rec.CostAmount = quote.Original.Amount

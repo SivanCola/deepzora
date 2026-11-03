@@ -4,6 +4,7 @@ import (
 	"context"
 	"deepzora/internal/event"
 	"deepzora/internal/nilutil"
+	"deepzora/internal/secrets"
 	"errors"
 	"fmt"
 	"io"
@@ -112,7 +113,12 @@ func (m *Manager) startForSession(parentSession, kind, label string, lifetime Li
 
 func (m *Manager) runJob(ctx context.Context, j *Job, run func(context.Context, io.Writer) (string, error)) {
 	defer m.wg.Done()
-	result, err := runRecovered(ctx, jobWriter{j}, run)
+	masked := secrets.NewStream(jobWriter{j})
+	result, err := runRecovered(ctx, masked, run)
+	if flushErr := masked.Flush(); err == nil {
+		err = flushErr
+	}
+	result = secrets.Masker().String(result)
 	j.mu.Lock()
 	j.outcome.returned = true
 	j.mu.Unlock()
@@ -130,6 +136,7 @@ func (m *Manager) runJob(ctx context.Context, j *Job, run func(context.Context, 
 		st = Done
 	}
 	finishedAt := nowMs()
+	result = secrets.Masker().String(result)
 	if result != "" {
 		j.mu.Lock()
 		if j.artifactFile != nil {

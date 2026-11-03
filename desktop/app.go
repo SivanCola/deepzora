@@ -430,6 +430,7 @@ func (a *App) Platform() string {
 // any bound call. It stores the service-lifetime context, then kicks off the
 // initialization in a background goroutine so the page loads immediately.
 func (a *App) startup(ctx context.Context) {
+	a.ensureTeamSecretMasking()
 	a.ctx = ctx
 	a.shuttingDown.Store(false)
 	a.initializeDesktopSessionRoot()

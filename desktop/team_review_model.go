@@ -49,5 +49,10 @@ func (a *App) teamMemoryReviewer(ctx context.Context, ref team.SeatRef, sessionI
 		return boundedllm.Call(ctx, boundedllm.Config{Provider: prov, ModelRef: model, Pricing: price, Sink: sink, UsageSource: event.UsageSourceMemoryReview,
 			Timeout: 2 * time.Minute, MaxTokens: 2048, MaxOutputBytes: 32 * 1024, MaxSystemBytes: 4096, MaxTotalBytes: 24 * 1024, EffortOverride: provider.PreferredReasoning(prov, "low")}, system, prompt)
 	}
-	return ask, func() { _ = handle.Close() }, nil
+	return ask, func() {
+		flushCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer cancel()
+		_ = recorder.Flush(flushCtx)
+		_ = handle.Close()
+	}, nil
 }

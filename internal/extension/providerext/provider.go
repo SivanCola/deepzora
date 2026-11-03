@@ -98,6 +98,10 @@ func (p *Provider) ReasoningCapability() provider.ReasoningCapability {
 }
 
 func (p *Provider) Stream(ctx context.Context, request provider.Request) (<-chan provider.Chunk, error) {
+	request = provider.MaskOutbound(request, provider.SignedProjection{})
+	if err := provider.CheckSecretSignedReplay(request); err != nil {
+		return nil, err
+	}
 	if err := p.ReasoningCapability().Validate(p.descriptor.Model, request.EffortOverride); err != nil {
 		return nil, err
 	}

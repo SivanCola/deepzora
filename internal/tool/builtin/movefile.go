@@ -55,6 +55,9 @@ func (m moveFile) DeclareWriteAccess(args json.RawMessage) (tool.WriteAccessDecl
 }
 
 func (m moveFile) Execute(ctx context.Context, args json.RawMessage) (string, error) {
+	if err := rejectMaskedWrite(args); err != nil {
+		return "", err
+	}
 	var p struct {
 		SourcePath      string `json:"source_path"`
 		DestinationPath string `json:"destination_path"`

@@ -17,6 +17,7 @@ import (
 	"deepzora/internal/planmode"
 	"deepzora/internal/provider"
 	"deepzora/internal/sandbox"
+	"deepzora/internal/secrets"
 	"deepzora/internal/tool"
 )
 
@@ -24,6 +25,20 @@ import (
 // — the caller emits ToolDispatch/ToolResult — so it is safe to invoke fromparallel goroutines. Stages:
 // parse → policy → prepare → finish.
 func (a *Agent) executeOne(ctx context.Context, turn *turnRuntime, call provider.ToolCall) (out toolOutcome) {
+	if secrets.ContainsPlaceholderJSON(json.RawMessage(call.Arguments)) {
+		return toolOutcome{blocked: true, output: "A masked secret placeholder cannot be executed or written. Use its authorized direct environment variable instead.", errMsg: "secret.placeholder"}
+	}
+	defer func() {
+		mask := secrets.Masker()
+		out.output = mask.String(out.output)
+		out.rawOutput = mask.String(out.rawOutput)
+		out.errMsg = mask.String(out.errMsg)
+		if out.execution != nil {
+			copy := *out.execution
+			copy.OutputTail = mask.String(copy.OutputTail)
+			out.execution = &copy
+		}
+	}()
 	defer func() { out.runState = outcomeRunState(out) }()
 	ctx = fileops.WithStore(withTurnState(a.withAgentContext(ctx), turn), a.fileObservations)
 	plan := &toolCallPlan{call: call}

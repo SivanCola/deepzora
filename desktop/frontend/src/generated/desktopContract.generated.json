@@ -3965,6 +3965,36 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/team_usage.go",
+      "name": "GetTeamUsage",
+      "owner": "App.GetTeamUsage",
+      "params": [
+        {
+          "kind": "object",
+          "ref": "main.TeamUsageRequest"
+        }
+      ],
+      "result": {
+        "elem": {
+          "kind": "object",
+          "ref": "stats.TeamUsage"
+        },
+        "kind": "array"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "req"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.GetTeamUsage"
+      },
+      "sources": [
+        "desktop/team_usage.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/theme_app.go",
       "name": "GetThemeExperience",
       "owner": "App.GetThemeExperience",
@@ -32548,6 +32578,28 @@
         }
       ]
     },
+    "main.TeamUsageRequest": {
+      "fields": [
+        {
+          "name": "from",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "to",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "agentId",
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
     "main.TeamView": {
       "fields": [
         {
@@ -36548,6 +36600,74 @@
           "name": "percent",
           "type": {
             "kind": "number"
+          }
+        }
+      ]
+    },
+    "stats.TeamUsage": {
+      "fields": [
+        {
+          "name": "agentId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "groupId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "seatId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "model",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "usageSource",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "tokens",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "requests",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "cacheHit",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "cacheMiss",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "cost",
+          "type": {
+            "kind": "object",
+            "ref": "billing.CostQuote"
           }
         }
       ]

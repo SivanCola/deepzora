@@ -36,6 +36,7 @@ type desktopTeamState struct {
 	scheduleMu         sync.Mutex
 	schedulesRecovered bool
 	closing            bool
+	releaseMasking     func()
 }
 
 func desktopTeamStore() teamroster.Store {
@@ -86,6 +87,7 @@ func (a *App) teamSeatForCanonicalSession(id string) (control.TeamSeat, error) {
 }
 
 func (a *App) localTeamHost() (*teamhost.Host, error) {
+	a.ensureTeamSecretMasking()
 	a.teamState.mu.Lock()
 	defer a.teamState.mu.Unlock()
 	if a.shuttingDown.Load() {
@@ -200,6 +202,7 @@ func (a *App) stopTeamHost() error {
 	if done != nil {
 		<-done
 	}
+	a.releaseTeamSecretMasking()
 	return err
 }
 

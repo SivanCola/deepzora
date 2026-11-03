@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"deepzora/internal/secrets"
 	"errors"
 	"strings"
 )
@@ -36,6 +37,10 @@ func requestModelRef(p Provider) string {
 // StreamForModel admits and observes each actual request, including stream
 // errors, before a caller can retry. It never changes the wire request.
 func StreamForModel(ctx context.Context, p Provider, req Request, ref string) (<-chan Chunk, error) {
+	_ = secrets.Masker()
+	if err := secrets.BoundaryError(); err != nil {
+		return nil, err
+	}
 	gate, _ := ctx.Value(requestGateKey{}).(RequestGate)
 	if gate == nil {
 		return p.Stream(ctx, req)

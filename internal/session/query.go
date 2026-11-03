@@ -217,7 +217,7 @@ func (q *Query) History(ctx context.Context, ref SessionRef) ([]provider.Message
 	if err != nil {
 		return nil, err
 	}
-	return append([]provider.Message(nil), snapshot.Projection.Messages...), nil
+	return provider.MaskMessages(append([]provider.Message(nil), snapshot.Projection.Messages...), provider.SignedProjection{}), nil
 }
 
 // Stat returns one header-backed metadata observation without opening event

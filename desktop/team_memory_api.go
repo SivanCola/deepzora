@@ -109,7 +109,7 @@ func (a *App) SaveTeamMemory(req SaveTeamMemoryRequest) (TeamMemoryResult, error
 					return teamroster.ErrInvalid
 				}
 				text := fact.Name + "\n" + fact.Description + "\n" + fact.Body
-				if secrets.RedactCredentials(text) != text {
+				if secrets.RedactCredentials(text) != text || secrets.Masker().String(text) != text {
 					return errors.New("credentials cannot be stored in Team memory")
 				}
 				saved, err := store.ApplyUserChange(ctx, req.RequestID, teamMutationDigest(req), memory.BatchChange{Memory: fact, ExpectedRevision: req.Fact.Revision, Remove: req.Archive})

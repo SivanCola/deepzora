@@ -54,6 +54,9 @@ func (w writeFile) DeclareWriteAccess(args json.RawMessage) (tool.WriteAccessDec
 }
 
 func (w writeFile) Execute(ctx context.Context, args json.RawMessage) (string, error) {
+	if err := rejectMaskedWrite(args); err != nil {
+		return "", err
+	}
 	var p struct {
 		Path    string `json:"path"`
 		Content string `json:"content"`

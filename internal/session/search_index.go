@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"database/sql"
+	"deepzora/internal/secrets"
 	"errors"
 	"fmt"
 	"os"
@@ -133,6 +134,7 @@ func (q *Query) SearchHistory(ctx context.Context, ref SessionRef, textQuery, cu
 			page.HasMore = true
 			break
 		}
+		hit.Preview = secrets.Masker().String(hit.Preview)
 		page.Hits = append(page.Hits, hit)
 	}
 	if err := rows.Err(); err != nil {

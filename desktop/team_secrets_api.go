@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"deepzora/internal/config"
+	"deepzora/internal/secrets"
 	"deepzora/internal/team"
 	"deepzora/internal/teamroster"
 	"encoding/json"
@@ -104,7 +105,23 @@ func (a *App) SaveTeamSecret(req SaveTeamSecretRequest) (TeamSecretResult, error
 				if err != nil {
 					return err
 				}
-				_, err = desktopTeamStore().MutateTeamSecrets(ctx, req.ExpectedRevision, req.RequestID, digest, func(book *teamroster.TeamSecretBook) error { return applyUserTeamSecret(ctx, book, roster, slots, req) })
+				var forgotten []secrets.Labeled
+				_, err = desktopTeamStore().MutateTeamSecrets(ctx, req.ExpectedRevision, req.RequestID, digest, func(book *teamroster.TeamSecretBook) error {
+					if req.Operation == "forget_retired" && req.ConfirmForget {
+						for _, old := range book.Retired {
+							value, err := slots.Read(old.Slot)
+							if err != nil {
+								return err
+							}
+							forgotten = append(forgotten, secrets.Labeled{Label: old.Name, Value: value})
+						}
+					}
+					return applyUserTeamSecret(ctx, book, roster, slots, req)
+				})
+				if err == nil {
+					secrets.ForgetValues(forgotten)
+					_ = secrets.Masker()
+				}
 				return err
 			})
 		})

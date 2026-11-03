@@ -33,6 +33,7 @@ type stdioTransport struct {
 	stdin       io.WriteCloser
 	stdout      io.ReadCloser
 	stderr      *tailBuffer
+	stderrMask  *secrets.Stream
 	waitOnce    sync.Once
 	closeOnce   sync.Once
 	releaseSlot func() // returns a bounded instance slot (e.g. CodeGraph) on close; nil when unbounded
@@ -95,6 +96,8 @@ func newStdioTransport(ctx context.Context, s Spec) (*stdioTransport, error) {
 	if s.Stderr != nil {
 		cmd.Stderr = io.MultiWriter(stderr, s.Stderr)
 	}
+	stderrMask := secrets.NewStream(cmd.Stderr)
+	cmd.Stderr = stderrMask
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -118,6 +121,7 @@ func newStdioTransport(ctx context.Context, s Spec) (*stdioTransport, error) {
 		stdin:       stdin,
 		stdout:      stdout,
 		stderr:      stderr,
+		stderrMask:  stderrMask,
 		releaseSlot: releaseSlot,
 	}
 	releaseSlot = nil // ownership transferred to t; close() releases it
@@ -539,6 +543,9 @@ func (t *stdioTransport) wait() {
 	t.waitOnce.Do(func() {
 		if t.cmd != nil && t.cmd.Process != nil {
 			_ = t.cmd.Wait()
+		}
+		if t.stderrMask != nil {
+			_ = t.stderrMask.Flush()
 		}
 	})
 }

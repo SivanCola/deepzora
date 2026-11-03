@@ -5,8 +5,9 @@
 The Team port targets local macOS, Linux and Windows Desktop. Its implementation
 is tracked in [the delivery ledger](TEAM_PORT_STATUS.md). The current increment
 provides storage, orchestration, Controller seats and a local Desktop host with
-generated member/group configuration, private conversations and group chat.
-Memory, schedules, credentials and complete masking boundaries remain pending.
+generated member/group configuration, private conversations, group chat,
+shared memory, opt-in review, schedules, credential infrastructure and member
+usage. Credential availability remains gated until boundary/native acceptance.
 
 ## Ownership
 
@@ -167,3 +168,55 @@ skipped, and a busy target waits only within that window. **Run now** submits
 scheduler input under existing approval rules; it does not approve sensitive
 tools, grant permissions, or resume a stopped Goal. After an interrupted
 dispatch, inspect the target conversation before creating another occurrence.
+
+## Secrets, masking and usage
+
+When enabled, **Team secrets** accepts values only in its password input and
+returns metadata only. Grants name exact member IDs; an empty list authorizes
+nobody and a new member inherits nothing. Replacement/deletion immediately
+revokes new commands. Old values remain in the retired masking set across
+restart. **Forget retired masking values** requires its own confirmation and
+can make old history values visible again. This action is independent of delete.
+
+Values never enter the global environment or the ordinary credentials `.env`
+backend. File tools refuse the dedicated host namespace even when the optional
+sensitive-file denylist is off. Recursive searches overlapping that namespace
+use the native confinement reader. POSIX/PowerShell AST parsing authorizes only
+direct references and never executes the source to discover variable names.
+
+The masking snapshot refreshes from current slot contents on every boundary,
+including same-length replacements with unchanged timestamps. Active and
+retired values cover provider messages, tool descriptions/schemas, extension
+frames, progress, errors, logs, background artifacts and new session output.
+Streams recognize cross-block values; JSON scalar projection preserves duplicate
+keys and unchanged bytes. Typed host counters remain numbers.
+
+Original protocol adapters may replay the opaque proofs required by their own
+protocol. Generic recipients always receive masked copies. When persistence
+masking changes proof-bound content, the message is marked invalid and replay
+is rejected before HTTP. Start a new conversation instead of reusing that proof.
+Tool, file-write and MCP entry points refuse literal `[secret:…]` placeholders.
+
+Old immutable history is projected when first read, without rewriting the source
+objects. A newly sensitive body receives a new content identity; old range grants
+return `stale_secret_projection`. Historical bodies larger than 64 MiB fail
+closed while masking is active. Stored originals and unencrypted credential
+slots remain accessible to same-account programs; exact masking cannot prevent
+encoded/transformed leakage or provide OS-level shell isolation.
+
+**Member usage** groups actual calls by member, group, canonical seat, model and
+call source. Main calls, task children and automatic review share one recording
+path; each billable event is counted once. Older records remain unattributed.
+Currency buckets, estimates and missing-price reasons survive aggregation, and
+the original global totals/index remain independent and rebuildable.
+
+Manual native qualification uses **CI → Run workflow → team_acceptance**. It
+builds installable artifacts, exercises the packaged shell/service and Team
+flows, and runs native browser Cookie isolation. It uploads artifacts without
+publishing a release. A loopback provider fixture is explicitly recorded as
+simulated; real-provider acceptance must be recorded separately.
+
+The exact-value, JSON and stream mechanisms derive from Reasonix layer 7
+`d5e43581e2ea6f4845e46fb29968cc1b2cb23b3a`; the retained upstream MIT license in
+`internal/team/UPSTREAM_LICENSE` also covers those extracted mechanisms. See the
+delivery ledger for all seven fixed sources and the current qualification state.

@@ -16,12 +16,49 @@ preset definitions instead of following later preset edits.
 | 3 | Desktop runtime, lease and browser isolation | Implemented; full root/Desktop suites and macOS native browser fixture passed; PR #148 |
 | 4 | Desktop Team UI and generated contract | Implemented; full root/Desktop suites, focused/race, production build, 246 settings viewport cases, Team browser flow and all 34 transcript commands passed; draft PR #149 |
 | 5 | Memory, opt-in review and schedules | Implemented; complete root/Desktop suites, focused/race, typechecks, build and Chromium flow passed; draft PR #151; hosted checks pending |
-| 6 | Private credential slots and shell injection | Implemented locally behind a closed masking gate; targeted tests/race and lint passed; native PowerShell/packaged acceptance pending |
-| 7 | Outbound/stream masking, usage and native acceptance | Pending |
+| 6 | Private credential slots and shell injection | Implemented behind a closed masking gate; complete root suite, owning/race/static checks passed; draft PR #152; native PowerShell/packaged acceptance pending |
+| 7 | Outbound/stream masking, usage and native acceptance | Implemented locally; owning/race checks, frontend build, Team browser flow, transcript/settings and Electron checks passed; complete Go sweeps and native/package qualification in progress |
 
 No layer status implies completion of a later layer. Secret delivery must remain
 unavailable until its complete masking boundaries pass. Hosted checks, local
 checks, native platform acceptance and publication are separate evidence.
+
+## Masking and usage increment
+
+- Adapted upstream exact-value, scalar-token JSON and cross-block stream masking.
+  Current/retired authoritative slots refresh every snapshot without mtime/size
+  caching. Unreadable metadata blocks new provider requests and secret commands.
+  Confirmed forgetting fences in-flight old source reads.
+- Builtin providers, extension requests/frames, tool/schema projection, event
+  streaming and optional audits, tool outcomes, jobs/artifacts, process logs and
+  Desktop RPC responses share the masking kernel. Literal placeholders are
+  refused by executable/write/MCP entry points.
+- Typed host counters remain numbers. Untouched model schemas retain original
+  scalar bytes and duplicate keys. Original-adapter proofs are the sole replay
+  exception; changed persisted proofs carry an invalidation marker and all three
+  native adapters reject them before HTTP.
+- New events are masked before persistence; old history bodies receive immutable
+  projected identities at first hit. Read grants are rechecked, and stale grants
+  refuse unprojected ranges. Legacy history/search/outline/export presentation
+  paths project text too. Historical bodies over 64 MiB fail closed.
+- Optional Agent/group/seat identity augments existing usage records. Actual
+  foreground/background task-child tests and a real loopback HTTP review request
+  verify ownership and one record per call. Review cleanup flushes usage. Team
+  aggregates preserve currency buckets, unpriced calls and old unattributed rows.
+- macOS native shell save/command/delete/retirement/confirmed-forget regression
+  passed with an isolated test-process gate. The production gate remains closed.
+  Browser preview verifies password input, explicit grants, empty grants,
+  two-step delete/forget and no value in returned metadata. These checks do not
+  claim a real model, Windows PowerShell or installed package acceptance.
+- Manual `team_acceptance` dispatch builds native installable artifacts and
+  exercises packaged member/private/group/background/approval/scheduler flows,
+  persisted history and native browser Cookie isolation on three runners. It
+  never publishes. The fixture provider and optional closed secret gate are
+  recorded explicitly; successful native dispatch evidence is still required.
+
+第七层已接入精确值、JSON 与跨块流遮罩、Provider/扩展/事件/工具/后台/持久化边界，
+以及成员、群组、席位和调用来源用量聚合。已通过的模拟与本机原生 Shell 测试不等于
+三平台可安装包或真实模型验收。密钥生产开关仍关闭，完整移植交付门槛尚未全部满足。
 
 ## Memory and scheduler increment
 

@@ -53,7 +53,7 @@ func exitIfHostLaunchMode(args []string) {
 		os.Exit(runEmitContract(dir))
 	}
 	if hostRPCRequested(args) {
-		os.Exit(runHostRPC(NewApp(), os.Stdin, os.Stdout))
+		os.Exit(runMaskedHostRPC(NewApp(), os.Stdin, os.Stdout))
 	}
 }
 

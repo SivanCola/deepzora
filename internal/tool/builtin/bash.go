@@ -171,6 +171,9 @@ func (b bash) ExecutionDescriptor(args json.RawMessage) *tool.ShellExecution {
 // metadata for host UI / session persistence. Provider-visible output stays in
 // DetailedResult.Output; metadata never enters tool schemas.
 func (b bash) ExecuteDetailed(ctx context.Context, args json.RawMessage) (tool.DetailedResult, error) {
+	if err := rejectMaskedWrite(args); err != nil {
+		return tool.DetailedResult{}, err
+	}
 	start := time.Now()
 	ex := shellrun.DescriptorFromShell(b.resolved())
 	ex.State = tool.ShellStateRunning
