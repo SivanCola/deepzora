@@ -5,10 +5,12 @@ import { mkdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
 import { startPreviewServer } from "./vite-preview-server.mjs";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
+process.env.PLAYWRIGHT_BROWSERS_PATH = !process.env.PLAYWRIGHT_BROWSERS_PATH || process.env.PLAYWRIGHT_BROWSERS_PATH === ".pw-browsers"
+  ? path.join(root, ".pw-browsers") : process.env.PLAYWRIGHT_BROWSERS_PATH;
+const { chromium } = await import("playwright");
 const port=Number(process.env.DEEPZORA_TEAM_BROWSER_PORT??4689);
 const external=process.env.DEEPZORA_TEAM_BASE_URL;
 const preview=external?null:await startPreviewServer(root,port);
