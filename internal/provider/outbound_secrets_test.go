@@ -1,12 +1,50 @@
 package provider
 
 import (
+	"deepzora/internal/attachment"
 	"deepzora/internal/secrets"
 	"encoding/json"
 	"reflect"
 	"strings"
 	"testing"
 )
+
+func TestImageLocatorsMaskSecretsWithoutMutatingHistoryOrBinaryPayload(t *testing.T) {
+	value := "image-private-credential"
+	secrets.WatchValues(t.Name(), func() []secrets.Labeled {
+		return []secrets.Labeled{{Label: "IMAGE", Value: value}, {Label: "PIN", Value: "AQID"}}
+	})
+	t.Cleanup(func() { secrets.UnwatchValues(t.Name()) })
+	inline := "data:image/png;base64,AQIDBA=="
+	url := "https://example.test/image.png?token=" + value
+	req := Request{Messages: []Message{
+		{Role: RoleUser, Images: []string{url, "file-api-" + value, inline}},
+		{Role: RoleUser, ImageInputs: []attachment.ImageInput{
+			{Kind: attachment.KindURL, URL: url},
+			{Kind: attachment.KindFiles, FilesID: "file-api-" + value},
+			{Kind: attachment.KindAttachment, Attachment: &attachment.AttachmentRef{DisplayName: value}},
+		}},
+	}}
+	before, _ := json.Marshal(req)
+	masked := MaskOutbound(req, SignedProjection{})
+	raw, _ := json.Marshal(masked)
+	if strings.Contains(string(raw), value) {
+		t.Fatal("image locator or metadata leaked")
+	}
+	if masked.Messages[0].Images[2] != inline {
+		t.Fatal("masking corrupted inline image bytes")
+	}
+	after, _ := json.Marshal(req)
+	if !reflect.DeepEqual(before, after) {
+		t.Fatal("masking mutated canonical image history")
+	}
+	clean := Request{Messages: []Message{{Role: RoleUser, Images: []string{inline, "https://example.test/clean.png", "file-api-clean"}}}}
+	before, _ = json.Marshal(clean)
+	after, _ = json.Marshal(MaskOutbound(clean, SignedProjection{}))
+	if !reflect.DeepEqual(before, after) {
+		t.Fatal("clean image request bytes changed")
+	}
+}
 
 func TestOutboundSecretProjectionCoversSchemasDuplicatesAndOriginalAdapterProofs(t *testing.T) {
 	value := "outbound-private-value-9721"

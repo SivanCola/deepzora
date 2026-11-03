@@ -58,6 +58,7 @@ func maskOutboundMessages(m *secrets.Mask, messages []Message, keep SignedProjec
 		msg.Content = m.String(msg.Content)
 		msg.RawContent = m.String(msg.RawContent)
 		msg.Original = m.String(msg.Original)
+		maskMessageImages(m, msg)
 		if !keep.Reasoning || msg.ReasoningSignature == "" {
 			masked := m.String(msg.ReasoningContent)
 			signature := m.String(msg.ReasoningSignature)
@@ -118,4 +119,33 @@ func maskOutboundMessages(m *secrets.Mask, messages []Message, keep SignedProjec
 		}
 	}
 	return out
+}
+
+func maskMessageImages(m *secrets.Mask, msg *Message) {
+	if len(msg.Images) > 0 {
+		msg.Images = slices.Clone(msg.Images)
+		for j, locator := range msg.Images {
+			msg.Images[j] = maskImageLocator(m, locator)
+		}
+	}
+	if len(msg.ImageInputs) > 0 {
+		msg.ImageInputs = CloneImageInputs(msg.ImageInputs)
+		for j := range msg.ImageInputs {
+			input := &msg.ImageInputs[j]
+			input.URL = maskImageLocator(m, input.URL)
+			input.FilesID = m.String(input.FilesID)
+			if input.Attachment != nil {
+				input.Attachment.DisplayName = m.String(input.Attachment.DisplayName)
+			}
+		}
+	}
+}
+
+// Inline image bytes are encoded binary content, not textual locators. Exact
+// substring masking there would corrupt unrelated images (especially for PINs).
+func maskImageLocator(m *secrets.Mask, locator string) string {
+	if _, _, ok := ParseImageDataURL(locator); ok {
+		return locator
+	}
+	return m.String(locator)
 }

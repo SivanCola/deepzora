@@ -3,8 +3,10 @@ package provider_test
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -14,6 +16,46 @@ import (
 	"deepzora/internal/provider/responses"
 	"deepzora/internal/secrets"
 )
+
+func TestNativeAdaptersMaskCredentialBearingImageURLsOnWire(t *testing.T) {
+	value := "image-url-private-credential"
+	secrets.WatchValues(t.Name(), func() []secrets.Labeled { return []secrets.Labeled{{Label: "IMAGE_URL", Value: value}} })
+	t.Cleanup(func() { secrets.UnwatchValues(t.Name()) })
+	bodies := make(chan string, 3)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		bodies <- string(body)
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = io.WriteString(w, "data: [DONE]\n\n")
+	}))
+	defer server.Close()
+	vision := &provider.ModelInfo{InputModalities: []provider.ModelModality{provider.ModalityText, provider.ModalityImage}}
+	chat, err := openai.New(provider.Config{Name: "fixture", Model: "model", BaseURL: server.URL, ModelInfo: vision})
+	if err != nil {
+		t.Fatal(err)
+	}
+	claude, err := anthropic.New(provider.Config{Name: "fixture", Model: "model", BaseURL: server.URL, ModelInfo: vision})
+	if err != nil {
+		t.Fatal(err)
+	}
+	response := responses.New(responses.Config{Name: "fixture", Model: "model", BaseURL: server.URL, ModelInfo: vision})
+	for _, adapter := range []provider.Provider{chat, claude, response} {
+		stream, err := adapter.Stream(t.Context(), provider.Request{Messages: []provider.Message{{Role: provider.RoleUser, Content: "inspect", Images: []string{"https://example.test/photo.png?token=" + value}}}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for range stream {
+		}
+		select {
+		case body := <-bodies:
+			if strings.Contains(body, value) || !strings.Contains(body, "photo.png") {
+				t.Fatalf("%s leaked or lost image URL: %s", adapter.Name(), body)
+			}
+		default:
+			t.Fatalf("%s did not reach HTTP", adapter.Name())
+		}
+	}
+}
 
 func TestNativeAdaptersRejectSecretInvalidatedProofBeforeHTTP(t *testing.T) {
 	var calls atomic.Int32
