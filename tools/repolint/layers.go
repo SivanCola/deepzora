@@ -29,6 +29,7 @@ var leaves = []string{
 	"internal/fileutil",
 	"internal/fileutil/encoding",
 	"internal/frontmatter",
+	"internal/hostframe",
 	"internal/i18n",
 	"internal/mcpdiag",
 	"internal/nilutil",
