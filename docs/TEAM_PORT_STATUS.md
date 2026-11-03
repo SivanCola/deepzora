@@ -14,7 +14,7 @@ preset definitions instead of following later preset edits.
 | 1 | Versioned roster, exchanges, group orchestration | Implemented; focused/race/static checks and full root Go suite passed; PR #146 |
 | 2 | Controller seat, tools, approvals and delegation ceilings | Implemented; full root suite and hosted CI/CodeQL passed; PR #147 |
 | 3 | Desktop runtime, lease and browser isolation | Implemented; full root/Desktop suites and macOS native browser fixture passed; PR #148 |
-| 4 | Desktop Team UI and generated contract | Implemented; focused/race, production build, 246 settings viewport cases, Team browser flow and transcript checks passed; broad Go validation running |
+| 4 | Desktop Team UI and generated contract | Implemented; full root/Desktop suites, focused/race, production build, 246 settings viewport cases, Team browser flow and all 34 transcript commands passed; draft PR #149 |
 | 5 | Memory, opt-in review and schedules | Pending |
 | 6 | Private credential slots and shell injection | Pending |
 | 7 | Outbound/stream masking, usage and native acceptance | Pending |
@@ -141,3 +141,6 @@ Linux、Windows 原生功能验收尚未完成，团队界面及第五至七层�
   names with spaces, switching, retained drafts and one accepted event.
 - These browser checks use the preview bridge. They do not replace real-model
   or Linux/Windows native/package acceptance. Layers 5–7 remain pending.
+- Complete root and separate Desktop Go suites passed (Desktop main package
+  808.763s). Final focused adapter checks cover subsequent event notification
+  changes; generated inventory and bilingual guidance were refreshed.
