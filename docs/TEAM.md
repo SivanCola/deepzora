@@ -4,8 +4,9 @@
 
 The Team port targets local macOS, Linux and Windows Desktop. Its implementation
 is tracked in [the delivery ledger](TEAM_PORT_STATUS.md). The current increment
-provides storage, orchestration and an optional Controller/boot seat adapter.
-The Desktop host and interface are not enabled yet.
+provides storage, orchestration, Controller seats and a local Desktop host with
+generated member/group configuration and private-session commands. The Team UI,
+memory, schedules, credentials and complete masking boundaries remain pending.
 
 ## Ownership
 
@@ -56,6 +57,33 @@ boots add the same Team tools and append current identity at the turn tail.
 Incoming Team work has host provenance and a scoped execution ceiling; it cannot
 rewrite the member's persistent permission. Fresh configuration approvals compare
 the reviewed roster revision before committing. Existing session, preset,
-credential and desktop RPC formats are unchanged. The copied MIT license is retained
+credential formats are unchanged. Additive Desktop commands/events change the
+contract digest and require matching Go, frontend and Electron artifacts.
+The copied MIT license is retained
 in `internal/team/UPSTREAM_LICENSE` and also covers the extracted roster and
 host-framing packages.
+
+## Desktop lifecycle
+
+`desktop/internal/teamhost` owns one writer lease and serialized seat admission.
+The Desktop adapter uses the existing canonical session service, workspace
+registry, Controller and detached-runtime registry. It persists canonical session
+routes and keeps background work independent of foreground workspace selection.
+Closing a Team chat releases its display reference. Idle background seats may
+be reclaimed after ten minutes; the six-seat soft cap only reclaims safe idle
+seats. Pending approvals, inbox items and jobs keep their runtime.
+
+Shutdown cancels the clock and new admission, closes every seat, waits for
+Controller store release and only then gives up the Team lease. Configuration
+commands compare revisions and commit bounded retry receipts atomically with
+the change. Conflicts retain the caller's draft; changed request-key reuse fails.
+Program approval remains at the normal workspace boundary; roster paths do not
+silently approve project programs. A member's copied preset retains complete
+prompt mode, runtime-context selection and the distinction between unrestricted
+and an explicitly empty tool list.
+
+The Go runtime supplies browser member identity through private grants. Electron
+derives persistent partitions from that identity; different seats of one member
+share login state and different members use different stores. Renderer page-open
+requests ask Go for their owner and cannot choose a partition. Restored pages
+retain the same partition and reject callbacks from the replaced page instance.

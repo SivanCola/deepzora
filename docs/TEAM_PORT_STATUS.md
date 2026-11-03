@@ -12,8 +12,8 @@ preset definitions instead of following later preset edits.
 | Layer | Owner | Status |
 | --- | --- | --- |
 | 1 | Versioned roster, exchanges, group orchestration | Implemented; focused/race/static checks and full root Go suite passed; PR #146 |
-| 2 | Controller seat, tools, approvals and delegation ceilings | Implemented; Controller/Agent/boot/Team/builtin/evidence suites, focused race and static gates passed |
-| 3 | Desktop runtime, lease and browser isolation | Pending |
+| 2 | Controller seat, tools, approvals and delegation ceilings | Implemented; full root suite passed; PR #147; hosted Desktop/lint repairs under verification |
+| 3 | Desktop runtime, lease and browser isolation | Implemented locally; broad validation and delivery in progress |
 | 4 | Desktop Team UI and generated contract | Pending |
 | 5 | Memory, opt-in review and schedules | Pending |
 | 6 | Private credential slots and shell injection | Pending |
@@ -88,3 +88,33 @@ Studio HTTP plumbing, terminal outbox, unrelated fixes or release infrastructure
 第二层已接入可选席位、固定工具目录、持久 inbox、宿主来源、回合结算和临时执行上限，
 并验证系统前缀稳定、只读代理执行、陈旧审批拒绝及已结算任务不重放。普通已批准计划的
 回归已修复，全套相关包已通过。桌面 TeamHost 与界面尚未接入。
+
+## Desktop host increment
+
+- Added the local lease/recovery fence, serialized seat creation, idle admission,
+  background retention and shutdown join. Recovery errors keep the host sealed
+  and retain the lease until repaired or all runtime teardown completes.
+- Canonical sessions use the existing workspace creation protocol and the
+  Controller/inbox lifecycle. Team routes cannot reopen as ordinary sessions
+  after eviction. Background opens preserve foreground selection. Runtime
+  teardown joins Controller.Closed outside the global admission lock.
+- Added generated query/configuration/private-open commands and Team change
+  events. Revision conflict and request-key replay are explicit results.
+- Copied presets retain complete prompt/runtime-context/tool-list semantics.
+  Provider-boundary tests prove source replacement cannot change the copy.
+- Browser storage identity comes from Go grants; different member partitions,
+  same-member seats and restoration passed the macOS native Cookie fixture.
+- That native fixture reproduced a late-destroyed-event bug: an old page could
+  delete a replacement using the same logical id. The negative regression failed
+  before the instance fence; the full native fixture passed after repair,
+  including zero remaining WebContents.
+- Adapter/host race regressions, all 325 Electron tests, focused browser tests,
+  Electron/frontend typechecks, Desktop lint and repolint
+  passed. Broad root validation initially failed only the generated inventory;
+  regeneration and its owning test passed. Full Desktop validation is running.
+- Linux/Windows native Team acceptance and packaged acceptance are still pending.
+  No secret feature is exposed by this layer.
+
+第三层已接入规范会话、后台生命周期、类型化配置命令和成员浏览器分区，真实 Controller
+与 inbox 测试及 macOS 原生 Cookie/恢复/清理测试通过。完整 Desktop 验证仍在运行；
+Linux、Windows 原生功能验收尚未完成，团队界面及第五至七层尚待实施。

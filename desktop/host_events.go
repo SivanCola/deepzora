@@ -16,6 +16,7 @@ var hostEventNames = []string{
 	"runtime-state:changed",
 	"runtime:rebuilt",
 	"tab:meta",
+	"team:changed",
 	"terminal:exit",
 	"terminal:output",
 	"topic:activation",

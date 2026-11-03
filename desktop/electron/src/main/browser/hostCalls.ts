@@ -260,7 +260,7 @@ export function buildBrowserHostCalls(deps: BrowserHostDeps): HostCallTable {
       }
     }, Boolean(str(params, "documentToken"))),
     "host/browser.grant": (params) => {
-      const grant = grants.install({ grantId: str(params, "grantId"), taskId: str(params, "tabId"), sessionId: str(params, "sessionId"), diagnosticScope: str(params, "diagnosticScope") });
+      const grant = grants.install({ grantId: str(params, "grantId"), taskId: str(params, "tabId"), sessionId: str(params, "sessionId"), diagnosticScope: str(params, "diagnosticScope"), teamAgentId: str(params, "teamAgentId") });
       deps.diagnosticExport?.bind(grant);
       return {};
     },
@@ -281,7 +281,7 @@ export function buildBrowserHostCalls(deps: BrowserHostDeps): HostCallTable {
     },
     "host/browser.tabs.open": params => navigation(params, async signal => {
       const grant = grants.verify(str(params, "grantId"));
-      const tab = await surfaces.open(str(params, "url"), { taskId: grant.taskId, sessionId: grant.sessionId, temporary: bool(params, "temporary") }, signal);
+      const tab = await surfaces.open(str(params, "url"), { taskId: grant.taskId, sessionId: grant.sessionId, teamAgentId: grant.teamAgentId, temporary: bool(params, "temporary") }, signal);
       try { grants.verifyTab(str(params, "grantId"), tab.taskId, tab.sessionId); if (surfaces.get(tab.id) !== tab || tab.mode !== "agent") throw new Error("page ownership changed"); }
       catch {
         if (surfaces.get(tab.id) === tab && tab.mode === "agent") surfaces.close(tab.id);

@@ -596,6 +596,20 @@
       ]
     }
   },
+  "BrowserTeamAgentForTab": {
+    "domain": "desktop/browser_executor.go",
+    "owner": "App.BrowserTeamAgentForTab",
+    "sources": [
+      "desktop/browser_executor.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.BrowserTeamAgentForTab",
+      "inputs": [
+        "tabID"
+      ]
+    }
+  },
   "Cancel": {
     "domain": "desktop/app.go",
     "owner": "App.Cancel",
@@ -2003,6 +2017,18 @@
       "inputs": []
     }
   },
+  "GetTeam": {
+    "domain": "desktop/team_api.go",
+    "owner": "App.GetTeam",
+    "sources": [
+      "desktop/team_api.go"
+    ],
+    "scope": {
+      "kind": "owner-state",
+      "resolver": "App.GetTeam",
+      "inputs": []
+    }
+  },
   "GetThemeExperience": {
     "domain": "desktop/theme_app.go",
     "owner": "App.GetThemeExperience",
@@ -3315,6 +3341,21 @@
       "inputs": [
         "tabID",
         "taskID"
+      ]
+    }
+  },
+  "OpenTeamAgent": {
+    "domain": "desktop/team_api.go",
+    "owner": "App.OpenTeamAgent",
+    "sources": [
+      "desktop/team_api.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.OpenTeamAgent",
+      "inputs": [
+        "agentID",
+        "groupID"
       ]
     }
   },
@@ -5420,6 +5461,34 @@
         "tabID",
         "path",
         "title"
+      ]
+    }
+  },
+  "SaveTeamAgent": {
+    "domain": "desktop/team_api.go",
+    "owner": "App.SaveTeamAgent",
+    "sources": [
+      "desktop/team_api.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.SaveTeamAgent",
+      "inputs": [
+        "req"
+      ]
+    }
+  },
+  "SaveTeamGroup": {
+    "domain": "desktop/team_api.go",
+    "owner": "App.SaveTeamGroup",
+    "sources": [
+      "desktop/team_api.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.SaveTeamGroup",
+      "inputs": [
+        "req"
       ]
     }
   },

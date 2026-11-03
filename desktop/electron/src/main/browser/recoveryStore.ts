@@ -5,7 +5,7 @@ import { validateViewport } from "./viewport.js";
 
 export interface FileReference { source: "workspace" | "presented" | "reference"; path: string; toolCallId: string }
 export function validFileReference(value: unknown): value is FileReference { const item = value as FileReference | undefined; return !!item && ["workspace", "presented", "reference"].includes(item.source) && typeof item.path === "string" && item.path.length > 0 && item.path.length <= 8192 && typeof item.toolCallId === "string" && item.toolCallId.length <= 512; }
-export interface RecoveredTab { id: string; taskId: string; sessionId: string; url: string; title: string; viewport: BrowserViewport | null; fileReference?: FileReference; [key: string]: unknown }
+export interface RecoveredTab { id: string; taskId: string; sessionId: string; teamAgentId?: string; url: string; title: string; viewport: BrowserViewport | null; fileReference?: FileReference; [key: string]: unknown }
 const prohibited = ["grant", "grantId", "webContentsId", "documentToken", "refs", "observationToken", "pendingOperation", "form", "password"];
 export function recoverableURL(value: string): boolean {
   if (value.length > 8192) return false;
@@ -29,6 +29,7 @@ export class BrowserRecoveryStore {
         const tab = candidate as RecoveredTab;
         if (!tab || !/^tab-\d+$/.test(tab.id) || !Number.isSafeInteger(Number(tab.id.slice(4))) || ids.has(tab.id) || typeof tab.taskId !== "string" || typeof tab.sessionId !== "string" || typeof tab.url !== "string" || (!recoverableURL(tab.url) && !validFileReference(tab.fileReference))) continue;
         let viewport: BrowserViewport | null = null;
+        if (tab.teamAgentId !== undefined && (typeof tab.teamAgentId !== "string" || !/^a-[0-9a-f]{16}$/.test(tab.teamAgentId))) continue;
         try { viewport = tab.viewport ? validateViewport(tab.viewport) : null; } catch { continue; }
         ids.add(tab.id);
         this.tabs.push({ ...tab, title: typeof tab.title === "string" ? tab.title.slice(0, 512) : "", viewport });

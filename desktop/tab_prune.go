@@ -75,7 +75,7 @@ func (a *App) pruneVisibleTabsRuntimeAdmissionHeld(tabID string) (TabMeta, error
 		if tab == nil || a.tabs[id] != tab {
 			continue
 		}
-		if tab.Ctrl == nil || !tab.hasActiveRuntimeWork() {
+		if tab.Ctrl == nil || (!tab.hasActiveRuntimeWork() && tab.teamSeat == nil) {
 			a.markTabRemovedLocked(tab)
 		}
 		removed = append(removed, tab)

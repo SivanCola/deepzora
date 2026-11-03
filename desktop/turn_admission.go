@@ -218,15 +218,23 @@ func (a *App) beginRuntimeTurnWithModelChoice(tabID string, reclaim, detached bo
 func (a *App) beforeInboxDispatch(ctrl *control.Controller) (func(), error) {
 	a.mu.RLock()
 	var owner *WorkspaceTab
+	teamBound := false
 	for _, tab := range a.runtimeTabsLocked() {
 		if tab.Ctrl == ctrl {
 			owner = tab
+			teamBound = tab.teamSeat != nil
 			break
 		}
 	}
 	a.mu.RUnlock()
 	if owner == nil {
 		return nil, control.ErrInboxRuntimeUnpublished
+	}
+	if teamBound {
+		h, err := a.localTeamHost()
+		if err != nil || !h.Ready() {
+			return nil, control.ErrInboxRuntimeUnpublished
+		}
 	}
 	admission, current, err := a.beginRuntimeTurn(owner.ID, false, true)
 	if err != nil {

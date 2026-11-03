@@ -44,6 +44,21 @@ test("URLs are normalised to http(s) and bare hosts get https", () => {
   assert.throws(() => normaliseBrowserURL(""), /empty/);
 });
 
+test("late destroyed and popup callbacks cannot retire a restored tab with the same id", async () => {
+  const { manager,viewOf }=setup();
+  const original=await manager.open("https://example.test",{taskId:"ada",sessionId:"private",teamAgentId:"a-0000000000000001",temporary:false});
+  const stale=viewOf(original).fire();
+  const recovery=manager.recoveryTabs();
+  manager.destroyAll();
+  manager.restore(recovery);
+  const restored=manager.require(original.id);
+  assert.notEqual(restored,original);
+  stale.onDestroyed();
+  assert.equal(manager.get(original.id),restored,"old page destroyed its replacement's logical owner");
+  assert.equal(stale.onPopup("https://example.test","new-window"),null);
+  manager.destroyAll();
+});
+
 test("layout rects are rounded, clamped to the window and never negative", () => {
   assert.deepEqual(validateLayout({ x: 10.4, y: -5, width: 2000, height: 300.6 }, { width: 1000, height: 700 }), { x: 10, y: 0, width: 990, height: 301 });
   assert.deepEqual(validateLayout({ x: 1200, y: 0, width: 100, height: 100 }, { width: 1000, height: 700 }), { x: 1200, y: 0, width: 0, height: 100 });

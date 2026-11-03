@@ -470,7 +470,10 @@ jobs:
           go test "${args[@]}" ./...
       - name: Check desktop lifecycle races on macOS
         if: runner.os == 'macOS'
-        run: go test -race -timeout=10m -run 'Test.*(Title|BotConnection|Deferred|Terminal|DarwinWorkspaceWatcher)' .
+        run: go test -race -timeout=10m -run 'Test.*(Title|BotConnection|Deferred|Terminal|DarwinWorkspaceWatcher|DesktopTeam)' .
+      - name: Check Team host lifecycle races
+        if: runner.os != 'Windows'
+        run: go test -race -timeout=5m ./internal/teamhost
       - name: Check native build tags
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
         with:

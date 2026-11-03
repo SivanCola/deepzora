@@ -46,6 +46,7 @@ type hostBrowserExecutor struct {
 	// sessionKey is the session binding the grant was issued for.
 	sessionKey      string
 	diagnosticScope string // Opaque export identity; never used to authorize operations.
+	teamAgentID     string // Host-derived; renderer and page cannot choose a partition.
 	granted         atomic.Bool
 	revoked         atomic.Bool
 	grantMu         sync.Mutex
@@ -84,6 +85,19 @@ func (a *App) browserExecutorForTab(tab *WorkspaceTab) browser.Executor {
 	return a.browserExecutorForRuntime(tabID, sink)
 }
 
+// BrowserTeamAgentForTab lets the shell derive a user-opened page's storage
+// scope from its runtime owner. No renderer-supplied partition is accepted.
+func (a *App) BrowserTeamAgentForTab(tabID string) string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	tab := a.tabByEventSinkIDLocked(tabID)
+	if tab == nil || tab.teamSeat == nil {
+		return ""
+	}
+	_, ref := tab.teamSeat.Team()
+	return ref.Agent
+}
+
 func (a *App) browserExecutorForRuntime(tabID string, sink *tabEventSink) browser.Executor {
 	if !a.hostMode() || a.browserControl.off() {
 		return nil
@@ -118,13 +132,18 @@ func (a *App) hostBrowserExecutorForBinding(tabID string, sink *tabEventSink) *h
 	}
 	tabID = tab.ID
 	identity := tab.SessionID
+	teamAgentID := ""
+	if tab.teamSeat != nil {
+		_, seat := tab.teamSeat.Team()
+		teamAgentID = seat.Agent
+	}
 	sessionKey := fmt.Sprintf("%s:%d", identity, tab.SessionGeneration)
 	a.browserExecMu.Lock()
 	if a.browserExecutors == nil {
 		a.browserExecutors = map[string]*hostBrowserExecutor{}
 	}
 	if exec, ok := a.browserExecutors[tabID]; ok {
-		if exec.sessionKey == sessionKey {
+		if exec.sessionKey == sessionKey && exec.teamAgentID == teamAgentID {
 			a.browserExecMu.Unlock()
 			a.mu.RUnlock()
 			return exec
@@ -132,6 +151,7 @@ func (a *App) hostBrowserExecutorForBinding(tabID string, sink *tabEventSink) *h
 		delete(a.browserExecutors, tabID)
 		replacement := &hostBrowserExecutor{app: a, host: a.hostShell.server, tabID: tabID, grantID: newBrowserGrantID(), sessionKey: sessionKey, diagnosticScope: browserDiagnosticScope(localDesktopHostID, tab.SessionID)}
 		a.browserExecutors[tabID] = replacement
+		replacement.teamAgentID = teamAgentID
 		a.browserExecMu.Unlock()
 		a.mu.RUnlock()
 		a.releaseFileBrowserPreviewsForTask(tabID)
@@ -140,6 +160,7 @@ func (a *App) hostBrowserExecutorForBinding(tabID string, sink *tabEventSink) *h
 	}
 	exec := &hostBrowserExecutor{app: a, host: a.hostShell.server, tabID: tabID, grantID: newBrowserGrantID(), sessionKey: sessionKey, diagnosticScope: browserDiagnosticScope(localDesktopHostID, tab.SessionID)}
 	a.browserExecutors[tabID] = exec
+	exec.teamAgentID = teamAgentID
 	a.browserExecMu.Unlock()
 	a.mu.RUnlock()
 	return exec
@@ -324,6 +345,7 @@ func (e *hostBrowserExecutor) ensureGrant(ctx context.Context) error {
 	}
 	params := map[string]string{"grantId": e.grantID, "tabId": e.tabID, "sessionId": e.browserSessionKey()}
 	params["diagnosticScope"] = e.diagnosticScope
+	params["teamAgentId"] = e.teamAgentID
 	if err := e.host.Request(ctx, "host/browser.grant", params, nil); err != nil {
 		return mapHostBrowserError(err)
 	}

@@ -5,6 +5,7 @@ export interface BrowserGrant {
   taskId: string;
   sessionId: string;
   diagnosticScope?: string;
+  teamAgentId?: string;
   generation: string;
   createdAt: number;
 }
@@ -30,8 +31,9 @@ export class GrantRegistry {
     return () => { this.revokedListeners.delete(listener); };
   }
 
-  install(input: { grantId: string; taskId: string; sessionId: string; diagnosticScope?: string }): BrowserGrant {
+  install(input: { grantId: string; taskId: string; sessionId: string; diagnosticScope?: string; teamAgentId?: string }): BrowserGrant {
     if (input.grantId === "" || input.taskId === "") throw noGrant("grantId and tabId are required");
+    if (input.teamAgentId && !/^a-[0-9a-f]{16}$/.test(input.teamAgentId)) throw noGrant("invalid team member identity");
     const generation = this.deps.generation();
     if (generation === "") throw noGrant("desktop service is not running");
     this.generation = generation;

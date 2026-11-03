@@ -3,6 +3,9 @@ package team
 import (
 	"context"
 	"time"
+
+	"deepzora/internal/agentpreset"
+	"deepzora/internal/teamroster"
 )
 
 // SeatRef names a session an agent speaks through: its own chat when Group is
@@ -112,3 +115,23 @@ func (s Seat) Projection() (Projection, error) { return s.Service.Projection(s.R
 
 // Team returns the service and the seat's reference.
 func (s Seat) Team() (*Service, SeatRef) { return s.Service, s.Ref }
+
+// PresetDefinition resolves the member's copied definition, never its source.
+func (s Seat) PresetDefinition() (agentpreset.Preset, error) {
+	r, err := s.Service.store.Load()
+	if err != nil {
+		return agentpreset.Preset{}, err
+	}
+	a, ok := r.Agent(s.Ref.Agent)
+	if !ok {
+		return agentpreset.Preset{}, teamroster.ErrUnknownAgent
+	}
+	if a.Preset == nil {
+		return agentpreset.Default(), nil
+	}
+	p := *a.Preset
+	if p.Tools != nil {
+		p.Tools = append([]string{}, p.Tools...)
+	}
+	return p, nil
+}

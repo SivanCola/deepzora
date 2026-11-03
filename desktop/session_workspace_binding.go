@@ -16,6 +16,7 @@ var errSessionWorkspaceConflict = errors.New("session workspace identity is inco
 // canonicalTabBinding is what a controller build publishes to its tab once
 // the durable session is bound: identity, workspace, and the projected name.
 type canonicalTabBinding struct {
+	teamSeat    control.TeamSeat
 	ref         session.SessionRef
 	workspaceID string
 	title       string
@@ -50,6 +51,9 @@ func (a *App) bindTabCanonicalSessionTopic(
 		return canonicalTabBinding{}, err
 	}
 	bound := canonicalTabBinding{ref: ref, workspaceID: workspaceID}
+	if source, ok := identity.(interface{ BoundTeamSeat() control.TeamSeat }); ok {
+		bound.teamSeat = source.BoundTeamSeat()
+	}
 	if snapshot, loadErr := a.workspaceRegistry().VerifySnapshot(ctx); loadErr == nil {
 		bound.title, bound.titleSource = a.canonicalTabTitleWithPresentation(ctx, snapshot.Session(ref.SessionID).Presentation, ref)
 	}
@@ -58,6 +62,7 @@ func (a *App) bindTabCanonicalSessionTopic(
 
 // applyLocked publishes the binding to the tab. The caller holds App.mu.
 func (b canonicalTabBinding) applyLocked(tab *WorkspaceTab) {
+	tab.teamSeat = b.teamSeat
 	tab.SessionID, tab.SessionWorkspace.ID = b.ref.SessionID, b.workspaceID
 	if b.title != "" {
 		tab.TopicTitle, tab.topicTitleSource = b.title, b.titleSource
