@@ -59,7 +59,7 @@ checks, native platform acceptance and publication are separate evidence.
   never publishes. The fixture provider and optional closed secret gate are
   recorded explicitly; successful native dispatch evidence is still required.
 - The complete root Go suite passed. The independent Desktop Go suite passed
-  (main package 938.525s, 1,774 top-level passes and 8 platform-specific skips).
+  (main package 938.525s, 1,807 top-level passes and 8 platform-specific skips).
   Cleanup/kernel/race regressions and updated frontend/static gates passed for
   the subsequent durable retirement fix.
   The assembled macOS production app passed startup/quit and real Team private,
