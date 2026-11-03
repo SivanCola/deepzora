@@ -106,3 +106,30 @@ func TestALongLineKeepsItsHeadAndTail(t *testing.T) {
 		t.Fatalf("a long line reached the prompt as %d chars", len(a.prompt))
 	}
 }
+
+func TestReviewEvidencePageNeverDropsWholeTurns(t *testing.T) {
+	for _, fill := range []string{"word ", "用户偏好", "\"\\\n<>&"} {
+		t.Run(fmt.Sprintf("fill-%x", fill), func(t *testing.T) {
+			var facts []memory.Memory
+			for i := range 100 {
+				facts = append(facts, memory.Memory{Name: fmt.Sprintf("fact-%d", i), Body: strings.Repeat(fill, 200)})
+			}
+			var lines []ReviewLine
+			for i := range 16 {
+				lines = append(lines, ReviewLine{User: true, From: "user", Text: fmt.Sprintf("START-%02d %s END-%02d", i, strings.Repeat(fill, 3000), i)})
+			}
+			prompt := reviewPrompt(facts, lines)
+			if len(prompt) > reviewBudget {
+				t.Fatalf("prompt uses %d bytes, budget %d", len(prompt), reviewBudget)
+			}
+			previous := -1
+			for i := range 16 {
+				start := strings.Index(prompt, fmt.Sprintf("START-%02d", i))
+				if start <= previous || !strings.Contains(prompt, fmt.Sprintf("END-%02d", i)) {
+					t.Fatalf("turn %d lost or reordered before the page checkpoint advances", i)
+				}
+				previous = start
+			}
+		})
+	}
+}
