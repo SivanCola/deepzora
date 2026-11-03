@@ -127,6 +127,22 @@ func (b *TeamSecretBook) validate() error {
 	return nil
 }
 
+// Validate checks a proposed metadata update before its credential slot is
+// written. Mutation still validates again before publishing the book.
+func (b *TeamSecretBook) Validate() error { return b.validate() }
+
+// InspectTeamSecrets serializes recovery with slot creation and publication.
+// Unknown/corrupt metadata is never passed to a cleanup callback.
+func (s Store) InspectTeamSecrets(ctx context.Context, inspect func(TeamSecretBook) error) error {
+	return s.withLock(ctx, s.Dir, SecretFile, func() error {
+		book, err := s.TeamSecrets()
+		if err != nil {
+			return err
+		}
+		return inspect(book)
+	})
+}
+
 // MutateTeamSecrets never stores a value or a digest of plaintext in metadata.
 // The caller's request digest binds secret input with the credential store's
 // private keyed fingerprint, rather than a publicly brute-forceable hash.

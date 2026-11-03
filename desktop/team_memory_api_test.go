@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -76,7 +77,7 @@ func TestTeamGroupMemoryEvidenceConsumesEarliestBatchAndExcludesSchedules(t *tes
 		if i == 3 {
 			source = "scheduler"
 		}
-		_, err := desktopTeamStore().AppendLine(t.Context(), group, teamroster.GroupLine{From: teamroster.ByUser, Kind: teamroster.LinePost, Text: fmt.Sprintf("fact-%02d", i), Source: source, At: time.Now()})
+		_, err := desktopTeamStore().AppendLine(t.Context(), group, teamroster.GroupLine{From: teamroster.ByUser, Kind: teamroster.LinePost, Text: fmt.Sprintf("fact-%02d %s", i, strings.Repeat("long evidence ", 500)), Source: source, At: time.Now()})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -86,15 +87,32 @@ func TestTeamGroupMemoryEvidenceConsumesEarliestBatchAndExcludesSchedules(t *tes
 		t.Fatal(err)
 	}
 	reviews := teamMemoryReviews{app: a}
-	lines, _, advance, more, err := reviews.evidence(context.Background(), r, team.SeatRef{Agent: id, Group: group}, &state)
-	if err != nil || !more || len(lines) != 16 || lines[0].Text != "fact-00" || lines[15].Text != "fact-16" {
+	lines, store, advance, more, err := reviews.evidence(context.Background(), r, team.SeatRef{Agent: id, Group: group}, &state)
+	if err != nil || !more || len(lines) != 16 || !strings.HasPrefix(lines[0].Text, "fact-00 ") || !strings.HasPrefix(lines[15].Text, "fact-16 ") {
 		t.Fatalf("lost early evidence: %+v more=%v err=%v", lines, more, err)
+	}
+	if _, err := team.ReviewMemory(t.Context(), store, lines, func(_ context.Context, _, prompt string) (string, error) {
+		for i := range 17 {
+			if i != 3 && !strings.Contains(prompt, fmt.Sprintf("fact-%02d", i)) {
+				t.Fatalf("checkpoint would consume omitted human evidence %d", i)
+			}
+		}
+		if strings.Contains(prompt, "fact-03") {
+			t.Fatal("scheduler content entered human evidence")
+		}
+		return `{"changes":[]}`, nil
+	}); err != nil {
+		t.Fatal(err)
 	}
 	if err := advance(); err != nil {
 		t.Fatal(err)
 	}
+	state, err = loadTeamReviewState(r.Prefs.MemoryReviewStartedAt)
+	if err != nil {
+		t.Fatal(err)
+	}
 	lines, _, _, more, err = reviews.evidence(context.Background(), r, team.SeatRef{Agent: id, Group: group}, &state)
-	if err != nil || more || len(lines) != 3 || lines[0].Text != "fact-17" {
+	if err != nil || more || len(lines) != 3 || !strings.HasPrefix(lines[0].Text, "fact-17 ") {
 		t.Fatalf("batch cursor lost remaining evidence: %+v %v %v", lines, more, err)
 	}
 }
