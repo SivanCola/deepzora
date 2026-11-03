@@ -110,8 +110,9 @@ func firstNonEmpty(a, b string) string {
 	return b
 }
 
-// reviewPrompt numbers the memory held and lists the new lines, each cut to
-// its budget; when the whole runs over, the oldest lines go first.
+// reviewPrompt includes every human line in the evidence page. The caller
+// advances its checkpoint over that whole page, so budget pressure may shorten
+// a line but must never silently discard an entire earlier turn.
 func reviewPrompt(facts []memory.Memory, lines []ReviewLine) string {
 	var held strings.Builder
 	held.WriteString("Memory held now:\n")
@@ -119,29 +120,49 @@ func reviewPrompt(facts []memory.Memory, lines []ReviewLine) string {
 		held.WriteString("(none)\n")
 	}
 	for i, m := range facts {
-		fmt.Fprintf(&held, "%d. %s: %s\n   %s\n", i+1, secrets.RedactCredentials(m.Name), secrets.RedactCredentials(m.Description), clip(oneLine(secrets.RedactCredentials(m.Body)), reviewBodyChars))
-		if held.Len() > reviewBudget/2 {
-			fmt.Fprintf(&held, "… %d more not shown\n", len(facts)-i-1)
+		line := fmt.Sprintf("%d. %s: %s\n   %s\n", i+1, clip(secrets.RedactCredentials(m.Name), reviewBodyChars), clip(secrets.RedactCredentials(m.Description), reviewBodyChars), clip(oneLine(secrets.RedactCredentials(m.Body)), reviewBodyChars))
+		if held.Len()+len(line) > reviewBudget/2-80 {
+			fmt.Fprintf(&held, "… %d more not shown\n", len(facts)-i)
 			break
 		}
+		held.WriteString(line)
 	}
 	var said []string
-	room := reviewBudget - held.Len()
-	for i := len(lines) - 1; i >= 0 && room > 0; i-- {
+	const heading = "\nNew lines of the conversation:\n"
+	room := reviewBudget - held.Len() - len(heading)
+	remaining := 0
+	for _, line := range lines {
+		if line.User {
+			remaining++
+		}
+	}
+	for i := range lines {
 		if !lines[i].User {
 			continue
 		}
-		encoded, _ := json.Marshal(struct {
+		entry := struct {
 			Source string `json:"source"`
 			Name   string `json:"name"`
 			Text   string `json:"text"`
-		}{"user", lines[i].From, clip(secrets.RedactCredentials(lines[i].Text), reviewUserChars)})
+		}{"user", clip(lines[i].From, 40), ""}
+		body := secrets.RedactCredentials(lines[i].Text)
+		limit := reviewUserChars
+		entry.Text = clip(body, limit)
+		encoded, _ := json.Marshal(entry)
+		// Measure serialized bytes, not runes: Unicode and JSON escapes also
+		// consume the request budget. Each remaining turn gets an equal share.
+		allowance := room/remaining - 1
+		for len(encoded) > allowance && limit > 3 {
+			limit = max(3, limit*3/4)
+			entry.Text = clip(body, limit)
+			encoded, _ = json.Marshal(entry)
+		}
 		line := string(encoded)
-		room -= len(line)
+		room -= len(line) + 1
+		remaining--
 		said = append(said, line)
 	}
-	slices.Reverse(said)
-	return held.String() + "\nNew lines of the conversation:\n" + strings.Join(said, "\n")
+	return held.String() + heading + strings.Join(said, "\n")
 }
 
 func validateReviewChanges(changes []reviewChange, facts []memory.Memory) error {
