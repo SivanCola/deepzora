@@ -32,6 +32,19 @@ export function makeMockTeamBindings(ports:Ports):TeamHostBindings {
   };
   return {
     ...makeTeamKnowledgeMock(view),
+    ArchiveTeamAgent:async request=>{
+      const prior=check(request.requestId,request.expectedRevision,{...request,action:"archive"});if(prior)return prior;
+      const member=view.roster.agents.find(a=>a.id===request.agentId);if(!member)return result("rejected","","target_invalid");
+      if(member.main&&!view.roster.agents.some(a=>a.main&&a.id!==member.id))return result("rejected","","invalid");
+      view.roster.retiredAgents.push({...member,archived:true});view.roster.agents=view.roster.agents.filter(a=>a.id!==member.id);
+      view.roster.revision++;receipts.set(request.requestId,{request:JSON.stringify({...request,action:"archive"}),target:member.id});return result("applied",member.id);
+    },
+    RestoreTeamAgent:async request=>{
+      const prior=check(request.requestId,request.expectedRevision,{...request,action:"restore"});if(prior)return prior;
+      const member=view.roster.retiredAgents.find(a=>a.id===request.agentId&&a.archived);if(!member)return result("rejected","","target_invalid");
+      view.roster.agents.push({...member,archived:false});view.roster.retiredAgents=view.roster.retiredAgents.filter(a=>a.id!==member.id);
+      view.roster.revision++;receipts.set(request.requestId,{request:JSON.stringify({...request,action:"restore"}),target:member.id});return result("applied",member.id);
+    },
     BrowserTeamAgentForTab:async()=>"",
     GetTeam:async()=>{view.groupStatus=view.roster.groups.map(group=>({groupId:group.id,lastSequence:logs.get(group.id)?.length??0,readSequence:read.get(group.id)??0,unread:(logs.get(group.id)??[]).filter(line=>line.seq>(read.get(group.id)??0)&&line.from!=="user").length}));return clone();},
     ReadTeamGroupDraft:async group=>structuredClone(drafts.get(group)??{revision:0,draft:{requestId:"",text:"",mentions:[],everyone:false}}),

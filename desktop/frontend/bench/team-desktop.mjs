@@ -30,6 +30,11 @@ try {
   }
   await settings.getByRole("button",{name:"Move Ada With Spaces up",exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('.settings-page--team .agent-preset-row h3')?.textContent==='Ada With Spaces');
+  const ada=settings.locator('.agent-preset-row').filter({has:page.getByRole('heading',{name:'Ada With Spaces',exact:true})});
+  await ada.getByRole('button',{name:'Archive member',exact:true}).click();
+  const archived=settings.locator('.settings-section').filter({has:page.getByRole('heading',{name:'Archived members',exact:true})});
+  await archived.getByRole('button',{name:'Restore member',exact:true}).click();
+  await ada.getByRole('button',{name:'Edit',exact:true}).waitFor();
   await settings.getByRole("button",{name:"New group",exact:true}).click();
   await settings.getByRole("textbox",{name:"Name",exact:true}).fill("Project group");
   for(const name of ["Chief","Ada With Spaces"])await settings.getByRole("checkbox",{name,exact:true}).check();

@@ -89,6 +89,7 @@ type Agent struct {
 	Main         bool                `json:"main,omitempty"`
 	Pinned       bool                `json:"pinned,omitempty"`
 	Hidden       bool                `json:"hidden,omitempty"`
+	Archived     bool                `json:"archived,omitempty"` // Set only on reversibly retired members.
 	CreatedBy    string              `json:"createdBy"`
 	CreatedAt    time.Time           `json:"createdAt"`
 }

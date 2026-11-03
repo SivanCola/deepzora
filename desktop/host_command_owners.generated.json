@@ -351,6 +351,20 @@
       ]
     }
   },
+  "ArchiveTeamAgent": {
+    "domain": "desktop/team_organization.go",
+    "owner": "App.ArchiveTeamAgent",
+    "sources": [
+      "desktop/team_organization.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.ArchiveTeamAgent",
+      "inputs": [
+        "req"
+      ]
+    }
+  },
   "AttachDropped": {
     "domain": "desktop/attachments_app.go",
     "owner": "App.AttachDropped",
@@ -4919,6 +4933,20 @@
       "resolver": "App.RestoreSessionTarget",
       "inputs": [
         "selector"
+      ]
+    }
+  },
+  "RestoreTeamAgent": {
+    "domain": "desktop/team_organization.go",
+    "owner": "App.RestoreTeamAgent",
+    "sources": [
+      "desktop/team_organization.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.RestoreTeamAgent",
+      "inputs": [
+        "req"
       ]
     }
   },

@@ -651,6 +651,33 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/team_organization.go",
+      "name": "ArchiveTeamAgent",
+      "owner": "App.ArchiveTeamAgent",
+      "params": [
+        {
+          "kind": "object",
+          "ref": "main.TeamTargetMutationRequest"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamMutationResult"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "req"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.ArchiveTeamAgent"
+      },
+      "sources": [
+        "desktop/team_organization.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/attachments_app.go",
       "name": "AttachDropped",
       "owner": "App.AttachDropped",
@@ -9169,6 +9196,33 @@
       },
       "sources": [
         "desktop/session_operations.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/team_organization.go",
+      "name": "RestoreTeamAgent",
+      "owner": "App.RestoreTeamAgent",
+      "params": [
+        {
+          "kind": "object",
+          "ref": "main.TeamTargetMutationRequest"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamMutationResult"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "req"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.RestoreTeamAgent"
+      },
+      "sources": [
+        "desktop/team_organization.go"
       ]
     },
     {
@@ -31492,6 +31546,13 @@
           "name": "createdAt",
           "type": {
             "kind": "string"
+          }
+        },
+        {
+          "name": "archived",
+          "optional": true,
+          "type": {
+            "kind": "boolean"
           }
         }
       ]

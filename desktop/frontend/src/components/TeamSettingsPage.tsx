@@ -81,12 +81,16 @@ export function TeamSettingsPage({tabId,workspaceKey}:{tabId:string;workspaceKey
           <p className="cap-skill-card__desc">{member.role}</p>
           {team.view?.seats.some(seat=>seat.agentId===member.id&&seat.settingsPending)&&<p role="status">{t("team.pendingConfig")}</p>}
           <div className="agent-preset-row__actions"><button className="btn btn--small" type="button" disabled={!team.view?.writable||operation.busy} onClick={()=>{setNotice("");setEditor({kind:"agent",member,revision});}}>{t("common.edit")}</button>
+            <button className="btn btn--small" type="button" disabled={!team.view?.writable||operation.busy} onClick={()=>{setFailedTarget({agentId:member.id,groupId:""});void operation.save({agentId:member.id,revision,action:"archive"},requestId=>app.ArchiveTeamAgent({agentId:member.id,groupId:"",expectedRevision:revision,requestId}));}}>{t("team.archiveMember")}</button>
             <button className="btn btn--small" type="button" aria-label={t("team.moveUp",{name:member.name})} disabled={!team.view?.writable||operation.busy||index===0} onClick={()=>reorder("agents",member.id,-1)}><ArrowUp size={14}/></button>
             <button className="btn btn--small" type="button" aria-label={t("team.moveDown",{name:member.name})} disabled={!team.view?.writable||operation.busy||index===(team.view?.roster.agents.length??0)-1} onClick={()=>reorder("agents",member.id,1)}><ArrowDown size={14}/></button>
             <InlineConfirmButton label={t("common.delete")} confirmLabel={t("team.confirmDelete",{name:member.name})} cancelLabel={t("common.cancel")} disabled={!team.view?.writable||operation.busy} danger onConfirm={async()=>{await remove(member.id,"");}}/>
           </div>
         </article>)}</div>
       </SettingsSection>
+      {team.view.roster.retiredAgents.some(member=>member.archived)&&<SettingsSection title={t("team.archivedMembers")} description={t("team.restoreMemberHint")}>
+        {team.view.roster.retiredAgents.filter(member=>member.archived).map(member=><article className="cap-skill-card" key={member.id}><h3>{member.name}</h3><button className="btn btn--small" type="button" disabled={!team.view?.writable||operation.busy} onClick={()=>void operation.save({agentId:member.id,revision,action:"restore"},requestId=>app.RestoreTeamAgent({agentId:member.id,groupId:"",expectedRevision:revision,requestId}))}>{t("team.restoreMember")}</button></article>)}
+      </SettingsSection>}
       <SettingsSection title={t("team.groups")} actions={<button className="btn btn--small" type="button" disabled={!team.view.writable||team.view.roster.agents.length<2} onClick={()=>{setNotice("");setEditor({kind:"group",revision});}}><Plus size={14}/>{t("team.newGroup")}</button>}>
         <div className="cap-skills">{team.view.roster.groups.map((group,index)=><article className="cap-skill-card" key={group.id}><h3>{group.name}</h3><p>{group.notice}</p><p>{group.members.map(id=>team.view?.roster.agents.find(a=>a.id===id)?.name??id).join(", ")}</p>
           {group.archived&&<span>{t("team.archived")}</span>}<div className="agent-preset-row__actions"><button className="btn btn--small" type="button" disabled={!team.view?.writable||operation.busy} onClick={()=>setEditor({kind:"group",group,revision})}>{t("common.edit")}</button>
