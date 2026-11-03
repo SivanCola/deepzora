@@ -100,6 +100,10 @@ type TeamMemoryDirectory interface {
 	RememberShared(context.Context, TeamSharedMemoryRequest) (string, error)
 }
 
+type TeamSecretDirectory interface {
+	RequestTeamSecret(context.Context, string, string, string) (string, error)
+}
+
 // TeamLink joins the team tools, built with the registry, to the controller
 // that exists only afterwards.
 type TeamLink struct {

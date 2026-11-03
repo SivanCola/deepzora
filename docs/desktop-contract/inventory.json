@@ -1195,6 +1195,14 @@
     },
     {
       "kind": "command",
+      "name": "GetTeamSecrets",
+      "detail": "() (TeamSecretsView, error)",
+      "location": "desktop/team_secrets_api.go:29",
+      "class": "keep-business",
+      "owner": "hostrpc desktop/invoke"
+    },
+    {
+      "kind": "command",
       "name": "GetThemeExperience",
       "detail": "() (ThemeExperienceView, error)",
       "location": "desktop/theme_app.go:149",
@@ -3211,6 +3219,14 @@
     },
     {
       "kind": "command",
+      "name": "SaveTeamSecret",
+      "detail": "(req SaveTeamSecretRequest) (TeamSecretResult, error)",
+      "location": "desktop/team_secrets_api.go:87",
+      "class": "keep-business",
+      "owner": "hostrpc desktop/invoke"
+    },
+    {
+      "kind": "command",
       "name": "SaveThemePack",
       "detail": "(input ThemeSaveInput) (ThemePackView, error)",
       "location": "desktop/theme_app.go:368",
@@ -4078,6 +4094,14 @@
       "name": "SwitchWorkspace",
       "detail": "(dir string) (string, error)",
       "location": "desktop/app.go:2570",
+      "class": "keep-business",
+      "owner": "hostrpc desktop/invoke"
+    },
+    {
+      "kind": "command",
+      "name": "TeamSecretSeatForTab",
+      "detail": "(tabID string) TeamSecretSeatView",
+      "location": "desktop/team_secrets_api.go:76",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },

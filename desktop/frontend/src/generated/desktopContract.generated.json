@@ -3945,6 +3945,26 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/team_secrets_api.go",
+      "name": "GetTeamSecrets",
+      "owner": "App.GetTeamSecrets",
+      "params": [],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamSecretsView"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [],
+        "kind": "owner-state",
+        "resolver": "App.GetTeamSecrets"
+      },
+      "sources": [
+        "desktop/team_secrets_api.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/theme_app.go",
       "name": "GetThemeExperience",
       "owner": "App.GetThemeExperience",
@@ -10705,6 +10725,33 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/team_secrets_api.go",
+      "name": "SaveTeamSecret",
+      "owner": "App.SaveTeamSecret",
+      "params": [
+        {
+          "kind": "object",
+          "ref": "main.SaveTeamSecretRequest"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamSecretResult"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "req"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.SaveTeamSecret"
+      },
+      "sources": [
+        "desktop/team_secrets_api.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/theme_app.go",
       "name": "SaveThemePack",
       "owner": "App.SaveThemePack",
@@ -13767,6 +13814,31 @@
       },
       "sources": [
         "desktop/app.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/team_secrets_api.go",
+      "name": "TeamSecretSeatForTab",
+      "owner": "App.TeamSecretSeatForTab",
+      "params": [
+        {
+          "kind": "string"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamSecretSeatView"
+      },
+      "scope": {
+        "inputs": [
+          "tabID"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.TeamSecretSeatForTab"
+      },
+      "sources": [
+        "desktop/team_secrets_api.go"
       ]
     },
     {
@@ -28451,6 +28523,73 @@
         }
       ]
     },
+    "main.SaveTeamSecretRequest": {
+      "fields": [
+        {
+          "name": "expectedRevision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "expectedRosterRevision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "requestId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "operation",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "name",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "purpose",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "value",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "agents",
+          "type": {
+            "elem": {
+              "kind": "string"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "secretRequestId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "confirmForget",
+          "type": {
+            "kind": "boolean"
+          }
+        }
+      ]
+    },
     "main.ServerView": {
       "fields": [
         {
@@ -32251,6 +32390,132 @@
           "name": "settingsPending",
           "type": {
             "kind": "boolean"
+          }
+        }
+      ]
+    },
+    "main.TeamSecretMetadata": {
+      "fields": [
+        {
+          "name": "name",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "purpose",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "agents",
+          "type": {
+            "elem": {
+              "kind": "string"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "updatedAt",
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "main.TeamSecretResult": {
+      "fields": [
+        {
+          "name": "outcome",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "reason",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "message",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "view",
+          "type": {
+            "kind": "object",
+            "ref": "main.TeamSecretsView"
+          }
+        }
+      ]
+    },
+    "main.TeamSecretSeatView": {
+      "fields": [
+        {
+          "name": "agentId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "groupId",
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "main.TeamSecretsView": {
+      "fields": [
+        {
+          "name": "available",
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "revision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "rosterRevision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "secrets",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "main.TeamSecretMetadata"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "requests",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "teamroster.TeamSecretRequest"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "retiredCount",
+          "type": {
+            "kind": "integer"
           }
         }
       ]
@@ -36994,6 +37259,40 @@
         {
           "name": "memoryReviewModel",
           "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "teamroster.TeamSecretRequest": {
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "agent",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "name",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "purpose",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "at",
           "type": {
             "kind": "string"
           }

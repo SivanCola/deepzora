@@ -2,6 +2,7 @@ import type { GroupLine, SessionRef, TeamAgentView, TeamGroupHistoryPage, TeamGr
 import type { AgentPresetsView } from "./agentPresets";
 import type { TeamHostBindings } from "./teamBindings";
 import { makeTeamKnowledgeMock } from "./teamKnowledgeMock";
+import { makeUnavailableTeamHostMock } from "./teamBindings";
 
 type Ports={presets:()=>Promise<AgentPresetsView>;createSession:(agentID:string)=>Promise<SessionRef>};
 export function makeMockTeamBindings(ports:Ports):TeamHostBindings {
@@ -31,6 +32,9 @@ export function makeMockTeamBindings(ports:Ports):TeamHostBindings {
     return ref;
   };
   return {
+    GetTeamSecrets:makeUnavailableTeamHostMock().GetTeamSecrets,
+    SaveTeamSecret:makeUnavailableTeamHostMock().SaveTeamSecret,
+    TeamSecretSeatForTab:async()=>({agentId:"",groupId:""}),
     ...makeTeamKnowledgeMock(view),
     ArchiveTeamAgent:async request=>{
       const prior=check(request.requestId,request.expectedRevision,{...request,action:"archive"});if(prior)return prior;

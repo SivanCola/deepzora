@@ -6,7 +6,7 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 
 | Kind | keep-business | host-managed | delete-shell | total |
 | --- | ---: | ---: | ---: | ---: |
-| command | 527 | 12 | 0 | 539 |
+| command | 530 | 12 | 0 | 542 |
 | native-call | 0 | 0 | 0 | 0 |
 | event | 10 | 0 | 0 | 10 |
 | frontend-native | 0 | 0 | 0 | 0 |
@@ -16,7 +16,7 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | shell-file | 1 | 24 | 0 | 25 |
 | artifact | 11 | 0 | 0 | 11 |
 | ci-job | 20 | 0 | 0 | 20 |
-| **all** | | | | **640** |
+| **all** | | | | **643** |
 
 ## Desktop commands (Go `App` methods bound to the UI)
 
@@ -171,6 +171,7 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `GetTeamMemory` | `(target TeamMemoryTarget) (TeamMemoryView, error)` | desktop/team_memory_api.go:66 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `GetTeamMemoryReviewStatus` | `() ([]TeamMemoryReviewStatus, error)` | desktop/team_memory_api.go:160 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `GetTeamSchedules` | `() (TeamScheduleView, error)` | desktop/team_schedule_api.go:32 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `GetTeamSecrets` | `() (TeamSecretsView, error)` | desktop/team_secrets_api.go:29 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `GetThemeExperience` | `() (ThemeExperienceView, error)` | desktop/theme_app.go:149 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `GetToolRecoveryForTab` | `(tabID string) (control.ToolRecoverySnapshot, error)` | desktop/tool_recovery.go:14 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `GetWorkspaceSnapshot` | `() (WorkspaceSnapshot, error)` | desktop/session_workspace_api.go:73 | keep-business (保留业务实现) | hostrpc desktop/invoke |
@@ -423,6 +424,7 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `SaveTeamMemory` | `(req SaveTeamMemoryRequest) (TeamMemoryResult, error)` | desktop/team_memory_api.go:94 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SaveTeamMemoryPreferences` | `(req SaveTeamMemoryPreferencesRequest) (TeamMutationResult, error)` | desktop/team_memory_api.go:143 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SaveTeamSchedule` | `(req SaveTeamScheduleRequest) (TeamScheduleResult, error)` | desktop/team_schedule_api.go:52 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SaveTeamSecret` | `(req SaveTeamSecretRequest) (TeamSecretResult, error)` | desktop/team_secrets_api.go:87 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SaveThemePack` | `(input ThemeSaveInput) (ThemePackView, error)` | desktop/theme_app.go:368 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SaveWindowState` | `(state DesktopWindowState) error` | desktop/window_state.go:126 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SaveWorkspacePathAsForTab` | `(tabID string, rel string) (string, error)` | desktop/app.go:7077 | keep-business (保留业务实现) | hostrpc desktop/invoke |
@@ -532,6 +534,7 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `SummarizeFromForTab` | `(tabID string, turn int) error` | desktop/app.go:1958 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SummarizeUpToForTab` | `(tabID string, turn int) error` | desktop/app.go:1969 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SwitchWorkspace` | `(dir string) (string, error)` | desktop/app.go:2570 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `TeamSecretSeatForTab` | `(tabID string) TeamSecretSeatView` | desktop/team_secrets_api.go:76 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `TerminalOutputForTab` | `(tabID string, sessionID string) (string, error)` | desktop/terminal.go:161 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `TerminalWorkspaceForTab` | `(tabID string) (TerminalWorkspaceView, error)` | desktop/terminal.go:141 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `TestProviderModel` | `(p ProviderView, model string, key string) error` | desktop/provider_settings_probe.go:15 | keep-business (保留业务实现) | hostrpc desktop/invoke |

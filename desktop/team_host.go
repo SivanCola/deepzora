@@ -94,7 +94,7 @@ func (a *App) localTeamHost() (*teamhost.Host, error) {
 	if a.teamState.host != nil {
 		return a.teamState.host, nil
 	}
-	h, err := teamhost.New(teamhost.Options{Store: desktopTeamStore(), Open: a.openTeamRuntime, Changed: a.emitTeamChanged, AgentConfigurationChanged: func(ctx context.Context, r *teamroster.Roster, before, after teamroster.Agent) error {
+	h, err := teamhost.New(teamhost.Options{Store: desktopTeamStore(), Open: a.openTeamRuntime, Changed: a.emitTeamChanged, SecretSlots: config.DefaultTeamSecretSlots(), SecretsReady: teamSecretMaskingReady, AgentConfigurationChanged: func(ctx context.Context, r *teamroster.Roster, before, after teamroster.Agent) error {
 		if before.Folder == after.Folder {
 			return nil
 		}

@@ -16,6 +16,8 @@ type Options struct {
 	Now                       func() time.Time
 	OnChange                  func()
 	AgentConfigurationChanged func(context.Context, *teamroster.Roster, teamroster.Agent, teamroster.Agent) error
+	SecretSlots               SecretSlots
+	SecretsReady              func() bool
 }
 
 // Service is the team's orchestration in the one process that holds the
@@ -27,6 +29,8 @@ type Service struct {
 	now                       func() time.Time
 	onChange                  func()
 	agentConfigurationChanged func(context.Context, *teamroster.Roster, teamroster.Agent, teamroster.Agent) error
+	secretSlots               SecretSlots
+	secretsReady              func() bool
 
 	mu    sync.Mutex
 	sends sendLimits
@@ -51,7 +55,7 @@ func New(o Options) *Service {
 	if now == nil {
 		now = func() time.Time { return time.Now().UTC() }
 	}
-	return &Service{store: o.Store, panes: o.Panes, now: now, onChange: o.OnChange, agentConfigurationChanged: o.AgentConfigurationChanged}
+	return &Service{store: o.Store, panes: o.Panes, now: now, onChange: o.OnChange, agentConfigurationChanged: o.AgentConfigurationChanged, secretSlots: o.SecretSlots, secretsReady: o.SecretsReady}
 }
 
 func (s *Service) changed() {

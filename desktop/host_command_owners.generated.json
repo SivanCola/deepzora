@@ -2109,6 +2109,18 @@
       "inputs": []
     }
   },
+  "GetTeamSecrets": {
+    "domain": "desktop/team_secrets_api.go",
+    "owner": "App.GetTeamSecrets",
+    "sources": [
+      "desktop/team_secrets_api.go"
+    ],
+    "scope": {
+      "kind": "owner-state",
+      "resolver": "App.GetTeamSecrets",
+      "inputs": []
+    }
+  },
   "GetThemeExperience": {
     "domain": "desktop/theme_app.go",
     "owner": "App.GetThemeExperience",
@@ -5729,6 +5741,20 @@
       ]
     }
   },
+  "SaveTeamSecret": {
+    "domain": "desktop/team_secrets_api.go",
+    "owner": "App.SaveTeamSecret",
+    "sources": [
+      "desktop/team_secrets_api.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.SaveTeamSecret",
+      "inputs": [
+        "req"
+      ]
+    }
+  },
   "SaveThemePack": {
     "domain": "desktop/theme_app.go",
     "owner": "App.SaveThemePack",
@@ -7361,6 +7387,20 @@
       "resolver": "App.SwitchWorkspace",
       "inputs": [
         "dir"
+      ]
+    }
+  },
+  "TeamSecretSeatForTab": {
+    "domain": "desktop/team_secrets_api.go",
+    "owner": "App.TeamSecretSeatForTab",
+    "sources": [
+      "desktop/team_secrets_api.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.TeamSecretSeatForTab",
+      "inputs": [
+        "tabID"
       ]
     }
   },

@@ -136,6 +136,15 @@ and installed-package acceptance.
 
 ## Memory and schedules
 
+Team secret infrastructure is not yet enabled. The next layer must complete
+outbound, persistence, history and streaming masking before these controls are
+available. Values use separate immutable local unencrypted slots, never global
+environment assignments. POSIX commands require a direct
+`$DEEPZORA_SECRET_NAME` expansion; Windows PowerShell requires a direct
+`$env:DEEPZORA_SECRET_NAME` AST reference. Unsupported/invalid or indirect
+references receive no injected value. Authorized commands use isolated
+processes; host terminals and persistent shells cannot carry secret values.
+
 In **Settings → Team**, choose the team, a group or a member under **Team
 memory**. Member-private facts follow that member across seats. Shared memory
 tools request a new human decision for each exact change. A conflicting edit
