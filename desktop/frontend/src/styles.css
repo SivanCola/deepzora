@@ -17416,6 +17416,21 @@ body > .mermaid-diagram--fullscreen {
 .provider-model-draft__model input {
   accent-color: var(--accent);
 }
+.provider-model-draft__identity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 3px;
+}
+.provider-model-draft__id {
+  color: var(--fg-faint);
+  font-family: var(--mono);
+  font-size: var(--font-control-small);
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .provider-model-draft__context {
   min-width: 0;
   display: grid;

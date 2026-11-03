@@ -56,26 +56,6 @@ func (s *Store) Open(ctx context.Context, id string) (agent.SubagentTranscript, 
 	return s.bind(binding)
 }
 
-func (s *Store) Copy(ctx context.Context, source string, meta agent.SubagentMeta) (agent.SubagentTranscript, error) {
-	writer, err := s.Open(ctx, source)
-	if err != nil {
-		return nil, err
-	}
-	defer writer.Close(context.Background())
-	if err := writer.Flush(ctx); err != nil {
-		return nil, err
-	}
-	ref, err := s.service.Query().ResolveSessionID(ctx, source)
-	if err != nil {
-		return nil, err
-	}
-	result, err := s.service.CopySession(ctx, session.CopyRequest{Source: ref, ChildID: meta.Ref, OperationID: "subagent-copy:" + meta.Ref, CWD: meta.WorkspaceRoot})
-	if err != nil {
-		return nil, err
-	}
-	return s.Open(ctx, result.Child.SessionID)
-}
-
 func (s *Store) Read(ctx context.Context, id string) ([]provider.Message, error) {
 	ref, err := s.service.Query().ResolveSessionID(ctx, id)
 	if err != nil {
@@ -125,8 +105,8 @@ type transcript struct {
 	cancel     context.CancelFunc
 }
 
-// Parent job lifecycle owns cancellation. This record-only execution binding
-// exists to fence competing continuations, not to introduce another task loop.
+// The shared runner owns cancellation. This record-only execution binding
+// fences competing writers without introducing another task loop.
 func (t *transcript) SetCancellation(cancel context.CancelFunc) {
 	t.mu.Lock()
 	defer t.mu.Unlock()

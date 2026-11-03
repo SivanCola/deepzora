@@ -217,7 +217,7 @@ func (t *OutcomeTracker) scoreReceipt(r Receipt, s *OutcomeSample) {
 		// as churn until a verification transition vouches for it.
 		s.Churn++
 		t.noteMutatedPaths(r.Paths)
-	case r.Success && (r.ToolName == "task" || r.ToolName == "parallel_tasks" || r.ToolName == "fleet"):
+	case r.Success && (r.ToolName == "spawn_agents" || r.ToolName == "task" || r.ToolName == "parallel_tasks" || r.ToolName == "fleet"):
 		// A delegation return is new information at best — never objective
 		// progress on its own.
 		s.Exploration++

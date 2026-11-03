@@ -13,7 +13,6 @@ import (
 	"deepzora/internal/boot"
 	"deepzora/internal/config"
 	"deepzora/internal/control"
-	"deepzora/internal/event"
 	"deepzora/internal/hook"
 	"deepzora/internal/permission"
 	"deepzora/internal/sandbox"
@@ -360,20 +359,26 @@ func (a *App) TrySubagentProfile(input SubagentProfileInput, task string) (strin
 		return "", err
 	}
 
-	reg := trySubagentToolRegistry(cfg, root, input.AllowedTools)
+	// Let the shared runner validate and narrow the profile whitelist. Filtering
+	// it here would silently discard misspelled entries before preflight.
+	reg := trySubagentWorkspaceToolRegistry(cfg, root)
 
 	// The headless gate enforces the user's configured permission rules. A
 	// subagent has no UI to answer an Ask decision, so deny and ask both block.
 	policy := permission.New(cfg.Permissions.Mode, cfg.Permissions.Allow, cfg.Permissions.Ask, cfg.Permissions.Deny)
 
-	result, err := agent.RunReadOnlySubAgentWithSession(runCtx, prov, reg, agent.NewSession(prompt), task, agent.Options{
-		MaxSteps:      12,
-		Temperature:   cfg.Agent.Temperature,
-		Pricing:       me.Price,
-		ContextWindow: me.ContextWindow,
-		Gate:          trySubagentPermissionGate(policy),
-		Hooks:         trySubagentHookRunner(cfg, root),
-	}, event.Discard)
+	hooks := trySubagentHookRunner(cfg, root)
+	runner := agent.NewSubagentRunner(agent.SubagentRunnerOptions{
+		Provider:        prov,
+		ParentRegistry:  reg,
+		MaxSteps:        24,
+		Temperature:     cfg.Agent.Temperature,
+		Pricing:         me.Price,
+		ContextWindow:   me.ContextWindow,
+		Gate:            trySubagentPermissionGate(policy),
+		HooksForSession: func(string) agent.ToolHooks { return hooks },
+	}).WithTranscripts(nil, root, "", "")
+	result, err := runner.RunSkill(runCtx, skill.Skill{Name: input.Name, Body: prompt, ReadOnly: true, AllowedTools: input.AllowedTools}, task, skill.SubagentRunOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -417,6 +422,10 @@ func (a *App) CancelTrySubagentProfile() {
 // wiring them anyway keeps this byte-comparable with boot's assembly and safe
 // if the read-only posture is ever relaxed.
 func trySubagentToolRegistry(cfg *config.Config, root string, allowedTools []string) *tool.Registry {
+	return agent.ReadOnlySubagentToolRegistry(trySubagentWorkspaceToolRegistry(cfg, root), allowedTools)
+}
+
+func trySubagentWorkspaceToolRegistry(cfg *config.Config, root string) *tool.Registry {
 	writeRoots := cfg.WriteRootsForRoot(root)
 	forbidReadRoots := boot.RuntimeForbidReadRoots(cfg, root)
 	bashSpec := sandbox.Spec{
@@ -441,8 +450,5 @@ func trySubagentToolRegistry(cfg *config.Config, root string, allowedTools []str
 	for _, tl := range ws.Tools() {
 		parentReg.Add(tl)
 	}
-	// ReadOnlySubagentToolRegistry treats an empty allowedTools as "all" (the
-	// "default all permissions" tool-scope option) and then keeps only
-	// read-only tools plus policy-wrapped bash.
-	return agent.ReadOnlySubagentToolRegistry(parentReg, allowedTools)
+	return parentReg
 }

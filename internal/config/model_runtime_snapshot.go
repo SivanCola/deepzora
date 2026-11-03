@@ -74,12 +74,12 @@ func (c *Config) ModelRuntimeFingerprint(model string) string {
 		Access                                              []string
 		Planner, Vision, Search, Guardian, Subagent, Effort string
 		SubagentModels, SubagentEfforts                     map[string]string
-		Depth, Concurrency, Writers                         int
+		Concurrency                                         int
 	}{model, providers, c.Desktop.ProviderAccess,
 		c.Agent.PlannerModel, c.Agent.VisionModel, c.Agent.WebSearchModel,
 		c.Agent.GuardianModel, c.Agent.SubagentModel,
 		c.Agent.SubagentEffort, c.Agent.SubagentModels, c.Agent.SubagentEfforts,
-		c.Agent.MaxSubagentDepth, c.Agent.MaxSubagentConcurrency, c.Agent.MaxParallelWriters})
+		c.Agent.MaxSubagentConcurrency})
 	if err != nil {
 		return ""
 	}

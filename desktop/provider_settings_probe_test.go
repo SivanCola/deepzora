@@ -7,10 +7,71 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"deepzora/internal/config"
 )
+
+func TestDeepSeekDiscoveryIDsSurviveSaveAndMessagesProbe(t *testing.T) {
+	isolateDesktopUserDirs(t)
+	t.Chdir(t.TempDir())
+	var sentModel, sentPath string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer draft-key" {
+			http.Error(w, "wrong credential", http.StatusUnauthorized)
+			return
+		}
+		if r.Method == http.MethodGet && r.URL.Path == "/models" {
+			fmt.Fprint(w, `{"object":"list","data":[{"id":"deepseek-flash","name":"DeepSeek-V4.1-Flash","input_modalities":["text","image"]},{"id":"deepseek-v4-pro","name":"DeepSeek-V4-Pro","input_modalities":["text"]}]}`)
+			return
+		}
+		if r.Method != http.MethodPost || r.URL.Path != "/anthropic/messages" {
+			http.NotFound(w, r)
+			return
+		}
+		var body struct{ Model string }
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Error(err)
+			return
+		}
+		sentModel, sentPath = body.Model, r.URL.Path
+		w.Header().Set("Content-Type", "text/event-stream")
+		fmt.Fprint(w, "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"role\":\"assistant\",\"usage\":{\"input_tokens\":1}}}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":1}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n")
+	}))
+	defer srv.Close()
+	app := NewApp()
+	// v0.0.4 derives this same base_url when the user enters the documented
+	// unversioned /anthropic/messages address in the full request URL field.
+	view := ProviderView{Name: "deepseek-test", Kind: "anthropic", BaseURL: srv.URL + "/anthropic/messages", RequestURL: srv.URL + "/anthropic/messages", AuthHeader: true, NoProxy: true}
+	catalog, err := app.FetchProviderModelCatalogDraft(view, "draft-key")
+	if err != nil || len(catalog) != 2 {
+		t.Fatalf("discovery = %+v, %v", catalog, err)
+	}
+	for _, model := range catalog {
+		view.Models = append(view.Models, model.Model)
+	}
+	if !reflect.DeepEqual(view.Models, []string{"deepseek-flash", "deepseek-v4-pro"}) {
+		t.Fatalf("discovery replaced wire IDs with display names: %v", view.Models)
+	}
+	if err := app.SaveProvider(view); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.LoadForRootWithoutCredentialsReadOnly(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved, ok := cfg.Provider(view.Name)
+	if !ok || !reflect.DeepEqual(saved.ModelList(), view.Models) || config.ProviderEffectiveRequestURL(saved) != srv.URL+"/anthropic/messages" {
+		t.Fatalf("saved connection lost IDs or request target: %+v", saved)
+	}
+	if err := app.TestProviderModel(view, "deepseek-flash", "draft-key"); err != nil {
+		t.Fatal(err)
+	}
+	if sentModel != "deepseek-flash" || sentPath != "/anthropic/messages" {
+		t.Fatalf("sent model=%q path=%q", sentModel, sentPath)
+	}
+}
 
 func TestProviderDraftProbesDoNotPersistCredentialsOrConfiguration(t *testing.T) {
 	isolateDesktopUserDirs(t)

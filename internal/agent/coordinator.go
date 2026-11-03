@@ -49,8 +49,7 @@ when execution should stop for the user; the host owns the final decision.
 
 A host-authored <planner-turn> block at the end of the user turn names the
 explicit planner route. Inspect enough evidence to separate verified
-touchpoints from candidates, then fill non-goals, per-step risks, acceptance
-criteria, and command-level verification. Label anything unproven in
+touchpoints from candidates, then fill non-goals and per-step risks. Label anything unproven in
 assumptions rather than stating it as fact.
 
 If execution needs a user-owned decision or a missing user-provided value
@@ -556,7 +555,7 @@ Executor instructions:
 - If the planner output is a user-facing explanation, summary, question, or manual guidance that needs no workspace/file/command action from you, relay that guidance directly and finish. Do not invent local tool calls only to satisfy the handoff.
 - If the task requires changes, call the appropriate tools (for example write/edit/bash) instead of only restating the plan.
 - If a target path is outside the writable workspace or otherwise blocked, explain that specific blocker and ask for the needed path/approval.
-- Update the task list with todo_write to reflect actual progress. Treat acceptance and verification notes as task instructions, report actual checks and limitations, and judge when the task is complete.
+- Update the task list with todo_write to reflect actual progress. Follow user verification instructions, report actual checks and limitations, and judge when the task is complete.
 
 Carry out the task, adapting the plan as needed.`, executorHandoffMarker, task, plan, toolBlock)
 }

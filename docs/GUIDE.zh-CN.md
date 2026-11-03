@@ -62,9 +62,7 @@ reasoning_language = "auto"      # 可见思考过程语言：auto|zh|en
 # vision_model = "auto"                # 可选；文本模型先用同服务商视觉模型生成隐藏图片摘要
 # subagent_model = "deepseek-pro"     # runAs=subagent skill 的默认模型
 # subagent_models = { review = "deepseek-pro", security_review = "deepseek-pro" }
-# max_subagent_depth = 2              # 子代理嵌套委派深度；设为 1 可恢复旧的单层边界
-# max_subagent_concurrency = 6        # 会话级子代理总并发（task/fleet/skills）
-# max_parallel_writers = 3            # 互不重叠 write_paths 时的并行写入上限
+# max_subagent_concurrency = 6        # 会话级子代理总并发（spawn_agents/skills，1–8，写任务串行）
 # compact_ratio 是唯一自动维护阈值（默认 0.80；预设 0.70/0.80/0.85）
 # max_output_tokens = 0            # 自动：官方 DeepSeek 空间充足时省略字段（服务端 384K），临界时裁剪
 # max_output_tokens = 32768        # 可选控费上限，仍可按物理剩余继续下调
@@ -979,19 +977,14 @@ task_time_budget_minutes = 60     # 整个任务累计的墙钟时长
 Subagent skills 默认继承执行器模型。设置 `subagent_model` 可让它们统一走另一个已配置
 模型；设置 `subagent_models` 则只覆盖 `review`、`security_review` 等指定 skill。
 
-Subagent 默认允许再委派一层：根会话是 depth 0，第一层 subagent 是 depth 1，
-`max_subagent_depth = 2` 表示 depth 1 的 workflow 可以再派 depth 2 的 reviewer
-或 implementer；depth 2 不再拿到递归 agent/skill 工具。设
-`agent.max_subagent_depth = 1` 可恢复旧的单层边界。这主要用于 Superpowers 这类
-workflow skill 派发 reviewer subagent 的场景，同时避免无限递归和后台 fanout。
+子代理不能继续委派。旧配置中的 `max_subagent_depth`、`max_parallel_writers`
+仍可读取，但不再影响执行；可写子代理始终串行。
 
-当计划阶段需要**明确隔离为只读**的深度调研时，用 `read_only_task`；如果更适合复用已有 skill，
-用 `read_only_skill`。两者都会启动
-ephemeral 只读 subagent，只暴露只读研究工具和安全前台 bash，只返回最终答案，不创建
-可续接的 subagent transcript。只读嵌套委派会在 `max_subagent_depth` 内可用，其内部仍不提供
-可写的 `task` / `run_skill`。执行设定不再改变 provider 可见工具面；通过
-`use_capability` 调度 `read_only_skill` 等可选能力，后续 writer 调用仍通过
-Permissions/Sandbox。
+需要隔离的只读调研时，使用 `spawn_agents` 并指定 `read_only: true`，也可通过
+`profile` 选择专业档案。已有 skill 仍可通过 `use_capability` 调用 `read_only_skill`。
+这些入口共用 Runner，只暴露受限只读工具及前台 shell 命令。正常持久会话归档全部
+子代理，包括只读子代理，可用 `read_subagent_result` 读取；CLI review 和桌面档案
+试运行使用临时会话。旧结果继续可读，但不能续跑。
 
 所有严格只读子会话都经过 `RunReadOnlySubAgentWithSession`，将子会话标记为永久只读并做最终 registry 过滤：移除 writer、
 destructive MCP 目标、来自未授权 server 的 reader，以及一切会改变 host capability 的工具。
@@ -999,9 +992,7 @@ destructive MCP 目标、来自未授权 server 的 reader，以及一切会改�
 
 | 入口 | 用途 |
 | --- | --- |
-| `read_only_task` | 主会话派生的隔离只读调研子会话 |
-| `parallel_tasks`（只读） | 并发只读调研子会话 |
-| `fleet` 且 `read_only: true` | 可带 Profile 的并行批量（单项强制只读） |
+| `spawn_agents` 且 `read_only: true` | 独立只读子任务，可选择专业档案 |
 | `read_only_skill` | 以既有 skill 驱动的同等隔离 |
 | `deepzora review`（CLI） | 只读评审 diff 或分支 |
 | 桌面端 preview/review 子代理 | 桌面端只读分析面 |
@@ -1022,16 +1013,12 @@ checkout 中的 `.deepzora/settings.json`，其 hooks 使用的解释器也只�
 该 checkout 的配置若设置了 `default_model`，仍会决定使用哪个 provider；传 `--model`
 可改用你自己的。
 
-在持久化会话中，`parallel_tasks` 与 `fleet` 不再把所有完整答案拼成一个容易被截断的
-工具结果，而是为每个已完成子 Agent 返回有界预览和独立的 `Subagent reference`。父 Agent
-可用 `read_subagent_result` 按 `offset_bytes` 分页读取该引用对应的完整答案；读取范围受当前
-会话 lineage 与工作区约束。没有持久化父会话的 headless 运行仍保持 ephemeral，只返回公平
-分配的有界预览，不能生成持久引用。
-
-已持久化的子 Agent 结果还会带有 `status`（`completed`、`partial`、`failed` 或
-`cancelled`）和 `retryable`。部分完成或可重试的失败会保留最后一条可见回答与引用，父 Agent
-可以用 `read_subagent_result` 查看，或通过 `task` / `run_skill` 的 `continue_from` 继续同一条
-transcript。
+`spawn_agents` 每次接收 1–8 个独立任务并等待整批结束，只读任务并行、写任务串行。
+每个子代理从新会话开始，不能继续委派；专业档案保留模型、推理强度和工具设置。
+持久化结果包含执行状态、预览及可供 `read_subagent_result` 使用的 `ref`，失败后也保留
+可用的部分输出。读取受会话 lineage 与工作区归属限制，支持 UTF-8 字节分页。
+后台委派、续跑和依赖图已退役，重试须启动新任务。桌面试运行仍为临时只读运行。
+详见[子代理执行契约](SUBAGENT_EXECUTION.md)。
 
 交互式双模型 Planner 使用专用构造路径（`NewPlannerAgent`）：仍阻止 bash、文件写入与普通
 writer，但可通过固定的 `use_capability` 代理调用已授权、非 destructive 的 MCP，不再要求
@@ -1039,10 +1026,10 @@ writer，但可通过固定的 `use_capability` 代理调用已授权、非 dest
 不会在一次性 schema 升级后继续改变 Planner 缓存前缀。缺少 `readOnlyHint` 不再阻止 Planner；
 带 `destructiveHint` 的工具零执行，应写入方案交给 Executor。
 
-普通 `task` / `fleet` 子 Agent 同样获得该固定代理（会话共享 Host/连接，每 Agent 独立
+普通 `spawn_agents` 子 Agent 同样获得该固定代理（会话共享 Host/连接，每 Agent 独立
 frontend/ledger），可调用已安装或项目配置 MCP，不要求 `readOnlyHint`。这些调用走可信 MCP
 权限路径（实时授权复核 + 仅显式 deny）；writer/destructive 仍会串行、按 mutation 记账，并受
-现有证据/租约门禁约束，而不是 Planner 的 Executor handoff。严格 `read_only_task` /
+现有权限与工作区租约约束，而不是 Planner 的 Executor handoff。严格只读 `spawn_agents` /
 `read_only_skill` / review 子 Agent 共享稳定代理 schema 与连接复用，但执行仍要求
 `authorized && readOnlyHint && !destructiveHint`。Profile `allowed-tools` 中的 MCP 名称
 会转换为代理上的 capability ID 白名单；子 Agent 从不继承动态 `mcp__*` schema。

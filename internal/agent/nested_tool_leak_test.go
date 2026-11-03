@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"context"
 	"testing"
 
 	"deepzora/internal/event"
@@ -10,13 +9,13 @@ import (
 	"deepzora/internal/testutil"
 )
 
-func TestBackgroundTaskToolEventsStayNestedUnderParentCall(t *testing.T) {
+func TestSubagentRunnerEventsStayNestedUnderParentCall(t *testing.T) {
 	finalText := []provider.Chunk{{Type: provider.ChunkText, Text: "done"}, {Type: provider.ChunkDone}}
 	sub := &scriptedProvider{name: "sub", turns: [][]provider.Chunk{
 		{testutil.ToolCallChunk("c1", "bash", `{"command":"ls"}`), {Type: provider.ChunkDone}},
 		finalText, finalText,
 	}}
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: sub, Pricing: nil, ParentRegistry: evidenceRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
+	task := NewSubagentRunner(SubagentRunnerOptions{Provider: sub, Pricing: nil, ParentRegistry: evidenceRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
 		WithTranscripts(newTestSubagentStore(t, t.TempDir()), t.TempDir(), "base-model", "base-effort")
 	jm := jobs.NewManager(event.Discard)
 	defer jm.Close()
@@ -25,13 +24,9 @@ func TestBackgroundTaskToolEventsStayNestedUnderParentCall(t *testing.T) {
 	ctx = jobs.WithSession(ctx, "parent-session")
 	ctx = jobs.WithManager(ctx, jm)
 
-	out, err := task.Execute(ctx, []byte(`{"prompt":"list","run_in_background":true}`))
+	_, err := task.Execute(ctx, []byte(`{"prompt":"list"}`))
 	if err != nil {
 		t.Fatal(err)
-	}
-	res := jm.WaitForSession(context.Background(), "parent-session", []string{extractJobID(out)}, 5)
-	if len(res) != 1 || res[0].Status != jobs.Done {
-		t.Fatalf("job = %+v", res)
 	}
 	rec.mu.Lock()
 	defer rec.mu.Unlock()

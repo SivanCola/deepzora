@@ -482,6 +482,7 @@ await act(async () => {
 });
 const magpieLabel = document.querySelector(".modelsw__model");
 if (magpieLabel?.textContent !== "DeepSeek V4 Pro (New) · OpenCode Go" || magpieLabel.getAttribute("title") !== "opencode-go/deepseek-v4-pro") throw new Error("gateway label lost or routing ID changed");
+if (document.querySelector(".modelsw__meta")?.textContent !== "opencode-go/deepseek-v4-pro · Magpie") throw new Error("friendly model name hid the routing ID or connection");
 for (const selector of ['.modelsw__rail-item[aria-label="Magpie"]', '[role="option"]']) {
   if (!document.querySelector(`${selector} .modelsw__provider-icon`)?.getAttribute("style")?.includes("magpie.svg")) {
     throw new Error(`Magpie official icon missing from ${selector}`);
@@ -493,11 +494,20 @@ await act(async () => {
   magpieSearch.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
 });
 if (document.querySelectorAll("[role='option']").length !== 1) throw new Error("friendly gateway labels are not searchable");
+for (const query of ["opencode-go/deepseek-v4-pro", "Magpie"]) {
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")!.set!.call(magpieSearch, query);
+    magpieSearch.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+  });
+  if (document.querySelectorAll("[role='option']").length !== 1) throw new Error(`model ID or connection search failed: ${query}`);
+}
 await act(async () => {
   (document.querySelector("[role='option']") as HTMLButtonElement).click();
   await new Promise(resolve => setTimeout(resolve, 0));
 });
 if (picked.at(-1) !== "magpie-fixture/opencode-go/deepseek-v4-pro") throw new Error("picker sent a display label instead of the stable routing ref");
+if (document.querySelector(".modelsw__label")?.textContent !== "DeepSeek V4 Pro (New) · OpenCode Go") throw new Error("selected model trigger lost its friendly name");
+if (!document.querySelector(".modelsw__trigger")?.getAttribute("aria-label")?.includes("opencode-go/deepseek-v4-pro")) throw new Error("selected model tooltip hid the routing ID");
 
 // Brand metadata survives renamed connections and takes precedence over vendor
 // names. Legacy catalogs still recognize Magpie aliases and exact display names.

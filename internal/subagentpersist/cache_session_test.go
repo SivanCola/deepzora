@@ -6,7 +6,7 @@ import (
 	"deepzora/internal/agent"
 )
 
-func TestChildCacheIdentitySurvivesContinuationAndChangesOnCopy(t *testing.T) {
+func TestChildCacheIdentityPersistsAndFreshChildrenHaveDistinctIdentities(t *testing.T) {
 	store, _ := testStore(t, t.TempDir())
 	handle, err := store.Create(t.Context(), agent.SubagentMeta{Ref: "sa_cache"}, nil)
 	if err != nil {
@@ -24,17 +24,17 @@ func TestChildCacheIdentitySurvivesContinuationAndChangesOnCopy(t *testing.T) {
 		t.Fatal(err)
 	}
 	if resumed.(agent.SessionCacheIdentity).ProviderCacheSessionIdentity() != identity {
-		t.Fatal("continuation changed identity")
+		t.Fatal("reopening the archive changed identity")
 	}
 	if err := resumed.Close(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	copy, err := store.Copy(t.Context(), "sa_cache", agent.SubagentMeta{Ref: "sa_copy"})
+	fresh, err := store.Create(t.Context(), agent.SubagentMeta{Ref: "sa_fresh"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer copy.Close(t.Context())
-	if copy.(agent.SessionCacheIdentity).ProviderCacheSessionIdentity() == identity {
-		t.Fatal("copied child reused source identity")
+	defer fresh.Close(t.Context())
+	if fresh.(agent.SessionCacheIdentity).ProviderCacheSessionIdentity() == identity {
+		t.Fatal("fresh child reused another child's identity")
 	}
 }

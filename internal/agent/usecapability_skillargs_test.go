@@ -46,13 +46,13 @@ func TestUseCapabilitySkillCallAcceptsDedicatedTaskPayload(t *testing.T) {
 	reg.Add(skill.NewRunSkillTool(store, runner))
 	tl := NewUseCapabilityTool(context.Background(), nil, nil, reg, capability.NewLedger(), nil, nil)
 
-	if _, err := tl.Execute(context.Background(), json.RawMessage(`{"action":"call","capability_id":"skill:explore","arguments":{"task":"map the loop","continue_from":"sa_prev"}}`)); err != nil {
+	if _, err := tl.Execute(context.Background(), json.RawMessage(`{"action":"call","capability_id":"skill:explore","arguments":{"task":"map the loop"}}`)); err != nil {
 		t.Fatalf("execute: %v", err)
 	}
 	if ran != "explore:map the loop" {
 		t.Fatalf("runner = %q, want explore task", ran)
 	}
-	if gotOpts.ContinueFrom != "sa_prev" {
+	if gotOpts.ContinueFrom != "" {
 		t.Fatalf("continue_from = %q, want sa_prev", gotOpts.ContinueFrom)
 	}
 }

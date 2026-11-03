@@ -13,7 +13,7 @@ import (
 )
 
 // knownDirectChildRunners are the entry points that still construct a child
-// outside TaskTool.RunProfileSpec. Each one re-resolves tools, depth, and
+// outside SubagentRunner.RunProfileSpec. Each one re-resolves tools, depth, and
 // permissions on its own, which is exactly how a boundary added in one place
 // gets missed in another. The list may shrink; adding to it needs a reason in
 // the pull request.
@@ -66,7 +66,7 @@ func TestChildConstructionForksStayEnumerated(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(found) > 0 {
-		t.Fatalf("these files construct a sub-agent outside the unified runner: %s\n\nCompile the call into a ProfileExecSpec and run it through TaskTool.RunProfileSpec so it inherits tool scoping, depth caps, write claims, scheduler slots, and the completion contract. If a direct runner is genuinely required, add the file to knownDirectChildRunners with a reason.",
+		t.Fatalf("these files construct a sub-agent outside the unified runner: %s\n\nCompile the call into a ProfileExecSpec and run it through SubagentRunner.RunProfileSpec so it inherits tool scoping, depth caps, write claims, scheduler slots, and the completion contract. If a direct runner is genuinely required, add the file to knownDirectChildRunners with a reason.",
 			strings.Join(found, ", "))
 	}
 }
@@ -80,13 +80,13 @@ func TestReadOnlyTaskStaysEphemeralOnTheUnifiedRunner(t *testing.T) {
 	prov := &scriptedProvider{name: "p", turns: [][]provider.Chunk{
 		{{Type: provider.ChunkText, Text: "research done"}, {Type: provider.ChunkDone}},
 	}}
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: prov, Pricing: nil, ParentRegistry: reg, MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
+	task := NewSubagentRunner(SubagentRunnerOptions{Provider: prov, Pricing: nil, ParentRegistry: reg, MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
 		WithTranscripts(mustSubagentStore(t), root, "base", "high").
 		WithScheduler(NewSubagentScheduler(4, 4))
 
 	ctx := withCallContext(context.Background(), "call-1", event.Discard, nil, false)
 	ctx = WithParentSession(ctx, filepath.Join(root, "parent.jsonl"))
-	out, err := NewReadOnlyTaskTool(task).Execute(ctx, []byte(`{"prompt":"inspect the parser"}`))
+	out, err := NewReadOnlySubagentRunner(task).Execute(ctx, []byte(`{"prompt":"inspect the parser"}`))
 	if err != nil {
 		t.Fatalf("read_only_task: %v", err)
 	}

@@ -11,10 +11,10 @@ import (
 	"deepzora/internal/tool"
 )
 
-func TestTaskSchemaIncludesProfileAndWritePaths(t *testing.T) {
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: &mockProvider{name: "sub"}, Pricing: nil, ParentRegistry: tool.NewRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil})
-	schema := string(task.Schema())
-	for _, want := range []string{`"profile"`, `"write_paths"`} {
+func TestSpawnSchemaIncludesProfileAndReadOnly(t *testing.T) {
+	task := NewSubagentRunner(SubagentRunnerOptions{Provider: &mockProvider{name: "sub"}, Pricing: nil, ParentRegistry: tool.NewRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil})
+	schema := string(NewSpawner(task).Schema())
+	for _, want := range []string{`"profile"`, `"read_only"`} {
 		if !strings.Contains(schema, want) {
 			t.Fatalf("schema missing %s", want)
 		}
@@ -27,7 +27,7 @@ func TestTaskSchemaIncludesProfileAndWritePaths(t *testing.T) {
 
 func TestTaskWriterWithoutPathsClaimsWholeWorkspace(t *testing.T) {
 	root := t.TempDir()
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: &mockProvider{name: "sub"}, Pricing: nil, ParentRegistry: tool.NewRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
+	task := NewSubagentRunner(SubagentRunnerOptions{Provider: &mockProvider{name: "sub"}, Pricing: nil, ParentRegistry: tool.NewRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
 		WithTranscripts(mustSubagentStore(t), root, "base", "high").
 		WithScheduler(NewSubagentScheduler(6, 3))
 
@@ -42,7 +42,7 @@ func TestTaskWriterWithoutPathsClaimsWholeWorkspace(t *testing.T) {
 
 func TestTaskUnknownProfileRejected(t *testing.T) {
 	root := t.TempDir()
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: &mockProvider{name: "sub"}, Pricing: nil, ParentRegistry: tool.NewRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
+	task := NewSubagentRunner(SubagentRunnerOptions{Provider: &mockProvider{name: "sub"}, Pricing: nil, ParentRegistry: tool.NewRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
 		WithTranscripts(mustSubagentStore(t), root, "base", "high").
 		WithProfileLookup(func(string) (ProfileDefinition, bool) { return ProfileDefinition{}, false })
 	_, err := task.Execute(withCallContext(context.Background(), "c", event.Discard, nil, false),
@@ -56,7 +56,7 @@ func TestTaskProfileUsesBodyAsSystemPrompt(t *testing.T) {
 	root := t.TempDir()
 	var sawSystem string
 	prov := &captureSystemProvider{onReq: func(sys string) { sawSystem = sys }}
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: prov, Pricing: nil, ParentRegistry: tool.NewRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: DefaultTaskSystemPrompt, Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
+	task := NewSubagentRunner(SubagentRunnerOptions{Provider: prov, Pricing: nil, ParentRegistry: tool.NewRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: DefaultTaskSystemPrompt, Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
 		WithTranscripts(mustSubagentStore(t), root, "base", "high").
 		WithProfileLookup(func(name string) (ProfileDefinition, bool) {
 			if name != "doc-rewriter" {
@@ -77,9 +77,9 @@ func TestTaskProfileUsesBodyAsSystemPrompt(t *testing.T) {
 	}
 }
 
-func TestTaskToolsIntersectionCannotExpand(t *testing.T) {
+func TestSubagentRunnersIntersectionCannotExpand(t *testing.T) {
 	root := t.TempDir()
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: &mockProvider{name: "sub"}, Pricing: nil, ParentRegistry: tool.NewRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
+	task := NewSubagentRunner(SubagentRunnerOptions{Provider: &mockProvider{name: "sub"}, Pricing: nil, ParentRegistry: tool.NewRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
 		WithTranscripts(mustSubagentStore(t), root, "base", "high").
 		WithProfileLookup(func(name string) (ProfileDefinition, bool) {
 			return ProfileDefinition{Name: name, Body: "body", AllowedTools: []string{"read_file"}}, true
@@ -92,7 +92,7 @@ func TestTaskToolsIntersectionCannotExpand(t *testing.T) {
 }
 
 func TestTaskResolveProfilePrecedence(t *testing.T) {
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: &mockProvider{name: "sub"}, Pricing: nil, ParentRegistry: tool.NewRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "global-m", SubagentEffort: "global-e", ResolveProvider: nil}).
+	task := NewSubagentRunner(SubagentRunnerOptions{Provider: &mockProvider{name: "sub"}, Pricing: nil, ParentRegistry: tool.NewRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "global-m", SubagentEffort: "global-e", ResolveProvider: nil}).
 		WithProfileLookup(func(name string) (ProfileDefinition, bool) {
 			return ProfileDefinition{Name: name, Body: "b", Model: "front-m", Effort: "front-e"}, true
 		}).
@@ -100,8 +100,9 @@ func TestTaskResolveProfilePrecedence(t *testing.T) {
 			func(string) string { return "cfg-m" },
 			func(string) string { return "cfg-e" },
 		)
-	pr := task.ResolveProfile(json.RawMessage(`{"profile":"p","model":"call-m","effort":"call-e"}`))
-	if pr == nil || pr.Model != "cfg-m" || pr.Effort != "cfg-e" {
+	spec, err := task.buildTaskSpec(context.Background(), "work", "work", "p", nil, nil, 0, "", "", "", false, false)
+	pr := spec.Worker
+	if err != nil || pr.Model != "cfg-m" || pr.Effort != "cfg-e" {
 		t.Fatalf("profile = %+v", pr)
 	}
 }

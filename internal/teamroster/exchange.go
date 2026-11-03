@@ -152,6 +152,13 @@ func foldExchanges(path string) ([]Exchange, int, error) {
 // message returns that exchange with existed true; for a different message it
 // answers ErrRequestReused.
 func (s Store) OpenExchange(ctx context.Context, x Exchange, message string) (_ Exchange, existed bool, _ error) {
+	return s.OpenExchangeChecked(ctx, x, message, nil)
+}
+
+// OpenExchangeChecked checks admission against the current book under the same
+// cross-process lock that records the exchange. Matching retries skip admission.
+// The callback must not call the store or deliver work to a runtime.
+func (s Store) OpenExchangeChecked(ctx context.Context, x Exchange, message string, admit func([]Exchange) error) (_ Exchange, existed bool, _ error) {
 	if err := x.check(); err != nil {
 		return Exchange{}, false, err
 	}
@@ -175,6 +182,11 @@ func (s Store) OpenExchange(ctx context.Context, x Exchange, message string) (_ 
 				}
 				out, existed = old, true
 				return nil
+			}
+		}
+		if admit != nil {
+			if err := admit(book); err != nil {
+				return err
 			}
 		}
 		x.ID, x.Digest, x.State = "x-"+randomHex(), digest, ExchangeQueued
@@ -252,24 +264,91 @@ func (s Store) MarkReturned(ctx context.Context, id string) error {
 	})
 }
 
+// InterruptExchangeParents atomically terminates the active ancestor chain of
+// an undeliverable reply. It never marks a reply consumed. A terminal ancestor
+// is left intact, but traversal continues to any active ancestor above it.
+func (s Store) InterruptExchangeParents(ctx context.Context, id string, at time.Time) ([]Exchange, error) {
+	var interrupted []Exchange
+	err := s.withLock(ctx, s.Dir, ExchangeFile, func() error {
+		path := filepath.Join(s.Dir, ExchangeFile)
+		book, _, err := foldExchanges(path)
+		if err != nil {
+			return err
+		}
+		indices := make(map[string]int, len(book))
+		for i, x := range book {
+			indices[x.ID] = i
+		}
+		i, ok := indices[id]
+		if !ok {
+			return ErrUnknownExchange
+		}
+		if at.IsZero() {
+			at = time.Now().UTC()
+		}
+		seen := map[string]bool{id: true}
+		for parent := book[i].Parent; parent != "" && !seen[parent]; {
+			seen[parent] = true
+			i, ok = indices[parent]
+			if !ok {
+				break
+			}
+			if !book[i].State.Settled() {
+				book[i].State, book[i].At = ExchangeInterrupted, at
+				interrupted = append(interrupted, book[i])
+			}
+			parent = book[i].Parent
+		}
+		if len(interrupted) == 0 {
+			return nil
+		}
+		return writeExchangeBook(path, book)
+	})
+	return interrupted, err
+}
+
 func compactExchanges(path string, book []Exchange, lines int) error {
 	if lines <= compactAt {
 		return nil
 	}
+	// Keep unconsumed answers and the complete ancestry of every live record:
+	// admission still needs it to enforce depth and reject upstream cycles.
+	protected := make(map[string]bool, len(book))
+	byID := make(map[string]Exchange, len(book))
+	for _, x := range book {
+		byID[x.ID] = x
+	}
+	for _, x := range book {
+		if x.State.Settled() && x.Returned {
+			continue
+		}
+		for id := x.ID; id != "" && !protected[id]; {
+			protected[id] = true
+			id = byID[id].Parent
+		}
+	}
 	settled := 0
 	for _, x := range book {
-		if x.State.Settled() {
+		if !protected[x.ID] {
 			settled++
 		}
 	}
-	var data []byte
+	var kept []Exchange
 	for _, x := range book {
-		if x.State.Settled() {
+		if !protected[x.ID] {
 			settled--
 			if settled >= keepClosed {
 				continue
 			}
 		}
+		kept = append(kept, x)
+	}
+	return writeExchangeBook(path, kept)
+}
+
+func writeExchangeBook(path string, book []Exchange) error {
+	var data []byte
+	for _, x := range book {
 		line, err := json.Marshal(x)
 		if err != nil {
 			return err

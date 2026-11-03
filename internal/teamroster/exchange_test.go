@@ -165,8 +165,18 @@ func TestCompactionKeepsOpenExchangesAndTheLatestSettledOnes(t *testing.T) {
 		if _, err := s.SetExchangeState(ctx, x.ID, ExchangeReplied, time.Time{}); err != nil {
 			t.Fatal(err)
 		}
+		if err := s.MarkReturned(ctx, x.ID); err != nil {
+			t.Fatal(err)
+		}
 	}
 	book, err := s.Exchanges()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := compactExchanges(filepath.Join(s.Dir, ExchangeFile), book, compactAt+1); err != nil {
+		t.Fatal(err)
+	}
+	book, err = s.Exchanges()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,9 +184,7 @@ func TestCompactionKeepsOpenExchangesAndTheLatestSettledOnes(t *testing.T) {
 	for _, x := range book {
 		ids = append(ids, x.ID)
 	}
-	// Line 13 (the fifth settle) passes compactAt: 0 and 1 go, 2..4 stay. The
-	// sixth settle lands after it, so 5 is kept too.
-	want := []string{opened[2].ID, opened[3].ID, opened[4].ID, opened[5].ID, opened[6].ID, opened[7].ID}
+	want := []string{opened[3].ID, opened[4].ID, opened[5].ID, opened[6].ID, opened[7].ID}
 	if len(ids) != len(want) {
 		t.Fatalf("compacted book = %v, want %v", ids, want)
 	}
