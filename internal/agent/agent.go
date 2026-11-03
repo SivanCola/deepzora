@@ -1685,7 +1685,7 @@ func (a *Agent) readOnlyExecutionBlock(ctx context.Context, visible tool.Tool, r
 		if readOnlyExecutionMCPDestructive(visible) {
 			return block("execute a destructive MCP capability")
 		}
-		if h, ok := visible.(tool.ReadOnlyExecutionHostMutation); ok && h.ReadOnlyExecutionHostMutation() && !readOnlyExecutionAllowsMCPStartup(visible) {
+		if h, ok := visible.(tool.ReadOnlyExecutionHostMutation); ok && h.ReadOnlyExecutionHostMutation() && !readOnlyExecutionAllowsMCPStartup(visible) && !a.readOnlyCeilingAllowsTeamCoordination(ctx, visible) {
 			return block("start or mutate a host capability")
 		}
 		return toolOutcome{}, false
@@ -1737,13 +1737,21 @@ func (a *Agent) readOnlyExecutionBlock(ctx context.Context, visible tool.Tool, r
 		if readOnlyExecutionMCPDestructive(resolved.Target) {
 			return block("execute a destructive MCP capability")
 		}
-		if h, ok := resolved.Target.(tool.ReadOnlyExecutionHostMutation); ok && h.ReadOnlyExecutionHostMutation() && !readOnlyExecutionAllowsMCPStartup(resolved.Target) {
+		if h, ok := resolved.Target.(tool.ReadOnlyExecutionHostMutation); ok && h.ReadOnlyExecutionHostMutation() && !readOnlyExecutionAllowsMCPStartup(resolved.Target) && !a.readOnlyCeilingAllowsTeamCoordination(ctx, resolved.Target) {
 			return block("start or mutate a host capability")
 		}
 		return toolOutcome{}, false
 	default:
 		return block("execute an unknown dynamic capability action")
 	}
+}
+
+func (a *Agent) readOnlyCeilingAllowsTeamCoordination(ctx context.Context, t tool.Tool) bool {
+	if a.readOnlyExecution || SubagentDepth(ctx) > 0 || tool.ExecutionCeiling(ctx) != "read-only" || !t.ReadOnly() {
+		return false
+	}
+	coordination, ok := t.(tool.ReadOnlyTeamCoordination)
+	return ok && coordination.ReadOnlyTeamCoordination()
 }
 
 func readOnlyExecutionMCPDestructive(t tool.Tool) bool {

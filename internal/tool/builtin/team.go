@@ -46,6 +46,14 @@ func (t *teamTool) ReadOnlyExecutionHostMutation() bool {
 	return t.name != "list_agents" && t.name != "read_group"
 }
 
+func (t *teamTool) ReadOnlyTeamCoordination() bool {
+	switch t.name {
+	case "message_agent", "post_to_group", "pass_turn", "hand_turn":
+		return true
+	}
+	return false
+}
+
 func (t *teamTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {
 	dir, ok := t.link.Directory()
 	if !ok {
