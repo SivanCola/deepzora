@@ -15,7 +15,7 @@ preset definitions instead of following later preset edits.
 | 2 | Controller seat, tools, approvals and delegation ceilings | Implemented; full root suite and hosted CI/CodeQL passed; PR #147 |
 | 3 | Desktop runtime, lease and browser isolation | Implemented; full root/Desktop suites and macOS native browser fixture passed; PR #148 |
 | 4 | Desktop Team UI and generated contract | Implemented; full root/Desktop suites, focused/race, production build, 246 settings viewport cases, Team browser flow and all 34 transcript commands passed; draft PR #149 |
-| 5 | Memory, opt-in review and schedules | Implemented locally; focused/race, typechecks, build and Chromium flow passed; broad suites and hosted checks pending |
+| 5 | Memory, opt-in review and schedules | Implemented; complete root/Desktop suites, focused/race, typechecks, build and Chromium flow passed; draft PR #151; hosted checks pending |
 | 6 | Private credential slots and shell injection | Pending |
 | 7 | Outbound/stream masking, usage and native acceptance | Pending |
 
@@ -24,6 +24,11 @@ unavailable until its complete masking boundaries pass. Hosted checks, local
 checks, native platform acceptance and publication are separate evidence.
 
 ## Memory and scheduler increment
+
+The complete root Go suite passed. The independent Desktop Go suite passed
+(main package 804.855s). Subsequent parent archive integration passed the merged
+frontend typecheck, production build and extended Team Chromium flow. These
+local results do not substitute for pending hosted/native/package acceptance.
 
 - Member-private facts use an isolated namespace shared by that member's seats;
   ordinary user/workspace standing instructions retain their existing authority.
