@@ -3,6 +3,7 @@ import type { AttachmentBindings } from "./attachmentBindings";
 import { makeMockSessionLifecycleBindings, type SessionLifecycleBindings } from "./sessionLifecycleBindings";
 import { makeMockModelSettingsBindings, type ModelSettingsBindings } from "./modelSettingsBridge";
 import type { AgentPresetBindings } from "./agentPresets";
+import { makeUnavailableTeamHostMock, type TeamHostBindings } from "./teamBindings";
 import { makeMockAgentPresetBindings } from "./agentPresetMock";
 import { mockProviderTemplate, mockPreset, mockBundlePreset, mockKimiAPIModels, mockLongCatModels, mockTokenRhythmModels, mockTokenRhythmModelOverrides, mockMiMoDefaults, mockMiniMaxModels, mockGLMAPIModels, mockGLMCodingModels, mockGLMAnthropicModels, mockQwenAPIModels, mockQwenPlanModels, mockQwenPlanVisionModels, mockStepFunModels, mockOpenCodeGoModels, mockNovitaModels, mockGMIModels, mockVercelModels, mockOllamaCloudModels } from "./mockProviderTemplates";
 // The Electron host and the browser mock share this React-to-Go contract.
@@ -203,7 +204,7 @@ interface DesktopWindowState {
 }
 import { makeLazySessionUIMock, type SessionUIBindings } from "./sessionUIBindings";
 
-export interface AppBindings extends SessionUIBindings, AgentPresetBindings {}
+export interface AppBindings extends SessionUIBindings, AgentPresetBindings, TeamHostBindings {}
 // AppBindings is the hand-written React-to-Go contract. _CheckGeneratedBindings
 // catches generated methods missing here; update this interface and typecheck.
 export interface AppBindings extends AttachmentBindings, SessionExportBindings, SessionLifecycleBindings, ForkTargetsBindings, ToolRecoveryBindings, ModelSettingsBindings, SessionCatalogBindings, ProjectTreeOrganizationBindings, HistoryCatalogBindings, TaskCatalogBindings, BlankProjectBindings, SessionTitleBindings, ScrollDiagnosticBindings, MCPAppBindings, PinnedContextBindings, FollowupBindings, InboxQueueBindings, TranscriptProtocolBindings, SessionReaderBindings, ExactInteractionBindings {
@@ -2419,6 +2420,7 @@ function makeMockApp(): MockAppBindings {
 		...makeMockSessionExportBindings(),
     ...makeMockSessionCatalogBindings(cloneProjectTree),
     ...makeMockBlankProjectBindings(),
+    ...makeUnavailableTeamHostMock(),
     ...makeMockAgentPresetBindings({
       tabs: () => mockTabs,
       update: tab => { mockTabs = mockTabs.map(item => item.id === tab.id ? tab : item); },
