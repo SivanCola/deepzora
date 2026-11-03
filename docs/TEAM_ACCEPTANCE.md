@@ -52,6 +52,21 @@ belong to each PR. / 七层均按相对前一层的增量审查，并接入上�
 预算或超时。创建日志新增独立版本化目录，不改变现有 TeamSecretBook schema；
 旧数据无日志时保持可读，恢复不扫描删除未跟踪的历史凭据文件。
 
+Review candidate `d8d43fc92ef105149fbc2657b03a864e853edaf5` passed the
+[complete hosted/native qualification run](https://github.com/SivanCola/deepzora/actions/runs/41616335219).
+All three native jobs passed packaged and installed Team/private/group flows,
+background retention, approvals, schedules, actual POSIX/PowerShell secret
+injection, persisted-output masking, restart and member Cookie isolation.
+This uses the controlled fixture provider; it is not a new real-model run.
+Both Go modules report zero lint issues. The local broad Desktop run recorded
+1,939 top-level passes, eight platform skips and zero failures; final admission
+and secret-cleanup changes also passed focused race regressions.
+
+本轮审查候选在上述工作流通过三平台打包与安装后验收，包含真实 Shell 密钥注入、
+持久化脱敏和浏览器身份隔离。模型使用受控夹具，本轮未新增真实模型调用。
+本地 Desktop 广泛回归为 1,939 项通过、8 项平台跳过、零失败，最后的准入与清理
+调整另有定向 race 验证。根模块与 Desktop lint 均为零问题。
+
 ## Local source checks / 本地源码检查
 
 The complete root module passed before the final narrow boundary corrections.
