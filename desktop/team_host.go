@@ -14,6 +14,7 @@ import (
 	"deepzora/desktop/internal/teamhost"
 	"deepzora/internal/config"
 	"deepzora/internal/control"
+	"deepzora/internal/secrets"
 	"deepzora/internal/session"
 	"deepzora/internal/sessioninbox"
 	"deepzora/internal/team"
@@ -156,7 +157,7 @@ func (a *App) startTeamHost() {
 		defer ticker.Stop()
 		for {
 			if err := h.Tick(ctx); err != nil && ctx.Err() == nil {
-				slog.Warn("desktop: team tick", "err", err)
+				slog.Warn("desktop: team tick", "err", secrets.RedactError(err))
 			}
 			if h.Ready() {
 				if err := a.reconcileTeamPresets(ctx); err != nil && ctx.Err() == nil {
