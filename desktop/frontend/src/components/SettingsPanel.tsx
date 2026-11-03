@@ -3594,6 +3594,7 @@ export const ProviderEditorModelPicker = memo(function ProviderEditorModelPicker
       <div className="provider-model-draft__list" role="list" aria-label={t("settings.modelList")}>
         {deferredCandidates.length > 0 ? deferredCandidates.map((model) => {
           const enabled = selected.has(model);
+          const displayName = modelCapabilities.find(item => item.model === model)?.displayName?.trim();
           const capability = providerModelVisionCapability(
             {modelCapabilities},
             model,
@@ -3608,7 +3609,10 @@ export const ProviderEditorModelPicker = memo(function ProviderEditorModelPicker
                   disabled={disabled}
                   onChange={() => onToggleModel(model)}
                 />
-                <span title={model}>{modelCapabilities.find(item => item.model === model)?.displayName || model}</span>
+                <span className="provider-model-draft__identity">
+                  <span className="provider-model-draft__name" title={model}>{displayName || model}</span>
+                  {displayName && displayName !== model && <code className="provider-model-draft__id">ID: {model}</code>}
+                </span>
                 {conversationModel === model && <small className="provider-conversation-model">{t("onboarding.conversationModel")}</small>}
               </label>
               <div className="provider-model-draft__capabilities" aria-label={t("settings.modelCapabilitiesAria", { model })}>
