@@ -152,11 +152,11 @@ export function ModelSwitcher({
     ].filter((group) => group.items.length > 0);
   }, [activeFilter, favorites, filtered, providers, t]);
 
-  const currentProvider = useMemo(() => {
-    const cur = models.find((m) => m.current) ?? models.find((m) => m.model === label || m.ref === label);
-    return cur ? (cur.displayName?.trim() || providerLabel(cur.provider, t)) : null;
-  }, [label, models, t]);
-  const triggerLabel = [label, currentProvider, detailLabel].filter(Boolean).join(" · ");
+  const currentModel = useMemo(() => models.find((m) => m.current)
+    ?? models.find((m) => m.model === label || m.ref === label), [label, models]);
+  const currentProvider = currentModel ? (currentModel.displayName?.trim() || providerLabel(currentModel.provider, t)) : null;
+  const displayLabel = currentModel?.modelDisplayName?.trim() || label;
+  const triggerLabel = [displayLabel, currentModel && displayLabel !== currentModel.model ? currentModel.model : null, currentProvider, detailLabel].filter(Boolean).join(" · ");
 
   const toggleFavorite = (ref: string) => {
     setFavorites((current) => {
@@ -227,7 +227,7 @@ export function ModelSwitcher({
           onClick={() => setOpen((v) => !v)}
         >
           <Cpu size={14} className="modelsw__kind" />
-          <span className="modelsw__label">{label}{detailLabel && <span className="modelsw__detail"> · {detailLabel}</span>}{application?.application==="pending" && <span className="modelsw__detail"> · {t("modelApply.badge")}</span>}</span>
+          <span className="modelsw__label">{displayLabel}{detailLabel && <span className="modelsw__detail"> · {detailLabel}</span>}{application?.application==="pending" && <span className="modelsw__detail"> · {t("modelApply.badge")}</span>}</span>
           <ChevronDown size={12} />
         </button>
       </Tooltip>
@@ -284,6 +284,7 @@ export function ModelSwitcher({
               <div className="modelsw__group-label" role="presentation">{g.label}</div>
               {g.items.map((m) => {
                 const favorite = favorites.has(m.ref);
+                const meta = modelMeta(m, t);
                 const favoriteLabel = t(favorite ? "modelSwitcher.removeFavorite" : "modelSwitcher.addFavorite", { model: m.model });
                 return (
                 <div className="modelsw__row" key={m.ref}>
@@ -296,8 +297,8 @@ export function ModelSwitcher({
                 >
                   <ProviderMark provider={m.provider} label={m.displayName?.trim() || providerLabel(m.provider, t)} brandId={m.brandId} />
                   <span className="modelsw__copy">
-                    <span className="modelsw__model" title={m.model}>{m.modelDisplayName || m.model}</span>
-                    <span className="modelsw__meta">{modelMeta(m, t)}</span>
+                    <span className="modelsw__model" title={m.model}>{m.modelDisplayName?.trim() || m.model}</span>
+                    <span className="modelsw__meta" title={meta}>{meta}</span>
                   </span>
                   {m.contextWindow ? <span className="badge badge--neutral">{formatTokens(m.contextWindow)}</span> : null}
                   {m.vision && <span className="modelsw__capability" title={t("providerUI.image")}><Image size={13} aria-hidden="true" /><span>{t("providerUI.image")}</span></span>}
@@ -340,7 +341,9 @@ function providerLabel(provider: string, t: ReturnType<typeof useT>): string {
 
 function modelMeta(model: ModelInfo, t: ReturnType<typeof useT>): string {
   const provider = model.displayName?.trim() || providerLabel(model.provider, t);
-  return model.current ? `${provider} · ${t("modelSwitcher.currentModel")}` : provider;
+  const name = model.modelDisplayName?.trim();
+  return [name && name !== model.model ? model.model : null, provider, model.current ? t("modelSwitcher.currentModel") : null]
+    .filter(Boolean).join(" · ");
 }
 
 function ProviderMark({ provider, label, brandId }: { provider: string; label: string; brandId?: string }) {

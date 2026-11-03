@@ -170,15 +170,15 @@ func TestConfigChangeWriterOwnedPersistsAndDefersRefresh(t *testing.T) {
 	app.tabOrder = []string{tab.ID}
 	app.activeTabID = tab.ID
 
-	if err := app.SetMaxSubagentDepth(1); err != nil {
-		t.Fatalf("SetMaxSubagentDepth should defer lease-held refresh instead of failing: %v", err)
+	if err := app.SetMaxSubagentConcurrency(1); err != nil {
+		t.Fatalf("SetMaxSubagentConcurrency should defer lease-held refresh instead of failing: %v", err)
 	}
 	if tab.Ctrl != oldCtrl {
 		t.Fatalf("tab controller changed after deferred settings rebuild")
 	}
 	got := config.LoadForEditWithoutCredentials(config.UserConfigPath())
-	if got.Agent.MaxSubagentDepth != 1 {
-		t.Fatalf("saved max_subagent_depth = %d, want 1", got.Agent.MaxSubagentDepth)
+	if got.Agent.MaxSubagentConcurrency != 1 {
+		t.Fatalf("saved max_subagent_concurrency = %d, want 1", got.Agent.MaxSubagentConcurrency)
 	}
 }
 

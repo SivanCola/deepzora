@@ -36,7 +36,7 @@ export function toolPresentation(item: ToolItem): {
   return { state: "done", dot: "done", label: "chat.done", exitCode: execution?.exitCode };
 }
 
-const AGENT_TOOLS = new Set(["task", "read_only_task", "parallel_tasks", "fleet", "subagent"]);
+const AGENT_TOOLS = new Set(["spawn_agents", "task", "read_only_task", "parallel_tasks", "fleet", "subagent"]);
 const FILE_TOOLS = new Set([
   "read_file", "glob", "grep", "ls", "code_index",
   "write_file", "edit_file", "multi_edit", "move_file", "notebook_edit", "delete_range", "delete_symbol",

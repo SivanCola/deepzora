@@ -164,7 +164,7 @@ type Options struct {
 	ApprovalTimeout time.Duration
 	// HeadlessApprovalMode selects the non-interactive tool-approval contract
 	// (control.ToolApprovalWorkspaceWrite/DontAsk/Yolo) applied to every headless-only gate
-	// this boot constructs: the top-level executor, task/read_only_task,
+	// this boot constructs: the top-level executor, delegated children,
 	// writer-capable skill sub-agents, and the planner runner. Empty (or "ask")
 	// keeps the default fail-closed headless gate. Callers that later call
 	// Controller.ApplyHeadlessApprovalMode with a
@@ -926,10 +926,8 @@ func build(ctx context.Context, opts Options) (*BuildResult, error) {
 		}
 		return ""
 	}
-	bashSandboxEnforced := bashSpec.Enforce
 	taskToolAdded := false
-	readOnlyTaskToolAdded := false
-	var taskTool *agent.TaskTool
+	var taskTool *agent.SubagentRunner
 	// capRuntime is assigned after MCP specs load; closures capture the variable
 	// so task tools created later still receive the session-shared substrate.
 	var capRuntime *agent.MCPCapabilityRuntime
@@ -971,8 +969,8 @@ func build(ctx context.Context, opts Options) (*BuildResult, error) {
 	}
 
 	imageConfig := &imageinput.Config{Model: cfg.Agent.VisionModel, Resolve: visionProviderResolver, Select: visionModelSelector}
-	newTaskTool := func() *agent.TaskTool {
-		return agent.NewTaskToolWithOptions(agent.TaskToolOptions{
+	newSubagentRunner := func() *agent.SubagentRunner {
+		return agent.NewSubagentRunner(agent.SubagentRunnerOptions{
 			ImageInput:         imageConfig,
 			Provider:           execProv,
 			Pricing:            entry.Price,
@@ -993,52 +991,34 @@ func build(ctx context.Context, opts Options) (*BuildResult, error) {
 		}).
 			WithTranscripts(subagentStore, root, modelName, entry.Effort).
 			WithTranscriptIdentityResolver(subagentIdentity).
-			WithMaxSubagentDepth(maxSubagentDepth).
 			WithAblation(opts.Ablation).
 			WithWorkspaceLease(workspaceLease).
 			WithScheduler(subagentScheduler).
 			WithProfileLookup(profileLookup).
 			WithProfileConfigResolvers(profileConfigModel, profileConfigEffort).
-			WithBashSandboxEnforced(bashSandboxEnforced).
+			WithProfileDefaults(cfg.Agent.SubagentModel, subagentEffort).
 			WithCapabilityRuntime(capRuntime).
 			WithWriteRoots(writeRootSet).WithImageRequestResolver(controllerImageResolver{ctrlRef.Load})
 	}
-	addTaskTool := func() string {
+	addSubagentRunner := func() string {
 		if opts.Ablation.Off(ablation.Subagent) {
-			return "task tool is disabled for this run."
+			return "spawn_agents is disabled for this run."
 		}
 		if taskToolAdded {
-			return "task tool is already enabled."
+			return "spawn_agents is already enabled."
 		}
 		taskToolAdded = true
 		if taskTool == nil {
-			taskTool = newTaskTool()
+			taskTool = newSubagentRunner()
 		}
 		// The registry exports schemas in stable name order. Keep this surface
 		// static: profile names and result refs never enter provider-visible
 		// schemas, and the result reader does not change between turns.
-		reg.Add(taskTool)
-		reg.Add(agent.NewParallelTasksTool(taskTool))
-		reg.Add(agent.NewFleetTool(taskTool))
+		reg.Add(agent.NewSpawner(taskTool))
 		reg.Add(agent.NewSubagentResultTool(taskTool))
-		return "enabled task."
+		return "enabled spawn_agents."
 	}
-	addReadOnlyTaskTool := func() string {
-		if opts.Ablation.Off(ablation.Subagent) {
-			return "read_only_task tool is disabled for this run."
-		}
-		if readOnlyTaskToolAdded {
-			return "read_only_task tool is already enabled."
-		}
-		readOnlyTaskToolAdded = true
-		if taskTool == nil {
-			taskTool = newTaskTool()
-		}
-		reg.Add(agent.NewReadOnlyTaskTool(taskTool))
-		return "enabled read_only_task."
-	}
-	addTaskTool()
-	addReadOnlyTaskTool()
+	addSubagentRunner()
 
 	// Product documentation, session, and memory tools are always present on the
 	// unified host registry for every role setting. Provider-visible surface stays
@@ -1099,197 +1079,23 @@ func build(ctx context.Context, opts Options) (*BuildResult, error) {
 
 	// Skill tools: read_only_skill is a narrow explicitly read-only entry point; the
 	// full skills source adds run_skill / install_skill plus the dedicated
-	// subagent wrappers (explore / research / review / security_review). Read-only
-	// subagent skills run ephemerally with the same registry boundary as
-	// read_only_task, so they cannot write, install, mutate memory, resume/fork
-	// transcripts, or delegate further.
-	//
-	subagentSkillOptions := liveSettings.skillOptions(newSubagentSkillOptionsFactory(cfg.Agent, quoteCtx, headlessGate, maxSubagentDepth, opts.Ablation, workspaceLease, writeRootSet, hookRunner, childImageRouting{ctrlRef.Load, imageConfig}))
-	readOnlySkillRunner := func(sctx context.Context, sk skill.Skill, task string, runOpts skill.SubagentRunOptions) (string, error) {
-		if strings.TrimSpace(runOpts.ContinueFrom) != "" {
-			return "", fmt.Errorf("read_only_skill does not support continue_from")
+	// subagent wrappers (explore / research / review / security_review). All use
+	// the shared runner and archive results under the parent session. Read-only
+	// skills cannot write, install, mutate memory, or delegate further.
+
+	skillRunner := func(ctx context.Context, sk skill.Skill, task string, opts skill.SubagentRunOptions) (string, error) {
+		if opts.ContinueFrom != "" {
+			return "", fmt.Errorf("continue_from is retired; start a fresh subagent")
 		}
-		releaseSlot, err := subagentScheduler.Acquire(sctx, agent.AcquireRequest{
-			Writer: false,
-			Nested: agent.SubagentDepth(sctx) > 0,
-			Label:  sk.Name,
-		})
-		if err != nil {
-			return "", err
+		if taskTool == nil {
+			taskTool = newSubagentRunner()
 		}
-		defer releaseSlot()
 		sk = skill.WithCodeGraphTools(sk, skill.CodeGraphReadTools(reg))
-		prov, price, ctxWin := execProv, entry.Price, entry.ContextWindow
-		modelRef := subagentModelRef(cfg, sk)
-		effortRef := subagentEffortRef(cfg, sk, subagentEffort)
-		if modelRef != "" || effortRef != "" {
-			p, pr, cw, err := resolveSubagentProvider(modelRef, effortRef)
-			if err != nil {
-				return "", fmt.Errorf("read-only subagent skill %q profile: %w", sk.Name, err)
-			}
-			prov, price, ctxWin = p, pr, cw
-		}
-		childDepth := agent.SubagentDepth(sctx) + 1
-		if childDepth > maxSubagentDepth {
-			return "", fmt.Errorf("subagent delegation depth limit reached (max_subagent_depth=%d)", maxSubagentDepth)
-		}
-		subReg := agent.ReadOnlySubagentToolRegistryForDepthWithRuntime(reg, sk.AllowedTools, childDepth, maxSubagentDepth, capRuntime)
-		if subReg.Len() == 0 {
-			return "", fmt.Errorf("read_only_skill: skill %q has no read-only tools available", sk.Name)
-		}
-		steps := maxSteps
-		if steps > 0 {
-			if steps /= 2; steps < 5 {
-				steps = 5
-			}
-		}
-		// Custom and named built-in profiles fully control their system prompt
-		// (no implicit concise/DefaultReadOnlyTaskSystemPrompt overlay).
-		sysPrompt := strings.TrimSpace(sk.Body)
-		if sysPrompt == "" {
-			sysPrompt = agent.DefaultReadOnlyTaskSystemPrompt
-		}
-		task, runOptions := reviewSubagentSkillOptions(sctx, sk.Name, task, steps, price, ctxWin, childDepth, subagentSkillOptions)
-		usageModelRef, _ := subagentIdentity(modelRef, effortRef)
-		runOptions.ModelRef = usageModelRef
-		// Review gates consume typed, host-verifiable reports so a review
-		// cannot end in unverifiable prose. Review skills run only for
-		// mid/high-risk work under the standard policy.
-		// Provider serializers decide whether these images are wire-visible from
-		// the child model's own vision capability. Text-only children retain the
-		// attachment metadata locally but never receive image parts on the wire.
-		childCtx := agent.WithUserImages(sctx, agent.SubagentImageCandidates(sctx))
-		return runReadOnlySkillSession(childCtx, prov, subReg, task, runOptions, agent.NestedSink(sctx, event.Discard), sysPrompt, agent.RunReadOnlySubAgentWithSession)
+		return taskTool.RunSkill(ctx, sk, task, opts)
 	}
-	// Writer-capable subagent skills reuse the sub-agent machinery via this
-	// runner: an isolated loop with the skill body as system prompt, a tool set
-	// scoped to the skill's allowed-tools (minus recursive meta-tools), optional
-	// per-skill model, and resumable transcripts when the parent session supports
-	// them. Its tool activity nests under the invoking call, like `task`.
-	skillRunner := func(sctx context.Context, sk skill.Skill, task string, runOpts skill.SubagentRunOptions) (result string, runErr error) {
-		// Writer skills without write_paths claim the whole workspace so they
-		// cannot race fleet/task writers that declared disjoint paths.
-		acq := agent.AcquireRequest{
-			Writer: !sk.ReadOnly,
-			Nested: agent.SubagentDepth(sctx) > 0,
-			Label:  sk.Name,
-		}
-		if !sk.ReadOnly {
-			whole, werr := agent.WholeWorkspaceWriteClaim(root)
-			if werr != nil {
-				return "", fmt.Errorf("subagent skill %q write claim: %w", sk.Name, werr)
-			}
-			acq.WritePaths = whole
-		}
-		releaseSlot, err := subagentScheduler.Acquire(sctx, acq)
-		if err != nil {
-			return "", err
-		}
-		defer releaseSlot()
-		sk = skill.WithCodeGraphTools(sk, skill.CodeGraphReadTools(reg))
-		prov, price, ctxWin := execProv, entry.Price, entry.ContextWindow
-		modelRef := subagentModelRef(cfg, sk)
-		effortRef := subagentEffortRef(cfg, sk, subagentEffort)
-		if modelRef != "" || effortRef != "" {
-			p, pr, cw, err := resolveSubagentProvider(modelRef, effortRef)
-			if err != nil {
-				return "", fmt.Errorf("subagent skill %q profile: %w", sk.Name, err)
-			}
-			prov, price, ctxWin = p, pr, cw
-		}
-		childDepth := agent.SubagentDepth(sctx) + 1
-		if childDepth > maxSubagentDepth {
-			return "", fmt.Errorf("subagent delegation depth limit reached (max_subagent_depth=%d)", maxSubagentDepth)
-		}
-		// A read-only skill (builtin review/security-review, or frontmatter
-		// `read-only: true`) gets its promise enforced at the tool boundary:
-		// writer tools are stripped and bash runs under the read-only
-		// command policy. Transcripts recorded against the writer-capable
-		// registry stop matching on continue_from (schema-hash check reports
-		// the mismatch).
-		subReg, childWriteRoots := skillSubagentRegistry(sk, reg, childDepth, maxSubagentDepth, capRuntime, writeRootSet)
-		continueFrom := strings.TrimSpace(runOpts.ContinueFrom)
-
-		parentID, parentSink, _, _ := agent.CallContext(sctx)
-		if runOpts.HostInitiated {
-			parentID = ""
-		}
-		parentSession := agent.ParentSession(sctx)
-		var run *agent.SubagentRun
-		if subagentStore == nil || parentSession == "" {
-			// Headless runs (e.g. `deepzora run`) have no persistent session to
-			// own a transcript. Run the skill sub-agent ephemerally, as before
-			// persisted transcripts existed, instead of failing. Continuation needs
-			// a persisted owner, so it errors here.
-			if continueFrom != "" {
-				return "", fmt.Errorf("subagent continuation requires a persisted session; none is active in this run")
-			}
-			run = agent.EphemeralSubagentRun(sk.Body)
-		} else {
-			identityModel, identityEffort := subagentIdentity(modelRef, effortRef)
-			spec := agent.SubagentSpec{
-				Kind:             "skill",
-				Name:             sk.Name,
-				WorkspaceRoot:    root,
-				ParentSession:    parentSession,
-				ParentToolCallID: parentID,
-				SystemPrompt:     sk.Body,
-				Registry:         subReg,
-				Model:            identityModel,
-				Effort:           identityEffort,
-			}
-			var prepErr error
-			if continueFrom != "" {
-				run, prepErr = subagentStore.PrepareContinue(continueFrom, spec)
-
-			} else {
-				run, prepErr = subagentStore.PrepareFresh(spec)
-			}
-			if prepErr != nil {
-				return "", prepErr
-			}
-		}
-		defer func() { runErr = errors.Join(runErr, run.Release()) }()
-		steps := maxSteps
-		if steps > 0 {
-			if steps /= 2; steps < 5 {
-				steps = 5
-			}
-		}
-		task, runOptions := reviewSubagentSkillOptions(sctx, sk.Name, task, steps, price, ctxWin, childDepth, subagentSkillOptions)
-		if run.Ref != "" {
-			// A resumed skill has a new call ID but keeps the same transcript.
-			runOptions.Hooks = hookRunner.ForSession("subagent:" + run.Ref)
-		}
-		runOptions.WriteRoots = childWriteRoots
-		runOptions.SessionCheckpointer = run.Persistence
-		usageModelRef, _ := subagentIdentity(modelRef, effortRef)
-		runOptions.ModelRef = usageModelRef
-		announceSkillSubagentStart(parentSink, parentID, sk.Name, usageModelRef, effortRef, run, continueFrom != "")
-		// Review gates consume typed, host-verifiable reports so a review
-		// cannot end in unverifiable prose. Review skills run only for
-		// mid/high-risk work under the standard policy.
-		var answer string
-		// The child provider owns the final vision decision, as in read-only runs.
-		childCtx := agent.WithUserImages(sctx, agent.SubagentImageCandidates(sctx))
-		agent.EmitSubagentLifecycle(parentSink, "child_running", parentID, sk.Name, usageModelRef, effortRef, run, nil)
-		childCtx, cancelChild := run.CancellableContext(childCtx)
-		defer cancelChild()
-		if sk.ReadOnly {
-			answer, err = agent.RunReadOnlySubAgentWithSession(childCtx, prov, subReg, run.Session, task,
-				runOptions, agent.NestedSink(sctx, event.Discard))
-		} else {
-			answer, err = agent.RunSubAgentWithSession(childCtx, prov, subReg, run.Session, task,
-				runOptions, agent.NestedSink(sctx, event.Discard))
-		}
-		if err != nil {
-			return finishSkillSubagentFailure(sctx, taskTool, subagentStore, parentSink, parentID, sk.Name, usageModelRef, effortRef, task, run, err)
-		}
-		if err := saveSubagentCompleted(subagentStore, run); err != nil {
-			return finishSkillSubagentFailure(sctx, taskTool, subagentStore, parentSink, parentID, sk.Name, usageModelRef, effortRef, task, run, err)
-		}
-		agent.EmitSubagentLifecycle(parentSink, "child_completed", parentID, sk.Name, usageModelRef, effortRef, run, &agent.SubagentOutcome{Status: agent.SubagentOutcomeCompleted, FinalAnswer: answer})
-		return agent.FormatSubagentRunResult(answer, run, false), nil
+	readOnlySkillRunner := func(ctx context.Context, sk skill.Skill, task string, opts skill.SubagentRunOptions) (string, error) {
+		sk.ReadOnly = true
+		return skillRunner(ctx, sk, task, opts)
 	}
 	skillProfile := func(sk skill.Skill) *event.Profile {
 		model, effort := subagentModelRef(cfg, sk), subagentEffortRef(cfg, sk, subagentEffort)
@@ -1443,7 +1249,7 @@ func build(ctx context.Context, opts Options) (*BuildResult, error) {
 	// Session-shared MCP runtime: Host, specs, and connection snapshots. Each
 	// agent gets its own use_capability frontend (ledger/audit isolation) while
 	// reusing processes. Delivery puts a frontend on the executor registry;
-	// dual-model Planner and all task/fleet sub-agents get their own frontends
+	// dual-model Planner and all delegated children get their own frontends
 	// without inheriting dynamic mcp__* schemas.
 	var capLedger *capability.Ledger
 	var capAudit *capability.Audit

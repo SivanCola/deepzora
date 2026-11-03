@@ -19,6 +19,9 @@ console.log("\nprovider endpoint");
 
 eq(providerRequestURLFromConfig("openai", "https://proxy.example.com/v1", ""), "https://proxy.example.com/v1/chat/completions", "OpenAI base URLs expose their effective request URL");
 eq(providerRequestURLFromConfig("anthropic", "https://proxy.example.com/v1", ""), "https://proxy.example.com/v1/messages", "Anthropic base URLs expose their effective request URL");
+eq(providerRequestURLFromConfig("anthropic", "https://api.deepseek.com/anthropic/messages", ""), "https://api.deepseek.com/anthropic/messages", "complete DeepSeek Messages URL is not appended again");
+eq(providerRequestURLFromConfig("anthropic", "https://api.deepseek.com/anthropic/v1/messages/", ""), "https://api.deepseek.com/anthropic/v1/messages", "complete versioned Messages URL is not appended again");
+eq(providerBaseURLFromRequestURL("anthropic", "https://api.deepseek.com/anthropic/messages"), "https://api.deepseek.com/anthropic", "unversioned Messages URL derives the SDK base for discovery");
 eq(providerRequestURLFromConfig("responses", "https://proxy.example.com/v1", ""), "https://proxy.example.com/v1/responses", "Responses base URLs expose their effective request URL");
 eq(providerRequestURLFromConfig("openai", "", "https://proxy.example.com/custom/chat/?token=1"), "https://proxy.example.com/custom/chat/?token=1", "explicit request URLs remain unchanged and take priority");
 eq(providerBaseURLFromRequestURL("openai", "https://proxy.example.com/v1/chat/completions?token=1"), "https://proxy.example.com/v1", "request URLs derive a query-free base URL for model discovery");

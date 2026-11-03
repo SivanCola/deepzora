@@ -138,7 +138,7 @@ func TestChildImageServiceIsSessionLocal(t *testing.T) {
 	vp := &summaryProvider{}
 	var refs []string
 	cfg := &imageinput.Config{Model: "auto", Resolve: func(string) (provider.Provider, error) { return vp, nil }, Select: func(ref, mode string) (string, bool) { refs = append(refs, ref); return "vision/model", true }}
-	task := NewTaskToolWithOptions(TaskToolOptions{ImageInput: cfg})
+	task := NewSubagentRunner(SubagentRunnerOptions{ImageInput: cfg})
 	opts := task.subagentOptions(context.Background(), 5, nil, 10000, 1, "", nil)
 	opts.ModelRef = "child/model"
 	p := &scriptedProvider{name: "text"}

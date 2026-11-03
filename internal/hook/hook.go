@@ -466,6 +466,7 @@ func cloneEnv(in map[string]string) map[string]string {
 // them, or a hook scoped to it silently misses whichever entry point wasn't
 // mapped.
 var claudeAgentSpawningTools = []string{
+	"spawn_agents",
 	"task", "read_only_task", "parallel_tasks",
 	"explore", "research", "review", "security_review",
 }
@@ -475,6 +476,7 @@ var claudeAgentSpawningTools = []string{
 // omitted Deepzora's optional description. These are stable operation labels;
 // the complete task remains in prompt for hook policy decisions.
 var claudeAgentDefaultDescriptions = map[string]string{
+	"spawn_agents":    "Run independent subagent tasks",
 	"task":            "Run delegated subagent task",
 	"read_only_task":  "Run read-only research task",
 	"parallel_tasks":  "Run parallel subagent tasks",
@@ -666,7 +668,7 @@ func claudeFacingToolInput(toolName string, args json.RawMessage, cwd string) js
 	// (the original "tasks" array stays alongside) so an Agent-scoped guard
 	// reading .tool_input.prompt inspects all dispatched work instead of
 	// failing open on a missing field.
-	if toolName == "parallel_tasks" {
+	if toolName == "parallel_tasks" || toolName == "spawn_agents" {
 		if prompt := joinedParallelTaskPrompts(obj["tasks"]); prompt != "" {
 			if v, err := json.Marshal(prompt); err == nil {
 				obj["prompt"] = v
@@ -765,12 +767,16 @@ func joinedParallelTaskPrompts(tasks json.RawMessage) string {
 	}
 	var items []struct {
 		Prompt string `json:"prompt"`
+		Task   string `json:"task"`
 	}
 	if err := json.Unmarshal(tasks, &items); err != nil {
 		return ""
 	}
 	var prompts []string
 	for _, item := range items {
+		if item.Task != "" {
+			item.Prompt = item.Task
+		}
 		if s := strings.TrimSpace(item.Prompt); s != "" {
 			prompts = append(prompts, s)
 		}

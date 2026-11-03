@@ -132,7 +132,7 @@ func TestEffectRoleSettingsShareProviderToolSurface(t *testing.T) {
 	if names["connect_tool_source"] {
 		t.Fatal("connect_tool_source must not appear on the provider-visible surface")
 	}
-	if names["task"] || names["grep"] {
+	if names["spawn_agents"] || names["grep"] {
 		t.Fatal("optional tools must not be top-level; use use_capability")
 	}
 }
@@ -152,12 +152,12 @@ func TestEffectSubagentAblationRemovesChildToolSchemas(t *testing.T) {
 	defer ctrl.Close()
 	_ = control
 	_ = ablated
-	// Ablation is enforced inside TaskTool registration at boot; the unified
+	// Ablation is enforced inside SubagentRunner registration at boot; the unified
 	// surface stays use_capability-only either way.
-	if names := toolNames(control[0]); names["task"] {
+	if names := toolNames(control[0]); names["spawn_agents"] {
 		t.Fatal("unified surface must not expose task top-level")
 	}
-	if names := toolNames(ablated[0]); names["task"] || names["parallel_tasks"] || names["fleet"] {
+	if names := toolNames(ablated[0]); names["spawn_agents"] || names["parallel_tasks"] || names["fleet"] {
 		t.Fatalf("subagent-ablated surface still offers spawn tools top-level: %v", toolSchemaNames(ablated[0].Tools))
 	}
 }

@@ -4,6 +4,7 @@ package tool
 // imply registration or permission in a particular session.
 const (
 	HostAsk                        = "ask"
+	HostSpawnAgents                = "spawn_agents"
 	HostCompleteSubtask            = "complete_subtask"
 	HostDocs                       = "docs"
 	HostExplore                    = "explore"
@@ -46,10 +47,9 @@ func KnownToolNames() []string {
 	names := []string{
 		"pwsh", // Windows runtime identity; the compile-time builtin is named bash.
 		HostAsk,
-		HostCompleteSubtask,
+		HostSpawnAgents,
 		HostDocs,
 		HostExplore,
-		HostFleet,
 		HostForget,
 		HostHistory,
 		HostInstallSkill,
@@ -60,9 +60,7 @@ func KnownToolNames() []string {
 		HostLspHover,
 		HostLspReferences,
 		HostMemory,
-		HostParallelTasks,
 		HostReadOnlySkill,
-		HostReadOnlyTask,
 		HostReadSession,
 		HostReadSkill,
 		HostReadSubagentResult,
@@ -75,7 +73,6 @@ func KnownToolNames() []string {
 		HostSetSessionTitle,
 		HostSlashCommand,
 		HostSubmitPlan,
-		HostTask,
 		HostUseCapability,
 		HostWebSearch,
 	}

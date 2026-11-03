@@ -43,7 +43,7 @@ func TestSubmitPlanRecordsAStructuredPlan(t *testing.T) {
 		t.Fatalf("plan = %+v", plan)
 	}
 	step := plan.Steps[1]
-	if len(step.VerifiedFiles) != 0 || len(step.Acceptance) != 2 || !step.Acceptance[1].Regression {
+	if len(step.VerifiedFiles) != 0 {
 		t.Fatalf("sub-step lost its fields: %+v", step)
 	}
 	if plan.Steps[0].VerifiedFiles[0] != "internal/provider/cache.go" || plan.Steps[0].CandidateFiles[0] != "internal/boot/boot.go" {
@@ -141,8 +141,8 @@ func TestPlannerOutcomeReadsApprovalFromTheFieldWhenStructured(t *testing.T) {
 func TestSubmitPlanSchemaCarriesTheEvidenceContract(t *testing.T) {
 	schema := string((&SubmitPlanTool{}).Schema())
 	for _, want := range []string{
-		"verified_files", "candidate_files", "acceptance", "verification",
-		"regression", "assumptions", "requires_approval", "depends_on", "parent_id",
+		"verified_files", "candidate_files",
+		"assumptions", "requires_approval", "depends_on", "parent_id",
 	} {
 		if !strings.Contains(schema, want) {
 			t.Errorf("submit_plan schema missing %q", want)

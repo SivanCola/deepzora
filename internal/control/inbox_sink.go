@@ -72,13 +72,6 @@ func (s *inboxEventSink) RecordTurnCompletion() {
 	event.RecordTurnCompletion(s.inner)
 }
 
-func (s *inboxEventSink) RecordReadinessAudit(a evidence.ReadinessAudit) {
-	if s == nil {
-		return
-	}
-	event.RecordReadinessAudit(s.inner, a)
-}
-
 func (s *inboxEventSink) RecordAnchorSafetyAudit(a event.AnchorSafetyAudit) {
 	if s == nil {
 		return
@@ -94,17 +87,6 @@ func (s *inboxEventSink) RecordContractShadow(a event.ContractShadowAudit) {
 		RecordContractShadow(event.ContractShadowAudit)
 	}); ok {
 		rs.RecordContractShadow(a)
-	}
-}
-
-func (s *inboxEventSink) RecordCompletionReport(a event.CompletionReportAudit) {
-	if s == nil {
-		return
-	}
-	if rs, ok := s.inner.(interface {
-		RecordCompletionReport(event.CompletionReportAudit)
-	}); ok {
-		rs.RecordCompletionReport(a)
 	}
 }
 

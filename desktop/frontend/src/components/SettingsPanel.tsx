@@ -1789,13 +1789,8 @@ export function ModelsSection({ s, busy, apply, backgroundApply, subtab, onboard
   const compactRatioOverrideHint = agent.compactRatioOverridden
     ? t("settings.compactRatioProjectOverride", { percent: Math.round((agent.effectiveCompactRatio ?? compactRatio) * 100) })
     : "";
-  const subagentDepth = Number.isFinite(agent.maxSubagentDepth) && agent.maxSubagentDepth <= 1 ? 1 : 2;
   const subagentConcurrency = Number.isFinite(agent.maxSubagentConcurrency) && agent.maxSubagentConcurrency > 0
-    ? Math.max(1, Math.min(32, Math.floor(agent.maxSubagentConcurrency)))
-    : 6;
-  const parallelWriters = Number.isFinite(agent.maxParallelWriters) && agent.maxParallelWriters > 0
-    ? Math.max(1, Math.min(subagentConcurrency, Math.floor(agent.maxParallelWriters)))
-    : Math.min(3, subagentConcurrency);
+    ? Math.max(1, Math.min(8, Math.floor(agent.maxSubagentConcurrency))) : 6;
   const visionRefs = useMemo(() => {
     const defaultProviderName = defaultRef.split("/")[0];
     const candidates = refs.filter((ref) => {
@@ -2031,51 +2026,18 @@ export function ModelsSection({ s, busy, apply, backgroundApply, subtab, onboard
             </SettingsField>
 
             <details className="settings-subagent-advanced"><summary>{t("settings.subagentAdvanced")}</summary>
-            <SettingsField label={t("settings.subagentDepth")} hint={t("settings.subagentDepthHint")}>
-              <SettingsOptions className="provider-add-segmented" role="group" aria-label={t("settings.subagentDepth")}>
-                {[1, 2].map((depth) => (
-                  <button
-                    key={depth}
-                    type="button"
-                    className={subagentDepth === depth ? "provider-add-segmented__item provider-add-segmented__item--active" : "provider-add-segmented__item"}
-                    disabled={busy}
-                    aria-pressed={subagentDepth === depth}
-                    onClick={() => void apply(() => saveModelSettings(s, {kind: "preference", field: "depth", number: depth}))}
-                  >
-                    {depth === 1 ? t("settings.subagentDepthOne") : t("settings.subagentDepthTwo")}
-                  </button>
-                ))}
-              </SettingsOptions>
-            </SettingsField>
-
             <SettingsField label={t("settings.subagentConcurrency")} hint={t("settings.subagentConcurrencyHint")}>
               <input
                 className="mem-input"
                 type="number"
                 min={1}
-                max={32}
+                max={8}
                 value={subagentConcurrency}
                 disabled={busy}
                 onChange={(e) => {
                   const n = Number(e.target.value);
                   if (!Number.isFinite(n)) return;
                   void apply(() => saveModelSettings(s, {kind: "preference", field: "concurrency", number: n}));
-                }}
-              />
-            </SettingsField>
-
-            <SettingsField label={t("settings.parallelWriters")} hint={t("settings.parallelWritersHint")}>
-              <input
-                className="mem-input"
-                type="number"
-                min={1}
-                max={subagentConcurrency}
-                value={parallelWriters}
-                disabled={busy}
-                onChange={(e) => {
-                  const n = Number(e.target.value);
-                  if (!Number.isFinite(n)) return;
-                  void apply(() => saveModelSettings(s, {kind: "preference", field: "writers", number: n}));
                 }}
               />
             </SettingsField>
@@ -3594,6 +3556,7 @@ export const ProviderEditorModelPicker = memo(function ProviderEditorModelPicker
       <div className="provider-model-draft__list" role="list" aria-label={t("settings.modelList")}>
         {deferredCandidates.length > 0 ? deferredCandidates.map((model) => {
           const enabled = selected.has(model);
+          const displayName = modelCapabilities.find(item => item.model === model)?.displayName?.trim();
           const capability = providerModelVisionCapability(
             {modelCapabilities},
             model,
@@ -3608,7 +3571,10 @@ export const ProviderEditorModelPicker = memo(function ProviderEditorModelPicker
                   disabled={disabled}
                   onChange={() => onToggleModel(model)}
                 />
-                <span title={model}>{modelCapabilities.find(item => item.model === model)?.displayName || model}</span>
+                <span className="provider-model-draft__identity">
+                  <span className="provider-model-draft__name" title={model}>{displayName || model}</span>
+                  {displayName && displayName !== model && <code className="provider-model-draft__id">ID: {model}</code>}
+                </span>
                 {conversationModel === model && <small className="provider-conversation-model">{t("onboarding.conversationModel")}</small>}
               </label>
               <div className="provider-model-draft__capabilities" aria-label={t("settings.modelCapabilitiesAria", { model })}>

@@ -21,6 +21,12 @@ func (a *Agent) parseToolCall(ctx context.Context, turn *turnRuntime, plan *tool
 		}, true
 	}
 	if t == nil {
+		switch plan.call.Name {
+		case "task", "read_only_task", "parallel_tasks", "fleet":
+			return toolOutcome{output: "error: this delegation tool is retired; use spawn_agents with independent tasks", errMsg: "retired delegation tool"}, true
+		case "complete_subtask":
+			return toolOutcome{output: "error: complete_subtask is retired; return a final text answer", errMsg: "retired completion tool"}, true
+		}
 		if server, ok := completedMCPConnect(a.svc.tools, plan.call.Name); ok {
 			return toolOutcome{
 				output: fmt.Sprintf("MCP server %q is connected; its real tools are now available", server),
@@ -31,6 +37,7 @@ func (a *Agent) parseToolCall(ctx context.Context, turn *turnRuntime, plan *tool
 			errMsg: fmt.Sprintf("unknown tool %q", plan.call.Name),
 		}, true
 	}
+	t = spawnToolForContext(ctx, t, json.RawMessage(plan.call.Arguments))
 	plan.tool = t
 	plan.canonicalName = canonicalName
 	plan.permName = canonicalName

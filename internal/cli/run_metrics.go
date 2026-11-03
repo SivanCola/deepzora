@@ -53,34 +53,15 @@ type RunMetrics struct {
 	// OriginalCosts is per-ISO original currency totals (never cross-added).
 	OriginalCosts map[string]float64 `json:"original_costs,omitempty"`
 	// CostQuotes retains occurrence-time quotes for audit (capped).
-	CostQuotes                     []billing.CostQuote `json:"cost_quotes,omitempty"`
-	Estimated                      bool                `json:"estimated,omitempty"`
-	Compactions                    int                 `json:"compactions"`
-	ReadinessChecks                int                 `json:"readiness_checks"`
-	ReadinessAllowed               int                 `json:"readiness_allowed"`
-	ReadinessBlocks                int                 `json:"readiness_blocks"`
-	ReadinessRecoveries            int                 `json:"readiness_recoveries"`
-	ReadinessErrors                int                 `json:"readiness_errors"`
-	ReadinessMissingProjectChecks  int                 `json:"readiness_missing_project_checks"`
-	ReadinessIncompleteTodos       int                 `json:"readiness_incomplete_todos"`
-	ReadinessCommandMismatches     int                 `json:"readiness_command_mismatches"`
-	ReadinessMissingAcceptance     int                 `json:"readiness_missing_acceptance_criteria"`
-	ReadinessMissingVerification   int                 `json:"readiness_missing_verification"`
-	ReadinessMissingReview         int                 `json:"readiness_missing_review"`
-	ReadinessMissingSignoff        int                 `json:"readiness_missing_signoff"`
-	ReadinessMissingActionEvidence int                 `json:"readiness_missing_action_evidence"`
-	ReadinessMissingMutation       int                 `json:"readiness_missing_mutation"`
+	CostQuotes  []billing.CostQuote `json:"cost_quotes,omitempty"`
+	Estimated   bool                `json:"estimated,omitempty"`
+	Compactions int                 `json:"compactions"`
 	// Delegation counters let one model be compared across orchestration arms
 	// without scraping prose. Child tool calls are already split out as
 	// SubagentToolCalls below; parent calls are ToolCalls minus that.
 	SubagentRuns               int `json:"subagent_runs,omitempty"`
 	SubagentNestedRuns         int `json:"subagent_nested_runs,omitempty"`
 	SubagentMutations          int `json:"subagent_mutations,omitempty"`
-	CompletionReports          int `json:"completion_reports,omitempty"`
-	CompletionsProsedOnly      int `json:"completions_prose_only,omitempty"`
-	FalseCompletions           int `json:"false_completions,omitempty"`
-	CriterionDowngrades        int `json:"criterion_downgrades,omitempty"`
-	WriteScopeViolations       int `json:"write_scope_violations,omitempty"`
 	DuplicateWorkPaths         int `json:"duplicate_work_paths,omitempty"`
 	ParentScopeHints           int `json:"parent_scope_hints,omitempty"`
 	ParentNamedFiles           int `json:"parent_named_files,omitempty"`
@@ -431,22 +412,12 @@ func (s *metricsSink) RecordDelegationAudit(a evidence.DelegationAudit) {
 		s.m.SubagentNestedRuns++
 	}
 	s.m.SubagentMutations += a.Mutations
-	s.m.WriteScopeViolations += a.ClaimViolations
-	s.m.CriterionDowngrades += a.Downgrades
 	// Summed, never averaged: an independence rate is a ratio of these totals,
 	// so a child that read two files cannot outweigh one that read forty.
 	s.m.ParentScopeHints += a.ParentScopeHints
 	s.m.ParentNamedFiles += a.ParentNamedFiles
 	s.m.ChildEvidencePaths += a.EvidencePaths
 	s.m.ChildDiscoveredPaths += a.DiscoveredPaths
-	if a.HasReport {
-		s.m.CompletionReports++
-	} else {
-		s.m.CompletionsProsedOnly++
-	}
-	if a.FalseCompletion() {
-		s.m.FalseCompletions++
-	}
 	if s.childMutations == nil {
 		s.childMutations = map[string]int{}
 	}
@@ -458,36 +429,6 @@ func (s *metricsSink) RecordDelegationAudit(a evidence.DelegationAudit) {
 	}
 	s.mu.Unlock()
 	event.RecordDelegationAudit(s.inner, a)
-}
-
-func (s *metricsSink) RecordReadinessAudit(a evidence.ReadinessAudit) {
-	if s == nil {
-		return
-	}
-	s.mu.Lock()
-	s.m.ReadinessChecks++
-	switch a.Result {
-	case evidence.ReadinessAllowed:
-		s.m.ReadinessAllowed++
-	case evidence.ReadinessBlocked:
-		s.m.ReadinessBlocks++
-	case evidence.ReadinessErrored:
-		s.m.ReadinessErrors++
-	}
-	if a.Recovered {
-		s.m.ReadinessRecoveries++
-	}
-	s.m.ReadinessMissingProjectChecks += a.MissingProjectChecks
-	s.m.ReadinessIncompleteTodos += a.IncompleteTodos
-	s.m.ReadinessCommandMismatches += a.CommandMismatchMissing
-	s.m.ReadinessMissingAcceptance += a.MissingAcceptanceCriteria
-	s.m.ReadinessMissingVerification += a.MissingVerification
-	s.m.ReadinessMissingReview += a.MissingReview
-	s.m.ReadinessMissingSignoff += a.MissingSignoff
-	s.m.ReadinessMissingActionEvidence += a.MissingActionEvidence
-	s.m.ReadinessMissingMutation += a.MissingMutation
-	s.mu.Unlock()
-	event.RecordReadinessAudit(s.inner, a)
 }
 
 func (s *metricsSink) RecordAnchorSafetyAudit(a event.AnchorSafetyAudit) {
@@ -526,10 +467,6 @@ func (s *metricsSink) RecordTurnCompletion() {
 
 func (s *metricsSink) RecordContractShadow(a event.ContractShadowAudit) {
 	event.RecordContractShadow(s.inner, a)
-}
-
-func (s *metricsSink) RecordCompletionReport(a event.CompletionReportAudit) {
-	event.RecordCompletionReport(s.inner, a)
 }
 
 func (s *metricsSink) RecordMemoryRecall(a event.MemoryRecallAudit) {
