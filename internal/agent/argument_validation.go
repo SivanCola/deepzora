@@ -16,10 +16,21 @@ const maxArgumentValidationMessageBytes = 4 << 10
 // applyArgumentValidation runs after a proxy has resolved to its concrete
 // target and before hooks, permission, leases, subagents, or MCP tools/call.
 func (a *Agent) applyResolvedTargetGates(plan *toolCallPlan) (toolOutcome, bool) {
+	if a.subagentDepth > 0 && plan != nil && plan.execTool != nil && isDelegationTool(plan.execTool.Name()) {
+		return toolOutcome{blocked: true, output: "blocked: subagents cannot delegate", errMsg: "subagents cannot delegate"}, true
+	}
 	if blocked, early := a.applyDispatchGenerationGate(plan); early {
 		return blocked, true
 	}
 	return a.applyArgumentValidation(plan)
+}
+
+func isDelegationTool(name string) bool {
+	switch name {
+	case SpawnToolName, "task", "read_only_task", "parallel_tasks", "fleet", "run_skill", "read_only_skill", "explore", "research", "review", "security_review":
+		return true
+	}
+	return false
 }
 
 func (a *Agent) applyArgumentValidation(plan *toolCallPlan) (toolOutcome, bool) {

@@ -13,7 +13,7 @@ import (
 	"deepzora/internal/tool"
 )
 
-func TestSubagentContinuationUsesCurrentParentCatalog(t *testing.T) {
+func TestSubagentResultUsesCurrentParentCatalog(t *testing.T) {
 	sessionDir := t.TempDir()
 	root := session.RootForSessionDir(sessionDir)
 	parents, err := session.NewService("local", session.NewFilesystemPersistence(root))
@@ -44,15 +44,10 @@ func TestSubagentContinuationUsesCurrentParentCatalog(t *testing.T) {
 		t.Fatal(err)
 	}
 	run.Release()
-	spec.ParentSession = "child"
-	child, err := store.PrepareContinue(run.Ref, spec)
-	if err != nil {
-		t.Fatal(err)
+	answer, _, err := store.ReadFinalAnswer(run.Ref, "child", sessionDir)
+	if err != nil || answer != "parent result" {
+		t.Fatalf("descendant result: %q %v", answer, err)
 	}
-	if child.Ref == run.Ref || child.Meta.ParentSession != "child" || child.ForkedFrom != run.Ref {
-		t.Fatalf("wrong continuation identity: %+v", child.Meta)
-	}
-	child.Release()
 	// A valid-looking old sidecar must not grant ancestry absent from the
 	// current catalog, even when it claims the exact desired parent.
 	oldPath := filepath.Join(sessionDir, "unrelated.jsonl.meta")
@@ -61,7 +56,7 @@ func TestSubagentContinuationUsesCurrentParentCatalog(t *testing.T) {
 		t.Fatal(err)
 	}
 	spec.ParentSession = "unrelated"
-	if _, err := store.PrepareContinue(run.Ref, spec); err == nil {
+	if _, _, err := store.ReadFinalAnswer(run.Ref, spec.ParentSession, sessionDir); err == nil {
 		t.Fatal("old sidecar authorized a foreign parent")
 	}
 	for _, id := range []string{"root", "child", "unrelated"} {
@@ -88,7 +83,7 @@ func TestSubagentContinuationUsesCurrentParentCatalog(t *testing.T) {
 	if err := os.WriteFile(headerPath, body, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.PrepareContinue(run.Ref, spec); err == nil {
+	if _, _, err := store.ReadFinalAnswer(run.Ref, spec.ParentSession, sessionDir); err == nil {
 		t.Fatalf("invalid current parent accepted: %v", err)
 	}
 }

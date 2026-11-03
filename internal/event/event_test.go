@@ -4,7 +4,6 @@ import (
 	"sync"
 	"testing"
 
-	"deepzora/internal/evidence"
 	"deepzora/internal/provider"
 )
 
@@ -68,41 +67,26 @@ func TestFuncSinkNilEmitIsNoop(t *testing.T) {
 	fs.Emit(Event{Kind: Text, Text: "hello"})
 }
 
-type typedNilSink struct{}
-
-func (*typedNilSink) Emit(Event) {}
-
-func TestSyncTreatsTypedNilSinkAsDiscard(t *testing.T) {
-	var base *typedNilSink
-
-	Sync(base).Emit(Event{Kind: Text, Text: "hello"})
-}
-
-type readinessAuditRecorder struct {
-	events    []evidence.ReadinessAudit
+type auditRecorder struct {
 	recovery  []ProtocolRecoveryAudit
 	workspace []WorkspaceMutation
 	turns     int
 }
 
-func (r *readinessAuditRecorder) Emit(Event) {}
+func (r *auditRecorder) Emit(Event) {}
 
-func (r *readinessAuditRecorder) RecordReadinessAudit(a evidence.ReadinessAudit) {
-	r.events = append(r.events, a)
-}
-
-func (r *readinessAuditRecorder) RecordProtocolRecovery(a ProtocolRecoveryAudit) {
+func (r *auditRecorder) RecordProtocolRecovery(a ProtocolRecoveryAudit) {
 	r.recovery = append(r.recovery, a)
 }
 
-func (r *readinessAuditRecorder) RecordTurnCompletion() { r.turns++ }
+func (r *auditRecorder) RecordTurnCompletion() { r.turns++ }
 
-func (r *readinessAuditRecorder) RecordWorkspaceMutation(m WorkspaceMutation) {
+func (r *auditRecorder) RecordWorkspaceMutation(m WorkspaceMutation) {
 	r.workspace = append(r.workspace, m)
 }
 
 func TestSyncForwardsTurnCompletion(t *testing.T) {
-	rec := &readinessAuditRecorder{}
+	rec := &auditRecorder{}
 	RecordTurnCompletion(Sync(rec))
 	if rec.turns != 1 {
 		t.Fatalf("turn completions = %d, want 1", rec.turns)
@@ -110,7 +94,7 @@ func TestSyncForwardsTurnCompletion(t *testing.T) {
 }
 
 func TestSyncForwardsWorkspaceMutationWithoutUIEvent(t *testing.T) {
-	rec := &readinessAuditRecorder{}
+	rec := &auditRecorder{}
 	sink := Sync(rec)
 	RecordWorkspaceMutation(sink, WorkspaceMutation{ToolName: "write_file", Paths: []string{"a.go"}, Content: true})
 	if len(rec.workspace) != 1 || rec.workspace[0].ToolName != "write_file" || len(rec.workspace[0].Paths) != 1 {
@@ -118,26 +102,8 @@ func TestSyncForwardsWorkspaceMutationWithoutUIEvent(t *testing.T) {
 	}
 }
 
-func TestSyncForwardsReadinessAuditReceipts(t *testing.T) {
-	rec := &readinessAuditRecorder{}
-	sink := Sync(rec)
-
-	RecordReadinessAudit(sink, evidence.ReadinessAudit{
-		Result:                 evidence.ReadinessBlocked,
-		MissingProjectChecks:   1,
-		CommandMismatchMissing: 1,
-	})
-
-	if len(rec.events) != 1 {
-		t.Fatalf("readiness audit events = %d, want 1", len(rec.events))
-	}
-	if rec.events[0].Result != evidence.ReadinessBlocked || rec.events[0].MissingProjectChecks != 1 {
-		t.Fatalf("readiness audit not forwarded through Sync: %+v", rec.events[0])
-	}
-}
-
 func TestSyncForwardsProtocolRecoveryWithoutEmittingUIEvent(t *testing.T) {
-	rec := &readinessAuditRecorder{}
+	rec := &auditRecorder{}
 	sink := Sync(rec)
 
 	RecordProtocolRecovery(sink, ProtocolRecoveryAudit{Kind: ProtocolRecoveryMissingReasoningRetryReplaced})

@@ -35,7 +35,7 @@ func (a *Agent) prepareWriteCoordination(ctx context.Context, plan *toolCallPlan
 	}
 	plan.releaseParentWrite = release
 	plan.parentWriteClaimID = claimID
-	return a.applyLiveWriteReservation(ctx, plan)
+	return toolOutcome{}, false
 }
 
 // reserveCoordinatedParentWrite also returns the hook claim's id: that claim
@@ -43,10 +43,7 @@ func (a *Agent) prepareWriteCoordination(ctx context.Context, plan *toolCallPlan
 func (a *Agent) reserveCoordinatedParentWrite(plan *toolCallPlan) (func(), int64, error) {
 	if plan.hooksMayMutateWorkspace &&
 		a.svc.writeScheduler != nil && a.subagentDepth == 0 {
-		claim, err := WholeWorkspaceWriteClaim(a.writeWorkspaceRoot)
-		if err != nil {
-			return func() {}, 0, err
-		}
+		claim := WritePathSet{WholeWorkspace: true, WorkspaceRoot: a.writeWorkspaceRoot}
 		return a.svc.writeScheduler.ReserveParentWriteWithID(claim)
 	}
 	release, err := a.reserveParentWrite(plan.runTool, plan.runArgs, !plan.effects.WorkspaceMutation)
@@ -76,45 +73,9 @@ func (a *Agent) acquireWorkspaceLease(ctx context.Context, plan *toolCallPlan) (
 	return a.svc.workspaceLease.HoldWrite(ctx)
 }
 
-func (a *Agent) applyLiveWriteReservation(ctx context.Context, plan *toolCallPlan) (toolOutcome, bool) {
-	if a == nil || plan == nil || a.svc.writeScheduler == nil || plan.runTool == nil {
-		return toolOutcome{}, false
-	}
-	id := SubagentClaimID(ctx)
-	if id == 0 {
-		return toolOutcome{}, false
-	}
-	name := plan.runTool.Name()
-	if plan.hooksMayMutateWorkspace {
-		if err := a.svc.writeScheduler.MarkOpaque(id); err != nil {
-			return writeClaimBlockedOutcome(err), true
-		}
-		return toolOutcome{}, false
-	}
-	if !plan.effects.WorkspaceMutation {
-		return toolOutcome{}, false
-	}
-	if pathBoundWriterNames[name] {
-		claim, err := parentWriteReservation(a.writeWorkspaceRoot, name, plan.runArgs)
-		if err != nil {
-			return writeClaimBlockedOutcome(err), true
-		}
-		if err := a.svc.writeScheduler.Realize(id, claim); err != nil {
-			return writeClaimBlockedOutcome(err), true
-		}
-		return toolOutcome{}, false
-	}
-	if parentWriteGuardTarget(name) {
-		if err := a.svc.writeScheduler.MarkOpaque(id); err != nil {
-			return writeClaimBlockedOutcome(err), true
-		}
-	}
-	return toolOutcome{}, false
-}
-
 func writeClaimBlockedOutcome(err error) toolOutcome {
 	return toolOutcome{
 		output: "blocked: " + err.Error(), blocked: true,
-		errMsg: "blocked: write path claimed by background subagent",
+		errMsg: "blocked: another writable operation holds the session writer slot",
 	}
 }

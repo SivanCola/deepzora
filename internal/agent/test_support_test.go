@@ -8,7 +8,6 @@ import (
 	"sync"
 	"testing"
 
-	"deepzora/internal/event"
 	"deepzora/internal/evidence"
 	"deepzora/internal/provider"
 	"deepzora/internal/tool"
@@ -43,13 +42,6 @@ func (t *recoveryArgumentTool) Execute(_ context.Context, args json.RawMessage) 
 	defer t.mu.Unlock()
 	t.inputs = append(t.inputs, string(args))
 	return "executed", nil
-}
-
-type readinessAuditSink struct{ events []evidence.ReadinessAudit }
-
-func (*readinessAuditSink) Emit(event.Event) {}
-func (s *readinessAuditSink) RecordReadinessAudit(a evidence.ReadinessAudit) {
-	s.events = append(s.events, a)
 }
 
 type okTool struct{ name string }

@@ -13,7 +13,7 @@ import (
 	"deepzora/internal/hook"
 )
 
-func TestBuildResumedSkillKeepsHookSessionID(t *testing.T) {
+func TestBuildFreshSkillsHaveIndependentHookSessions(t *testing.T) {
 	isolateConfigHome(t)
 	dir := robustTempDir(t)
 	t.Chdir(dir)
@@ -81,8 +81,8 @@ models = ["x"]
 		}
 		sessionIDs[i] = payload.SessionID
 	}
-	if sessionIDs[0] != sessionIDs[1] {
-		t.Fatalf("resumed skill hook session IDs differ: %q and %q", sessionIDs[0], sessionIDs[1])
+	if sessionIDs[0] == sessionIDs[1] {
+		t.Fatalf("fresh skill hook session IDs must differ: %q and %q", sessionIDs[0], sessionIDs[1])
 	}
 	if sessionIDs[0] != "subagent:"+ref {
 		t.Fatalf("skill hook session ID = %q, want transcript identity %q", sessionIDs[0], "subagent:"+ref)

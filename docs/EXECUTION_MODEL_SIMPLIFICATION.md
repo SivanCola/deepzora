@@ -14,11 +14,13 @@ Deepzora 将任务判断、执行控制和运行记录分开。模型负责规�
 - 完成声明不会覆盖测试失败，也不会将未完成待办批量改为完成。取消、权限等待、错误和显式预算边界不会被当作正常完成。
 - `complete_step`、`review_report` 和读取策略回执不再注册，调用按未知工具失败，不改变待办或恢复状态。旧步骤凭据、签收匹配和签收进度计分已删除。
 
+计划步骤不再输出 `acceptance` 或 `verification` 字段。子代理使用统一执行入口和文字结果，详见[子代理执行契约](SUBAGENT_EXECUTION.md)。
+
 ## 记录与兼容
 
 新结果使用可选字段 `assessmentKind: "facts"`，旧 `verdict` 字段为 `unknown`。命令退出码、失败、中断及检查后又发生修改等事实独立展示。`unknown` 不代表失败或待验收。模型的完成和验证声明不改变实际执行记录。
 
-历史回执和质量评估保留为历史资料，旧检查点不再阻塞当前任务。`/continue-checks` 仍是显式检查请求；有可用检查点时只消费一次，没有时正常发起检查。恢复和分叉只加载 Goal，显式启动或恢复后才允许自动续跑。
+历史回执和质量评估保留为历史资料，旧检查点不再阻塞当前任务。新的验证要求作为普通用户请求处理，不自动恢复旧就绪门禁。恢复和分叉只加载 Goal，显式启动或恢复后才允许自动续跑。
 
 旧配置和线路字段保持兼容。数据可读不代表降级后的旧程序会遵守新执行语义。连接旧远端时仍展示远端实际状态，升级服务才能移除其旧策略；客户端不后台切换远端策略。
 
@@ -38,7 +40,7 @@ Goal lifecycle is managed through `get_goal`, `create_goal`, and exact-ID/revisi
 todos. Step-proof receipt fields, signoff matching and signoff progress scoring
 are removed; current todos and observed command outcomes remain independent.
 
-New result records carry optional `assessmentKind: "facts"` and legacy `verdict: "unknown"`. This is not a failure verdict. Actual command outcomes, interruptions, and changes after checks remain factual. Historical quality assessments and receipts remain historical; old checkpoints no longer impose quality gates. Old `/continue-checks` recovery actions return a stable retirement error and do not replay checks.
+New result records carry optional `assessmentKind: "facts"` and legacy `verdict: "unknown"`. This is not a failure verdict. Actual command outcomes, interruptions, and changes after checks remain factual. Historical quality assessments and receipts remain historical; old checkpoints no longer impose quality gates. New verification requests are ordinary user requests and do not reactivate the retired readiness gate.
 
 Restored and forked Goals require explicit activation. Legacy wire formats remain readable; downgrading does not guarantee the old executable follows the new semantics. Old remote services retain their actual state and require a server upgrade; clients do not silently change remote policies.
 

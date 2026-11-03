@@ -8,10 +8,11 @@ import (
 // admissionGatedDelegations are the delegation tools whose admission is audited.
 // The model chooses delegation; this audit never blocks a call.
 var admissionGatedDelegations = map[string]bool{
-	"research": true,
-	"explore":  true,
-	"task":     true,
-	"fleet":    true,
+	"spawn_agents": true,
+	"research":     true,
+	"explore":      true,
+	"task":         true,
+	"fleet":        true,
 }
 
 // observeDelegationAdmission records a shadow admission verdict for every
