@@ -161,7 +161,7 @@ func (a *App) startTeamHost() {
 			}
 			if h.Ready() {
 				if err := a.reconcileTeamPresets(ctx); err != nil && ctx.Err() == nil {
-					slog.Warn("desktop: apply team preset", "err", err)
+					slog.Warn("desktop: apply team preset", "err", secrets.RedactError(err))
 				}
 				a.notifyTeamInboxReady()
 			}
