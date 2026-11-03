@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	// Packaged Windows hosts have no system IANA database or Go installation.
+	_ "time/tzdata"
 	"unicode/utf8"
 
 	"deepzora/internal/fileutil"
