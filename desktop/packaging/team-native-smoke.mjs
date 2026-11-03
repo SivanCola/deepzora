@@ -97,6 +97,7 @@ try{
   assert.equal((await invoke("GetTeamMemory",[{tier:"team"}])).facts.length,0,"fresh approval was bypassed under full access");
   await invoke("ResolvePromptForTab",[tab.id,pending.promptId,pending.turnId,pending.runtimeEpoch,pending.kind,{allow:true}]);
   await waitForSmokeCondition(()=>historyHas(tab.id,"NATIVE_APPROVAL_OK"));
+  await settle();
   assert.equal((await invoke("GetTeamMemory",[{tier:"team"}])).facts.length,1);record("fresh human approval binds the shared-memory change under full access");
   const schedules=await invoke("GetTeamSchedules"),current=await invoke("GetTeam");
   const saved=await invoke("SaveTeamSchedule",[{expectedRevision:schedules.revision,expectedRosterRevision:current.roster.revision,requestId:id(),schedule:{name:"Native schedule",agent:chief,prompt:"NATIVE_SCHEDULE",repeat:"once",timezone:"Etc/UTC",anchor:new Date(Date.now()+3600000).toISOString(),days:[],enabled:false}}]);
