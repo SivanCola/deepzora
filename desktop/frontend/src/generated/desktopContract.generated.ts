@@ -3,7 +3,7 @@
 
 export const DESKTOP_PROTOCOL_VERSION = 11;
 
-export const DESKTOP_CONTRACT_DIGEST = "sha256:dfac49c741dc516b55132c57a03a79c3457bae4ff864ec02d4c3f0ec1e826792";
+export const DESKTOP_CONTRACT_DIGEST = "sha256:4346aba655a13d56d83a60c29312234c85f7b315ad7fa402b52f118a3eb000d4";
 
 export const DESKTOP_COMMANDS = [
   "AIRenameSessionTarget",
@@ -155,6 +155,7 @@ export const DESKTOP_COMMANDS = [
   "GetTeamMemory",
   "GetTeamMemoryReviewStatus",
   "GetTeamSchedules",
+  "GetTeamSecrets",
   "GetThemeExperience",
   "GetToolRecoveryForTab",
   "GetWorkspaceSnapshot",
@@ -407,6 +408,7 @@ export const DESKTOP_COMMANDS = [
   "SaveTeamMemory",
   "SaveTeamMemoryPreferences",
   "SaveTeamSchedule",
+  "SaveTeamSecret",
   "SaveThemePack",
   "SaveWindowState",
   "SaveWorkspacePathAsForTab",
@@ -516,6 +518,7 @@ export const DESKTOP_COMMANDS = [
   "SummarizeFromForTab",
   "SummarizeUpToForTab",
   "SwitchWorkspace",
+  "TeamSecretSeatForTab",
   "TerminalOutputForTab",
   "TerminalWorkspaceForTab",
   "TestProviderModel",
@@ -3130,6 +3133,19 @@ export interface SaveTeamScheduleRequest {
   delete: boolean;
 }
 
+export interface SaveTeamSecretRequest {
+  expectedRevision: number;
+  expectedRosterRevision: number;
+  requestId: string;
+  operation: string;
+  name: string;
+  purpose: string;
+  value: string;
+  agents: string[];
+  secretRequestId: string;
+  confirmForget: boolean;
+}
+
 export interface ServerView {
   name: string;
   transport: string;
@@ -3858,6 +3874,34 @@ export interface TeamSeatView {
   generation: number;
   work: ActiveWorkView;
   settingsPending: boolean;
+}
+
+export interface TeamSecretMetadata {
+  name: string;
+  purpose: string;
+  agents: string[];
+  updatedAt: string;
+}
+
+export interface TeamSecretResult {
+  outcome: string;
+  reason?: string;
+  message?: string;
+  view: TeamSecretsView;
+}
+
+export interface TeamSecretSeatView {
+  agentId: string;
+  groupId: string;
+}
+
+export interface TeamSecretsView {
+  available: boolean;
+  revision: number;
+  rosterRevision: number;
+  secrets: TeamSecretMetadata[];
+  requests: TeamSecretRequest[];
+  retiredCount: number;
 }
 
 export interface TeamTargetMutationRequest {
@@ -4788,6 +4832,14 @@ export interface TeamPreferences {
   memoryReviewModel?: string;
 }
 
+export interface TeamSecretRequest {
+  id: string;
+  agent: string;
+  name: string;
+  purpose: string;
+  at: string;
+}
+
 export interface ActiveAttempt {
   id: string;
   messageId: string;
@@ -5204,6 +5256,7 @@ export interface GeneratedDesktopCommands {
   GetTeamMemory(arg0: TeamMemoryTarget): Promise<TeamMemoryView>;
   GetTeamMemoryReviewStatus(): Promise<TeamMemoryReviewStatus[]>;
   GetTeamSchedules(): Promise<TeamScheduleView>;
+  GetTeamSecrets(): Promise<TeamSecretsView>;
   GetThemeExperience(): Promise<ThemeExperienceView>;
   GetToolRecoveryForTab(arg0: string): Promise<ToolRecoverySnapshot>;
   GetWorkspaceSnapshot(): Promise<WorkspaceSnapshot>;
@@ -5456,6 +5509,7 @@ export interface GeneratedDesktopCommands {
   SaveTeamMemory(arg0: SaveTeamMemoryRequest): Promise<TeamMemoryResult>;
   SaveTeamMemoryPreferences(arg0: SaveTeamMemoryPreferencesRequest): Promise<TeamMutationResult>;
   SaveTeamSchedule(arg0: SaveTeamScheduleRequest): Promise<TeamScheduleResult>;
+  SaveTeamSecret(arg0: SaveTeamSecretRequest): Promise<TeamSecretResult>;
   SaveThemePack(arg0: ThemeSaveInput): Promise<ThemePackView>;
   SaveWindowState(arg0: DesktopWindowState): Promise<void>;
   SaveWorkspacePathAsForTab(arg0: string, arg1: string): Promise<string>;
@@ -5565,6 +5619,7 @@ export interface GeneratedDesktopCommands {
   SummarizeFromForTab(arg0: string, arg1: number): Promise<void>;
   SummarizeUpToForTab(arg0: string, arg1: number): Promise<void>;
   SwitchWorkspace(arg0: string): Promise<string>;
+  TeamSecretSeatForTab(arg0: string): Promise<TeamSecretSeatView>;
   TerminalOutputForTab(arg0: string, arg1: string): Promise<string>;
   TerminalWorkspaceForTab(arg0: string): Promise<TerminalWorkspaceView>;
   TestProviderModel(arg0: ProviderView, arg1: string, arg2: string): Promise<void>;

@@ -90,7 +90,8 @@ type bash struct {
 	sessionTemp *sessiontemp.Manager
 	// persistent runs ordinary foreground commands in a session PTY. A
 	// context-attached manager isolates sub-agents. Nil keeps one-shot processes.
-	persistent *persistentshell.Manager
+	persistent  *persistentshell.Manager
+	teamSecrets TeamSecretEnvironment
 }
 
 type bashParams struct {
@@ -207,6 +208,12 @@ func (b bash) ExecuteDetailed(ctx context.Context, args json.RawMessage) (tool.D
 			lease.Release()
 		}
 	}()
+	// Resolve after any sandbox approval wait, immediately before choosing the
+	// process owner. Revocation during that wait must stop this new launch.
+	secretEnv, err := b.teamCommandEnvironment(ctx, sh, p.Command)
+	if err != nil {
+		return bashPreflightFailure(ex, start, err)
+	}
 
 	// A host-owned terminal runs the command where the user watches it live.
 	// Never when the OS sandbox is enforcing (the host cannot honor the local
@@ -214,7 +221,7 @@ func (b bash) ExecuteDetailed(ctx context.Context, args json.RawMessage) (tool.D
 	// (the host terminal spawns with its own unfiltered environment, which
 	// would leak the credentials the user asked to strip), and never for
 	// background jobs. ok=false falls back to local execution unchanged.
-	if b.terminal != nil && sh.Kind != sandbox.ShellPowerShell && !p.RunInBackground && !b.sb.Enforce() && !secrets.FilterSubprocessEnv() {
+	if len(secretEnv) == 0 && b.terminal != nil && sh.Kind != sandbox.ShellPowerShell && !p.RunInBackground && !b.sb.Enforce() && !secrets.FilterSubprocessEnv() {
 		envMap := sandbox.SessionTempEnvMap(prepared.SessionTemp, prepared.LinuxSandboxed)
 		if out, ok, termErr := b.terminal.RunCommand(ctx, p.Command, b.workDir, b.timeout, envMap); ok {
 			out = appendSessionDataHint(out, b.guard.CommandHint(b.workDir, p.Command))
@@ -226,8 +233,14 @@ func (b bash) ExecuteDetailed(ctx context.Context, args json.RawMessage) (tool.D
 
 	argv, wrapped := prepared.Argv, prepared.Wrapped
 	cmdEnv := applyEnvOverrides(bashCommandEnv(ctx), prepared.EnvOverrides)
-	if res, err, used := b.tryPersistent(ctx, p, sh, prepared, persistEnv(cmdEnv), start, ex); used {
-		return res, err
+	if b.teamSecrets != nil {
+		cmdEnv = stripTeamSecretEnvironment(cmdEnv)
+	}
+	cmdEnv = applyEnvOverrides(cmdEnv, secretEnv)
+	if len(secretEnv) == 0 {
+		if res, err, used := b.tryPersistent(ctx, p, sh, prepared, persistEnv(cmdEnv), start, ex); used {
+			return res, err
+		}
 	}
 	if err := checkCommandLine(argv); err != nil {
 		return bashPreflightFailure(ex, start, err)

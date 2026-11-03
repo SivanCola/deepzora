@@ -17,6 +17,7 @@ import { InlineConfirmButton } from "./InlineConfirmButton";
 import { PermissionPresetChoice } from "./PermissionPresetChoice";
 import { TeamMemorySettings } from "./TeamMemorySettings";
 import { TeamScheduleSettings } from "./TeamScheduleSettings";
+import { TeamSecretSettings } from "./TeamSecretSettings";
 import { SettingsFeedback, SettingsSubpageHeader, useSettingsDraft, useSettingsExperience } from "./SettingsExperience";
 
 type Editor = { kind:"agent"; member?:Agent; revision:number } | { kind:"group"; group?:Group; revision:number };
@@ -101,6 +102,7 @@ export function TeamSettingsPage({tabId,workspaceKey}:{tabId:string;workspaceKey
       </SettingsSection>
       <TeamMemorySettings team={team.view} reload={team.reload}/>
       <TeamScheduleSettings team={team.view}/>
+      <TeamSecretSettings team={team.view}/>
     </>}
   </section>;
 }

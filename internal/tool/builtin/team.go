@@ -14,7 +14,8 @@ import (
 // when a tool is called, not by which tools a session has.
 func TeamTools(link *tool.TeamLink) []tool.Tool {
 	tools := append(teamCoordinationTools(link), teamManagementTools(link)...)
-	return append(tools, teamMemoryTools(link)...)
+	tools = append(tools, teamMemoryTools(link)...)
+	return append(tools, teamSecretTool(link))
 }
 
 // TeamToolNames are the names TeamTools registers, in its order.

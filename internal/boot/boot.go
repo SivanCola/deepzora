@@ -640,6 +640,7 @@ func build(ctx context.Context, opts Options) (*BuildResult, error) {
 	// Register the full built-in inventory for use_capability dispatch. The
 	// provider-visible surface is narrowed later via SetProviderVisibleTools.
 	addBuiltins(reg, enabledBuiltins, writeRoots, writeRootSet, bashSpec, bashTimeout, searchSpec, stderr, root, proxySpec, forbidReadRoots, readPathResolver, sessionGuard, managedConfig, opts.FileOverlay, opts.TerminalRunner, sessionTemp, fileWriteReceipt)
+	bindTeamSecretEnvironment(reg, opts.TeamSeat)
 	bindPersistentShell(reg, persistentShell)
 	addWebSearch(reg, cfg, entry, proxySpec, sink)
 	browserExec, closeBrowser := browserBackend(opts.BrowserExecutor, cfg.Browser, writeRoots)

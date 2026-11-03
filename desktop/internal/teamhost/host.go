@@ -38,6 +38,8 @@ type Options struct {
 	Validate                  func(team.SeatRef) error
 	Binding                   func(team.SeatRef) (string, error)
 	AgentConfigurationChanged func(context.Context, *teamroster.Roster, teamroster.Agent, teamroster.Agent) error
+	SecretSlots               team.SecretSlots
+	SecretsReady              func() bool
 }
 
 type entry struct {
@@ -105,7 +107,7 @@ func (h *Host) Claim(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	svc := team.New(team.Options{Store: h.opts.Store, Panes: h, Now: h.opts.Now, OnChange: h.opts.Changed, AgentConfigurationChanged: h.opts.AgentConfigurationChanged})
+	svc := team.New(team.Options{Store: h.opts.Store, Panes: h, Now: h.opts.Now, OnChange: h.opts.Changed, AgentConfigurationChanged: h.opts.AgentConfigurationChanged, SecretSlots: h.opts.SecretSlots, SecretsReady: h.opts.SecretsReady})
 	h.mu.Lock()
 	h.service, h.release = svc, release
 	h.mu.Unlock()

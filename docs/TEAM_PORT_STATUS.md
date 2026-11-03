@@ -16,7 +16,7 @@ preset definitions instead of following later preset edits.
 | 3 | Desktop runtime, lease and browser isolation | Implemented; full root/Desktop suites and macOS native browser fixture passed; PR #148 |
 | 4 | Desktop Team UI and generated contract | Implemented; full root/Desktop suites, focused/race, production build, 246 settings viewport cases, Team browser flow and all 34 transcript commands passed; draft PR #149 |
 | 5 | Memory, opt-in review and schedules | Implemented; complete root/Desktop suites, focused/race, typechecks, build and Chromium flow passed; draft PR #151; hosted checks pending |
-| 6 | Private credential slots and shell injection | Pending |
+| 6 | Private credential slots and shell injection | Implemented locally behind a closed masking gate; targeted tests/race and lint passed; native PowerShell/packaged acceptance pending |
 | 7 | Outbound/stream masking, usage and native acceptance | Pending |
 
 No layer status implies completion of a later layer. Secret delivery must remain

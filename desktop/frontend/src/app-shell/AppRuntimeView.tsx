@@ -40,6 +40,7 @@ import { submitBlockReason } from "../lib/sessionAvailability";
 const WindowsWindowControls = lazy(() => import("./WindowsWindowControls").then((module) => ({ default: module.WindowsWindowControls })));
 const ConversationStatusPanel = lazy(() => import("../components/ConversationStatusPanel").then(module => ({ default: module.ConversationStatusPanel })));
 const TeamGroupChat=lazy(()=>import("../components/TeamGroupChat").then(module=>({default:module.TeamGroupChat})));
+const TeamSecretRequestCards=lazy(()=>import("../components/TeamSecretSettings").then(module=>({default:module.TeamSecretRequestCards})));
 
 const WORKSPACE_RESIZER_WIDTH = 8;
 const SHOW_CONTEXT_DOCK = true;
@@ -276,6 +277,7 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
           </TopicbarRegion>}
 
         <section className={`chat-pane${session.transcript.emptyHero&&!activeTeamGroup ? " chat-pane--creation-empty" : ""}`}>
+          {!activeTeamGroup&&activeTabId&&activeTab?.sessionId?.startsWith("desktop-team-")&&<Suspense fallback={null}><TeamSecretRequestCards key={activeTabId} tabID={activeTabId} onManage={()=>chromeCommands.openSidebarSettings("team")}/></Suspense>}
           {activeTeamGroup?<Suspense fallback={<p role="status">{t("settings.loading")}</p>}><TeamGroupChat key={activeTeamGroup} groupID={activeTeamGroup} onManage={()=>chromeCommands.openSidebarSettings("team")} onRevealSeat={id=>void session.tabBarCommands.revealBackgroundRuntime(id)}/></Suspense>:<>
           <SessionStatusBanners {...buildSessionStatusBannerProps({
             t,

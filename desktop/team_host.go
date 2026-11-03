@@ -94,7 +94,7 @@ func (a *App) localTeamHost() (*teamhost.Host, error) {
 	if a.teamState.host != nil {
 		return a.teamState.host, nil
 	}
-	h, err := teamhost.New(teamhost.Options{Store: desktopTeamStore(), Open: a.openTeamRuntime, Changed: a.emitTeamChanged, AgentConfigurationChanged: func(ctx context.Context, r *teamroster.Roster, before, after teamroster.Agent) error {
+	h, err := teamhost.New(teamhost.Options{Store: desktopTeamStore(), Open: a.openTeamRuntime, Changed: a.emitTeamChanged, SecretSlots: config.DefaultTeamSecretSlots(), SecretsReady: teamSecretMaskingReady, AgentConfigurationChanged: func(ctx context.Context, r *teamroster.Roster, before, after teamroster.Agent) error {
 		if before.Folder == after.Folder {
 			return nil
 		}
@@ -166,6 +166,9 @@ func (a *App) startTeamHost() {
 				slog.Warn("desktop: team tick", "err", secrets.RedactError(err))
 			}
 			if h.Ready() {
+				if err := a.recoverTeamSecretCreations(ctx); err != nil && ctx.Err() == nil {
+					slog.Warn("desktop: Team secret creation recovery", "err", secrets.RedactError(err))
+				}
 				if err := a.tickTeamSchedules(ctx, time.Now()); err != nil && ctx.Err() == nil {
 					slog.Warn("desktop: Team schedule", "err", secrets.RedactError(err))
 				}
