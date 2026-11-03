@@ -13,7 +13,8 @@ import (
 // between an agent's own chat and its group seats; who may do what is decided
 // when a tool is called, not by which tools a session has.
 func TeamTools(link *tool.TeamLink) []tool.Tool {
-	return append(teamCoordinationTools(link), teamManagementTools(link)...)
+	tools := append(teamCoordinationTools(link), teamManagementTools(link)...)
+	return append(tools, teamMemoryTools(link)...)
 }
 
 // TeamToolNames are the names TeamTools registers, in its order.
@@ -43,7 +44,7 @@ func (t *teamTool) ReadOnly() bool          { return t.readOnly }
 // Team dispatch and turn control mutate the parent's team state; a strictly
 // read-only child must not execute them under the parent's identity.
 func (t *teamTool) ReadOnlyExecutionHostMutation() bool {
-	return t.name != "list_agents" && t.name != "read_group"
+	return t.name != "list_agents" && t.name != "read_group" && t.name != "read_shared_memory"
 }
 
 func (t *teamTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {

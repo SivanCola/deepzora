@@ -190,7 +190,23 @@ func (s Store) Save(m Memory) (string, error) {
 func (s Store) Archive(name string) (string, error) {
 	memoryStoreMutationMu.Lock()
 	defer memoryStoreMutationMu.Unlock()
+	if err := s.recoverIsolatedBatchLocked(); err != nil {
+		return "", err
+	}
 	return s.archiveLocked(name)
+}
+
+func (s Store) ArchiveAt(id string, revision int) (string, error) {
+	memoryStoreMutationMu.Lock()
+	defer memoryStoreMutationMu.Unlock()
+	if err := s.recoverIsolatedBatchLocked(); err != nil {
+		return "", err
+	}
+	current, _, ok := s.findActive(id)
+	if !ok || current.ID != id || current.Revision != revision {
+		return "", fmt.Errorf("memory revision conflict")
+	}
+	return s.archiveLocked(id)
 }
 
 func (s Store) archiveLocked(name string) (string, error) {

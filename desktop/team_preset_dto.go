@@ -48,16 +48,17 @@ type TeamAgentView struct {
 }
 
 type TeamRosterView struct {
-	SchemaVersion int                `json:"schemaVersion"`
-	Revision      uint64             `json:"revision"`
-	Agents        []TeamAgentView    `json:"agents"`
-	Groups        []teamroster.Group `json:"groups"`
-	RetiredAgents []TeamAgentView    `json:"retiredAgents"`
-	RetiredGroups []teamroster.Group `json:"retiredGroups"`
+	SchemaVersion int                        `json:"schemaVersion"`
+	Revision      uint64                     `json:"revision"`
+	Agents        []TeamAgentView            `json:"agents"`
+	Groups        []teamroster.Group         `json:"groups"`
+	RetiredAgents []TeamAgentView            `json:"retiredAgents"`
+	RetiredGroups []teamroster.Group         `json:"retiredGroups"`
+	Prefs         teamroster.TeamPreferences `json:"prefs"`
 }
 
 func teamRosterView(r teamroster.Roster) TeamRosterView {
-	out := TeamRosterView{SchemaVersion: r.SchemaVersion, Revision: r.Revision, Agents: []TeamAgentView{}, Groups: append([]teamroster.Group{}, r.Groups...), RetiredAgents: []TeamAgentView{}, RetiredGroups: append([]teamroster.Group{}, r.RetiredGroups...)}
+	out := TeamRosterView{SchemaVersion: r.SchemaVersion, Revision: r.Revision, Agents: []TeamAgentView{}, Groups: append([]teamroster.Group{}, r.Groups...), RetiredAgents: []TeamAgentView{}, RetiredGroups: append([]teamroster.Group{}, r.RetiredGroups...), Prefs: r.Prefs}
 	for _, a := range r.Agents {
 		out.Agents = append(out.Agents, teamAgentView(a))
 	}

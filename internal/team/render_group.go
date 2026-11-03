@@ -123,6 +123,10 @@ func lineFrame(r teamroster.Roster, l teamroster.GroupLine) hostframe.Fragment {
 		return hostframe.Frame("event", attrs)
 	}
 	attrs := []hostframe.Attr{{Name: "seq", Value: seq}, {Name: "from", Value: agentName(r, l.From)}}
+	if l.Source == "scheduler" {
+		attrs[1].Value = "scheduler"
+		attrs = append(attrs, hostframe.Attr{Name: "source", Value: "scheduler"})
+	}
 	if l.From != teamroster.ByUser {
 		attrs = append(attrs, hostframe.Attr{Name: "agent", Value: l.From})
 	}

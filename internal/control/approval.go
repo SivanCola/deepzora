@@ -749,7 +749,7 @@ func normalizeToolApprovalMode(mode string) string {
 // memory store may still auto-allow a bounded create-only project memory.
 func RequiresFreshHumanApprovalTool(tool string) bool {
 	switch tool {
-	case planApprovalTool, memoryRememberTool, memoryForgetTool, SandboxEscapeApprovalTool, ManagedConfigWriteApprovalTool, TeamChangeApprovalTool:
+	case planApprovalTool, memoryRememberTool, memoryForgetTool, SandboxEscapeApprovalTool, ManagedConfigWriteApprovalTool, TeamChangeApprovalTool, TeamMemoryApprovalTool:
 		return true
 	default:
 		return false

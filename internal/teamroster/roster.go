@@ -124,6 +124,13 @@ type Roster struct {
 	RetiredAgents []Agent           `json:"retiredAgents,omitempty"`
 	RetiredGroups []Group           `json:"retiredGroups,omitempty"`
 	Mutations     []MutationReceipt `json:"mutations,omitempty"`
+	Prefs         TeamPreferences   `json:"prefs,omitempty"`
+}
+
+type TeamPreferences struct {
+	MemoryReview          bool      `json:"memoryReview"`
+	MemoryReviewStartedAt time.Time `json:"memoryReviewStartedAt,omitempty"`
+	MemoryReviewModel     string    `json:"memoryReviewModel,omitempty"`
 }
 
 func newAgentID() string { return "a-" + randomHex() }

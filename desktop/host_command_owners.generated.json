@@ -2057,6 +2057,44 @@
       "inputs": []
     }
   },
+  "GetTeamMemory": {
+    "domain": "desktop/team_memory_api.go",
+    "owner": "App.GetTeamMemory",
+    "sources": [
+      "desktop/team_memory_api.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.GetTeamMemory",
+      "inputs": [
+        "target"
+      ]
+    }
+  },
+  "GetTeamMemoryReviewStatus": {
+    "domain": "desktop/team_memory_api.go",
+    "owner": "App.GetTeamMemoryReviewStatus",
+    "sources": [
+      "desktop/team_memory_api.go"
+    ],
+    "scope": {
+      "kind": "owner-state",
+      "resolver": "App.GetTeamMemoryReviewStatus",
+      "inputs": []
+    }
+  },
+  "GetTeamSchedules": {
+    "domain": "desktop/team_schedule_api.go",
+    "owner": "App.GetTeamSchedules",
+    "sources": [
+      "desktop/team_schedule_api.go"
+    ],
+    "scope": {
+      "kind": "owner-state",
+      "resolver": "App.GetTeamSchedules",
+      "inputs": []
+    }
+  },
   "GetThemeExperience": {
     "domain": "desktop/theme_app.go",
     "owner": "App.GetThemeExperience",
@@ -5118,6 +5156,20 @@
       ]
     }
   },
+  "RunTeamSchedule": {
+    "domain": "desktop/team_schedule_api.go",
+    "owner": "App.RunTeamSchedule",
+    "sources": [
+      "desktop/team_schedule_api.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.RunTeamSchedule",
+      "inputs": [
+        "req"
+      ]
+    }
+  },
   "RunWorkspaceGitActionForTab": {
     "domain": "desktop/conversation_status.go",
     "owner": "App.RunWorkspaceGitActionForTab",
@@ -5602,6 +5654,48 @@
     "scope": {
       "kind": "owner-inputs",
       "resolver": "App.SaveTeamGroupDraft",
+      "inputs": [
+        "req"
+      ]
+    }
+  },
+  "SaveTeamMemory": {
+    "domain": "desktop/team_memory_api.go",
+    "owner": "App.SaveTeamMemory",
+    "sources": [
+      "desktop/team_memory_api.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.SaveTeamMemory",
+      "inputs": [
+        "req"
+      ]
+    }
+  },
+  "SaveTeamMemoryPreferences": {
+    "domain": "desktop/team_memory_api.go",
+    "owner": "App.SaveTeamMemoryPreferences",
+    "sources": [
+      "desktop/team_memory_api.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.SaveTeamMemoryPreferences",
+      "inputs": [
+        "req"
+      ]
+    }
+  },
+  "SaveTeamSchedule": {
+    "domain": "desktop/team_schedule_api.go",
+    "owner": "App.SaveTeamSchedule",
+    "sources": [
+      "desktop/team_schedule_api.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.SaveTeamSchedule",
       "inputs": [
         "req"
       ]

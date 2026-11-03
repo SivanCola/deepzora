@@ -533,7 +533,7 @@
       "kind": "command",
       "name": "CloseTab",
       "detail": "(tabID string) error",
-      "location": "desktop/tabs.go:2175",
+      "location": "desktop/tabs.go:2176",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -613,7 +613,7 @@
       "kind": "command",
       "name": "ContextPanel",
       "detail": "(tabID string) ContextPanelInfo",
-      "location": "desktop/tabs.go:3852",
+      "location": "desktop/tabs.go:3853",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -709,7 +709,7 @@
       "kind": "command",
       "name": "CreateTopic",
       "detail": "(scope string, workspaceRoot string, title string) (TopicMeta, error)",
-      "location": "desktop/tabs.go:3623",
+      "location": "desktop/tabs.go:3624",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -845,7 +845,7 @@
       "kind": "command",
       "name": "EnsureBlankSurface",
       "detail": "(scope string, workspaceRoot string) (TabMeta, error)",
-      "location": "desktop/tabs.go:1834",
+      "location": "desktop/tabs.go:1835",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -1158,6 +1158,30 @@
       "name": "GetTeam",
       "detail": "() (TeamView, error)",
       "location": "desktop/team_api.go:94",
+      "class": "keep-business",
+      "owner": "hostrpc desktop/invoke"
+    },
+    {
+      "kind": "command",
+      "name": "GetTeamMemory",
+      "detail": "(target TeamMemoryTarget) (TeamMemoryView, error)",
+      "location": "desktop/team_memory_api.go:66",
+      "class": "keep-business",
+      "owner": "hostrpc desktop/invoke"
+    },
+    {
+      "kind": "command",
+      "name": "GetTeamMemoryReviewStatus",
+      "detail": "() ([]TeamMemoryReviewStatus, error)",
+      "location": "desktop/team_memory_api.go:160",
+      "class": "keep-business",
+      "owner": "hostrpc desktop/invoke"
+    },
+    {
+      "kind": "command",
+      "name": "GetTeamSchedules",
+      "detail": "() (TeamScheduleView, error)",
+      "location": "desktop/team_schedule_api.go:32",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -1509,7 +1533,7 @@
       "kind": "command",
       "name": "ListTabs",
       "detail": "() []TabMeta",
-      "location": "desktop/tabs.go:1558",
+      "location": "desktop/tabs.go:1559",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -1877,7 +1901,7 @@
       "kind": "command",
       "name": "OpenProjectTab",
       "detail": "(workspaceRoot string, topicID string) (TabMeta, error)",
-      "location": "desktop/tabs.go:1608",
+      "location": "desktop/tabs.go:1609",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -2493,7 +2517,7 @@
       "kind": "command",
       "name": "RenameProject",
       "detail": "(workspaceRoot string, title string) error",
-      "location": "desktop/tabs.go:3646",
+      "location": "desktop/tabs.go:3647",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -2533,7 +2557,7 @@
       "kind": "command",
       "name": "RenameTopic",
       "detail": "(topicID string, title string) error",
-      "location": "desktop/tabs.go:3756",
+      "location": "desktop/tabs.go:3757",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -2549,7 +2573,7 @@
       "kind": "command",
       "name": "ReorderProjects",
       "detail": "(workspaceRoots []string) error",
-      "location": "desktop/tabs.go:3702",
+      "location": "desktop/tabs.go:3703",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -2557,7 +2581,7 @@
       "kind": "command",
       "name": "ReorderTabs",
       "detail": "(tabIDs []string) error",
-      "location": "desktop/tabs.go:2145",
+      "location": "desktop/tabs.go:2146",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -2875,6 +2899,14 @@
     },
     {
       "kind": "command",
+      "name": "RunTeamSchedule",
+      "detail": "(req RunTeamScheduleRequest) (TeamScheduleResult, error)",
+      "location": "desktop/team_schedule_api.go:133",
+      "class": "keep-business",
+      "owner": "hostrpc desktop/invoke"
+    },
+    {
+      "kind": "command",
       "name": "RunWorkspaceGitActionForTab",
       "detail": "(tabID string, workspaceRoot string, action string, message string) (string, error)",
       "location": "desktop/conversation_status.go:188",
@@ -3134,6 +3166,30 @@
       "name": "SaveTeamGroupDraft",
       "detail": "(req SaveTeamGroupDraftRequest) (TeamGroupDraftResult, error)",
       "location": "desktop/team_preferences.go:57",
+      "class": "keep-business",
+      "owner": "hostrpc desktop/invoke"
+    },
+    {
+      "kind": "command",
+      "name": "SaveTeamMemory",
+      "detail": "(req SaveTeamMemoryRequest) (TeamMemoryResult, error)",
+      "location": "desktop/team_memory_api.go:94",
+      "class": "keep-business",
+      "owner": "hostrpc desktop/invoke"
+    },
+    {
+      "kind": "command",
+      "name": "SaveTeamMemoryPreferences",
+      "detail": "(req SaveTeamMemoryPreferencesRequest) (TeamMutationResult, error)",
+      "location": "desktop/team_memory_api.go:143",
+      "class": "keep-business",
+      "owner": "hostrpc desktop/invoke"
+    },
+    {
+      "kind": "command",
+      "name": "SaveTeamSchedule",
+      "detail": "(req SaveTeamScheduleRequest) (TeamScheduleResult, error)",
+      "location": "desktop/team_schedule_api.go:52",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -3605,7 +3661,7 @@
       "kind": "command",
       "name": "SetProjectColor",
       "detail": "(workspaceRoot string, color string) error",
-      "location": "desktop/tabs.go:3657",
+      "location": "desktop/tabs.go:3658",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -3613,7 +3669,7 @@
       "kind": "command",
       "name": "SetProjectPinned",
       "detail": "(workspaceRoot string, pinned bool) error",
-      "location": "desktop/tabs.go:3668",
+      "location": "desktop/tabs.go:3669",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -3757,7 +3813,7 @@
       "kind": "command",
       "name": "SetTopicPinned",
       "detail": "(topicID string, pinned bool) error",
-      "location": "desktop/tabs.go:3791",
+      "location": "desktop/tabs.go:3792",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -3909,7 +3965,7 @@
       "kind": "command",
       "name": "StopTeamGroup",
       "detail": "(groupID string) error",
-      "location": "desktop/team_group_api.go:95",
+      "location": "desktop/team_group_api.go:96",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -4286,7 +4342,7 @@
     {
       "kind": "event",
       "name": "runtime:rebuilt",
-      "location": "desktop/tabs.go:1278",
+      "location": "desktop/tabs.go:1279",
       "class": "keep-business",
       "owner": "desktop/event frame (seq + generation), same payload"
     },
@@ -4300,7 +4356,7 @@
     {
       "kind": "event",
       "name": "team:changed",
-      "location": "desktop/team_host.go:121",
+      "location": "desktop/team_host.go:128",
       "class": "keep-business",
       "owner": "desktop/event frame (seq + generation), same payload"
     },
@@ -4539,6 +4595,13 @@
       "kind": "persistence",
       "name": "publication.json",
       "location": "desktop/session_export_journal.go:29",
+      "class": "keep-business",
+      "owner": "format unchanged; read by both shells"
+    },
+    {
+      "kind": "persistence",
+      "name": "review.json",
+      "location": "desktop/team_review_state.go:38",
       "class": "keep-business",
       "owner": "format unchanged; read by both shells"
     },

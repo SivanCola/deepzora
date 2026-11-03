@@ -76,6 +76,7 @@ func (a *App) ContinueTeamGroup(groupID string) error {
 
 // StopTeamSeat affects execution only, never persistent member permissions.
 func (a *App) StopTeamSeat(agentID, groupID string) error {
+	a.cancelTeamMemoryReviewTarget(agentID, groupID)
 	return a.withTeamWriter(func(ctx context.Context, s *team.Service) error {
 		if groupID != "" {
 			return s.StopMember(ctx, groupID, agentID)
@@ -93,6 +94,7 @@ func (a *App) StopTeamSeat(agentID, groupID string) error {
 }
 
 func (a *App) StopTeamGroup(groupID string) error {
+	a.cancelTeamMemoryReviewTarget("", groupID)
 	return a.withTeamWriter(func(ctx context.Context, s *team.Service) error {
 		r, err := desktopTeamStore().Load()
 		if err != nil {

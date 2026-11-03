@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"deepzora/internal/agentpreset"
+	"deepzora/internal/memory"
 	"deepzora/internal/teamroster"
 )
 
@@ -19,6 +20,7 @@ const (
 	DeliverMessage   DeliveryKind = "message"
 	DeliverReply     DeliveryKind = "reply"
 	DeliverGroupTurn DeliveryKind = "group_turn"
+	DeliverSchedule  DeliveryKind = "schedule"
 )
 
 // Delivery is one item the host queues in a seat's inbox. Key makes it
@@ -115,6 +117,23 @@ func (s Seat) Projection() (Projection, error) { return s.Service.Projection(s.R
 
 // Team returns the service and the seat's reference.
 func (s Seat) Team() (*Service, SeatRef) { return s.Service, s.Ref }
+
+// PrivateMemoryStore is shared by this member's seats, independently of
+// their workspaces. Standing workspace/user instructions keep normal authority.
+func (s Seat) PrivateMemoryStore(ctx context.Context) (memory.Store, error) {
+	r, err := s.Service.store.Load()
+	if err != nil {
+		return memory.Store{}, err
+	}
+	if _, ok := r.Agent(s.Ref.Agent); !ok {
+		return memory.Store{}, teamroster.ErrUnknownAgent
+	}
+	store := memory.Store{Dir: AgentMemoryDir(s.Service.store.Dir, s.Ref.Agent)}
+	if err := store.RecoverBatch(ctx); err != nil {
+		return memory.Store{}, err
+	}
+	return store, nil
+}
 
 // PresetDefinition resolves the member's copied definition, never its source.
 func (s Seat) PresetDefinition() (agentpreset.Preset, error) {

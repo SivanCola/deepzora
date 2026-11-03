@@ -60,7 +60,7 @@ func (c *Controller) runTeamInbox(ctx context.Context, env sessioninbox.PromptEn
 		pending, err = svc.MessagePending(ref, env.Extra[team.ExtraExchange])
 	case team.DeliverGroupTurn:
 		pending, err = svc.GroupTurnPending(ref, env.Extra[team.ExtraStep])
-	case team.DeliverReply:
+	case team.DeliverReply, team.DeliverSchedule:
 	default:
 		return tool.Refusal{Code: "team.invalid", Message: "Unknown team delivery kind."}
 	}

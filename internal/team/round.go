@@ -162,9 +162,15 @@ func (s *Service) UserPost(ctx context.Context, group, text string, mentions []s
 // A retry after interruption returns its original event; it cannot start a new
 // round or silently replay already accepted work.
 func (s *Service) UserPostWithID(ctx context.Context, group, text string, mentions []string, everyone bool, requestID string) (teamroster.GroupLine, error) {
+	return s.postWithSource(ctx, group, text, mentions, everyone, requestID, "")
+}
+
+func (s *Service) postWithSource(ctx context.Context, group, text string, mentions []string, everyone bool, requestID, source string) (teamroster.GroupLine, error) {
 	defer s.changed()
-	s.configuration.RLock()
-	defer s.configuration.RUnlock()
+	if source != "scheduler" {
+		s.configuration.RLock()
+		defer s.configuration.RUnlock()
+	}
 	if err := checkPost(text); err != nil {
 		return teamroster.GroupLine{}, err
 	}
@@ -174,7 +180,7 @@ func (s *Service) UserPostWithID(ctx context.Context, group, text string, mentio
 		if len(requestID) < 8 || len(requestID) > 128 {
 			return teamroster.GroupLine{}, teamroster.ErrInvalid
 		}
-		digest = groupPostDigest(text, mentions, everyone)
+		digest = groupPostDigest(text, mentions, everyone) + source
 		var found *teamroster.GroupLine
 		if err := s.store.ScanLines(group, func(line teamroster.GroupLine) {
 			if line.RequestID == requestID {
@@ -198,11 +204,20 @@ func (s *Service) UserPostWithID(ctx context.Context, group, text string, mentio
 	if g.Archived {
 		return teamroster.GroupLine{}, ErrArchived
 	}
+	if source == "scheduler" {
+		rs, err := s.store.Round(group)
+		if err != nil {
+			return teamroster.GroupLine{}, err
+		}
+		if rs.Speaking != nil || len(rs.Queue)+len(rs.Working)+len(rs.Parked) > 0 {
+			return teamroster.GroupLine{}, ErrBusy
+		}
+	}
 	ids, err := resolveMembers(r, *g, mentions, "")
 	if err != nil {
 		return teamroster.GroupLine{}, err
 	}
-	line, err := s.store.AppendLine(ctx, group, teamroster.GroupLine{From: teamroster.ByUser, Kind: teamroster.LinePost, Text: text, Mentions: ids, At: s.now(), RequestID: requestID, RequestDigest: digest})
+	line, err := s.store.AppendLine(ctx, group, teamroster.GroupLine{From: teamroster.ByUser, Kind: teamroster.LinePost, Text: text, Mentions: ids, At: s.now(), RequestID: requestID, RequestDigest: digest, Source: source})
 	if err != nil {
 		return line, err
 	}
@@ -212,7 +227,11 @@ func (s *Service) UserPostWithID(ctx context.Context, group, text string, mentio
 	}
 	rs.Round++
 	rs.Relays = 0
-	rs.Queue = callNext(rs.Queue, openingSpeakers(*g, ids, everyone, teamroster.ByUser, teamroster.CauseUser, ""))
+	ceiling := ""
+	if source == "scheduler" {
+		ceiling = "workspace-write"
+	}
+	rs.Queue = callNext(rs.Queue, openingSpeakers(*g, ids, everyone, teamroster.ByUser, teamroster.CauseUser, ceiling))
 	for _, p := range rs.Parked {
 		if !slices.ContainsFunc(rs.Queue, func(q teamroster.Slot) bool { return q.Member == p.Member }) {
 			rs.Queue = append(rs.Queue, p)

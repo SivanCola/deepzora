@@ -43,12 +43,13 @@ const (
 	EventResumed  EventKind = "resumed"
 	EventStopped  EventKind = "stopped"
 	EventCut      EventKind = "cut"
+	EventMemory   EventKind = "memory"
 )
 
 func (k EventKind) valid() bool {
 	switch k {
 	case EventPassed, EventMissed, EventWorking, EventFinished, EventFailed,
-		EventPaused, EventResumed, EventStopped, EventCut:
+		EventPaused, EventResumed, EventStopped, EventCut, EventMemory:
 		return true
 	}
 	return false
@@ -72,9 +73,13 @@ type GroupLine struct {
 	Late          bool      `json:"late,omitempty"`
 	RequestID     string    `json:"requestId,omitempty"`
 	RequestDigest string    `json:"requestDigest,omitempty"`
+	Source        string    `json:"source,omitempty"`
 }
 
 func (l *GroupLine) check() error {
+	if l.Source != "" && l.Source != "scheduler" {
+		return fieldErr("line.source", ErrInvalid)
+	}
 	if l.From != ByUser && !agentID.MatchString(l.From) {
 		return fieldErr("line.from", ErrInvalid)
 	}

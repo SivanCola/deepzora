@@ -3848,6 +3848,76 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/team_memory_api.go",
+      "name": "GetTeamMemory",
+      "owner": "App.GetTeamMemory",
+      "params": [
+        {
+          "kind": "object",
+          "ref": "main.TeamMemoryTarget"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamMemoryView"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "target"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.GetTeamMemory"
+      },
+      "sources": [
+        "desktop/team_memory_api.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/team_memory_api.go",
+      "name": "GetTeamMemoryReviewStatus",
+      "owner": "App.GetTeamMemoryReviewStatus",
+      "params": [],
+      "result": {
+        "elem": {
+          "kind": "object",
+          "ref": "main.TeamMemoryReviewStatus"
+        },
+        "kind": "array"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [],
+        "kind": "owner-state",
+        "resolver": "App.GetTeamMemoryReviewStatus"
+      },
+      "sources": [
+        "desktop/team_memory_api.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/team_schedule_api.go",
+      "name": "GetTeamSchedules",
+      "owner": "App.GetTeamSchedules",
+      "params": [],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamScheduleView"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [],
+        "kind": "owner-state",
+        "resolver": "App.GetTeamSchedules"
+      },
+      "sources": [
+        "desktop/team_schedule_api.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/theme_app.go",
       "name": "GetThemeExperience",
       "owner": "App.GetThemeExperience",
@@ -9522,6 +9592,33 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/team_schedule_api.go",
+      "name": "RunTeamSchedule",
+      "owner": "App.RunTeamSchedule",
+      "params": [
+        {
+          "kind": "object",
+          "ref": "main.RunTeamScheduleRequest"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamScheduleResult"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "req"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.RunTeamSchedule"
+      },
+      "sources": [
+        "desktop/team_schedule_api.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/conversation_status.go",
       "name": "RunWorkspaceGitActionForTab",
       "owner": "App.RunWorkspaceGitActionForTab",
@@ -10469,6 +10566,87 @@
       },
       "sources": [
         "desktop/team_preferences.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/team_memory_api.go",
+      "name": "SaveTeamMemory",
+      "owner": "App.SaveTeamMemory",
+      "params": [
+        {
+          "kind": "object",
+          "ref": "main.SaveTeamMemoryRequest"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamMemoryResult"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "req"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.SaveTeamMemory"
+      },
+      "sources": [
+        "desktop/team_memory_api.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/team_memory_api.go",
+      "name": "SaveTeamMemoryPreferences",
+      "owner": "App.SaveTeamMemoryPreferences",
+      "params": [
+        {
+          "kind": "object",
+          "ref": "main.SaveTeamMemoryPreferencesRequest"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamMutationResult"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "req"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.SaveTeamMemoryPreferences"
+      },
+      "sources": [
+        "desktop/team_memory_api.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/team_schedule_api.go",
+      "name": "SaveTeamSchedule",
+      "owner": "App.SaveTeamSchedule",
+      "params": [
+        {
+          "kind": "object",
+          "ref": "main.SaveTeamScheduleRequest"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamScheduleResult"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "req"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.SaveTeamSchedule"
+      },
+      "sources": [
+        "desktop/team_schedule_api.go"
       ]
     },
     {
@@ -27704,6 +27882,28 @@
         }
       ]
     },
+    "main.RunTeamScheduleRequest": {
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "expectedRevision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "requestId",
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
     "main.RuntimeDoctorReport": {
       "fields": [
         {
@@ -28094,6 +28294,105 @@
           "type": {
             "kind": "object",
             "ref": "main.TeamGroupSettings"
+          }
+        }
+      ]
+    },
+    "main.SaveTeamMemoryPreferencesRequest": {
+      "fields": [
+        {
+          "name": "expectedRevision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "requestId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "enabled",
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "model",
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "main.SaveTeamMemoryRequest": {
+      "fields": [
+        {
+          "name": "target",
+          "type": {
+            "kind": "object",
+            "ref": "main.TeamMemoryTarget"
+          }
+        },
+        {
+          "name": "expectedRosterRevision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "requestId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "fact",
+          "type": {
+            "kind": "object",
+            "ref": "main.MemoryFact"
+          }
+        },
+        {
+          "name": "archive",
+          "type": {
+            "kind": "boolean"
+          }
+        }
+      ]
+    },
+    "main.SaveTeamScheduleRequest": {
+      "fields": [
+        {
+          "name": "expectedRevision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "expectedRosterRevision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "requestId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "schedule",
+          "type": {
+            "kind": "object",
+            "ref": "teamroster.Schedule"
+          }
+        },
+        {
+          "name": "delete",
+          "type": {
+            "kind": "boolean"
           }
         }
       ]
@@ -31480,6 +31779,135 @@
         }
       ]
     },
+    "main.TeamMemoryResult": {
+      "fields": [
+        {
+          "name": "outcome",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "reason",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "message",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "fact",
+          "type": {
+            "kind": "object",
+            "ref": "main.MemoryFact"
+          }
+        }
+      ]
+    },
+    "main.TeamMemoryReviewStatus": {
+      "fields": [
+        {
+          "name": "agentId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "groupId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "at",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "outcome",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "added",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "edited",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "archived",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "error",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "main.TeamMemoryTarget": {
+      "fields": [
+        {
+          "name": "tier",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "agentId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "groupId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "main.TeamMemoryView": {
+      "fields": [
+        {
+          "name": "rosterRevision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "facts",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "main.MemoryFact"
+            },
+            "kind": "array"
+          }
+        }
+      ]
+    },
     "main.TeamMutationResult": {
       "fields": [
         {
@@ -31647,6 +32075,71 @@
             "elem": {
               "kind": "object",
               "ref": "teamroster.Group"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "prefs",
+          "type": {
+            "kind": "object",
+            "ref": "teamroster.TeamPreferences"
+          }
+        }
+      ]
+    },
+    "main.TeamScheduleResult": {
+      "fields": [
+        {
+          "name": "outcome",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "reason",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "message",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "targetId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "view",
+          "type": {
+            "kind": "object",
+            "ref": "main.TeamScheduleView"
+          }
+        }
+      ]
+    },
+    "main.TeamScheduleView": {
+      "fields": [
+        {
+          "name": "revision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "schedules",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "teamroster.Schedule"
             },
             "kind": "array"
           }
@@ -36299,6 +36792,146 @@
         },
         {
           "name": "requestDigest",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "source",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "teamroster.Schedule": {
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "name",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "agent",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "group",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "prompt",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "repeat",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "timezone",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "clock",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "days",
+          "type": {
+            "elem": {
+              "kind": "integer"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "intervalMinutes",
+          "optional": true,
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "anchor",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "enabled",
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "next",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "lastOccurrence",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "lastOutcome",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "lastAt",
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "teamroster.TeamPreferences": {
+      "fields": [
+        {
+          "name": "memoryReview",
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "memoryReviewStartedAt",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "memoryReviewModel",
           "optional": true,
           "type": {
             "kind": "string"

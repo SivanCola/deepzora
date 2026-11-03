@@ -3,7 +3,8 @@ package team
 import "errors"
 
 var (
-	ErrBusy = errors.New("team target has active work; stop it before changing membership or working directory")
+	ErrReviewReply = errors.New("invalid memory review batch")
+	ErrBusy        = errors.New("team target has active work; stop it before changing membership or working directory")
 	// ErrConfigurationApproval is a standing change without fresh human approval.
 	ErrConfigurationApproval = errors.New("changing standing configuration requires user approval")
 	// ErrSelf is an agent messaging itself.

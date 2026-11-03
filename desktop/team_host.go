@@ -22,14 +22,20 @@ import (
 )
 
 type desktopTeamState struct {
-	mu            sync.Mutex
-	host          *teamhost.Host
-	cancel        context.CancelFunc
-	done          chan struct{}
-	changed       func() // Test observer, installed before host startup.
-	historyMu     sync.Mutex
-	preferencesMu sync.Mutex
-	history       map[string]teamGroupSnapshot
+	mu                 sync.Mutex
+	host               *teamhost.Host
+	cancel             context.CancelFunc
+	done               chan struct{}
+	changed            func() // Test observer, installed before host startup.
+	historyMu          sync.Mutex
+	preferencesMu      sync.Mutex
+	history            map[string]teamGroupSnapshot
+	reviews            *teamMemoryReviews
+	reviewsPaused      bool
+	reviewPrefsMu      sync.Mutex
+	scheduleMu         sync.Mutex
+	schedulesRecovered bool
+	closing            bool
 }
 
 func desktopTeamStore() teamroster.Store {
@@ -160,6 +166,9 @@ func (a *App) startTeamHost() {
 				slog.Warn("desktop: team tick", "err", secrets.RedactError(err))
 			}
 			if h.Ready() {
+				if err := a.tickTeamSchedules(ctx, time.Now()); err != nil && ctx.Err() == nil {
+					slog.Warn("desktop: Team schedule", "err", secrets.RedactError(err))
+				}
 				if err := a.reconcileTeamPresets(ctx); err != nil && ctx.Err() == nil {
 					slog.Warn("desktop: apply team preset", "err", secrets.RedactError(err))
 				}
@@ -176,11 +185,13 @@ func (a *App) startTeamHost() {
 
 func (a *App) stopTeamHost() error {
 	a.teamState.mu.Lock()
+	a.teamState.closing = true
 	h, cancel, done := a.teamState.host, a.teamState.cancel, a.teamState.done
 	a.teamState.mu.Unlock()
 	if cancel != nil {
 		cancel()
 	}
+	a.stopTeamMemoryReviews()
 	// Shutdown cancels outstanding seat admission before joining the clock.
 	var err error
 	if h != nil {
