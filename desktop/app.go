@@ -1289,6 +1289,11 @@ func applyTabToolApprovalModeToController(ctrl control.SessionAPI, mode string) 
 		return nil
 	}
 	mode = normalizeToolApprovalMode(mode)
+	if teamMode, err := teamPermissionForController(ctrl, mode); err != nil {
+		mode = control.ToolApprovalReadOnly
+	} else {
+		mode = teamMode
+	}
 	if applier, ok := ctrl.(toolApprovalApplier); ok {
 		return applier.ApplyToolApprovalMode(mode)
 	}
@@ -3515,6 +3520,9 @@ func (a *App) SetPermissionPresetForTab(tabID, expectedSessionID, preset string,
 	live := ctrl.PermissionSnapshot()
 	if err := requirePermissionSession(live, expectedSessionID); err != nil {
 		return live, err
+	}
+	if ctrl.BoundTeamSeat() != nil && preset != live.Preset {
+		return live, fmt.Errorf("change persistent Team permissions in Team settings")
 	}
 	snapshot, _, err := ctrl.SetPermissionPreset(preset, expectedRevision)
 	if err != nil {

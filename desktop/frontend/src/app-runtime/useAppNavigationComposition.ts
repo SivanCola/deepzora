@@ -69,6 +69,7 @@ export function useAppNavigationComposition(input: AppNavigationCompositionInput
     setSettingsTarget, setSettingsFocus, setSidebarSearchOpen, setSidebarSearchFocusSignal, setProviderSetupNeeded,
   } = shell;
   const { reload: reloadDesktopPreferences } = shell.preferences;
+  const teamGroupVisible=shell.page.kind==="workspace"&&!!shell.page.teamGroupID;
   const {
     closeTransientOverlays, refreshProviderSetupState,
     tabBarCommands, terminalPanelCommands, runtimeEventCommands,
@@ -125,7 +126,8 @@ export function useAppNavigationComposition(input: AppNavigationCompositionInput
   // while the palette is up; extension actions follow the same snapshot rule.
   const { openPalette, paletteItems } = usePaletteCommands({
     managementActive,
-    activeTabId,
+    activeTabId:teamGroupVisible?undefined:activeTabId,
+    closeSurface:teamGroupVisible?enterConversation:undefined,
     t,
     notice,
     showToast,

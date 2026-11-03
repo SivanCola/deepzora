@@ -17,14 +17,16 @@ type TeamSeat interface {
 }
 
 type TeamOptions struct {
-	Seat TeamSeat
-	Link *tool.TeamLink
+	Seat              TeamSeat
+	Link              *tool.TeamLink
+	PresetFingerprint string
 }
 
 type teamBinding struct {
-	mu   sync.Mutex
-	seat TeamSeat
-	turn teamTurn
+	mu                sync.Mutex
+	seat              TeamSeat
+	turn              teamTurn
+	presetFingerprint string
 }
 
 func (b *teamBinding) bound() TeamSeat {
@@ -35,6 +37,7 @@ func (b *teamBinding) bound() TeamSeat {
 
 func (c *Controller) startTeam(options TeamOptions) {
 	c.team.seat = options.Seat
+	c.team.presetFingerprint = options.PresetFingerprint
 	if options.Link != nil {
 		options.Link.Bind(teamDirectory{c})
 	}
@@ -42,6 +45,13 @@ func (c *Controller) startTeam(options TeamOptions) {
 
 // BoundTeamSeat preserves the exact owner across controller rebuilds.
 func (c *Controller) BoundTeamSeat() TeamSeat { return c.team.bound() }
+
+// TeamPresetFingerprint describes the definition this runtime actually built.
+func (c *Controller) TeamPresetFingerprint() string {
+	c.team.mu.Lock()
+	defer c.team.mu.Unlock()
+	return c.team.presetFingerprint
+}
 
 func (c *Controller) withTeamTail(input string) (string, error) {
 	seat := c.team.bound()

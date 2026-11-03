@@ -1120,6 +1120,20 @@
       ]
     }
   },
+  "ContinueTeamGroup": {
+    "domain": "desktop/team_group_api.go",
+    "owner": "App.ContinueTeamGroup",
+    "sources": [
+      "desktop/team_group_api.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.ContinueTeamGroup",
+      "inputs": [
+        "groupID"
+      ]
+    }
+  },
   "CopySessionTarget": {
     "domain": "desktop/session_workspace_api.go",
     "owner": "App.CopySessionTarget",
@@ -1371,6 +1385,20 @@
       "inputs": [
         "name",
         "scope"
+      ]
+    }
+  },
+  "DeleteTeamTarget": {
+    "domain": "desktop/team_organization.go",
+    "owner": "App.DeleteTeamTarget",
+    "sources": [
+      "desktop/team_organization.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.DeleteTeamTarget",
+      "inputs": [
+        "req"
       ]
     }
   },
@@ -2936,6 +2964,22 @@
       "inputs": []
     }
   },
+  "MarkTeamGroupRead": {
+    "domain": "desktop/team_preferences.go",
+    "owner": "App.MarkTeamGroupRead",
+    "sources": [
+      "desktop/team_preferences.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.MarkTeamGroupRead",
+      "inputs": [
+        "groupID",
+        "snapshotID",
+        "sequence"
+      ]
+    }
+  },
   "Memory": {
     "domain": "desktop/app.go",
     "owner": "App.Memory",
@@ -3586,6 +3630,20 @@
       "inputs": []
     }
   },
+  "PrepareTeamAgentSession": {
+    "domain": "desktop/team_api.go",
+    "owner": "App.PrepareTeamAgentSession",
+    "sources": [
+      "desktop/team_api.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.PrepareTeamAgentSession",
+      "inputs": [
+        "agentID"
+      ]
+    }
+  },
   "PrepareWorktreeMerge": {
     "domain": "desktop/delivery_worktree.go",
     "owner": "App.PrepareWorktreeMerge",
@@ -3937,6 +3995,35 @@
         "messageID",
         "version",
         "offset"
+      ]
+    }
+  },
+  "ReadTeamGroupDraft": {
+    "domain": "desktop/team_preferences.go",
+    "owner": "App.ReadTeamGroupDraft",
+    "sources": [
+      "desktop/team_preferences.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.ReadTeamGroupDraft",
+      "inputs": [
+        "groupID"
+      ]
+    }
+  },
+  "ReadTeamGroupHistory": {
+    "domain": "desktop/team_history.go",
+    "owner": "App.ReadTeamGroupHistory",
+    "sources": [
+      "desktop/team_history.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.ReadTeamGroupHistory",
+      "inputs": [
+        "groupID",
+        "cursor"
       ]
     }
   },
@@ -4457,6 +4544,20 @@
       "resolver": "App.ReorderTabs",
       "inputs": [
         "tabIDs"
+      ]
+    }
+  },
+  "ReorderTeam": {
+    "domain": "desktop/team_organization.go",
+    "owner": "App.ReorderTeam",
+    "sources": [
+      "desktop/team_organization.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.ReorderTeam",
+      "inputs": [
+        "req"
       ]
     }
   },
@@ -5492,6 +5593,20 @@
       ]
     }
   },
+  "SaveTeamGroupDraft": {
+    "domain": "desktop/team_preferences.go",
+    "owner": "App.SaveTeamGroupDraft",
+    "sources": [
+      "desktop/team_preferences.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.SaveTeamGroupDraft",
+      "inputs": [
+        "req"
+      ]
+    }
+  },
   "SaveThemePack": {
     "domain": "desktop/theme_app.go",
     "owner": "App.SaveThemePack",
@@ -5655,6 +5770,20 @@
         "text",
         "cursor",
         "limit"
+      ]
+    }
+  },
+  "SendTeamGroupMessage": {
+    "domain": "desktop/team_group_api.go",
+    "owner": "App.SendTeamGroupMessage",
+    "sources": [
+      "desktop/team_group_api.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.SendTeamGroupMessage",
+      "inputs": [
+        "req"
       ]
     }
   },
@@ -6903,6 +7032,35 @@
       "resolver": "App.StopTaskByKey",
       "inputs": [
         "req"
+      ]
+    }
+  },
+  "StopTeamGroup": {
+    "domain": "desktop/team_group_api.go",
+    "owner": "App.StopTeamGroup",
+    "sources": [
+      "desktop/team_group_api.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.StopTeamGroup",
+      "inputs": [
+        "groupID"
+      ]
+    }
+  },
+  "StopTeamSeat": {
+    "domain": "desktop/team_group_api.go",
+    "owner": "App.StopTeamSeat",
+    "sources": [
+      "desktop/team_group_api.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.StopTeamSeat",
+      "inputs": [
+        "agentID",
+        "groupID"
       ]
     }
   },

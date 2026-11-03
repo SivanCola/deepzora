@@ -1042,6 +1042,7 @@ func (s *tabEventSink) Emit(e event.Event) {
 				// Publish it directly so a turn never fans out into one catalog read
 				// per expanded project folder.
 				app.emitProjectTreeRuntimeChanged()
+				app.emitTeamRuntimeChangedForTab(tabID)
 			}
 		}
 	}
@@ -1521,6 +1522,10 @@ func (a *App) tabMeta(tab *WorkspaceTab, active bool) TabMeta {
 	}
 	if repo, ok := sessionWorkspaceRepo(tab.Ctrl, tab.WorkspaceRoot); ok {
 		m.repo = repo
+	}
+	if tab.teamSeat != nil {
+		_, ref := tab.teamSeat.Team()
+		m.TeamAgentID, m.TeamGroupID = ref.Agent, ref.Group
 	}
 	if strings.TrimSpace(tab.SessionID) != "" {
 		m.Session = &session.SessionRef{HostID: "local", SessionID: strings.TrimSpace(tab.SessionID)}
@@ -2734,7 +2739,14 @@ func (a *App) buildTabControllerWithContextCore(tab *WorkspaceTab, loadedSession
 		// Local Desktop restores its canonical session choice from the Desktop
 		// preset store. OpenSession publishes the session default, so restore the
 		// selected preset after binding the target identity.
-		applyTabToolApprovalModeToController(ctrl, buildRuntime.toolApprovalMode)
+		teamMode, err := teamPermissionForController(ctrl, buildRuntime.toolApprovalMode)
+		if err != nil {
+			registration.rollback()
+			a.abandonSupersededBuild(ctrl, rootKey)
+			return
+		}
+		buildRuntime.toolApprovalMode = teamMode
+		applyTabToolApprovalModeToController(ctrl, teamMode)
 		tab.replaceTelemetry(loadTelemetryFor(sessionRoute(bound.ref.SessionID)), sessionRuntimeKey(sessionIDRoutePrefix+bound.ref.SessionID))
 	}
 

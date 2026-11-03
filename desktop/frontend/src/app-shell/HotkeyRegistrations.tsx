@@ -3,9 +3,9 @@ import { useGlobalShortcut } from "../lib/keyboardShortcuts";
 import { applyTextSize, DEFAULT_TEXT_SIZE, getTextSize, nextTextSize } from "../lib/textSize";
 
 /** Global hotkey handler for shell-expand toggle (Ctrl/Cmd+B). */
-export function ShellHotkeys() {
+export function ShellHotkeys({enabled=true}:{enabled?:boolean}) {
   const shellExpand = useShellExpand();
-  useGlobalShortcut("shell.toggle", () => shellExpand?.toggleLast(), [shellExpand], Boolean(shellExpand));
+  useGlobalShortcut("shell.toggle", () => shellExpand?.toggleLast(), [shellExpand], enabled&&Boolean(shellExpand));
   return null;
 }
 

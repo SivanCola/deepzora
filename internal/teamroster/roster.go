@@ -2,7 +2,6 @@ package teamroster
 
 import (
 	"crypto/rand"
-	"deepzora/internal/agentpreset"
 	"encoding/hex"
 	"fmt"
 	"path/filepath"
@@ -12,6 +11,8 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
+
+	"deepzora/internal/agentpreset"
 )
 
 // SchemaVersion is the roster shape this build writes.
@@ -47,9 +48,10 @@ const (
 )
 
 var (
-	agentID = regexp.MustCompile(`^a-[0-9a-f]{16}$`)
-	groupID = regexp.MustCompile(`^g-[0-9a-f]{16}$`)
-	token   = regexp.MustCompile(`^[a-z0-9-]{0,24}$`)
+	agentID        = regexp.MustCompile(`^a-[0-9a-f]{16}$`)
+	groupID        = regexp.MustCompile(`^g-[0-9a-f]{16}$`)
+	token          = regexp.MustCompile(`^[a-z0-9-]{0,24}$`)
+	avatarHexColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 )
 
 // Avatar is how an agent is drawn. Both fields are presentation tokens the
@@ -57,6 +59,7 @@ var (
 type Avatar struct {
 	Glyph string `json:"glyph,omitempty"`
 	Color string `json:"color,omitempty"`
+	Image string `json:"image,omitempty"`
 }
 
 // Part is an earlier session of an agent, closed when its conversation was
@@ -112,10 +115,14 @@ type Group struct {
 
 // Roster is the whole team as one file holds it.
 type Roster struct {
-	SchemaVersion int               `json:"schemaVersion"`
-	Revision      uint64            `json:"revision"`
-	Agents        []Agent           `json:"agents"`
-	Groups        []Group           `json:"groups"`
+	SchemaVersion int     `json:"schemaVersion"`
+	Revision      uint64  `json:"revision"`
+	Agents        []Agent `json:"agents"`
+	Groups        []Group `json:"groups"`
+	// Retired identities keep historical speaker names, avatars and bindings.
+	// They confer no execution or membership authority and consume no live slot.
+	RetiredAgents []Agent           `json:"retiredAgents,omitempty"`
+	RetiredGroups []Group           `json:"retiredGroups,omitempty"`
 	Mutations     []MutationReceipt `json:"mutations,omitempty"`
 }
 
@@ -224,8 +231,11 @@ func (r *Roster) validateWithin(agents, groups int) error {
 		if utf8.RuneCountInString(a.Instructions) > MaxInstructionsRunes {
 			return fieldErr("instructions", ErrTooLong)
 		}
-		if !token.MatchString(a.Avatar.Glyph) || !token.MatchString(a.Avatar.Color) {
+		if !token.MatchString(a.Avatar.Glyph) || (!token.MatchString(a.Avatar.Color) && !avatarHexColor.MatchString(a.Avatar.Color)) {
 			return fieldErr("avatar", ErrInvalid)
+		}
+		if err := agentpreset.ValidateIconImage(a.Avatar.Image); err != nil {
+			return fieldErr("avatar.image", err)
 		}
 		if a.Folder != "" && (!filepath.IsAbs(a.Folder) || filepath.Clean(a.Folder) != a.Folder) {
 			return fieldErr("folder", ErrInvalid)
@@ -253,6 +263,26 @@ func (r *Roster) validateWithin(agents, groups int) error {
 			return fieldErr("group_name", ErrNameTaken)
 		}
 		groupNames[strings.ToLower(g.Name)] = true
+		if err := validateGroup(g, ids); err != nil {
+			return err
+		}
+	}
+	return r.validateRetired(ids, groupIDs)
+}
+
+func (r *Roster) validateRetired(ids, groupIDs map[string]bool) error {
+	for _, a := range r.RetiredAgents {
+		if !agentID.MatchString(a.ID) || ids[a.ID] {
+			return fieldErr("retired_agent.id", ErrInvalid)
+		}
+		ids[a.ID] = true
+	}
+	for i := range r.RetiredGroups {
+		g := &r.RetiredGroups[i]
+		if !groupID.MatchString(g.ID) || groupIDs[g.ID] || !g.Archived {
+			return fieldErr("retired_group.id", ErrInvalid)
+		}
+		groupIDs[g.ID] = true
 		if err := validateGroup(g, ids); err != nil {
 			return err
 		}

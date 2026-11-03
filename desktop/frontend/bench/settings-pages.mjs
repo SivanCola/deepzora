@@ -23,6 +23,7 @@ let cases = 0;
 const pages = [
   ["general", ".settings-field"], ["models", ".model-assignment-row"], ["providers", ".provider-connections"],
   ["model-stats", ".usage-stats__cards"], ["mcp", ".cap-mcp-add-btn:enabled"], ["agent-presets", ".agent-preset-row"],
+  ["team", ".settings-section__actions button:enabled"],
   ["skills", ".settings-toolbar"], ["subagents", ".subagents-profile-group"], ["plugins", ".settings-toolbar button:enabled"],
   ["memory", ".memory-tabs-row"], ["hooks", ".hooks-json-panel__textarea"], ["diagnostics", ".diag-page"],
   ["permissions", ".set-rules"], ["sandbox", ".sandbox-settings"], ["network", ".settings-save-bar"],
@@ -113,7 +114,7 @@ async function openSettings(page, locale) {
   await page.locator(".settings-page--general").waitFor();
   const nav = page.locator(".settings-center__navgroups");
   const labels = await nav.locator(".settings-center__navitem").allTextContents();
-  assert.equal(labels.length, 20, "every settings entry is covered");
+  assert.equal(labels.length, 21, "every settings entry is covered");
   for (const [index, label] of labels.entries()) {
     await nav.getByRole("button", { name: label.trim(), exact: true }).click();
     const [id, ready] = pages[index];
@@ -162,6 +163,24 @@ try {
       await verify(page, "preset-edit", true);
       assert.equal(await page.locator(".agent-preset-editor").getByRole("button", { name: "Save", exact: true }).isEnabled(), false);
       await page.locator(".agent-preset-editor .settings-back-button").click();
+
+      await go("Team");
+      for(const name of ["Chief","Ada With Spaces"]) {
+        await page.getByRole("button",{name:"New member",exact:true}).click();
+        await page.getByRole("textbox",{name:"Name",exact:true}).waitFor();
+        await verify(page,`team-member-${name.split(" ")[0]}`,true);
+        await page.getByRole("textbox",{name:"Name",exact:true}).fill(name);
+        await page.locator(".settings-page--team button[type=submit]").click();
+        await page.getByRole("heading",{name,exact:true}).waitFor();
+      }
+      await page.getByRole("button",{name:"New group",exact:true}).click();
+      await verify(page,"team-group-editor",true);
+      await page.getByRole("textbox",{name:"Name",exact:true}).fill("Project group");
+      await page.getByRole("checkbox",{name:"Chief",exact:true}).check();
+      await page.getByRole("checkbox",{name:"Ada With Spaces",exact:true}).check();
+      await page.locator(".settings-page--team button[type=submit]").click();
+      await page.getByRole("heading",{name:"Project group",exact:true}).waitFor();
+      await verify(page,"team-saved-list",true);
 
       await go("MCP & Tools");
       await page.locator(".cap-mcp-add-btn").click();
@@ -331,7 +350,7 @@ try {
       const selector = page.locator(".settings-center__compact-navigation button");
       await selector.click();
       const list = page.getByRole("listbox", { name: "Settings", exact: true });
-      assert.equal(await list.getByRole("option").count(), 20);
+      assert.equal(await list.getByRole("option").count(), 21);
       await page.getByRole("combobox", { name: "Search settings", exact: true }).fill("network");
       await list.getByRole("option", { name: "Network", exact: true }).click();
       await page.locator(".settings-page--network").waitFor();

@@ -21,11 +21,14 @@ import (
 )
 
 type desktopTeamState struct {
-	mu      sync.Mutex
-	host    *teamhost.Host
-	cancel  context.CancelFunc
-	done    chan struct{}
-	changed func() // Test observer, installed before host startup.
+	mu            sync.Mutex
+	host          *teamhost.Host
+	cancel        context.CancelFunc
+	done          chan struct{}
+	changed       func() // Test observer, installed before host startup.
+	historyMu     sync.Mutex
+	preferencesMu sync.Mutex
+	history       map[string]teamGroupSnapshot
 }
 
 func desktopTeamStore() teamroster.Store {
@@ -84,13 +87,25 @@ func (a *App) localTeamHost() (*teamhost.Host, error) {
 	if a.teamState.host != nil {
 		return a.teamState.host, nil
 	}
-	h, err := teamhost.New(teamhost.Options{Store: desktopTeamStore(), Open: a.openTeamRuntime, Changed: a.emitTeamChanged, Validate: func(ref team.SeatRef) error {
+	h, err := teamhost.New(teamhost.Options{Store: desktopTeamStore(), Open: a.openTeamRuntime, Changed: a.emitTeamChanged, AgentConfigurationChanged: func(ctx context.Context, r *teamroster.Roster, before, after teamroster.Agent) error {
+		if before.Folder == after.Folder {
+			return nil
+		}
+		defer a.lockRuntimeMutation("apply reviewed team working directory")()
+		return a.migrateTeamAgentDirectories(ctx, r, after.ID, "reviewed-directory-"+teamMutationDigest([]any{r.Revision, after.ID, after.Folder}))
+	}, Validate: func(ref team.SeatRef) error {
 		r, err := desktopTeamStore().Load()
 		if err != nil {
 			return err
 		}
 		_, err = teamSessionPath(&r, ref)
 		return err
+	}, Binding: func(ref team.SeatRef) (string, error) {
+		r, err := desktopTeamStore().Load()
+		if err != nil {
+			return "", err
+		}
+		return teamSessionPath(&r, ref)
 	}})
 	if err != nil {
 		return nil, err
@@ -104,6 +119,16 @@ func (a *App) emitTeamChanged() {
 		a.teamState.changed()
 	}
 	a.emitRuntimeEvent("team:changed")
+}
+
+func (a *App) emitTeamRuntimeChangedForTab(tabID string) {
+	a.mu.RLock()
+	tab := a.tabByEventSinkIDLocked(tabID)
+	bound := tab != nil && tab.teamSeat != nil
+	a.mu.RUnlock()
+	if bound {
+		a.emitTeamChanged()
+	}
 }
 
 func (a *App) startTeamHost() {
@@ -134,6 +159,9 @@ func (a *App) startTeamHost() {
 				slog.Warn("desktop: team tick", "err", err)
 			}
 			if h.Ready() {
+				if err := a.reconcileTeamPresets(ctx); err != nil && ctx.Err() == nil {
+					slog.Warn("desktop: apply team preset", "err", err)
+				}
 				a.notifyTeamInboxReady()
 			}
 			select {
@@ -367,6 +395,17 @@ func (r *desktopTeamRuntime) owner() *WorkspaceTab {
 func (r *desktopTeamRuntime) Deliver(d team.Delivery) error {
 	r.app.runtimeAdmissionMu.RLock()
 	defer r.app.runtimeAdmissionMu.RUnlock()
+	roster, err := desktopTeamStore().Load()
+	if err != nil {
+		return err
+	}
+	path, err := teamSessionPath(&roster, r.ref)
+	if err != nil {
+		return err
+	}
+	if path != r.BindingKey() {
+		return errors.New("team seat binding changed; retry delivery")
+	}
 	tab := r.owner()
 	if tab == nil {
 		return errors.New("team runtime is unavailable")
@@ -401,11 +440,17 @@ func (r *desktopTeamRuntime) Idle() bool {
 	return true
 }
 func (r *desktopTeamRuntime) Close(ctx context.Context) error {
-	_, err := r.close(ctx, false)
+	_, err := r.close(ctx, false, false)
 	return err
 }
-func (r *desktopTeamRuntime) CloseIdle(ctx context.Context) (bool, error) { return r.close(ctx, true) }
-func (r *desktopTeamRuntime) close(ctx context.Context, idle bool) (bool, error) {
+func (r *desktopTeamRuntime) BindingKey() string { return sessionRoute(r.sessionID) }
+func (r *desktopTeamRuntime) CloseIdle(ctx context.Context) (bool, error) {
+	return r.close(ctx, true, false)
+}
+func (r *desktopTeamRuntime) CloseRebound(ctx context.Context) (bool, error) {
+	return r.close(ctx, true, true)
+}
+func (r *desktopTeamRuntime) close(ctx context.Context, idle, rebound bool) (bool, error) {
 	r.closeMu.Lock()
 	defer r.closeMu.Unlock()
 	if r.closing != nil {
@@ -424,7 +469,7 @@ func (r *desktopTeamRuntime) close(ctx context.Context, idle bool) (bool, error)
 	r.app.mu.RLock()
 	visible := r.app.tabs[tab.ID] == tab
 	r.app.mu.RUnlock()
-	if idle && (visible || !r.Idle()) {
+	if idle && (visible && !rebound || !r.Idle()) {
 		unlock()
 		return false, nil
 	}

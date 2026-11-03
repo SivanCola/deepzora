@@ -12,15 +12,19 @@ export function useSessionComposerLifecycle() {
   useEffect(() => {
     const flush = async () => {
       const input = await import("../lib/sessionComposerPersistence");
+      const team = await import("../store/teamComposer");
       try {
         await input.flushAllSessionComposers();
+        await team.flushAllTeamDrafts();
       } catch (error) {
         input.resumeSessionComposerEditing();
+        team.resumeTeamDraftEditing();
         throw error;
       }
     };
     const resume = () => {
       void import("../lib/sessionComposerPersistence").then(input => input.resumeSessionComposerEditing());
+      void import("../store/teamComposer").then(team => team.resumeTeamDraftEditing());
     };
     window.__deepzoraFlushComposerInput = flush;
     window.__deepzoraResumeComposerEditing = resume;

@@ -10,6 +10,8 @@ import (
 
 // TabMeta is the frontend-facing shape of one tab.
 type TabMeta struct {
+	TeamAgentID      string `json:"teamAgentId,omitempty"`
+	TeamGroupID      string `json:"teamGroupId,omitempty"`
 	ID               string `json:"id"`
 	Scope            string `json:"scope"`
 	WorkspaceRoot    string `json:"workspaceRoot"`

@@ -12,9 +12,9 @@ preset definitions instead of following later preset edits.
 | Layer | Owner | Status |
 | --- | --- | --- |
 | 1 | Versioned roster, exchanges, group orchestration | Implemented; focused/race/static checks and full root Go suite passed; PR #146 |
-| 2 | Controller seat, tools, approvals and delegation ceilings | Implemented; full root suite passed; PR #147; hosted Desktop/lint repairs under verification |
+| 2 | Controller seat, tools, approvals and delegation ceilings | Implemented; full root suite and hosted CI/CodeQL passed; PR #147 |
 | 3 | Desktop runtime, lease and browser isolation | Implemented; full root/Desktop suites and macOS native browser fixture passed; PR #148 |
-| 4 | Desktop Team UI and generated contract | Pending |
+| 4 | Desktop Team UI and generated contract | Implemented; focused/race, production build, 246 settings viewport cases, Team browser flow and transcript checks passed; broad Go validation running |
 | 5 | Memory, opt-in review and schedules | Pending |
 | 6 | Private credential slots and shell injection | Pending |
 | 7 | Outbound/stream masking, usage and native acceptance | Pending |
@@ -121,3 +121,23 @@ Studio HTTP plumbing, terminal outbox, unrelated fixes or release infrastructure
 第三层已接入规范会话、后台生命周期、类型化配置命令和成员浏览器分区，真实 Controller
 与 inbox 测试及 macOS 原生 Cookie/恢复/清理测试通过。完整根模块与 Desktop 测试通过；
 Linux、Windows 原生功能验收尚未完成，团队界面及第五至七层尚待实施。
+
+## Desktop UI increment
+
+- Added Team navigation, independent preset/member editing, group management,
+  ordering, visibility, confirmed retirement and retained historical identity.
+- Canonical private conversations and group transcripts reuse existing owners.
+  Structured mentions use IDs. Group history has bidirectional immutable
+  snapshots and three bounded pages; stale results preserve the reading window.
+- Configuration commits fence new exchange/round admission. Directory changes
+  preserve history through canonical forks; old bindings reject delivery.
+  Restored seats use the member-owned persistent permission.
+- Independent draft CAS, durable submission IDs and snapshot read watermarks
+  cover delayed saves, stale clears, shutdown joins, restart recovery, replacement
+  logs, busy retirement and idempotent retry receipts.
+- Frontend typecheck/build, app-layer/scroll-writer gates and unchanged resource
+  budgets passed. Settings browser verification passed 246 cases in English and
+  Chinese at 1600/900/400px. Team browser verification passed creation, ordering,
+  names with spaces, switching, retained drafts and one accepted event.
+- These browser checks use the preview bridge. They do not replace real-model
+  or Linux/Windows native/package acceptance. Layers 5–7 remain pending.

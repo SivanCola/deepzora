@@ -28,7 +28,7 @@ import type { SettingsTab } from "../lib/types";
 import { SettingsSelect } from "./SettingsSelect";
 
 export const SETTINGS_NAV_TABS: SettingsTab[] = [
-  "general", "models", "providers", "model-stats", "mcp", "skills", "agent-presets", "subagents", "plugins", "memory",
+  "general", "models", "providers", "model-stats", "mcp", "skills", "agent-presets", "team", "subagents", "plugins", "memory",
   "hooks", "diagnostics", "shortcuts", "permissions", "sandbox", "network", "browser", "appearance", "storage", "updates",
 ];
 
@@ -36,7 +36,7 @@ const SETTINGS_TAB_GROUPS: { labelKey: DictKey; tabs: SettingsTab[] }[] = [
   { labelKey: "settings.navGroup.preferences", tabs: ["general"] },
   { labelKey: "settings.tab.models", tabs: ["models", "providers", "model-stats"] },
   { labelKey: "settings.navGroup.connections", tabs: ["mcp"] },
-  { labelKey: "settings.navGroup.capabilities", tabs: ["agent-presets", "skills", "subagents", "plugins"] },
+  { labelKey: "settings.navGroup.capabilities", tabs: ["agent-presets", "team", "skills", "subagents", "plugins"] },
   { labelKey: "settings.navGroup.context", tabs: ["memory"] },
   { labelKey: "settings.navGroup.automation", tabs: ["hooks", "diagnostics"] },
   { labelKey: "settings.navGroup.security", tabs: ["permissions", "sandbox", "network", "browser"] },
@@ -145,6 +145,7 @@ function settingsTabIcon(id: SettingsTab): ReactNode {
     case "mcp": return <Plug {...props} />;
     case "skills": return <Sparkles {...props} />;
     case "agent-presets": return <Bot {...props} />;
+    case "team": return <Users {...props} />;
     case "subagents": return <Users {...props} />;
     case "plugins": return <Package {...props} />;
     case "memory": return <Database {...props} />;

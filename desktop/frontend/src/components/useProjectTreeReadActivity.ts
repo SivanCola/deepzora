@@ -24,7 +24,7 @@ function persist(store: ReadStore): ReadStore {
   } catch { return store; }
 }
 
-export function useProjectTreeReadActivity(nodes: readonly ProjectNode[]) {
+export function useProjectTreeReadActivity(nodes: readonly ProjectNode[], seed=true) {
   const [store, setStore] = useState<ReadStore>(loadStore);
   const readActivity = useMemo(() => readActivityValues(store, nodes), [store, nodes]);
   const markNodeRead = useCallback((node: ProjectNode) => {
@@ -35,11 +35,12 @@ export function useProjectTreeReadActivity(nodes: readonly ProjectNode[]) {
   }, []);
 
   useEffect(() => {
+    if(!seed)return;
     setStore(current => {
       const next = seedSessionReads(current, nodes);
       return next === current ? current : persist(next);
     });
-  }, [nodes]);
+  }, [nodes,seed]);
 
   useEffect(() => {
     const changed = (event: StorageEvent) => {

@@ -1,6 +1,7 @@
 package team
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -10,24 +11,38 @@ import (
 // Options assembles a Service. OnChange, when set, is told after a call that
 // may have changed the team, so a window showing it can read it again.
 type Options struct {
-	Store    teamroster.Store
-	Panes    Panes
-	Now      func() time.Time
-	OnChange func()
+	Store                     teamroster.Store
+	Panes                     Panes
+	Now                       func() time.Time
+	OnChange                  func()
+	AgentConfigurationChanged func(context.Context, *teamroster.Roster, teamroster.Agent, teamroster.Agent) error
 }
 
 // Service is the team's orchestration in the one process that holds the
 // team's writer lease.
 type Service struct {
-	store    teamroster.Store
-	panes    Panes
-	now      func() time.Time
-	onChange func()
+	configuration             sync.RWMutex
+	store                     teamroster.Store
+	panes                     Panes
+	now                       func() time.Time
+	onChange                  func()
+	agentConfigurationChanged func(context.Context, *teamroster.Roster, teamroster.Agent, teamroster.Agent) error
 
 	mu    sync.Mutex
 	sends sendLimits
 
 	rounds roundBook
+}
+
+// Configure serializes a Desktop roster commit with new exchange/round
+// admission. The callback must not start work or wait for a running turn.
+func (s *Service) Configure(ctx context.Context, commit func() error) error {
+	s.configuration.Lock()
+	defer s.configuration.Unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return commit()
 }
 
 // New returns a Service over o.
@@ -36,7 +51,7 @@ func New(o Options) *Service {
 	if now == nil {
 		now = func() time.Time { return time.Now().UTC() }
 	}
-	return &Service{store: o.Store, panes: o.Panes, now: now, onChange: o.OnChange}
+	return &Service{store: o.Store, panes: o.Panes, now: now, onChange: o.OnChange, agentConfigurationChanged: o.AgentConfigurationChanged}
 }
 
 func (s *Service) changed() {

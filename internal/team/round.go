@@ -155,11 +155,42 @@ func checkPost(text string) error {
 // answer it. A round in flight takes them next, and agent calls parked at the
 // relay limit resume after them.
 func (s *Service) UserPost(ctx context.Context, group, text string, mentions []string, everyone bool) (teamroster.GroupLine, error) {
+	return s.UserPostWithID(ctx, group, text, mentions, everyone, "")
+}
+
+// UserPostWithID gives Desktop submissions an at-most-once event admission.
+// A retry after interruption returns its original event; it cannot start a new
+// round or silently replay already accepted work.
+func (s *Service) UserPostWithID(ctx context.Context, group, text string, mentions []string, everyone bool, requestID string) (teamroster.GroupLine, error) {
 	defer s.changed()
+	s.configuration.RLock()
+	defer s.configuration.RUnlock()
 	if err := checkPost(text); err != nil {
 		return teamroster.GroupLine{}, err
 	}
 	defer s.rounds.lock(group)()
+	digest := ""
+	if requestID != "" {
+		if len(requestID) < 8 || len(requestID) > 128 {
+			return teamroster.GroupLine{}, teamroster.ErrInvalid
+		}
+		digest = groupPostDigest(text, mentions, everyone)
+		var found *teamroster.GroupLine
+		if err := s.store.ScanLines(group, func(line teamroster.GroupLine) {
+			if line.RequestID == requestID {
+				copy := line
+				found = &copy
+			}
+		}); err != nil {
+			return teamroster.GroupLine{}, err
+		}
+		if found != nil {
+			if found.RequestDigest != digest {
+				return teamroster.GroupLine{}, teamroster.ErrRequestReused
+			}
+			return *found, nil
+		}
+	}
 	r, g, err := s.group(group)
 	if err != nil {
 		return teamroster.GroupLine{}, err
@@ -171,7 +202,7 @@ func (s *Service) UserPost(ctx context.Context, group, text string, mentions []s
 	if err != nil {
 		return teamroster.GroupLine{}, err
 	}
-	line, err := s.store.AppendLine(ctx, group, teamroster.GroupLine{From: teamroster.ByUser, Kind: teamroster.LinePost, Text: text, Mentions: ids, At: s.now()})
+	line, err := s.store.AppendLine(ctx, group, teamroster.GroupLine{From: teamroster.ByUser, Kind: teamroster.LinePost, Text: text, Mentions: ids, At: s.now(), RequestID: requestID, RequestDigest: digest})
 	if err != nil {
 		return line, err
 	}
@@ -195,6 +226,8 @@ func (s *Service) UserPost(ctx context.Context, group, text string, mentions []s
 // main agent or the group's admin opens a round under the group's mode; a
 // plain member calls only the members it names.
 func (s *Service) AgentPost(ctx context.Context, c Caller, group, text string, mentions []string) (teamroster.GroupLine, error) {
+	s.configuration.RLock()
+	defer s.configuration.RUnlock()
 	defer s.changed()
 	if err := checkPost(text); err != nil {
 		return teamroster.GroupLine{}, err
@@ -418,6 +451,8 @@ func (s *Service) Observed(seat SeatRef, o Observation) {
 // WorkGrace keeps working off the speaking order, and one silent past
 // SpeakerTimeout is missed; either way its answer still posts, late.
 func (s *Service) Tick(ctx context.Context) error {
+	s.configuration.RLock()
+	defer s.configuration.RUnlock()
 	r, err := s.store.Load()
 	if err != nil {
 		return err
@@ -465,6 +500,8 @@ func (s *Service) tickGroup(ctx context.Context, group string) error {
 // Continue resumes the agent calls parked at the relay limit, with the count
 // started over.
 func (s *Service) Continue(ctx context.Context, group string) error {
+	s.configuration.RLock()
+	defer s.configuration.RUnlock()
 	defer s.changed()
 	defer s.rounds.lock(group)()
 	r, g, err := s.group(group)

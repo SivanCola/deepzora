@@ -2,6 +2,7 @@ import { app } from "../lib/bridge";
 
 /** Runtime-only bridge ports used by App owners; presentation never imports the desktop bridge directly. */
 export const desktopBridge = {
+  prepareTeamAgent: app.PrepareTeamAgentSession,
   getSessionSummary: (ref: Parameters<typeof app.GetSessionSummary>[0]) => app.GetSessionSummary(ref),
   cancelJobForTab: (tabId: string, jobId: string) => app.CancelJobForTab(tabId, jobId),
   terminalOutputForTab: (tabId: string, sessionId: string) => app.TerminalOutputForTab(tabId, sessionId),

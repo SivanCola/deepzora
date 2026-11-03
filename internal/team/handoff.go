@@ -15,6 +15,8 @@ import (
 // the call came from.
 func (s *Service) MessageAgent(ctx context.Context, c Caller, req MessageRequest) (MessageReceipt, error) {
 	defer s.changed()
+	s.configuration.RLock()
+	defer s.configuration.RUnlock()
 	if strings.TrimSpace(req.Message) == "" {
 		return MessageReceipt{}, ErrEmptyMessage
 	}

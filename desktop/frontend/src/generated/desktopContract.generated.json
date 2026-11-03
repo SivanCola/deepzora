@@ -2080,6 +2080,28 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/team_group_api.go",
+      "name": "ContinueTeamGroup",
+      "owner": "App.ContinueTeamGroup",
+      "params": [
+        {
+          "kind": "string"
+        }
+      ],
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "groupID"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.ContinueTeamGroup"
+      },
+      "sources": [
+        "desktop/team_group_api.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/session_workspace_api.go",
       "name": "CopySessionTarget",
       "owner": "App.CopySessionTarget",
@@ -2566,6 +2588,33 @@
       },
       "sources": [
         "desktop/subagents_app.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/team_organization.go",
+      "name": "DeleteTeamTarget",
+      "owner": "App.DeleteTeamTarget",
+      "params": [
+        {
+          "kind": "object",
+          "ref": "main.TeamTargetMutationRequest"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamMutationResult"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "req"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.DeleteTeamTarget"
+      },
+      "sources": [
+        "desktop/team_organization.go"
       ]
     },
     {
@@ -5552,6 +5601,36 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/team_preferences.go",
+      "name": "MarkTeamGroupRead",
+      "owner": "App.MarkTeamGroupRead",
+      "params": [
+        {
+          "kind": "string"
+        },
+        {
+          "kind": "string"
+        },
+        {
+          "kind": "integer"
+        }
+      ],
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "groupID",
+          "snapshotID",
+          "sequence"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.MarkTeamGroupRead"
+      },
+      "sources": [
+        "desktop/team_preferences.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/app.go",
       "name": "Memory",
       "owner": "App.Memory",
@@ -6718,6 +6797,32 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/team_api.go",
+      "name": "PrepareTeamAgentSession",
+      "owner": "App.PrepareTeamAgentSession",
+      "params": [
+        {
+          "kind": "string"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "session.SessionRef"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "agentID"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.PrepareTeamAgentSession"
+      },
+      "sources": [
+        "desktop/team_api.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/delivery_worktree.go",
       "name": "PrepareWorktreeMerge",
       "owner": "App.PrepareWorktreeMerge",
@@ -7435,6 +7540,62 @@
       },
       "sources": [
         "desktop/conversation_status.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/team_preferences.go",
+      "name": "ReadTeamGroupDraft",
+      "owner": "App.ReadTeamGroupDraft",
+      "params": [
+        {
+          "kind": "string"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamGroupDraftView"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "groupID"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.ReadTeamGroupDraft"
+      },
+      "sources": [
+        "desktop/team_preferences.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/team_history.go",
+      "name": "ReadTeamGroupHistory",
+      "owner": "App.ReadTeamGroupHistory",
+      "params": [
+        {
+          "kind": "string"
+        },
+        {
+          "kind": "string"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamGroupHistoryPage"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "groupID",
+          "cursor"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.ReadTeamGroupHistory"
+      },
+      "sources": [
+        "desktop/team_history.go"
       ]
     },
     {
@@ -8310,6 +8471,33 @@
       },
       "sources": [
         "desktop/tabs.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/team_organization.go",
+      "name": "ReorderTeam",
+      "owner": "App.ReorderTeam",
+      "params": [
+        {
+          "kind": "object",
+          "ref": "main.ReorderTeamRequest"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamMutationResult"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "req"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.ReorderTeam"
+      },
+      "sources": [
+        "desktop/team_organization.go"
       ]
     },
     {
@@ -10258,6 +10446,33 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/team_preferences.go",
+      "name": "SaveTeamGroupDraft",
+      "owner": "App.SaveTeamGroupDraft",
+      "params": [
+        {
+          "kind": "object",
+          "ref": "main.SaveTeamGroupDraftRequest"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamGroupDraftResult"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "req"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.SaveTeamGroupDraft"
+      },
+      "sources": [
+        "desktop/team_preferences.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/theme_app.go",
       "name": "SaveThemePack",
       "owner": "App.SaveThemePack",
@@ -10593,6 +10808,33 @@
       },
       "sources": [
         "desktop/session_history_binding.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/team_group_api.go",
+      "name": "SendTeamGroupMessage",
+      "owner": "App.SendTeamGroupMessage",
+      "params": [
+        {
+          "kind": "object",
+          "ref": "main.TeamGroupPostRequest"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamGroupPostResult"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "req"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.SendTeamGroupMessage"
+      },
+      "sources": [
+        "desktop/team_group_api.go"
       ]
     },
     {
@@ -12872,6 +13114,54 @@
       },
       "sources": [
         "desktop/task_catalog.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/team_group_api.go",
+      "name": "StopTeamGroup",
+      "owner": "App.StopTeamGroup",
+      "params": [
+        {
+          "kind": "string"
+        }
+      ],
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "groupID"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.StopTeamGroup"
+      },
+      "sources": [
+        "desktop/team_group_api.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/team_group_api.go",
+      "name": "StopTeamSeat",
+      "owner": "App.StopTeamSeat",
+      "params": [
+        {
+          "kind": "string"
+        },
+        {
+          "kind": "string"
+        }
+      ],
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "agentID",
+          "groupID"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.StopTeamSeat"
+      },
+      "sources": [
+        "desktop/team_group_api.go"
       ]
     },
     {
@@ -27118,6 +27408,40 @@
         }
       ]
     },
+    "main.ReorderTeamRequest": {
+      "fields": [
+        {
+          "name": "agentIds",
+          "type": {
+            "elem": {
+              "kind": "string"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "groupIds",
+          "type": {
+            "elem": {
+              "kind": "string"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "expectedRevision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "requestId",
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
     "main.RepairGuidanceView": {
       "fields": [
         {
@@ -27718,6 +28042,29 @@
           "type": {
             "kind": "object",
             "ref": "main.TeamAgentSettings"
+          }
+        }
+      ]
+    },
+    "main.SaveTeamGroupDraftRequest": {
+      "fields": [
+        {
+          "name": "groupId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "expectedRevision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "draft",
+          "type": {
+            "kind": "object",
+            "ref": "main.TeamGroupDraft"
           }
         }
       ]
@@ -30145,6 +30492,20 @@
     "main.TabMeta": {
       "fields": [
         {
+          "name": "teamAgentId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "teamGroupId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
           "name": "id",
           "type": {
             "kind": "string"
@@ -30632,6 +30993,34 @@
         }
       ]
     },
+    "main.TeamAgentActivity": {
+      "fields": [
+        {
+          "name": "agentId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "sessionId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "resultSequence",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "ready",
+          "type": {
+            "kind": "boolean"
+          }
+        }
+      ]
+    },
     "main.TeamAgentSettings": {
       "fields": [
         {
@@ -30701,7 +31090,295 @@
           "type": {
             "elem": {
               "kind": "object",
-              "ref": "agentpreset.Preset"
+              "ref": "main.TeamPresetDefinition"
+            },
+            "kind": "nullable"
+          }
+        }
+      ]
+    },
+    "main.TeamAgentView": {
+      "fields": [
+        {
+          "name": "name",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "role",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "instructions",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "avatar",
+          "type": {
+            "kind": "object",
+            "ref": "teamroster.Avatar"
+          }
+        },
+        {
+          "name": "initialModel",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "folder",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "permission",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "main",
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "pinned",
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "hidden",
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "preset",
+          "optional": true,
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "main.TeamPresetDefinition"
+            },
+            "kind": "nullable"
+          }
+        },
+        {
+          "name": "id",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "sessionPath",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "createdBy",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "createdAt",
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "main.TeamGroupDraft": {
+      "fields": [
+        {
+          "name": "requestId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "text",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "mentions",
+          "type": {
+            "elem": {
+              "kind": "string"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "everyone",
+          "type": {
+            "kind": "boolean"
+          }
+        }
+      ]
+    },
+    "main.TeamGroupDraftResult": {
+      "fields": [
+        {
+          "name": "outcome",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "reason",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "view",
+          "type": {
+            "kind": "object",
+            "ref": "main.TeamGroupDraftView"
+          }
+        }
+      ]
+    },
+    "main.TeamGroupDraftView": {
+      "fields": [
+        {
+          "name": "revision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "draft",
+          "type": {
+            "kind": "object",
+            "ref": "main.TeamGroupDraft"
+          }
+        }
+      ]
+    },
+    "main.TeamGroupHistoryPage": {
+      "fields": [
+        {
+          "name": "status",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "lines",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "teamroster.GroupLine"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "olderCursor",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "newerCursor",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "snapshot",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "maxSequence",
+          "type": {
+            "kind": "integer"
+          }
+        }
+      ]
+    },
+    "main.TeamGroupPostRequest": {
+      "fields": [
+        {
+          "name": "groupId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "requestId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "text",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "mentions",
+          "type": {
+            "elem": {
+              "kind": "string"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "everyone",
+          "type": {
+            "kind": "boolean"
+          }
+        }
+      ]
+    },
+    "main.TeamGroupPostResult": {
+      "fields": [
+        {
+          "name": "outcome",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "reason",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "message",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "line",
+          "optional": true,
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "teamroster.GroupLine"
             },
             "kind": "nullable"
           }
@@ -30775,6 +31452,34 @@
         }
       ]
     },
+    "main.TeamGroupStatus": {
+      "fields": [
+        {
+          "name": "groupId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "lastSequence",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "readSequence",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "unread",
+          "type": {
+            "kind": "integer"
+          }
+        }
+      ]
+    },
     "main.TeamMutationResult": {
       "fields": [
         {
@@ -30809,6 +31514,141 @@
           "type": {
             "kind": "object",
             "ref": "main.TeamView"
+          }
+        }
+      ]
+    },
+    "main.TeamPresetDefinition": {
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "name",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "description",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "body",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "icon",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "iconImage",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "iconColor",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "keepCoding",
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "complete",
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "includeRuntimeContext",
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "restrictTools",
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "tools",
+          "type": {
+            "elem": {
+              "kind": "string"
+            },
+            "kind": "array"
+          }
+        }
+      ]
+    },
+    "main.TeamRosterView": {
+      "fields": [
+        {
+          "name": "schemaVersion",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "revision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "agents",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "main.TeamAgentView"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "groups",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "teamroster.Group"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "retiredAgents",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "main.TeamAgentView"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "retiredGroups",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "teamroster.Group"
+            },
+            "kind": "array"
           }
         }
       ]
@@ -30852,6 +31692,40 @@
             "kind": "object",
             "ref": "main.ActiveWorkView"
           }
+        },
+        {
+          "name": "settingsPending",
+          "type": {
+            "kind": "boolean"
+          }
+        }
+      ]
+    },
+    "main.TeamTargetMutationRequest": {
+      "fields": [
+        {
+          "name": "agentId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "groupId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "expectedRevision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "requestId",
+          "type": {
+            "kind": "string"
+          }
         }
       ]
     },
@@ -30861,7 +31735,7 @@
           "name": "roster",
           "type": {
             "kind": "object",
-            "ref": "teamroster.Roster"
+            "ref": "main.TeamRosterView"
           }
         },
         {
@@ -30876,6 +31750,26 @@
             "elem": {
               "kind": "object",
               "ref": "main.TeamSeatView"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "groupStatus",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "main.TeamGroupStatus"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "agentActivity",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "main.TeamAgentActivity"
             },
             "kind": "array"
           }
@@ -35187,133 +36081,6 @@
         }
       ]
     },
-    "teamroster.Agent": {
-      "fields": [
-        {
-          "name": "id",
-          "type": {
-            "kind": "string"
-          }
-        },
-        {
-          "name": "name",
-          "type": {
-            "kind": "string"
-          }
-        },
-        {
-          "name": "role",
-          "optional": true,
-          "type": {
-            "kind": "string"
-          }
-        },
-        {
-          "name": "instructions",
-          "optional": true,
-          "type": {
-            "kind": "string"
-          }
-        },
-        {
-          "name": "avatar",
-          "type": {
-            "kind": "object",
-            "ref": "teamroster.Avatar"
-          }
-        },
-        {
-          "name": "composition",
-          "optional": true,
-          "type": {
-            "kind": "string"
-          }
-        },
-        {
-          "name": "preset",
-          "optional": true,
-          "type": {
-            "elem": {
-              "kind": "object",
-              "ref": "agentpreset.Preset"
-            },
-            "kind": "nullable"
-          }
-        },
-        {
-          "name": "initialModel",
-          "optional": true,
-          "type": {
-            "kind": "string"
-          }
-        },
-        {
-          "name": "folder",
-          "optional": true,
-          "type": {
-            "kind": "string"
-          }
-        },
-        {
-          "name": "permission",
-          "optional": true,
-          "type": {
-            "kind": "string"
-          }
-        },
-        {
-          "name": "sessionPath",
-          "optional": true,
-          "type": {
-            "kind": "string"
-          }
-        },
-        {
-          "name": "parts",
-          "optional": true,
-          "type": {
-            "elem": {
-              "kind": "object",
-              "ref": "teamroster.Part"
-            },
-            "kind": "array"
-          }
-        },
-        {
-          "name": "main",
-          "optional": true,
-          "type": {
-            "kind": "boolean"
-          }
-        },
-        {
-          "name": "pinned",
-          "optional": true,
-          "type": {
-            "kind": "boolean"
-          }
-        },
-        {
-          "name": "hidden",
-          "optional": true,
-          "type": {
-            "kind": "boolean"
-          }
-        },
-        {
-          "name": "createdBy",
-          "type": {
-            "kind": "string"
-          }
-        },
-        {
-          "name": "createdAt",
-          "type": {
-            "kind": "string"
-          }
-        }
-      ]
-    },
     "teamroster.Avatar": {
       "fields": [
         {
@@ -35325,6 +36092,13 @@
         },
         {
           "name": "color",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "image",
           "optional": true,
           "type": {
             "kind": "string"
@@ -35438,93 +36212,96 @@
         }
       ]
     },
-    "teamroster.MutationReceipt": {
+    "teamroster.GroupLine": {
       "fields": [
         {
-          "name": "key",
-          "type": {
-            "kind": "string"
-          }
-        },
-        {
-          "name": "digest",
-          "type": {
-            "kind": "string"
-          }
-        },
-        {
-          "name": "expectedRevision",
+          "name": "seq",
           "type": {
             "kind": "integer"
           }
         },
         {
-          "name": "target",
-          "type": {
-            "kind": "string"
-          }
-        }
-      ]
-    },
-    "teamroster.Part": {
-      "fields": [
-        {
-          "name": "sessionPath",
+          "name": "at",
           "type": {
             "kind": "string"
           }
         },
         {
-          "name": "endedAt",
+          "name": "from",
           "type": {
             "kind": "string"
           }
-        }
-      ]
-    },
-    "teamroster.Roster": {
-      "fields": [
+        },
         {
-          "name": "schemaVersion",
+          "name": "kind",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "text",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "length",
+          "optional": true,
           "type": {
             "kind": "integer"
           }
         },
         {
-          "name": "revision",
-          "type": {
-            "kind": "integer"
-          }
-        },
-        {
-          "name": "agents",
-          "type": {
-            "elem": {
-              "kind": "object",
-              "ref": "teamroster.Agent"
-            },
-            "kind": "array"
-          }
-        },
-        {
-          "name": "groups",
-          "type": {
-            "elem": {
-              "kind": "object",
-              "ref": "teamroster.Group"
-            },
-            "kind": "array"
-          }
-        },
-        {
-          "name": "mutations",
+          "name": "mentions",
           "optional": true,
           "type": {
             "elem": {
-              "kind": "object",
-              "ref": "teamroster.MutationReceipt"
+              "kind": "string"
             },
             "kind": "array"
+          }
+        },
+        {
+          "name": "event",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "count",
+          "optional": true,
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "code",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "late",
+          "optional": true,
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "requestId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "requestDigest",
+          "optional": true,
+          "type": {
+            "kind": "string"
           }
         }
       ]

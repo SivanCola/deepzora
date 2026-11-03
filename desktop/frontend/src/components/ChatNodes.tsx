@@ -1,6 +1,10 @@
 import { createContext, lazy, Suspense, memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { FileText, Globe, GitBranch, PackageOpen, Search, Terminal, Users, Wrench, X } from "lucide-react";
 import { ErrorMessage } from "./ErrorMessage";
+import { AgentPresetIcon } from "./AgentPresetIcon";
+import type { Item } from "../lib/useController";
+
+export const ChatSpeakerContext=createContext<Item["speaker"]>(undefined);
 import { ChatSource, type ChatNode } from "../lib/chatViewSource";
 import type { ChatContentLoader } from "../lib/chatContentLoader";
 import type { ChatScrollController } from "../lib/chatScrollController";
@@ -114,6 +118,7 @@ export const ChatNodeList = memo(function ChatNodeList(props: Omit<SeatProps, "n
 });
 
 const ChatNodeSeat = memo(function ChatNodeSeat({ source, nodeKey, loader, scroll, actions, tabId }: SeatProps) {
+  const assistantSpeaker=useContext(ChatSpeakerContext);
   const node = useChatNode(source, nodeKey);
   const visibility = useProcessVisibility(source, node);
   const t = useT();
@@ -133,8 +138,12 @@ const ChatNodeSeat = memo(function ChatNodeSeat({ source, nodeKey, loader, scrol
     case "tail": body = <ChatTurnTail node={node} source={source} actions={actions} loader={loader} tabId={tabId} />; break;
   }
   return <div className="chat-node" data-chat-anchor-key={node.key} data-chat-turn={node.turnKey} data-chat-kind={node.kind}
-    data-turn-process-answer={visibility === "answer" || undefined}>{body}</div>;
+    data-turn-process-answer={visibility === "answer" || undefined}>{(node.kind==="user"||node.kind==="assistant")&&<ChatSpeaker speaker={node.item.speaker??(node.kind==="assistant"?assistantSpeaker:undefined)}/>}{body}</div>;
 });
+
+function ChatSpeaker({speaker}:{speaker:Item["speaker"]}) {
+  return speaker?<div className="team-chat__speaker" data-team-speaker={speaker.id}><AgentPresetIcon icon={speaker.glyph} image={speaker.image} color={speaker.color}/><span>{speaker.name}</span></div>:null;
+}
 
 function ChatNotice({ node, actions, scroll }: { node: Extract<ChatNode, { kind: "notice" }>; actions: ChatActions; scroll: ChatScrollController }) {
   const t = useT();

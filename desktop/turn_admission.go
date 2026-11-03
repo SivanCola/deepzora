@@ -123,6 +123,11 @@ func (a *App) beginRuntimeTurnWithModelChoice(tabID string, reclaim, detached bo
 		if err := a.validateTabControllerWorkspace(tab); err != nil {
 			return nil, nil, err
 		}
+		if applied, err := a.applyTeamPresetIfIdle(a.bootContext(), tab); err != nil {
+			return nil, nil, err
+		} else if applied {
+			continue
+		}
 
 		a.runtimeAdmissionMu.RLock()
 		abort := func() {
