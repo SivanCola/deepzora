@@ -133,3 +133,28 @@ indicators reuse the existing canonical-session result sequence metric.
 The browser gate uses the existing preview bridge and never fabricates member
 model replies. It verifies UI/navigation separately from native-host, real-model
 and installed-package acceptance.
+
+## Memory and schedules
+
+In **Settings → Team**, choose the team, a group or a member under **Team
+memory**. Member-private facts follow that member across seats. Shared memory
+tools request a new human decision for each exact change. A conflicting edit
+keeps your draft; reload the saved version explicitly before trying again.
+
+**Automatic memory review** starts off. It uses new human messages and existing
+facts, preserves fixed guidance, and excludes agent replies and scheduled input.
+Set a review model reference or leave it empty for the default chat model. An
+unavailable model records a failure instead of choosing another connection.
+Reviews use model quota. Turning review off waits for active cleanup to finish.
+
+**Team schedules** target a member or group. Choose once, daily, weekly or an
+interval of 10 minutes to 7 days, and save an IANA time zone. Start dates use an
+ISO 8601 timestamp with an explicit UTC offset, for example
+`2026-11-04T09:00:00+08:00`. Daily and weekly clocks use the saved zone even when
+the device travels. A nonexistent daylight-saving clock is skipped.
+
+Schedules run only while Desktop is open. Missed work over two minutes late is
+skipped, and a busy target waits only within that window. **Run now** submits
+scheduler input under existing approval rules; it does not approve sensitive
+tools, grant permissions, or resume a stopped Goal. After an interrupted
+dispatch, inspect the target conversation before creating another occurrence.

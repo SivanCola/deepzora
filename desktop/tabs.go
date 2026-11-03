@@ -1053,6 +1053,7 @@ func (s *tabEventSink) Emit(e event.Event) {
 	// Persist after each turn so a force-kill loses at most the in-flight prompt.
 	if e.Kind == event.TurnDone && app != nil {
 		app.scheduleTabSnapshot(tabID)
+		app.scheduleTeamMemoryReviewForTab(tabID)
 	}
 	if e.Kind == event.TurnDone {
 		s.mu.Lock()

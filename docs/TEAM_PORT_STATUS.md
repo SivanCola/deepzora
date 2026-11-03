@@ -15,13 +15,49 @@ preset definitions instead of following later preset edits.
 | 2 | Controller seat, tools, approvals and delegation ceilings | Implemented; full root suite and hosted CI/CodeQL passed; PR #147 |
 | 3 | Desktop runtime, lease and browser isolation | Implemented; full root/Desktop suites and macOS native browser fixture passed; PR #148 |
 | 4 | Desktop Team UI and generated contract | Implemented; full root/Desktop suites, focused/race, production build, 246 settings viewport cases, Team browser flow and all 34 transcript commands passed; draft PR #149 |
-| 5 | Memory, opt-in review and schedules | Pending |
+| 5 | Memory, opt-in review and schedules | Implemented; complete root/Desktop suites, focused/race, typechecks, build and Chromium flow passed; draft PR #151; hosted checks pending |
 | 6 | Private credential slots and shell injection | Pending |
 | 7 | Outbound/stream masking, usage and native acceptance | Pending |
 
 No layer status implies completion of a later layer. Secret delivery must remain
 unavailable until its complete masking boundaries pass. Hosted checks, local
 checks, native platform acceptance and publication are separate evidence.
+
+## Memory and scheduler increment
+
+The complete root Go suite passed. The independent Desktop Go suite passed
+(main package 804.855s). Subsequent parent archive integration passed the merged
+frontend typecheck, production build and extended Team Chromium flow. These
+local results do not substitute for pending hosted/native/package acceptance.
+
+- Member-private facts use an isolated namespace shared by that member's seats;
+  ordinary user/workspace standing instructions retain their existing authority.
+  Team/group memory is dynamic tail context. Ordinary sessions do not register
+  the two additional Team-only memory tools.
+- Shared writes require fresh approval bound to exact body, target, memory
+  revision and roster revision, even under Full access. Plan and delegated
+  read-only execution cannot publish them; authority is checked again at commit.
+- Memory batches validate all changes in staging, preserve pinned guidance and
+  use a durable before/after journal. Manual changes and retry receipts commit
+  together. Unknown schema, later conflicting edits and recovery failures retain
+  the original journal rather than overwrite user data.
+- Review defaults off and consumes oldest unreviewed batches of new human
+  evidence. Scheduler/agent/tool input is excluded. The selected review model
+  or default chat model must resolve; no other connection is selected.
+  Disabling review and shutdown cancel and join cleanup.
+- Independent versioned schedules save IANA zones, stable interval anchors and
+  occurrence keys. The writer lease executes them only while Desktop is open.
+  Busy targets wait within two minutes; older missed occurrences are skipped.
+  Interrupted dispatch claims are not replayed. Scheduled input has explicit
+  provenance and the existing `workspace-write` (ask-before-write) ceiling.
+- Team settings expose memory editing/archiving, review preferences/statuses,
+  and schedule creation/editing/deletion/immediate execution. Conflict results
+  retain drafts and require explicit review before resubmission.
+
+第五层已在本地接入成员私有、团队共享及群组共享记忆，新鲜审批、整批验证与崩溃恢复、
+默认关闭的自动整理，以及固定时区的独立团队调度。定时输入不会成为人类记忆证据或计划
+批准。界面与宿主测试证据分开记录；密钥功能仍未开放，三平台原生安装包与真实模型验收
+尚未完成。
 
 ## Source snapshots
 

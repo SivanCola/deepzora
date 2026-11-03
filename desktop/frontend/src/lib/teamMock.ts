@@ -1,10 +1,11 @@
 import type { GroupLine, SessionRef, TeamAgentView, TeamGroupHistoryPage, TeamGroupDraftView, TeamMutationResult, TeamPresetDefinition, TeamView } from "../generated/desktopContract.generated";
 import type { AgentPresetsView } from "./agentPresets";
 import type { TeamHostBindings } from "./teamBindings";
+import { makeTeamKnowledgeMock } from "./teamKnowledgeMock";
 
 type Ports={presets:()=>Promise<AgentPresetsView>;createSession:(agentID:string)=>Promise<SessionRef>};
 export function makeMockTeamBindings(ports:Ports):TeamHostBindings {
-  const view:TeamView={roster:{schemaVersion:1,revision:0,agents:[],groups:[],retiredAgents:[],retiredGroups:[]},writable:true,seats:[],groupStatus:[],agentActivity:[]};
+  const view:TeamView={roster:{schemaVersion:1,revision:0,agents:[],groups:[],retiredAgents:[],retiredGroups:[],prefs:{memoryReview:false}},writable:true,seats:[],groupStatus:[],agentActivity:[]};
   const drafts=new Map<string,TeamGroupDraftView>();
   const read=new Map<string,number>();
   const receipts=new Map<string,{request:string;target:string}>();
@@ -30,6 +31,7 @@ export function makeMockTeamBindings(ports:Ports):TeamHostBindings {
     return ref;
   };
   return {
+    ...makeTeamKnowledgeMock(view),
     ArchiveTeamAgent:async request=>{
       const prior=check(request.requestId,request.expectedRevision,{...request,action:"archive"});if(prior)return prior;
       const member=view.roster.agents.find(a=>a.id===request.agentId);if(!member)return result("rejected","","target_invalid");

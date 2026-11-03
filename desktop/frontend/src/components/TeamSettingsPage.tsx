@@ -15,6 +15,8 @@ import { SettingsField, SettingsSection } from "./SettingsForm";
 import { SettingsSelect } from "./SettingsSelect";
 import { InlineConfirmButton } from "./InlineConfirmButton";
 import { PermissionPresetChoice } from "./PermissionPresetChoice";
+import { TeamMemorySettings } from "./TeamMemorySettings";
+import { TeamScheduleSettings } from "./TeamScheduleSettings";
 import { SettingsFeedback, SettingsSubpageHeader, useSettingsDraft, useSettingsExperience } from "./SettingsExperience";
 
 type Editor = { kind:"agent"; member?:Agent; revision:number } | { kind:"group"; group?:Group; revision:number };
@@ -97,6 +99,8 @@ export function TeamSettingsPage({tabId,workspaceKey}:{tabId:string;workspaceKey
           <InlineConfirmButton label={t("common.delete")} confirmLabel={t("team.confirmDelete",{name:group.name??group.id})} cancelLabel={t("common.cancel")} disabled={!team.view?.writable||operation.busy} danger onConfirm={async()=>{await remove("",group.id);}}/></div>
         </article>)}</div>
       </SettingsSection>
+      <TeamMemorySettings team={team.view} reload={team.reload}/>
+      <TeamScheduleSettings team={team.view}/>
     </>}
   </section>;
 }

@@ -111,6 +111,21 @@ func (s Store) UpdateAt(ctx context.Context, revision uint64, mutate func(*Roste
 	return s.update(ctx, &revision, mutate)
 }
 
+// InspectAt holds the roster version while a separate namespace is committed.
+// The callback must not write the roster or call another roster-locking API.
+func (s Store) InspectAt(ctx context.Context, revision uint64, inspect func(Roster) error) error {
+	return s.withLock(ctx, s.Dir, FileName, func() error {
+		r, err := s.Load()
+		if err != nil {
+			return err
+		}
+		if r.Revision != revision {
+			return ErrConflict
+		}
+		return inspect(r)
+	})
+}
+
 func (s Store) update(ctx context.Context, revision *uint64, mutate func(*Roster) error) (Roster, error) {
 	var out Roster
 	err := s.withLock(ctx, s.Dir, FileName, func() error {

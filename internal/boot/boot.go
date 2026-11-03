@@ -25,7 +25,6 @@ import (
 
 	"deepzora/internal/ablation"
 	"deepzora/internal/agent"
-	"deepzora/internal/billing"
 	"deepzora/internal/browser"
 	"deepzora/internal/capability"
 	"deepzora/internal/command"
@@ -257,26 +256,7 @@ func build(ctx context.Context, opts Options) (*BuildResult, error) {
 	// same occurrence-time quote. Order from the agent:
 	//   GoalUsageTee → Sync → CostQuote → [Recorder] → frontend
 	// The controller coalesces before its ledger so every consumer shares boundaries.
-	quoteCtx := &event.QuoteContext{
-		DisplayRequest: billing.DisplayRequest{
-			Currency: cfg.ExplicitDisplayCurrency(),
-			Source:   billing.DisplaySourceExplicit,
-		},
-		BillingModeForModel: func(modelRef string) string {
-			entry, ok := cfg.ResolveModel(modelRef)
-			if !ok {
-				return ""
-			}
-			return entry.ProviderBillingMode()
-		},
-		PricingContextForModel: func(modelRef string) billing.PricingContext {
-			entry, ok := cfg.ResolveModel(modelRef)
-			if !ok {
-				return billing.PricingContext{}
-			}
-			return entry.PricingContextForModel(entry.Model)
-		},
-	}
+	quoteCtx := QuoteContextFor(cfg)
 	// Innermost: frontend sink (CLI metrics/ACP/Desktop bridge live here).
 	quoted := opts.Sink
 	// Record billable usage after quoting so history JSONL can store CostQuote.
@@ -554,7 +534,17 @@ func build(ctx context.Context, opts Options) (*BuildResult, error) {
 	// Stable memory policy and DEEPZORA.md / AGENTS.md standing instructions
 	// enter the system prompt. Pinned facts and the background index remain in
 	// the controller-owned session-context snapshot.
-	mem := memory.Load(memory.Options{CWD: root, UserDir: config.MemoryUserDir()})
+	memoryOptions := memory.Options{CWD: root, UserDir: config.MemoryUserDir()}
+	if source, ok := opts.TeamSeat.(interface {
+		PrivateMemoryStore(context.Context) (memory.Store, error)
+	}); ok {
+		store, err := source.PrivateMemoryStore(ctx)
+		if err != nil {
+			return nil, err
+		}
+		memoryOptions.FactStore = &store
+	}
+	mem := memory.Load(memoryOptions)
 	sysPrompt = memory.Compose(sysPrompt, mem)
 
 	implicitSkillInvocation := cfg.ImplicitSkillInvocationEnabled()

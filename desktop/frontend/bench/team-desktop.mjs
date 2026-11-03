@@ -42,6 +42,21 @@ try {
   for(const name of ["Chief","Ada With Spaces"])await settings.getByRole("checkbox",{name,exact:true}).check();
   await settings.locator("button[type=submit]").click();
   await settings.getByRole("heading",{name:"Project group",exact:true}).waitFor();
+  const memory=settings.locator('.settings-section').filter({has:page.getByRole('heading',{name:'Team memory',exact:true})});
+  assert.equal(await settings.getByRole('checkbox',{name:'Automatic memory review',exact:true}).isChecked(),false,'review is opt-in');
+  await memory.getByRole('button',{name:'Add memory',exact:true}).click();
+  await memory.getByRole('textbox',{name:'Summary',exact:true}).fill('Working language');
+  await memory.getByRole('textbox',{name:'Content',exact:true}).fill('Use Chinese for explanations');
+  await memory.getByRole('button',{name:'Save',exact:true}).click();
+  await memory.getByRole('heading',{name:'Working language',exact:true}).waitFor();
+  const schedules=settings.locator('.settings-section').filter({has:page.getByRole('heading',{name:'Team schedules',exact:true})});
+  await schedules.getByRole('button',{name:'New schedule',exact:true}).click();
+  await schedules.getByRole('textbox',{name:'Name',exact:true}).fill('Release review');
+  await schedules.getByRole('textbox',{name:'Task',exact:true}).fill('Review the release checklist');
+  await schedules.getByRole('button',{name:'Save',exact:true}).click();
+  await schedules.getByRole('heading',{name:'Release review',exact:true}).waitFor();
+  await schedules.getByRole('button',{name:'Run now',exact:true}).click();
+  await schedules.getByText('Scheduled input accepted. Check the target conversation for execution and approvals.',{exact:true}).waitFor();
   await page.getByRole("button",{name:"Back to workspace",exact:true}).click();
   const sidebar=page.locator(".team-sidebar");
   await sidebar.getByRole("button",{name:/Project group/}).click();
@@ -66,7 +81,7 @@ try {
     await page.screenshot({path:path.join(output,`team-group-${width}.png`)});
   }
   assert.deepEqual(errors,[],"no browser runtime errors");
-  console.log("PASS Team creation, ordering, structured mentions, canonical switching, retained drafts, at-most-once display and responsive group chat");
+  console.log("PASS Team creation, ordering, memory edits, review opt-in, schedule acceptance, structured mentions, canonical switching, retained drafts, at-most-once display and responsive group chat");
 } finally {
   await page.close();await browser.close();if(preview)await preview.httpServer.close();
 }

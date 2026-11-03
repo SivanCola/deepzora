@@ -418,6 +418,7 @@ const (
 	UsageSourceCapabilityRouter = "capability-router"
 	UsageSourceRecoveryReviewer = "recovery-reviewer"
 	UsageSourceGoalEvaluator    = "goal-evaluator"
+	UsageSourceMemoryReview     = "memory-review"
 )
 
 // Event is one increment in a turn's event stream. Read the field(s) documented
@@ -449,6 +450,7 @@ type Event struct {
 	CostQuote        *billing.CostQuote        // Usage: host-side quote; sinks must not reprice
 	Source           string                    // optional display/event source (executor, planner, subagent, ...)
 	UsageSource      string                    // Usage: billable call source; empty means executor for compatibility
+	Team             *TeamUsageAttribution     `json:"team,omitempty"` // Optional host-owned Team identity; never model supplied.
 	CacheDiagnostics *CacheDiagnostics         // Usage: cache-churn attribution (nil = N/A)
 	// SessionHit/SessionMiss carry cumulative cache tokens across the whole
 	// session (Usage events only), so a frontend can show the aggregate hit-rate

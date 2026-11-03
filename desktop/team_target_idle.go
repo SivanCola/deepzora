@@ -5,6 +5,12 @@ import "deepzora/internal/sessioninbox"
 // Called under both configuration and runtime admission. A settled exchange
 // with an unread reply still owns its participants and cannot be discarded.
 func (a *App) requireTeamTargetIdle(agent, group string) error {
+	a.teamState.mu.Lock()
+	reviews := a.teamState.reviews
+	a.teamState.mu.Unlock()
+	if reviews != nil && reviews.busy(agent, group) {
+		return errTeamBusy
+	}
 	store := desktopTeamStore()
 	exchanges, err := store.Exchanges()
 	if err != nil {

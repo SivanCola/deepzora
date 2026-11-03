@@ -2,6 +2,7 @@ package tool
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 )
 
@@ -78,6 +79,25 @@ type TeamDirectory interface {
 	PassTurn(ctx context.Context) error
 	HandTurn(ctx context.Context, to []string) error
 	ReadGroup(ctx context.Context, group string, before int64, limit int) (string, error)
+}
+
+type TeamSharedMemoryRequest struct {
+	Tier             string `json:"tier"`
+	Group            string `json:"group,omitempty"`
+	Operation        string `json:"operation"`
+	ID               string `json:"id,omitempty"`
+	ExpectedRevision int    `json:"expected_revision,omitempty"`
+	Name             string `json:"name,omitempty"`
+	Description      string `json:"description,omitempty"`
+	Type             string `json:"type,omitempty"`
+	Body             string `json:"body,omitempty"`
+}
+
+// Optional so a host that has no shared memory fails closed without borrowing
+// another session's generic memory store.
+type TeamMemoryDirectory interface {
+	ReadSharedMemory(context.Context, string, string, json.RawMessage) (string, error)
+	RememberShared(context.Context, TeamSharedMemoryRequest) (string, error)
 }
 
 // ReadOnlyTeamCoordination identifies coordination that preserves the current

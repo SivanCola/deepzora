@@ -69,6 +69,7 @@ func (c *Controller) withTeamTail(input string) (string, error) {
 	for _, part := range []struct{ tag, text string }{
 		{"agent-identity", p.Identity}, {"team-roster", p.Roster},
 		{"group-roster", p.Group},
+		{"shared-memory", p.Memory},
 	} {
 		text := part.text
 		if part.tag == "group-roster" && text == "" {
