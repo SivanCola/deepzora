@@ -17,7 +17,43 @@ type TeamTargetMutationRequest struct {
 // DeleteTeamTarget retires identities instead of destroying their history.
 // A member's departure retires a group that could no longer have two members.
 func (a *App) DeleteTeamTarget(req TeamTargetMutationRequest) (TeamMutationResult, error) {
-	return a.mutateTeam(req.ExpectedRevision, req.RequestID, req, func(_ context.Context, r *teamroster.Roster) (string, error) {
+	return a.retireTeamTarget(req, false, req)
+}
+
+func (a *App) ArchiveTeamAgent(req TeamTargetMutationRequest) (TeamMutationResult, error) {
+	if req.AgentID == "" || req.GroupID != "" {
+		return TeamMutationResult{}, teamroster.ErrInvalid
+	}
+	return a.retireTeamTarget(req, true, struct {
+		Request TeamTargetMutationRequest
+		Action  string
+	}{req, "archive"})
+}
+
+// Restore retains the stable identity, private session and copied definition.
+// Group memberships are added explicitly after reviewing the active roster.
+func (a *App) RestoreTeamAgent(req TeamTargetMutationRequest) (TeamMutationResult, error) {
+	return a.mutateTeam(req.ExpectedRevision, req.RequestID, struct {
+		Request TeamTargetMutationRequest
+		Action  string
+	}{req, "restore"}, func(_ context.Context, r *teamroster.Roster) (string, error) {
+		if req.AgentID == "" || req.GroupID != "" {
+			return "", teamroster.ErrInvalid
+		}
+		i := slices.IndexFunc(r.RetiredAgents, func(member teamroster.Agent) bool { return member.ID == req.AgentID && member.Archived })
+		if i < 0 {
+			return "", teamroster.ErrUnknownAgent
+		}
+		member := r.RetiredAgents[i]
+		member.Archived = false
+		r.Agents = append(r.Agents, member)
+		r.RetiredAgents = slices.Delete(r.RetiredAgents, i, i+1)
+		return member.ID, nil
+	})
+}
+
+func (a *App) retireTeamTarget(req TeamTargetMutationRequest, archive bool, request any) (TeamMutationResult, error) {
+	return a.mutateTeam(req.ExpectedRevision, req.RequestID, request, func(_ context.Context, r *teamroster.Roster) (string, error) {
 		if (req.AgentID == "") == (req.GroupID == "") {
 			return "", teamroster.ErrInvalid
 		}
@@ -46,7 +82,9 @@ func (a *App) DeleteTeamTarget(req TeamTargetMutationRequest) (TeamMutationResul
 				}
 			}
 		}
-		r.RetiredAgents = append(r.RetiredAgents, *member)
+		retiredMember := *member
+		retiredMember.Archived = archive
+		r.RetiredAgents = append(r.RetiredAgents, retiredMember)
 		for i := range r.Groups {
 			g := &r.Groups[i]
 			if !g.IsMember(req.AgentID) {

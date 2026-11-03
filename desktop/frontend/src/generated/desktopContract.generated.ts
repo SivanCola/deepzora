@@ -3,7 +3,7 @@
 
 export const DESKTOP_PROTOCOL_VERSION = 11;
 
-export const DESKTOP_CONTRACT_DIGEST = "sha256:467028cf98738470b14cda937d6d75cea37c44bbc3eaf4eebd6b5a30da6a9cb6";
+export const DESKTOP_CONTRACT_DIGEST = "sha256:2d257ca2e9ef0b085e89eb423c7c09baf482814832eb5cea1e0193a69753bc61";
 
 export const DESKTOP_COMMANDS = [
   "AIRenameSessionTarget",
@@ -30,6 +30,7 @@ export const DESKTOP_COMMANDS = [
   "ApplyUpdateRequest",
   "ArchiveCanonicalSession",
   "ArchiveSessionTarget",
+  "ArchiveTeamAgent",
   "AttachDropped",
   "AttachDroppedForComposerTarget",
   "AttachDroppedForTab",
@@ -349,6 +350,7 @@ export const DESKTOP_COMMANDS = [
   "RestoreMemoryRevision",
   "RestoreMemoryRevisionForTab",
   "RestoreSessionTarget",
+  "RestoreTeamAgent",
   "ResumeGoalForTab",
   "ResumeTranscriptSessionForTab",
   "RetryAuthenticationForTab",
@@ -3672,6 +3674,7 @@ export interface TeamAgentView {
   sessionPath: string;
   createdBy: string;
   createdAt: string;
+  archived?: boolean;
 }
 
 export interface TeamGroupDraft {
@@ -4971,6 +4974,7 @@ export interface GeneratedDesktopCommands {
   ApplyUpdateRequest(arg0: string, arg1: string, arg2: string): Promise<void>;
   ArchiveCanonicalSession(arg0: SessionRef): Promise<void>;
   ArchiveSessionTarget(arg0: SessionSelector): Promise<SessionMutationResult>;
+  ArchiveTeamAgent(arg0: TeamTargetMutationRequest): Promise<TeamMutationResult>;
   AttachDropped(arg0: string): Promise<DroppedItem>;
   AttachDroppedForComposerTarget(arg0: ComposerTarget, arg1: string): Promise<DroppedItem>;
   AttachDroppedForTab(arg0: string, arg1: string): Promise<DroppedItem>;
@@ -5290,6 +5294,7 @@ export interface GeneratedDesktopCommands {
   RestoreMemoryRevision(arg0: string, arg1: number): Promise<MemoryFact>;
   RestoreMemoryRevisionForTab(arg0: string, arg1: string, arg2: number): Promise<MemoryFact>;
   RestoreSessionTarget(arg0: SessionSelector): Promise<SessionMutationResult>;
+  RestoreTeamAgent(arg0: TeamTargetMutationRequest): Promise<TeamMutationResult>;
   ResumeGoalForTab(arg0: string): Promise<boolean>;
   ResumeTranscriptSessionForTab(arg0: string, arg1: string): Promise<HistorySwitchPhases>;
   RetryAuthenticationForTab(arg0: string): Promise<AuthenticationState>;

@@ -45,6 +45,7 @@ type TeamAgentView struct {
 	SessionPath string    `json:"sessionPath"`
 	CreatedBy   string    `json:"createdBy"`
 	CreatedAt   time.Time `json:"createdAt"`
+	Archived    bool      `json:"archived,omitempty"`
 }
 
 type TeamRosterView struct {
@@ -68,5 +69,5 @@ func teamRosterView(r teamroster.Roster) TeamRosterView {
 }
 
 func teamAgentView(a teamroster.Agent) TeamAgentView {
-	return TeamAgentView{ID: a.ID, SessionPath: a.SessionPath, CreatedBy: a.CreatedBy, CreatedAt: a.CreatedAt, TeamAgentSettings: TeamAgentSettings{Name: a.Name, Role: a.Role, Instructions: a.Instructions, Avatar: a.Avatar, InitialModel: a.InitialModel, Folder: a.Folder, Permission: a.Permission, Main: a.Main, Pinned: a.Pinned, Hidden: a.Hidden, Preset: teamPresetView(a.Preset)}}
+	return TeamAgentView{ID: a.ID, SessionPath: a.SessionPath, CreatedBy: a.CreatedBy, CreatedAt: a.CreatedAt, Archived: a.Archived, TeamAgentSettings: TeamAgentSettings{Name: a.Name, Role: a.Role, Instructions: a.Instructions, Avatar: a.Avatar, InitialModel: a.InitialModel, Folder: a.Folder, Permission: a.Permission, Main: a.Main, Pinned: a.Pinned, Hidden: a.Hidden, Preset: teamPresetView(a.Preset)}}
 }

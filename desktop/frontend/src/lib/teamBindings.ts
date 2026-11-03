@@ -3,7 +3,7 @@ import type { GeneratedDesktopCommands } from "../generated/desktopContract.gene
 export type TeamHostBindings = Pick<GeneratedDesktopCommands,
   "BrowserTeamAgentForTab" | "GetTeam" | "OpenTeamAgent" | "SaveTeamAgent" | "SaveTeamGroup"
   | "ReadTeamGroupHistory" | "SendTeamGroupMessage" | "ContinueTeamGroup" | "StopTeamSeat" | "StopTeamGroup" | "PrepareTeamAgentSession" | "DeleteTeamTarget" | "ReorderTeam"
-  | "ReadTeamGroupDraft" | "SaveTeamGroupDraft" | "MarkTeamGroupRead">;
+  | "ReadTeamGroupDraft" | "SaveTeamGroupDraft" | "MarkTeamGroupRead" | "ArchiveTeamAgent" | "RestoreTeamAgent">;
 
 // This increment has no browser-only Team engine. The production proxy forwards
 // the generated contract to Go; the browser preview reports the absent host.
@@ -22,6 +22,8 @@ export function makeUnavailableTeamHostMock(): TeamHostBindings {
     StopTeamGroup: unavailable,
     PrepareTeamAgentSession: unavailable,
     DeleteTeamTarget: unavailable,
+    ArchiveTeamAgent: unavailable,
+    RestoreTeamAgent: unavailable,
     ReorderTeam: unavailable,
     ReadTeamGroupDraft: unavailable,
     SaveTeamGroupDraft: unavailable,

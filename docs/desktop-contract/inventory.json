@@ -195,6 +195,14 @@
     },
     {
       "kind": "command",
+      "name": "ArchiveTeamAgent",
+      "detail": "(req TeamTargetMutationRequest) (TeamMutationResult, error)",
+      "location": "desktop/team_organization.go:23",
+      "class": "keep-business",
+      "owner": "hostrpc desktop/invoke"
+    },
+    {
+      "kind": "command",
       "name": "AttachDropped",
       "detail": "(path string) (DroppedItem, error)",
       "location": "desktop/attachments_app.go:372",
@@ -2565,7 +2573,7 @@
       "kind": "command",
       "name": "ReorderTeam",
       "detail": "(req ReorderTeamRequest) (TeamMutationResult, error)",
-      "location": "desktop/team_organization.go:82",
+      "location": "desktop/team_organization.go:120",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -2742,6 +2750,14 @@
       "name": "RestoreSessionTarget",
       "detail": "(selector SessionSelector) (SessionMutationResult, error)",
       "location": "desktop/session_operations.go:224",
+      "class": "keep-business",
+      "owner": "hostrpc desktop/invoke"
+    },
+    {
+      "kind": "command",
+      "name": "RestoreTeamAgent",
+      "detail": "(req TeamTargetMutationRequest) (TeamMutationResult, error)",
+      "location": "desktop/team_organization.go:35",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -4300,7 +4316,7 @@
     {
       "kind": "event",
       "name": "team:changed",
-      "location": "desktop/team_host.go:121",
+      "location": "desktop/team_host.go:122",
       "class": "keep-business",
       "owner": "desktop/event frame (seq + generation), same payload"
     },

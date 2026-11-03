@@ -111,6 +111,11 @@ and queued rounds, and offers a stop action for the affected target. Retired
 identities and logs remain readable. Retired groups appear under **Archived
 history** and cannot receive messages.
 
+**Archive member** removes execution access while retaining the stable identity,
+private session and copied preset. **Archived members → Restore member** restores
+that same member. Review and add group memberships again explicitly; restoration
+does not join groups automatically. Deleted members cannot use this restore path.
+
 Group chat uses the standard transcript, ChatSource and sole viewport writer.
 Mentions store IDs, including names with spaces, and explicitly flag departed
 members. History has immutable cursors in both directions and at most three
