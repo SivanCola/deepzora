@@ -27,12 +27,6 @@ func TestActiveOrSingleLocalTabRecoversLeaseBlockedStartup(t *testing.T) {
 	tab.StartupErrLeaseHeld = true
 	tab.Ready = false
 	app.publishRestoredTab(tab, release)
-	t.Cleanup(func() {
-		if ctrl := app.controllerForTab(tab); ctrl != nil {
-			ctrl.Close()
-		}
-	})
-
 	resolved, ctrl := app.activeOrSingleLocalTab()
 	if resolved != tab {
 		t.Fatalf("resolved tab = %+v, want the lease-blocked tab", resolved)
@@ -40,6 +34,15 @@ func TestActiveOrSingleLocalTabRecoversLeaseBlockedStartup(t *testing.T) {
 	if ctrl == nil {
 		t.Fatal("lease-blocked startup was not recovered; the tab stayed without a runtime")
 	}
+	// Navigation can replace this recovered controller. Join it as well as
+	// the fixture-owned current/detached runtimes before removing their store.
+	t.Cleanup(func() {
+		app.quiesceTabAutosave(tab)
+		ctrl.Close()
+		if closed, ok := ctrl.(interface{ Closed() <-chan struct{} }); ok {
+			<-closed.Closed()
+		}
+	})
 	if _, err := app.OpenSession(ref); err != nil {
 		t.Fatalf("open session on the recovered tab: %v", err)
 	}
