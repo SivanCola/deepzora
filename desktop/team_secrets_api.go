@@ -104,8 +104,13 @@ func (a *App) SaveTeamSecret(req SaveTeamSecretRequest) (TeamSecretResult, error
 				if err != nil {
 					return err
 				}
-				_, err = desktopTeamStore().MutateTeamSecrets(ctx, req.ExpectedRevision, req.RequestID, digest, func(book *teamroster.TeamSecretBook) error { return applyUserTeamSecret(ctx, book, roster, slots, req) })
-				return err
+				store := desktopTeamStore()
+				_, err = store.MutateTeamSecrets(ctx, req.ExpectedRevision, req.RequestID, digest, func(book *teamroster.TeamSecretBook) error {
+					return applyUserTeamSecret(ctx, book, roster, slots, req, teamSecretIntentDir(store))
+				})
+				// Re-read under the same lock even after an uncertain write error;
+				// deleting the returned slot blindly could destroy a committed value.
+				return errors.Join(err, recoverTeamSecretCreations(ctx, store, slots))
 			})
 		})
 	})
@@ -120,7 +125,7 @@ func (a *App) SaveTeamSecret(req SaveTeamSecretRequest) (TeamSecretResult, error
 	return result, nil
 }
 
-func applyUserTeamSecret(ctx context.Context, book *teamroster.TeamSecretBook, roster teamroster.Roster, slots config.TeamSecretSlots, req SaveTeamSecretRequest) error {
+func applyUserTeamSecret(ctx context.Context, book *teamroster.TeamSecretBook, roster teamroster.Roster, slots config.TeamSecretSlots, req SaveTeamSecretRequest, intentDir string) error {
 	if len(req.RequestID) < 8 || len(req.RequestID) > 128 {
 		return teamroster.ErrInvalid
 	}
@@ -152,6 +157,10 @@ func applyUserTeamSecret(ctx context.Context, book *teamroster.TeamSecretBook, r
 		book.Secrets = slices.Delete(book.Secrets, i, i+1)
 		return nil
 	case "save", "authorize":
+		proposed := *book
+		proposed.Secrets = slices.Clone(book.Secrets)
+		proposed.Retired = slices.Clone(book.Retired)
+		proposed.Requests = slices.Clone(book.Requests)
 		agents := slices.Clone(req.Agents)
 		if agents == nil {
 			agents = []string{}
@@ -174,21 +183,29 @@ func applyUserTeamSecret(ctx context.Context, book *teamroster.TeamSecretBook, r
 			}
 			sc.Slot = book.Secrets[i].Slot
 		} else {
-			slot, err := slots.Save(ctx, req.Value)
-			if err != nil {
-				return err
-			}
-			sc.Slot = slot
+			sc.Slot = "pending"
 			if i >= 0 {
-				book.Retire(book.Secrets[i], now)
+				proposed.Retire(book.Secrets[i], now)
 			}
 		}
 		if i < 0 {
-			book.Secrets = append(book.Secrets, sc)
+			i = len(proposed.Secrets)
+			proposed.Secrets = append(proposed.Secrets, sc)
 		} else {
-			book.Secrets[i] = sc
+			proposed.Secrets[i] = sc
 		}
-		book.Requests = slices.DeleteFunc(book.Requests, func(q teamroster.TeamSecretRequest) bool { return q.ID == req.SecretRequestID })
+		proposed.Requests = slices.DeleteFunc(proposed.Requests, func(q teamroster.TeamSecretRequest) bool { return q.ID == req.SecretRequestID })
+		if err := proposed.Validate(); err != nil {
+			return err
+		}
+		if req.Operation == "save" {
+			slot, err := slots.SaveWithIntent(ctx, req.Value, intentDir)
+			if err != nil {
+				return err
+			}
+			proposed.Secrets[i].Slot = slot
+		}
+		*book = proposed
 		return nil
 	default:
 		return teamroster.ErrInvalid

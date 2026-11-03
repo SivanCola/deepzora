@@ -166,6 +166,9 @@ func (a *App) startTeamHost() {
 				slog.Warn("desktop: team tick", "err", secrets.RedactError(err))
 			}
 			if h.Ready() {
+				if err := a.recoverTeamSecretCreations(ctx); err != nil && ctx.Err() == nil {
+					slog.Warn("desktop: Team secret creation recovery", "err", secrets.RedactError(err))
+				}
 				if err := a.tickTeamSchedules(ctx, time.Now()); err != nil && ctx.Err() == nil {
 					slog.Warn("desktop: Team schedule", "err", secrets.RedactError(err))
 				}
