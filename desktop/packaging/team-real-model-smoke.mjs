@@ -21,7 +21,14 @@ const id=()=>crypto.randomUUID();
 const invoke=(method,args=[])=>page.evaluate(({method,args})=>window.deepzoraDesktop.invoke(method,args),{method,args});
 const record=check=>{checks.push(check);console.log(`PASS ${check}`);};
 const wait=predicate=>waitForSmokeCondition(predicate,{timeout:180000,interval:100});
-const historyHas=async(tabID,text)=>JSON.stringify(await invoke("SessionHistoryWindowForTab",[tabID,{anchor:"newest",limit:64}])).includes(text);
+function checkHistory(page){
+  for(const row of page.messages){
+    const failure=row.inline?.interrupted_turn?.failureDiagnostic;
+    if(failure)throw new Error(`model qualification failed: ${failure.kind}, HTTP ${failure.status||"unavailable"}`);
+  }
+  return page;
+}
+const historyHas=async(tabID,text)=>JSON.stringify(checkHistory(await invoke("SessionHistoryWindowForTab",[tabID,{anchor:"newest",limit:64}]))).includes(text);
 writeFileSync(join(evidence,"real-model-result.json"),JSON.stringify({completed:false,platform:process.platform,kind:connection.provider.kind,model:connection.model}));
 // The isolated candidate gets finite cost/time policy and explicit per-call
 // output limits, as well as the client-side deadline which closes its host.
@@ -41,7 +48,7 @@ try{
   await invoke("SubmitToTabWithID",[tab.id,"Reply exactly TEAM_REAL_PRIVATE_OK. Do not use tools.",id()]);
   await wait(()=>historyHas(tab.id,"TEAM_REAL_PRIVATE_OK"));
   // A user prompt also contains the marker: require an actual assistant row.
-  await wait(async()=>{const page=await invoke("SessionHistoryWindowForTab",[tab.id,{anchor:"newest",limit:64}]);return page.messages.some(message=>message.role==="assistant"&&JSON.stringify(message).includes("TEAM_REAL_PRIVATE_OK"));});
+  await wait(async()=>{const page=checkHistory(await invoke("SessionHistoryWindowForTab",[tab.id,{anchor:"newest",limit:64}]));return page.messages.some(message=>message.role==="assistant"&&JSON.stringify(message).includes("TEAM_REAL_PRIVATE_OK"));});
   record("real provider completed a member private conversation");
   const team=await invoke("GetTeam");const group=await invoke("SaveTeamGroup",[{expectedRevision:team.roster.revision,requestId:id(),settings:{name:"Real-model group",members:[chief,ada],admin:chief,mode:"everyone",relayLimit:2}}]);assert.equal(group.outcome,"applied");
   const post=await invoke("SendTeamGroupMessage",[{groupId:group.targetId,requestId:id(),text:"Each member: reply exactly TEAM_REAL_GROUP_OK. Do not use tools or hand off to anyone.",mentions:[],everyone:true}]);assert.equal(post.outcome,"accepted");
