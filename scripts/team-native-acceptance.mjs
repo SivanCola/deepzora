@@ -19,7 +19,10 @@ function run(command,args,options={}){
   if(result.status!==0)throw new Error(`${command} exited ${result.status}`);
 }
 const sha=spawnSync("git",["rev-parse","HEAD"],{cwd:root,encoding:"utf8"}).stdout.trim();
-const version=`v0.0.0-team.${sha.slice(0,12)}`;
+// Desktop download naming intentionally accepts stable numeric versions only.
+// This unpublished qualification version is paired with its exact source SHA
+// in build.json and this evidence record, never with a release tag.
+const version="v0.0.0";
 writeFileSync(join(evidence,"identity.json"),JSON.stringify({sha,target,version,provider:"controlled loopback fixture",complete:false},null,2));
 // This regression temporarily enables the gate only in the test process and
 // executes the platform's actual shell/parser and persistent credential slots.
