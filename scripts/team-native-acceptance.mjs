@@ -24,6 +24,7 @@ const sha=spawnSync("git",["rev-parse","HEAD"],{cwd:root,encoding:"utf8"}).stdou
 // in build.json and this evidence record, never with a release tag.
 const version="v0.0.0";
 writeFileSync(join(evidence,"identity.json"),JSON.stringify({sha,target,version,provider:"controlled loopback fixture",complete:false},null,2));
+if(platform==="windows")run("pwsh",["-NoProfile","-File","scripts/team-windows-installer-acceptance.test.ps1"]);
 // This regression temporarily enables the gate only in the test process and
 // executes the platform's actual shell/parser and persistent credential slots.
 run("go",["test","-count=1",".","-run","^TestDesktopTeamSecretSaveCommandRotationAndOutboundProjection$"],{cwd:join(root,"desktop")});

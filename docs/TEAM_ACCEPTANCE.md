@@ -14,7 +14,8 @@ PR，也不发布正式版本。
 - Runtime boundary candidate: `253cb7ec286c4e69f72f6d2af9a22b2ab3f3a9bb`.
 - Installer qualification adds only acceptance scripts in
   `58aa56f3f7c76322635fc6bae4b801f94f89e618`; all three native installed-artifact
-  checks passed. Delivery documentation is a later documentation-only commit.
+  checks passed. Later descendants contain documentation and a correction to
+  Windows evidence-directory binding; product runtime code is unchanged.
 - All seven fixed upstream sources and license ownership are recorded in
   [the implementation ledger](TEAM_PORT_STATUS.md).
 
@@ -70,6 +71,13 @@ All three native jobs passed. macOS copies the app from a read-only mounted DMG 
 temporary installation directory. Linux installs/removes the DEB on a disposable
 runner. Windows reuses clean-account checks, NSIS installation, identity and
 registration checks, Team flows, uninstall and user-data retention checks.
+The initial Windows helper wrote detailed reports into its temporary default
+directory while the requested upload directory received the outer success
+record. Its binding now preserves the requested directory, a PowerShell
+regression checks that loading helpers has no side effects, and qualification
+requires the detailed install/uninstall/retained-data and installed Team reports
+inside the uploaded artifact. This acceptance-script correction changes no
+runtime or model behavior.
 
 | Native runner | Architecture | Package and installed flow | Secrets | Browser isolation |
 | --- | --- | --- | --- | --- |

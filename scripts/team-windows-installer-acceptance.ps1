@@ -7,7 +7,8 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $script:TeamAcceptanceRoot = Split-Path -Parent $PSScriptRoot
-. (Join-Path $PSScriptRoot 'test-windows-installer-startup.ps1') -InstallerPath $InstallerPath -ExpectedVersion $ExpectedVersion
+. (Join-Path $PSScriptRoot 'test-windows-installer-startup.ps1') -InstallerPath $InstallerPath `
+  -ExpectedVersion $ExpectedVersion -EvidenceDirectory $EvidenceDirectory
 
 # Reuse the installation owner's clean-account checks, native install,
 # identity/registration verification, uninstall and retained-data assertions.
@@ -20,5 +21,7 @@ function Invoke-InstalledRuntimeAcceptance {
   & node (Join-Path $script:TeamAcceptanceRoot 'desktop\packaging\team-native-smoke.mjs') $executable (Join-Path $EvidenceDirectory 'team')
   if ($LASTEXITCODE -ne 0) { throw "Installed Team acceptance failed with exit code $LASTEXITCODE" }
 }
-Invoke-WindowsInstallerAcceptance -InstallerPath $InstallerPath -ExpectedVersion $ExpectedVersion `
-  -FixtureBuilderPath '' -EvidenceDirectory $EvidenceDirectory
+if ($MyInvocation.InvocationName -ne '.') {
+  Invoke-WindowsInstallerAcceptance -InstallerPath $InstallerPath -ExpectedVersion $ExpectedVersion `
+    -FixtureBuilderPath '' -EvidenceDirectory $EvidenceDirectory
+}

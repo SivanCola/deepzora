@@ -60,6 +60,13 @@ if(platform==="darwin"){
   finally{run("sudo",["dpkg","--remove","deepzora-desktop"]);}
 }else{
   run("pwsh",["-NoProfile","-File","scripts/team-windows-installer-acceptance.ps1","-InstallerPath",artifact,"-ExpectedVersion",version,"-EvidenceDirectory",join(evidence,"windows")]);
+  const report=JSON.parse(readFileSync(join(evidence,"windows/acceptance.json"),"utf8").replace(/^\uFEFF/,""));
+  for(const field of ["freshInstall","uninstall","dataPreserved"])assert.equal(report[field],"passed",`missing Windows ${field} evidence`);
+  assert.equal(report.version,version);
+  assert.equal(report.artifact.toLowerCase(),artifactSHA256);
+  const team=JSON.parse(readFileSync(join(evidence,"windows/fresh-install/team/team-result.json"),"utf8"));
+  assert.equal(team.completed,true,"installed Team evidence was not archived");
+  if(process.env.TEAM_REQUIRE_SECRETS==="1")assert.equal(team.secretObserved,true);
 }
 assert.equal(hash(),artifactSHA256,"installer bytes changed during acceptance");
 writeFileSync(join(evidence,"installer-result.json"),JSON.stringify({completed:true,sha,target,artifactSHA256,provider:"controlled loopback fixture",secretRequired:process.env.TEAM_REQUIRE_SECRETS==="1"},null,2));
