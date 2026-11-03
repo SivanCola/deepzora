@@ -32,23 +32,16 @@ func (s *Service) MessageAgent(ctx context.Context, c Caller, req MessageRequest
 	if err != nil {
 		return MessageReceipt{}, err
 	}
-	book, err := s.store.Exchanges()
-	if err != nil {
-		return MessageReceipt{}, err
-	}
-	if !retried(book, from.ID, req.RequestID) {
-		if err := s.admit(book, c, from.ID, to.ID); err != nil {
-			return MessageReceipt{}, err
-		}
-	}
 	var parent string
 	if n := len(c.Serving); n > 0 {
 		parent = c.Serving[n-1]
 	}
-	x, existed, err := s.store.OpenExchange(ctx, teamroster.Exchange{
+	x, existed, err := s.store.OpenExchangeChecked(ctx, teamroster.Exchange{
 		From: from.ID, To: to.ID, RequestID: req.RequestID, ReplyTo: req.ReplyTo,
 		Parent: parent, Group: c.Group, Ceiling: c.Ceiling, OpenedAt: s.now(),
-	}, req.Message)
+	}, req.Message, func(book []teamroster.Exchange) error {
+		return s.admit(book, c, from.ID, to.ID)
+	})
 	if err != nil {
 		return MessageReceipt{}, err
 	}
@@ -85,18 +78,6 @@ func resolvePair(r teamroster.Roster, c Caller, to string) (from, target *teamro
 		}
 	}
 	return from, target, nil
-}
-
-func retried(book []teamroster.Exchange, from, requestID string) bool {
-	if requestID == "" {
-		return false
-	}
-	for _, x := range book {
-		if x.From == from && x.RequestID == requestID {
-			return true
-		}
-	}
-	return false
 }
 
 // admit applies the tree rules and the send bounds to a new message.
@@ -246,7 +227,18 @@ func (s *Service) deliverReply(ctx context.Context, r teamroster.Roster, book []
 		})
 	}
 	if err != nil {
-		return errors.Join(fmt.Errorf("%w: %w", ErrUnavailable, err), s.store.MarkReturned(ctx, x.ID))
+		// A failed inbox acknowledgement is not consumption. Terminate the
+		// dependent work explicitly so it cannot complete with an unseen answer
+		// or remain waiting forever. No model output is added to the ledger.
+		parents, interruptErr := s.store.InterruptExchangeParents(context.WithoutCancel(ctx), x.ID, s.now())
+		errs := []error{fmt.Errorf("%w: %w", ErrUnavailable, err), interruptErr}
+		if interruptErr == nil {
+			for _, parent := range parents {
+				errs = append(errs, s.deliverReply(context.WithoutCancel(ctx), r, book, parent,
+					Settlement{Outcome: OutcomeInterrupted, Code: "team.reply_unavailable"}))
+			}
+		}
+		return errors.Join(errs...)
 	}
 	return nil
 }
