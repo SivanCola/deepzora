@@ -150,43 +150,9 @@ func (a *App) beginRuntimeTurnWithModelChoice(tabID string, reclaim, detached bo
 			abort()
 			return nil, nil, err
 		}
-		running := ctrl.RuntimeStateSnapshot().Running
-		if err := checkRuntimeAdmission(ctrl, check); err != nil {
-			abort()
-			return nil, nil, err
-		}
-		if running {
-			if waiter, ok := ctrl.(turnFinishingWaiter); ok {
-				if done, finishing := waiter.TurnFinishingDone(); finishing {
-					// Re-resolve after waiting so close/switch cannot misroute retry.
-					abort()
-					<-done
-					continue
-				}
-				// Fan-out can end between runtime sampling and TurnFinishingDone.
-				// Re-check before reporting busy so that completed boundary retries
-				// instead of preserving the original false rejection window.
-				if !ctrl.RuntimeStateSnapshot().Running {
-					abort()
-					continue
-				}
-			}
-			abort()
-			return nil, nil, control.ErrTurnRunning
-		}
-		// A roster commit can win the mutation lock after the optimistic apply
-		// above. Recheck under the final admission fence, including directory
-		// bindings, before reserving a foreground or durable inbox turn.
-		pending, err := a.teamPresetPending(tab, ctrl)
-		if err != nil {
-			abort()
-			return nil, nil, err
-		}
-		if pending {
-			busy := rebuildControllerActiveWorkErrorFor(ctrl, "team preset")
-			abort()
-			if busy != nil {
-				return nil, nil, busy
+		if retry, err := a.checkRuntimeTurnBoundary(tab, ctrl, check, abort); retry || err != nil {
+			if err != nil {
+				return nil, nil, err
 			}
 			continue
 		}
@@ -233,6 +199,47 @@ func (a *App) beginRuntimeTurnWithModelChoice(tabID string, reclaim, detached bo
 		}
 		return &tabTurnAdmission{app: a, tab: tab}, ctrl, nil
 	}
+}
+
+// checkRuntimeTurnBoundary runs with runtime admission and turnStartMu held.
+// Success retains both locks; every retry or error releases them through abort.
+func (a *App) checkRuntimeTurnBoundary(tab *WorkspaceTab, ctrl control.SessionAPI, check func(control.SessionAPI) error, abort func()) (bool, error) {
+	running := ctrl.RuntimeStateSnapshot().Running
+	if err := checkRuntimeAdmission(ctrl, check); err != nil {
+		abort()
+		return false, err
+	}
+	if running {
+		if waiter, ok := ctrl.(turnFinishingWaiter); ok {
+			if done, finishing := waiter.TurnFinishingDone(); finishing {
+				// Re-resolve after waiting so close/switch cannot misroute retry.
+				abort()
+				<-done
+				return true, nil
+			}
+			// Fan-out may finish between the two samples. Retry that boundary
+			// instead of reporting a stale busy result.
+			if !ctrl.RuntimeStateSnapshot().Running {
+				abort()
+				return true, nil
+			}
+		}
+		abort()
+		return false, control.ErrTurnRunning
+	}
+	// A roster commit can win after the optimistic apply. Recheck configuration
+	// and directory bindings inside the final foreground/inbox admission fence.
+	pending, err := a.teamPresetPending(tab, ctrl)
+	if err != nil {
+		abort()
+		return false, err
+	}
+	if pending {
+		busy := rebuildControllerActiveWorkErrorFor(ctrl, "team preset")
+		abort()
+		return busy == nil, busy
+	}
+	return false, nil
 }
 
 // Durable follow-ups are new runs even when a controller dispatches them on
