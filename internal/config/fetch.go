@@ -124,6 +124,7 @@ func BuildModelFetchURLs(baseURL, override string) ([]string, error) {
 		return []string{canonical}, nil
 	}
 	base := strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	base = strings.TrimSuffix(base, "/messages")
 	if base == "" {
 		return nil, fmt.Errorf("fetch models: base_url is required")
 	}
@@ -136,7 +137,7 @@ func BuildModelFetchURLs(baseURL, override string) ([]string, error) {
 	} else {
 		candidates = append(candidates, base+"/models", base+"/v1/models")
 	}
-	if stripped := stripModelFetchCompatSuffix(base); stripped != "" {
+	if stripped := stripModelFetchCompatSuffix(strings.TrimSuffix(base, "/v1")); stripped != "" {
 		root := strings.TrimRight(stripped, "/")
 		candidates = append(candidates, root+"/models", root+"/v1/models")
 	}

@@ -3,6 +3,7 @@ package control
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"time"
@@ -95,25 +96,39 @@ func (c *Controller) runTeamInbox(ctx context.Context, env sessioninbox.PromptEn
 		ctx = sandbox.WithPermissionPreset(ctx, mode)
 	}
 	previousID, _ := teamFinalAnswer(c.History())
-	err = run(ctx)
-	outcome := team.OutcomeCompleted
-	code := ""
-	if ctx.Err() != nil {
-		outcome, code = team.OutcomeCancelled, "turn.cancelled"
-	} else if err != nil {
-		outcome, code = team.OutcomeFailed, "turn.failed"
-	}
-	answer := ""
-	if err == nil {
-		if id, text := teamFinalAnswer(c.History()); id != previousID {
-			answer = text
+	// The outer Controller guard recovers runner panics. Settle the team work
+	// before that unwind clears its identity, while preserving the original
+	// panic for the guard's terminal event and diagnostics.
+	defer func() {
+		panicValue := recover()
+		if panicValue != nil {
+			err = fmt.Errorf("team turn panicked: %v", panicValue)
+			// A runner that panicked may not have consumed the reply at all.
+			t.consumed = nil
 		}
-	}
-	settled := svc.Settled(context.Background(), ref, team.Settlement{
-		Serving: t.serving, Consumed: t.consumed, Steps: t.steps,
-		Outcome: outcome, Code: code, FinalText: answer,
-	})
-	return errors.Join(err, settled)
+		outcome := team.OutcomeCompleted
+		code := ""
+		if ctx.Err() != nil {
+			outcome, code = team.OutcomeCancelled, "turn.cancelled"
+		} else if err != nil {
+			outcome, code = team.OutcomeFailed, "turn.failed"
+		}
+		answer := ""
+		if err == nil {
+			if id, text := teamFinalAnswer(c.History()); id != previousID {
+				answer = text
+			}
+		}
+		settled := svc.Settled(context.Background(), ref, team.Settlement{
+			Serving: t.serving, Consumed: t.consumed, Steps: t.steps,
+			Outcome: outcome, Code: code, FinalText: answer,
+		})
+		err = errors.Join(err, settled)
+		if panicValue != nil {
+			panic(panicValue)
+		}
+	}()
+	return run(ctx)
 }
 
 func teamFinalAnswer(messages []provider.Message) (string, string) {

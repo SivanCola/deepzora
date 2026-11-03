@@ -18,7 +18,6 @@ import (
 
 	"deepzora/internal/fileutil"
 	fileencoding "deepzora/internal/fileutil/encoding"
-	"deepzora/internal/provider"
 	"deepzora/internal/tool"
 )
 
@@ -105,6 +104,7 @@ type SubagentRun struct {
 	store             *SubagentStore
 	release           func()
 	terminalPersisted bool
+	persistenceClosed bool
 	releaseErr        error
 }
 
@@ -119,11 +119,22 @@ type SubagentArtifact struct {
 
 func (r *SubagentRun) Release() error {
 	if r != nil && r.release != nil {
-		if r.Persistence != nil {
-			r.releaseErr = r.Persistence.Close(context.Background())
-		}
+		r.releaseErr = r.closePersistence()
 		r.release()
 		r.release = nil
+	}
+	if r == nil {
+		return nil
+	}
+	return r.releaseErr
+}
+
+// closePersistence settles the actual child runtime while keeping the catalog
+// ownership guard held until its final metadata has been written.
+func (r *SubagentRun) closePersistence() error {
+	if r != nil && r.Persistence != nil && !r.persistenceClosed {
+		r.persistenceClosed = true
+		r.releaseErr = r.Persistence.Close(context.Background())
 	}
 	if r == nil {
 		return nil
@@ -401,113 +412,6 @@ func (s *SubagentStore) PrepareFresh(spec SubagentSpec) (*SubagentRun, error) {
 	return &SubagentRun{Ref: ref, Session: sess, Persistence: persistence, Meta: meta, store: s, release: release}, nil
 }
 
-func (s *SubagentStore) PrepareContinue(ref string, spec SubagentSpec) (*SubagentRun, error) {
-	if s == nil {
-		return nil, fmt.Errorf("subagent continuation is not available in this session")
-	}
-	if err := requireParentSession(spec); err != nil {
-		return nil, err
-	}
-	ref = strings.TrimSpace(ref)
-	if ref == "" {
-		return nil, fmt.Errorf("continue_from requires a subagent reference")
-	}
-	release, err := s.lock(ref)
-	if err != nil {
-		return nil, err
-	}
-	meta, err := s.LoadMeta(ref)
-	if err != nil {
-		release()
-		return nil, err
-	}
-	if strings.TrimSpace(meta.ParentSession) != strings.TrimSpace(spec.ParentSession) {
-		release()
-		return s.prepareContinueFromAncestor(ref, spec)
-	}
-	if err := validateContinueOwner(meta, spec); err != nil {
-		release()
-		return nil, err
-	}
-	if err := validateMeta(meta, spec); err != nil {
-		release()
-		return nil, err
-	}
-	persistence, err := s.persistence.Open(context.Background(), ref)
-	if err != nil {
-		release()
-		return nil, fmt.Errorf("load subagent transcript %q: %w", ref, err)
-	}
-	meta.ParentSession = spec.ParentSession
-	meta.ParentToolCallID = spec.ParentToolCallID
-	// Re-acquire the running state while holding the per-ref lease so a resumed
-	// transcript is visible as active and stale cleanup cannot mark it
-	// interrupted while the continuation is executing.
-	meta.Status = SubagentRunning
-	meta.Outcome = ""
-	meta.Retryable = false
-	meta.ErrorCode = ""
-	meta.UpdatedAt = time.Now().UTC()
-	if err := s.saveMeta(meta); err != nil {
-		release()
-		return nil, errors.Join(fmt.Errorf("mark resumed subagent %q running: %w", ref, err), persistence.Close(context.Background()))
-	}
-	return &SubagentRun{Ref: ref, Session: sessionFromSubagent(persistence), Persistence: persistence, Meta: meta, store: s, release: release}, nil
-}
-
-func (s *SubagentStore) prepareContinueFromAncestor(sourceRef string, spec SubagentSpec) (*SubagentRun, error) {
-	sourceRef, err := s.nearestLineageSource(sourceRef, spec)
-	if err != nil {
-		return nil, err
-	}
-	copies, err := s.compatibleCopiesFromSource(sourceRef, spec)
-	if err != nil {
-		return nil, err
-	}
-	switch len(copies) {
-	case 0:
-		return s.prepareFork(sourceRef, spec)
-	case 1:
-		run, err := s.PrepareContinue(copies[0].Ref, spec)
-		if err != nil {
-			return nil, err
-		}
-		run.ForkedFrom = sourceRef
-		return run, nil
-	default:
-		return nil, fmt.Errorf("subagent reference %q has multiple copied transcripts in current parent session %q", sourceRef, spec.ParentSession)
-	}
-}
-
-func (s *SubagentStore) nearestLineageSource(requestedRef string, spec SubagentSpec) (string, error) {
-	ancestors, err := s.sessionAncestors(spec.ParentSession)
-	if err != nil {
-		return "", err
-	}
-	for _, ancestor := range ancestors {
-		artifacts, err := ListSubagentsByParent(s.dir, ancestor)
-		if err != nil {
-			return "", err
-		}
-		var candidates []SubagentArtifact
-		for _, artifact := range artifacts {
-			if artifact.Ref == requestedRef || s.derivesFrom(artifact.Meta, requestedRef) {
-				candidates = append(candidates, artifact)
-			}
-		}
-		if len(candidates) > 1 {
-			return "", fmt.Errorf("subagent reference %q has multiple candidate transcripts in ancestor parent session %q", requestedRef, ancestor)
-		}
-		if len(candidates) == 1 {
-			if err := validateMeta(candidates[0].Meta, spec); err != nil {
-				return "", err
-			}
-			return candidates[0].Ref, nil
-		}
-	}
-	return "", fmt.Errorf("subagent reference %q is not in current parent session %q lineage", requestedRef, spec.ParentSession)
-}
-
 func (s *SubagentStore) sessionAncestors(current string) ([]string, error) {
 	current = strings.TrimSpace(current)
 	if current == "" {
@@ -541,108 +445,6 @@ func (s *SubagentStore) parentID(id string) (string, error) {
 	return s.parentIdentity(context.Background(), id)
 }
 
-func (s *SubagentStore) derivesFrom(meta SubagentMeta, sourceRef string) bool {
-	sourceRef = strings.TrimSpace(sourceRef)
-	seen := map[string]bool{}
-	for cursor := strings.TrimSpace(meta.ForkedFrom); cursor != ""; {
-		if cursor == sourceRef {
-			return true
-		}
-		if seen[cursor] {
-			return false
-		}
-		seen[cursor] = true
-		parent, err := s.LoadMeta(cursor)
-		if err != nil {
-			return false
-		}
-		cursor = strings.TrimSpace(parent.ForkedFrom)
-	}
-	return false
-}
-
-func (s *SubagentStore) compatibleCopiesFromSource(sourceRef string, spec SubagentSpec) ([]SubagentArtifact, error) {
-	artifacts, err := ListSubagentsByParent(s.dir, spec.ParentSession)
-	if err != nil {
-		return nil, err
-	}
-	var copies []SubagentArtifact
-	for _, artifact := range artifacts {
-		if strings.TrimSpace(artifact.Meta.ForkedFrom) != sourceRef {
-			continue
-		}
-		if err := validateMeta(artifact.Meta, spec); err != nil {
-			return nil, err
-		}
-		copies = append(copies, artifact)
-	}
-	return copies, nil
-}
-
-func (s *SubagentStore) prepareFork(ref string, spec SubagentSpec) (*SubagentRun, error) {
-	if s == nil {
-		return nil, fmt.Errorf("subagent continuation is not available in this session")
-	}
-	if err := requireParentSession(spec); err != nil {
-		return nil, err
-	}
-	sourceRef := strings.TrimSpace(ref)
-	if sourceRef == "" {
-		return nil, fmt.Errorf("subagent copy requires a source reference")
-	}
-	sourceRelease, err := s.lock(sourceRef)
-	if err != nil {
-		return nil, err
-	}
-	meta, err := s.LoadMeta(sourceRef)
-	if err != nil {
-		sourceRelease()
-		return nil, err
-	}
-	if strings.TrimSpace(meta.ParentSession) == "" {
-		sourceRelease()
-		return nil, fmt.Errorf("subagent reference %q has no parent session; run a fresh subagent instead", sourceRef)
-	}
-	if err := validateMeta(meta, spec); err != nil {
-		sourceRelease()
-		return nil, err
-	}
-	if err := s.validateForkOwner(meta, spec); err != nil {
-		sourceRelease()
-		return nil, err
-	}
-	defer sourceRelease()
-	newRef, err := s.newRef()
-	if err != nil {
-		return nil, err
-	}
-	newRelease, err := s.lock(newRef)
-	if err != nil {
-		return nil, err
-	}
-	now := time.Now().UTC()
-	newMeta := metaFromSpec(newRef, SubagentRunning, now, now, spec)
-	newMeta.ForkedFrom = sourceRef
-	persistence, err := s.persistence.Copy(context.Background(), sourceRef, newMeta)
-	if err != nil {
-		newRelease()
-		return nil, err
-	}
-	if err := s.saveMeta(newMeta); err != nil {
-		closeErr := persistence.Close(context.Background())
-		deleteErr := s.persistence.Delete(context.Background(), newRef)
-		newRelease()
-		return nil, errors.Join(err, closeErr, deleteErr)
-	}
-	return &SubagentRun{Ref: newRef, Session: sessionFromSubagent(persistence), Persistence: persistence, Meta: newMeta, ForkedFrom: sourceRef, store: s, release: newRelease}, nil
-}
-
-func sessionFromSubagent(persistence SubagentTranscript) *Session {
-	sess := NewSession("")
-	sess.Replace(append([]provider.Message(nil), persistence.Messages()...))
-	return sess
-}
-
 func (s *SubagentStore) MarkRunning(run *SubagentRun) error {
 	if s == nil || run == nil || run.Ref == "" {
 		return nil
@@ -674,72 +476,11 @@ func (s *SubagentStore) LoadMeta(ref string) (SubagentMeta, error) {
 	return meta, nil
 }
 
-func validateMeta(meta SubagentMeta, spec SubagentSpec) error {
-	if meta.Status == SubagentRunning {
-		return fmt.Errorf("subagent reference %q is still in progress", meta.Ref)
-	}
-	if meta.Status == SubagentFailed && !meta.Retryable && meta.Outcome != string(SubagentOutcomePartial) {
-		return fmt.Errorf("subagent reference %q failed and cannot be continued", meta.Ref)
-	}
-	if meta.Status == SubagentInterrupted {
-		return fmt.Errorf("subagent reference %q was interrupted by a previous shutdown or crash and cannot be continued or forked; run a fresh subagent instead", meta.Ref)
-	}
-	want := metaFromSpec(meta.Ref, meta.Status, meta.CreatedAt, meta.UpdatedAt, spec)
-	switch {
-	case meta.Kind != want.Kind:
-		return fmt.Errorf("subagent reference %q has kind %q, want %q", meta.Ref, meta.Kind, want.Kind)
-	case meta.Name != want.Name:
-		return fmt.Errorf("subagent reference %q has name %q, want %q", meta.Ref, meta.Name, want.Name)
-	case meta.WorkspaceRoot != want.WorkspaceRoot:
-		return fmt.Errorf("subagent reference %q belongs to workspace %q, current workspace is %q", meta.Ref, meta.WorkspaceRoot, want.WorkspaceRoot)
-	case meta.SystemPromptHash != want.SystemPromptHash:
-		return fmt.Errorf("subagent reference %q uses a different subagent persona; run a fresh subagent to use the current persona", meta.Ref)
-	case !sameStrings(meta.ToolScope, want.ToolScope):
-		return fmt.Errorf("subagent reference %q uses a different tool scope", meta.Ref)
-	case meta.ToolSchemaHash != want.ToolSchemaHash:
-		return fmt.Errorf("subagent reference %q uses different tool schemas", meta.Ref)
-	case meta.Model != want.Model || meta.Effort != want.Effort:
-		return fmt.Errorf("subagent reference %q uses model/effort %q/%q, current run would use %q/%q", meta.Ref, meta.Model, meta.Effort, want.Model, want.Effort)
-	}
-	return nil
-}
-
 func requireParentSession(spec SubagentSpec) error {
 	if strings.TrimSpace(spec.ParentSession) == "" {
 		return fmt.Errorf("subagent transcript parent session is required")
 	}
 	return nil
-}
-
-func validateContinueOwner(meta SubagentMeta, spec SubagentSpec) error {
-	current := strings.TrimSpace(spec.ParentSession)
-	owner := strings.TrimSpace(meta.ParentSession)
-	if owner == current {
-		return nil
-	}
-	if owner == "" {
-		return fmt.Errorf("subagent reference %q has no parent session; run a fresh subagent instead", meta.Ref)
-	}
-	return fmt.Errorf("subagent reference %q belongs to parent session %q, current parent session is %q", meta.Ref, owner, current)
-}
-
-func (s *SubagentStore) validateForkOwner(meta SubagentMeta, spec SubagentSpec) error {
-	current := strings.TrimSpace(spec.ParentSession)
-	owner := strings.TrimSpace(meta.ParentSession)
-	if owner == current {
-		return nil
-	}
-	if owner == "" {
-		return fmt.Errorf("subagent reference %q has no parent session; run a fresh subagent instead", meta.Ref)
-	}
-	ok, err := s.isAncestorSession(owner, current)
-	if err != nil {
-		return fmt.Errorf("subagent reference %q belongs to parent session %q, but current parent session %q lineage could not be verified: %w", meta.Ref, owner, current, err)
-	}
-	if ok {
-		return nil
-	}
-	return fmt.Errorf("subagent reference %q belongs to parent session %q, which is not in current parent session %q lineage", meta.Ref, owner, current)
 }
 
 func (s *SubagentStore) isAncestorSession(ancestor, current string) (bool, error) {
@@ -836,14 +577,6 @@ func bytesHash(data []byte) string {
 	return hex.EncodeToString(h[:])
 }
 
-func sameStrings(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
+func (s *SubagentStore) PrepareContinue(ref string, spec SubagentSpec) (*SubagentRun, error) {
+	return nil, fmt.Errorf("subagent continuation is retired; start a fresh subagent")
 }

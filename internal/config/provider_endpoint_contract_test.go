@@ -30,6 +30,14 @@ func TestDeepSeekEndpointContract(t *testing.T) {
 	}
 }
 
+func TestAnthropicCompleteRequestURLAsBase(t *testing.T) {
+	for _, request := range []string{"https://api.deepseek.com/anthropic/messages", "https://api.deepseek.com/anthropic/v1/messages"} {
+		if got := ProviderRequestURL("anthropic", request+"/"); got != request {
+			t.Fatalf("complete URL was appended again: %s", got)
+		}
+	}
+}
+
 func TestProviderEndpointMismatchIsConservative(t *testing.T) {
 	cases := []struct {
 		name     string

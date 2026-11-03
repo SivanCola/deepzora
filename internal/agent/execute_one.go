@@ -512,10 +512,8 @@ func (a *Agent) finishToolExecution(ctx context.Context, plan *toolCallPlan) too
 		}
 		return out
 	}
-	// A foreground `task` sub-agent just finished — its result is the final answer.
-	// (A backgrounded one returns a "Started…" string and stops later in a job, soit doesn't fire here.)
-	// SubagentStop lets a hook react to delegated work.
-	if a.svc.hooks != nil && call.Name == "task" && !isBackgroundTaskCall(call.Arguments) {
+	// A synchronous delegation has settled all its children before this hook.
+	if a.svc.hooks != nil && isDelegationTool(plan.permName) {
 		a.svc.hooks.SubagentStop(ctx, result)
 	}
 	runState := outcomeRunState(toolOutcome{executed: true, output: result})

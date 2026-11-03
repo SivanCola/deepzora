@@ -38,6 +38,17 @@ func TestModelSettingsEveryOperationWithoutSessionRejectsForeignFields(t *testin
 			change.RequestID = "valid-edit"
 			change.ExpectedFingerprint = app.Settings().ModelSettingsFingerprint
 			result := app.ApplyModelSettings(change)
+			if kind == "depth" || kind == "writers" {
+				if result.Persisted || len(result.Issues) == 0 {
+					t.Fatalf("retired setting accepted: %+v", result)
+				}
+				after, _ := os.ReadFile(config.UserConfigPath())
+				if string(after) != string(beforeConfig) {
+					t.Fatal("retired setting changed config")
+				}
+				return
+			}
+
 			if !result.Persisted || result.Application != "not_required" || len(result.Targets) != 0 {
 				t.Fatalf("sessionless save: %+v", result)
 			}

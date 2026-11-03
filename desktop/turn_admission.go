@@ -128,6 +128,7 @@ func (a *App) beginRuntimeTurnWithModelChoice(tabID string, reclaim, detached bo
 		} else if applied {
 			continue
 		}
+		a.lifecycleCheckpoint("team-turn-before-admission")
 
 		a.runtimeAdmissionMu.RLock()
 		abort := func() {
@@ -172,6 +173,22 @@ func (a *App) beginRuntimeTurnWithModelChoice(tabID string, reclaim, detached bo
 			}
 			abort()
 			return nil, nil, control.ErrTurnRunning
+		}
+		// A roster commit can win the mutation lock after the optimistic apply
+		// above. Recheck under the final admission fence, including directory
+		// bindings, before reserving a foreground or durable inbox turn.
+		pending, err := a.teamPresetPending(tab, ctrl)
+		if err != nil {
+			abort()
+			return nil, nil, err
+		}
+		if pending {
+			busy := rebuildControllerActiveWorkErrorFor(ctrl, "team preset")
+			abort()
+			if busy != nil {
+				return nil, nil, busy
+			}
+			continue
 		}
 		usingApplied, choiceErr := validateModelApplicationChoice(ctrl, choice)
 		if choiceErr != nil {
