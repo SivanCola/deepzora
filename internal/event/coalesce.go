@@ -231,10 +231,6 @@ func (c *coalescer) RecordDelegationAudit(a evidence.DelegationAudit) {
 	c.enqueueCapability(func() { RecordDelegationAudit(c.inner, a) })
 }
 
-func (c *coalescer) RecordReadinessAudit(a evidence.ReadinessAudit) {
-	c.enqueueCapability(func() { RecordReadinessAudit(c.inner, a) })
-}
-
 func (c *coalescer) RecordAnchorSafetyAudit(a AnchorSafetyAudit) {
 	c.enqueueCapability(func() { RecordAnchorSafetyAudit(c.inner, a) })
 }
@@ -249,10 +245,6 @@ func (c *coalescer) RecordProtocolRecovery(a ProtocolRecoveryAudit) {
 
 func (c *coalescer) RecordContractShadow(a ContractShadowAudit) {
 	c.enqueueCapability(func() { RecordContractShadow(c.inner, a) })
-}
-
-func (c *coalescer) RecordCompletionReport(a CompletionReportAudit) {
-	c.enqueueCapability(func() { RecordCompletionReport(c.inner, a) })
 }
 
 func (c *coalescer) RecordOutcomeProgress(sample evidence.OutcomeSample) {

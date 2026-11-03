@@ -65,9 +65,7 @@ reasoning_language = "auto"      # visible reasoning text: auto|zh|en
 # planner_model = "deepseek-pro"      # optional low-frequency planner
 # subagent_model = "deepseek-pro"     # optional default for runAs=subagent skills
 # subagent_models = { review = "deepseek-pro", security_review = "deepseek-pro" }
-# max_subagent_depth = 2              # nested delegation depth; set 1 for the old single-layer boundary
-# max_subagent_concurrency = 6        # session-wide sub-agent concurrency (task/fleet/skills)
-# max_parallel_writers = 3            # concurrent writers with non-overlapping write_paths
+# max_subagent_concurrency = 6        # session-wide sub-agent concurrency (spawn_agents/skills; 1–8, writers serialized)
 # compact_ratio = 0.80             # sole auto trigger; presets 0.70 / 0.80 / 0.85
 # max_output_tokens = 0            # auto: official DeepSeek omits the field (server 384K) until the window is tight
 # max_output_tokens = 32768        # optional cost cap; still clipped to physical remaining
@@ -1209,25 +1207,17 @@ Subagent skills inherit the executor model by default. Set `subagent_model` to
 run them on another configured model, or use `subagent_models` to override only
 specific skills such as `review` or `security_review`.
 
-Subagents may delegate one more layer by default: the root session is depth 0,
-first-layer subagents are depth 1, and the maximum `max_subagent_depth = 2`
-means a depth-1 workflow can dispatch a depth-2 reviewer or implementer. Depth-2
-subagents do not receive recursive agent/skill tools. Set
-`agent.max_subagent_depth = 1` to restore the old single-layer boundary. This is
-intended for workflows such as Superpowers where a workflow skill may dispatch a
-reviewer subagent, while still avoiding unbounded recursion and background
-fanout.
+Subagents cannot delegate. The retired `max_subagent_depth` and
+`max_parallel_writers` settings are accepted when reading old configuration but
+do not affect execution. Writable children run one at a time.
 
-Use `read_only_task` when planning needs isolated, deepzora research without
-granting write-capable delegation. Use `read_only_skill` when the same need is
-best expressed through an existing skill. Both run ephemeral read-only
-subagents with only read-only research tools plus safe foreground bash, return
-only the final answer, and do not create resumable subagent transcripts.
-Read-only nested delegation may be available until `max_subagent_depth` is
-reached, but writer-capable `task` / `run_skill` remain unavailable inside these
-read-only child registries. Every task shares one tool surface: call
-`use_capability` for `read_only_skill` and other optional tools. Subsequent
-writer calls still pass through Permissions/Sandbox.
+Use `spawn_agents` with `read_only: true` for isolated research, optionally
+selecting a professional `profile`. `read_only_skill` remains available for an
+existing skill through `use_capability`. Both use the shared runner, restricted
+read-only tools and foreground shell commands. Normal persistent sessions
+archive all children for `read_subagent_result`, including read-only children;
+CLI review and desktop profile previews use temporary sessions. Old results
+remain readable, but cannot be resumed.
 
 Every strict read-only child is built through `RunReadOnlySubAgentWithSession`, which marks
 the child permanently read-only and applies a final registry filter. The filter
@@ -1238,9 +1228,7 @@ the strict read-only entrances:
 
 | Entrance | Purpose |
 | --- | --- |
-| `read_only_task` | Isolated read-only research child from the main session |
-| `parallel_tasks` (read-only) | Concurrent read-only research children |
-| `fleet` with `read_only: true` | Parallel profile-aware batch (forced read-only per item) |
+| `spawn_agents` with `read_only: true` | Independent read-only children; optionally select a professional profile |
 | `read_only_skill` | The same isolation driving an existing skill |
 | `deepzora review` (CLI) | Read-only review of a diff or branch |
 | Desktop preview/review subagents | Read-only desktop analysis surfaces |
@@ -1266,18 +1254,15 @@ the checkout's `.deepzora/skills` (or `.agents`, `.agent`, `.claude`). Search
 picks the provider when it sets `default_model`; pass `--model` to choose your
 own.
 
-In persisted sessions, `parallel_tasks` and `fleet` return a bounded preview
-plus one `Subagent reference` per completed child instead of concatenating every
-full answer into a truncation-prone tool result. The parent can call
-`read_subagent_result` with that reference and page by `offset_bytes`; results
-are scoped to the current conversation lineage and workspace. Headless runs
-without a persisted parent session remain ephemeral and receive fair bounded
-previews, but cannot mint durable references.
-
-Persisted child results include `status` (`completed`, `partial`, `failed`, or
-`cancelled`) and `retryable`. Partial or retryable failed runs retain a visible
-answer and reference so the parent can inspect them with `read_subagent_result`
-or continue the same `task`/`run_skill` transcript with `continue_from`.
+`spawn_agents` accepts 1–8 independent tasks and waits for the batch. Read-only
+children may run concurrently; writable children run serially. Every child starts
+fresh and cannot delegate. Profiles retain their model, effort and tool settings.
+Persisted results include execution status, a preview and a `ref` for
+`read_subagent_result`. Partial failures retain their available output. The reader
+checks conversation lineage and workspace ownership and pages by UTF-8 byte offset.
+Background delegation, continuation and dependency graphs are retired. Retry by
+starting a fresh task. Desktop try runs remain temporary and read-only.
+See [Subagent execution](SUBAGENT_EXECUTION.md).
 
 The interactive two-model Planner uses a dedicated construction path
 (`NewPlannerAgent`): it still blocks bash, file writers, and ordinary writers,
@@ -1292,13 +1277,13 @@ stable proxy, so an `auto_start=false` or destructive capability discovered by
 the Planner remains callable by capability ID after handoff. Planner and
 Executor ledgers/audits stay isolated and only the Host connection is shared.
 
-Ordinary `task` / `fleet` sub-agents also get the same fixed proxy (session-
+Ordinary `spawn_agents` children also get the same fixed proxy (session-
 shared Host and connections, per-agent frontend/ledger) and may call installed
 or project-configured MCP without `readOnlyHint`. Those calls use the trusted
 MCP permission path (live authorization plus explicit deny only); writer and
 destructive calls are still serialized, recorded as mutations, and subject to
-closed-loop evidence/lease guards rather than Planner handoff. Strict
-`read_only_task` / `read_only_skill` / review sub-agents share the stable proxy
+workspace leases and permission checks. Strict
+`spawn_agents` read-only / `read_only_skill` / review sub-agents share the stable proxy
 schema and connection reuse but keep the strict execution gate
 (`authorized && readOnlyHint && !destructiveHint`). Profile `allowed-tools`
 MCP names convert to capability-id allowlists on the proxy; children never

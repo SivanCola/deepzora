@@ -72,3 +72,63 @@ func TestParallelServicesCannotExceedOpenLimit(t *testing.T) {
 		t.Fatalf("admission: %v / %v", a, b)
 	}
 }
+
+func TestRecoverUndeliveredReplyReleasesQuotaOnlyAfterConsumption(t *testing.T) {
+	h := newHarness(t, "Chief", "Ada")
+	var first string
+	for range MaxOpenPerSender {
+		x, _, err := h.store.OpenExchange(t.Context(), teamroster.Exchange{From: h.id("Chief"), To: h.id("Ada"), ReplyTo: teamroster.ReplyToSender}, "seed")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if first == "" {
+			first = x.ID
+		}
+		if _, err := h.store.SetExchangeState(t.Context(), x.ID, teamroster.ExchangeReplied, h.clock.now()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	checkFull := func() {
+		t.Helper()
+		_, err := h.svc.MessageAgent(t.Context(), Caller{Agent: h.id("Chief")}, MessageRequest{To: h.id("Ada"), Message: "more"})
+		if !errors.Is(err, ErrOpenLimit) {
+			t.Fatalf("unconsumed answers bypassed limit: %v", err)
+		}
+	}
+	checkFull()
+	for range 2 {
+		if err := h.svc.Recover(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := h.inbox("Chief"); len(got) != MaxOpenPerSender {
+		t.Fatalf("duplicate recovery replies: %d", len(got))
+	} else {
+		contains(t, got[0].Text, `status="interrupted"`, `code="team.reply_unavailable"`)
+	}
+	if len(h.inbox("Ada")) != 0 {
+		t.Fatal("recovery reran original work")
+	}
+	checkFull()
+	h.settle("Chief", Settlement{Consumed: []string{first}, Outcome: OutcomeCompleted})
+	h.send("Chief", "Ada", "quota available")
+}
+
+func TestRecoveryDoesNotReplaceAnAlreadyDeliveredAnswer(t *testing.T) {
+	h := newHarness(t, "Chief", "Ada")
+	x := h.send("Chief", "Ada", "answer")
+	h.settle("Ada", Settlement{Serving: []string{x.Exchange}, Outcome: OutcomeCompleted, FinalText: "persisted answer"})
+	before := h.inbox("Chief")[0]
+	for range 2 {
+		if err := h.svc.Recover(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	after := h.inbox("Chief")
+	if len(after) != 1 || after[0].Text != before.Text || h.exchange(x.Exchange).Returned {
+		t.Fatal("recovery replaced or consumed the existing answer")
+	}
+	if len(h.inbox("Ada")) != 1 {
+		t.Fatal("recovery reran original work")
+	}
+}

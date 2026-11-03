@@ -233,7 +233,7 @@ func capabilityArgumentContract(entry capability.Entry) (tool.CapabilityArgument
 	if entry.SkillRunAs == "subagent" {
 		required = `,"required":["arguments"]`
 	}
-	schema := json.RawMessage(`{"type":"object","properties":{"arguments":{"type":"string","description":"Concrete task or inline skill arguments."},"continue_from":{"type":"string","description":"Optional compatible subagent reference."}}` + required + `}`)
+	schema := json.RawMessage(`{"type":"object","properties":{"arguments":{"type":"string","description":"Concrete task or inline skill arguments."}}` + required + `}`)
 	example, _ := json.Marshal(map[string]any{
 		"action": "call", "capability_id": entry.ID,
 		"arguments": map[string]any{"arguments": "specific task for " + entry.Name},

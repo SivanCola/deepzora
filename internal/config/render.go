@@ -228,20 +228,10 @@ func RenderTOMLForScope(c *Config, scope RenderScope) string {
 	} else {
 		b.WriteString("# subagent_efforts = { review = \"max\", task = \"high\" }   # per-tool/skill effort overrides\n")
 	}
-	if c.Agent.MaxSubagentDepth != defaults.Agent.MaxSubagentDepth {
-		fmt.Fprintf(&b, "max_subagent_depth = %d   # nested subagent delegation depth; 1 restores the old single-layer boundary\n", c.Agent.MaxSubagentDepth)
-	} else {
-		b.WriteString("# max_subagent_depth = 2   # nested subagent delegation depth; set 1 to disable nested delegation\n")
-	}
 	if c.Agent.MaxSubagentConcurrency != defaults.Agent.MaxSubagentConcurrency {
-		fmt.Fprintf(&b, "max_subagent_concurrency = %d   # session-wide sub-agent concurrency (task/fleet/skills)\n", c.Agent.MaxSubagentConcurrency)
+		fmt.Fprintf(&b, "max_subagent_concurrency = %d   # session-wide sub-agent concurrency (spawn_agents/skills; 1–8, writers serialized)\n", c.Agent.MaxSubagentConcurrency)
 	} else {
-		b.WriteString("# max_subagent_concurrency = 6   # session-wide sub-agent concurrency (task/fleet/skills)\n")
-	}
-	if c.Agent.MaxParallelWriters != defaults.Agent.MaxParallelWriters {
-		fmt.Fprintf(&b, "max_parallel_writers = %d   # concurrent writers with non-overlapping write_paths\n", c.Agent.MaxParallelWriters)
-	} else {
-		b.WriteString("# max_parallel_writers = 3   # concurrent writers with non-overlapping write_paths\n")
+		b.WriteString("# max_subagent_concurrency = 6   # session-wide sub-agent concurrency (spawn_agents/skills; 1–8, writers serialized)\n")
 	}
 	if c.Agent.OutputStyle != "" {
 		fmt.Fprintf(&b, "output_style = %q   # persona/tone folded into the prompt\n", c.Agent.OutputStyle)
@@ -675,10 +665,6 @@ func RenderTOMLProjectDelta(c *Config) string {
 	}
 	if len(c.Agent.SubagentEfforts) > 0 && !reflect.DeepEqual(c.Agent.SubagentEfforts, d.Agent.SubagentEfforts) {
 		fmt.Fprintf(&agentBuf, "subagent_efforts = %s\n", renderStringMap(c.Agent.SubagentEfforts))
-		anyAgent = true
-	}
-	if c.Agent.MaxSubagentDepth != d.Agent.MaxSubagentDepth {
-		fmt.Fprintf(&agentBuf, "max_subagent_depth = %d\n", c.Agent.MaxSubagentDepth)
 		anyAgent = true
 	}
 	if c.Agent.OutputStyle != "" && c.Agent.OutputStyle != d.Agent.OutputStyle {

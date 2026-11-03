@@ -58,7 +58,7 @@ func applyReviewBudget(spec *ProfileExecSpec) {
 			spec.Sched.MaxOutputTokens = defaultReviewOutputTokens
 		}
 		if strings.TrimSpace(spec.Context.OutputFormat) == "" {
-			spec.Context.OutputFormat = "Return structured fields only: verdict, blocking_findings, non_blocking, required_changes. Do not restate full files or full test logs."
+			spec.Context.OutputFormat = "Return a concise review explaining findings and remaining uncertainty. Do not restate full files or full test logs."
 		}
 	}
 }

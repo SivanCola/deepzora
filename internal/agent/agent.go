@@ -216,16 +216,11 @@ type ExplicitDenyGate interface {
 	ExplicitlyDenies(toolName string, args json.RawMessage) bool
 }
 
-const DefaultMaxSubagentDepth = 2
+const DefaultMaxSubagentDepth = 1
 
 // NormalizeMaxSubagentDepth applies the public config contract: values below 1
 // preserve the old single-delegation boundary.
-func NormalizeMaxSubagentDepth(depth int) int {
-	if depth < 1 {
-		return 1
-	}
-	return depth
-}
+func NormalizeMaxSubagentDepth(_ int) int { return 1 }
 
 // ToolHooks fires user-configured shell hooks around each tool call. PreToolUse
 // runs before the call and may block it (block=true; message is the reason fed
@@ -467,9 +462,9 @@ func (a *Agent) SetMutationObserver(obs *checkpoint.MutationObserver) {
 	if a.svc.tools == nil || obs == nil {
 		return
 	}
-	if t, ok := a.svc.tools.Get("task"); ok {
-		if task, ok := t.(*TaskTool); ok {
-			task.WithMutationObserver(obs)
+	if t, ok := a.svc.tools.Get(SpawnToolName); ok {
+		if task, ok := t.(*Spawner); ok {
+			task.runner.WithMutationObserver(obs)
 		}
 	}
 }
@@ -996,13 +991,10 @@ func (a *Agent) reserveParentWrite(runTool tool.Tool, args json.RawMessage, read
 		return noop, nil
 	}
 	name := runTool.Name()
-	if !parentWriteGuardTarget(name) {
+	if isDelegationTool(name) {
 		return noop, nil
 	}
-	claim, err := parentWriteReservation(a.writeWorkspaceRoot, name, args)
-	if err != nil {
-		return noop, err
-	}
+	claim := WritePathSet{WholeWorkspace: true, WorkspaceRoot: a.writeWorkspaceRoot}
 	return a.svc.writeScheduler.ReserveParentWrite(claim)
 }
 
@@ -1840,13 +1832,6 @@ func (a *Agent) planModeDecision(toolName string, safety planmode.PlanSafety) pl
 
 // isBackgroundTaskCall reports whether a `task` call set run_in_background, so a
 // fire-and-return dispatch isn't mistaken for a sub-agent that has stopped.
-func isBackgroundTaskCall(args string) bool {
-	var p struct {
-		RunInBackground bool `json:"run_in_background"`
-	}
-	_ = json.Unmarshal([]byte(args), &p)
-	return p.RunInBackground
-}
 
 // toolReadOnly reports a tool's ReadOnly classification by name (false for an
 // unknown tool), for stamping early ToolDispatch events.

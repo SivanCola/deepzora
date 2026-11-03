@@ -209,10 +209,6 @@ func extensionFailurePlugin(err error) string {
 // user-facing events, never to the content-free telemetry channels — without
 // these, enabling extensions severed every audit from the recorder.
 
-func (s *frontendEventSink) RecordReadinessAudit(a evidence.ReadinessAudit) {
-	event.RecordReadinessAudit(s.inner, a)
-}
-
 func (s *frontendEventSink) RecordAnchorSafetyAudit(a event.AnchorSafetyAudit) {
 	event.RecordAnchorSafetyAudit(s.inner, a)
 }
@@ -223,10 +219,6 @@ func (s *frontendEventSink) RecordContractShadow(a event.ContractShadowAudit) {
 
 func (s *frontendEventSink) RecordDelegationAudit(a evidence.DelegationAudit) {
 	event.RecordDelegationAudit(s.inner, a)
-}
-
-func (s *frontendEventSink) RecordCompletionReport(a event.CompletionReportAudit) {
-	event.RecordCompletionReport(s.inner, a)
 }
 
 func (s *frontendEventSink) RecordOutcomeProgress(sample evidence.OutcomeSample) {

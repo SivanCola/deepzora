@@ -7,8 +7,8 @@ import (
 	"deepzora/internal/tool"
 )
 
-func TestNewTaskToolWithOptionsEmptySysPromptUsesDefault(t *testing.T) {
-	task := NewTaskToolWithOptions(TaskToolOptions{
+func TestNewSubagentRunnerEmptySysPromptUsesDefault(t *testing.T) {
+	task := NewSubagentRunner(SubagentRunnerOptions{
 		Provider:       &mockProvider{name: "sub"},
 		ParentRegistry: tool.NewRegistry(),
 		MaxSteps:       5,
@@ -19,7 +19,7 @@ func TestNewTaskToolWithOptionsEmptySysPromptUsesDefault(t *testing.T) {
 	}
 }
 
-func TestNewTaskToolWithOptionsProviderResolverAndOverrides(t *testing.T) {
+func TestNewSubagentRunnerProviderResolverAndOverrides(t *testing.T) {
 	base := &mockProvider{name: "base"}
 	resolved := &mockProvider{name: "resolved-child"}
 	pricing := &provider.Pricing{Input: 3}
@@ -28,7 +28,7 @@ func TestNewTaskToolWithOptionsProviderResolverAndOverrides(t *testing.T) {
 		sawModel, sawEffort = model, effort
 		return resolved, pricing, 4096, nil
 	}
-	task := NewTaskToolWithOptions(TaskToolOptions{
+	task := NewSubagentRunner(SubagentRunnerOptions{
 		Provider:        base,
 		ParentRegistry:  tool.NewRegistry(),
 		MaxSteps:        8,

@@ -82,7 +82,7 @@ func (t *ProgressTracker) scoreReceipt(r Receipt) int {
 	switch {
 	case r.Success && (r.Mutation || r.Write):
 		return gainMutation
-	case r.Success && (r.ToolName == "task" || r.ToolName == "parallel_tasks" || r.ToolName == "fleet"):
+	case r.Success && (r.ToolName == "spawn_agents" || r.ToolName == "task" || r.ToolName == "parallel_tasks" || r.ToolName == "fleet"):
 		return gainDelegated
 	case r.Success && len(r.Todos) > 0:
 		return gainTaskProgress

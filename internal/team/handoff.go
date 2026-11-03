@@ -86,7 +86,7 @@ func (s *Service) admit(book []teamroster.Exchange, c Caller, from, to string) e
 	open := 0
 	for _, x := range book {
 		byID[x.ID] = x
-		if x.From == from && !x.State.Settled() {
+		if x.From == from && (!x.State.Settled() || !x.Returned) {
 			open++
 		}
 	}
@@ -279,6 +279,12 @@ func (s *Service) Recover(ctx context.Context) error {
 	var interrupted []teamroster.Exchange
 	for _, x := range book {
 		if x.State.Settled() {
+			if !x.Returned {
+				// The original body lives only in the durable inbox. Reuse its
+				// idempotency key: an existing answer wins, otherwise acknowledge
+				// that recovery cannot reconstruct the result. Never rerun work.
+				interrupted = append(interrupted, x)
+			}
 			continue
 		}
 		settled, err := s.store.SetExchangeState(ctx, x.ID, teamroster.ExchangeInterrupted, s.now())
@@ -289,7 +295,11 @@ func (s *Service) Recover(ctx context.Context) error {
 		}
 	}
 	for _, x := range interrupted {
-		errs = append(errs, s.deliverReply(ctx, r, book, x, Settlement{Outcome: OutcomeInterrupted, Code: "team.interrupted"}))
+		code := "team.interrupted"
+		if x.State != teamroster.ExchangeInterrupted {
+			code = "team.reply_unavailable"
+		}
+		errs = append(errs, s.deliverReply(ctx, r, book, x, Settlement{Outcome: OutcomeInterrupted, Code: code}))
 	}
 	return errors.Join(errs...)
 }

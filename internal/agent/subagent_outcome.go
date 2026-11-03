@@ -83,7 +83,7 @@ func subagentOutcomeFromError(err error) *SubagentOutcome {
 	return &outcome
 }
 
-func (t *TaskTool) FailedSubagentResult(run *SubagentRun, cause error) (string, error) {
+func (t *SubagentRunner) FailedSubagentResult(run *SubagentRun, cause error) (string, error) {
 	subErr := NewSubagentRunError(run, cause)
 	var saveErr error
 	if t != nil && t.transcripts != nil {
@@ -92,22 +92,23 @@ func (t *TaskTool) FailedSubagentResult(run *SubagentRun, cause error) (string, 
 	return subErr.SubagentOutput(), errors.Join(subErr, saveErr)
 }
 
-func (t *TaskTool) failSubagentWithLifecycle(run *SubagentRun, cause error, sink event.Sink, parentID, name, model, effort string) (string, error) {
-	result, err := t.FailedSubagentResult(run, cause)
-	phase, outcome := terminalSubagentLifecycle(err)
-	emitSubagentLifecycle(sink, phase, parentID, name, model, effort, run, outcome)
-	return result, err
-}
-
-// failBeforeSubagentRelease preserves the run envelope on setup failures that
-// occur after a reference was allocated but before the normal RunProfileSpec
-// cleanup/defer is installed.
-func (t *TaskTool) failBeforeSubagentRelease(run *SubagentRun, cause error) (string, error) {
-	result, err := t.FailedSubagentResult(run, cause)
-	if run != nil {
-		err = errors.Join(err, run.Release())
+// finishSubagentRun is the sole terminal owner for shared-runner executions.
+// Close/flush errors participate in the outcome before it is persisted or
+// announced. Catalog ownership and the caller's writer slot remain held.
+func (t *SubagentRunner) finishSubagentRun(run *SubagentRun, answer string, cause error) (string, error) {
+	// Release only returns the cached close error accounted for below.
+	defer func() { _ = run.Release() }()
+	cause = errors.Join(cause, run.closePersistence())
+	if cause == nil && t.transcripts != nil && run.Ref != "" {
+		cause = t.transcripts.SaveCompleted(run)
 	}
-	return result, err
+	if cause != nil {
+		return t.FailedSubagentResult(run, cause)
+	}
+	if run.Ref != "" {
+		return FormatSubagentRunResult(answer, run, false), nil
+	}
+	return GuardSubagentHostDecisionText(answer), nil
 }
 
 func subagentErrorDisposition(err error) (string, SubagentOutcomeStatus, bool) {

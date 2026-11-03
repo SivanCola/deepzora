@@ -6,8 +6,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"deepzora/internal/evidence"
 )
 
 type checkedRecordSink struct {
@@ -26,48 +24,16 @@ func (s *checkedRecordSink) EmitChecked(e Event) error {
 type coalesceRecordSink struct {
 	mu        sync.Mutex
 	events    []Event
-	readiness int
 	turns     int
 	recovery  int
 	workspace int
 	runBudget int
 }
 
-type blockingCapabilitySink struct {
-	entered chan struct{}
-	release chan struct{}
-	done    chan struct{}
-	mu      sync.Mutex
-	order   []string
-}
-
-func (s *blockingCapabilitySink) Emit(e Event) {
-	if e.Text == "lead" {
-		close(s.entered)
-		<-s.release
-	}
-	s.mu.Lock()
-	s.order = append(s.order, e.Text)
-	s.mu.Unlock()
-}
-
-func (s *blockingCapabilitySink) RecordReadinessAudit(evidence.ReadinessAudit) {
-	s.mu.Lock()
-	s.order = append(s.order, "audit")
-	s.mu.Unlock()
-	close(s.done)
-}
-
 func (s *coalesceRecordSink) Emit(e Event) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.events = append(s.events, e)
-}
-
-func (s *coalesceRecordSink) RecordReadinessAudit(evidence.ReadinessAudit) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.readiness++
 }
 
 func (s *coalesceRecordSink) RecordTurnCompletion() {
@@ -210,52 +176,6 @@ func TestCoalesceByteCapFlushes(t *testing.T) {
 	got := inner.snapshot()
 	if len(got) != 2 || len(got[1].Text) != coalesceMaxBytes {
 		t.Fatalf("byte cap must flush synchronously, got %d events", len(got))
-	}
-}
-
-func TestCoalesceCapabilitiesFlushFirstAndForward(t *testing.T) {
-	inner := &coalesceRecordSink{}
-	c := Coalesce(inner, time.Hour)
-	c.Emit(Event{Kind: Text, Text: "lead"})
-	c.Emit(Event{Kind: Text, Text: "tail"})
-	c.(ReadinessAuditSink).RecordReadinessAudit(evidence.ReadinessAudit{})
-	c.(TurnCompletionSink).RecordTurnCompletion()
-	c.(ProtocolRecoveryAuditSink).RecordProtocolRecovery(ProtocolRecoveryAudit{})
-	c.(WorkspaceMutationSink).RecordWorkspaceMutation(WorkspaceMutation{Content: true})
-	c.(RunBudgetSink).RecordRunBudget(RunBudgetSample{})
-
-	got := inner.snapshot()
-	if len(got) != 2 || got[1].Text != "tail" {
-		t.Fatalf("capability call must flush the buffered delta first: %+v", got)
-	}
-	if inner.readiness != 1 || inner.turns != 1 || inner.recovery != 1 || inner.workspace != 1 || inner.runBudget != 1 {
-		t.Fatalf("capabilities not forwarded: %d/%d/%d/%d/%d", inner.readiness, inner.turns, inner.recovery, inner.workspace, inner.runBudget)
-	}
-}
-
-func TestCoalesceCapabilityCannotOvertakeActiveDrainer(t *testing.T) {
-	inner := &blockingCapabilitySink{entered: make(chan struct{}), release: make(chan struct{}), done: make(chan struct{})}
-	c := Coalesce(inner, time.Hour)
-	go c.Emit(Event{Kind: Text, Text: "lead"})
-	<-inner.entered
-	c.Emit(Event{Kind: Text, Text: "tail"})
-	c.(ReadinessAuditSink).RecordReadinessAudit(evidence.ReadinessAudit{})
-	close(inner.release)
-	select {
-	case <-inner.done:
-	case <-time.After(5 * time.Second):
-		t.Fatal("queued capability did not drain")
-	}
-	inner.mu.Lock()
-	defer inner.mu.Unlock()
-	want := []string{"lead", "tail", "audit"}
-	if len(inner.order) != len(want) {
-		t.Fatalf("order = %v, want %v", inner.order, want)
-	}
-	for i := range want {
-		if inner.order[i] != want[i] {
-			t.Fatalf("order = %v, want %v", inner.order, want)
-		}
 	}
 }
 

@@ -180,9 +180,9 @@ func TestCancelDuringStuckProviderStreamReturns(t *testing.T) {
 	}
 }
 
-func TestTaskToolCancelDuringStuckProviderReturns(t *testing.T) {
+func TestSubagentRunnerCancelDuringStuckProviderReturns(t *testing.T) {
 	prov := &stuckStreamProvider{started: make(chan struct{})}
-	task := newTestTaskTool(t, prov, tool.NewRegistry(), "sys", "", "", nil)
+	task := newTestSubagentRunner(t, prov, tool.NewRegistry(), "sys", "", "", nil)
 
 	ctx, cancel := context.WithCancel(testTaskContext())
 	done := make(chan error, 1)
@@ -207,7 +207,7 @@ func TestTaskToolCancelDuringStuckProviderReturns(t *testing.T) {
 			t.Fatalf("Execute error = %v, want context cancellation", err)
 		}
 	case <-time.After(5 * time.Second):
-		t.Fatal("TaskTool.Execute did not return after cancellation")
+		t.Fatal("SubagentRunner.Execute did not return after cancellation")
 	}
 }
 

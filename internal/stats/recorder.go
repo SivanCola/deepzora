@@ -254,11 +254,6 @@ func Flush(ctx context.Context, dir string) error {
 	return nil
 }
 
-// RecordReadinessAudit forwards audit receipts to the wrapped sink.
-func (r *Recorder) RecordReadinessAudit(a evidence.ReadinessAudit) {
-	event.RecordReadinessAudit(r.inner, a)
-}
-
 func (r *Recorder) RecordAnchorSafetyAudit(a event.AnchorSafetyAudit) {
 	event.RecordAnchorSafetyAudit(r.inner, a)
 }
@@ -273,13 +268,9 @@ func (r *Recorder) RecordContractShadow(a event.ContractShadowAudit) {
 	event.RecordContractShadow(r.inner, a)
 }
 
-// RecordCompletionReport preserves the wrapped sink's audit capability.
+// RecordDelegationAudit preserves the wrapped sink's audit capability.
 func (r *Recorder) RecordDelegationAudit(a evidence.DelegationAudit) {
 	event.RecordDelegationAudit(r.inner, a)
-}
-
-func (r *Recorder) RecordCompletionReport(a event.CompletionReportAudit) {
-	event.RecordCompletionReport(r.inner, a)
 }
 
 // RecordOutcomeProgress preserves the wrapped sink's audit capability.

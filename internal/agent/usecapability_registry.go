@@ -44,6 +44,7 @@ func (t *UseCapabilityTool) resolveRegistryTool(ctx context.Context, name, id st
 		}
 		target = t.bindRuntimeMCP(spec, target)
 	}
+	target = spawnToolForContext(ctx, target, args)
 	base.Target = target
 	base.TargetName = name
 	base.ReadOnly = target.ReadOnly()
