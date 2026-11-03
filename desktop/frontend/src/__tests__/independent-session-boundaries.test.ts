@@ -71,7 +71,7 @@ test("full App chrome passes a canonical tab without sessionPath as an exact sid
   type Input = Parameters<typeof buildSidebarRegionProps>[0];
   const props = buildSidebarRegionProps({
     className: "", t: (key => key) as Input["t"], paletteShortcut: "",
-    shell: { sidebarCollapsed: false } as Input["shell"],
+    shell: { sidebarCollapsed: false,page:{kind:"workspace"} } as Input["shell"],
     geometry: { sidebarResizeMinWidth: 264, sidebarRenderWidth: 264 } as Input["geometry"],
     topics: {} as Input["topics"], commands: {} as Input["commands"],
     projectTree: {
