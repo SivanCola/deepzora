@@ -23,6 +23,7 @@
     "test:mcp-app": "node scripts/run-ci-tests.mjs --group mcp-app",
     "test:workspace": "node scripts/run-ci-tests.mjs --group workspace",
     "test:settings-browser": "node bench/settings-layout.mjs",
+    "test:team-browser": "PLAYWRIGHT_BROWSERS_PATH=.pw-browsers node bench/team-desktop.mjs",
     "test:settings-pages": "node bench/settings-pages.mjs",
     "test:sidebar-browser": "node bench/project-tree-sidebar.mjs",
     "test:settings-responsive": "node scripts/run-ci-tests.mjs --group settings-responsive",

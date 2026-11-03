@@ -155,6 +155,8 @@ if (!ciUnitScripts.includes("test:motion") || !ciUnitScripts.includes("test:tran
   throw new Error("motion-ci-contract: Linux CI must include all dedicated motion and transcript suites");
 }
 const desktopLinuxJob = jobBody("desktop-browser");
+assert.equal(desktopLinuxJob.match(/pnpm --dir frontend test:team-browser(?:\s|$)/g)?.length, 1);
+assert.match(packageJSON.scripts["test:team-browser"], /PLAYWRIGHT_BROWSERS_PATH=\.pw-browsers node bench\/team-desktop\.mjs/);
 
 const transcriptBrowserCommand = "pnpm --dir frontend test:transcript-browser";
 const transcriptBrowserRuns = desktopLinuxJob.match(/pnpm --dir frontend test:transcript-browser(?:\s|$)/g)?.length ?? 0;

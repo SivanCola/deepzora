@@ -425,6 +425,7 @@ jobs:
           PLAYWRIGHT_BROWSERS_PATH=.pw-browsers pnpm --dir frontend exec playwright install --with-deps chromium
           xvfb-run -a pnpm --dir frontend test:motion-browser
           xvfb-run -a pnpm --dir frontend test:transcript-browser
+          xvfb-run -a pnpm --dir frontend test:team-browser
 
   desktop-go:
     name: desktop-go (${{ matrix.os }})
