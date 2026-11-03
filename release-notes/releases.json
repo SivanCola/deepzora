@@ -2,6 +2,153 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "0.0.4",
+      "releaseId": "0.0.4",
+      "baseVersion": "0.0.4",
+      "previousRelease": "0.0.3",
+      "date": "2026-11-03",
+      "channel": "stable",
+      "status": "reviewed",
+      "targetingVersion": 1,
+      "builds": { "cli": "v0.0.4", "desktop": "v0.0.4", "npm": "0.0.4" },
+      "title": {
+        "en": "Consistent Settings and personal agent presets",
+        "zh": "统一设置体验与个性化智能体预设"
+      },
+      "summary": {
+        "en": "Deepzora 0.0.4 unifies Settings layouts and protects unsaved edits when navigating. Create agent presets directly from the composer, choose a prompt mode, and customize their icons with colors or uploaded images. Provider branding, popup tooltips and release-note links are also corrected. The reported Windows shutdown stall remains under investigation.",
+        "zh": "Deepzora 0.0.4 统一设置页布局，并在切页时保护未保存的修改。可直接从输入区新建智能体预设、选择提示词模式，并用颜色或上传图片自定义图标。同时修复服务商品牌图标、弹出菜单提示和发布说明链接。已报告的 Windows 退出卡住问题仍在排查。"
+      },
+      "surfaces": ["desktop", "cli"],
+      "guides": [],
+      "highlights": [
+        {
+          "kind": "improved", "targets": ["desktop"],
+          "title": { "en": "Settings keep your edits safe", "zh": "设置切页保护未保存修改" },
+          "body": {
+            "en": "All 20 Settings pages share consistent headings, back navigation, spacing, action bars and feedback. When leaving an editor, keep editing, discard changes, or save before continuing. Failed saves retain the draft, and model dialogs apply their edits before the parent connection is saved. Installation, connection and feedback actions still require explicit submission.",
+            "zh": "全部 20 个设置主页统一标题、返回入口、间距、操作栏和状态反馈。离开编辑器时可继续编辑、放弃更改或保存后继续；保存失败保留草稿，模型弹窗先应用修改再保存父级连接。安装、连接和发送反馈仍需明确提交。"
+          },
+          "refs": [144]
+        },
+        {
+          "kind": "new", "targets": ["desktop"],
+          "title": { "en": "Create and personalize agent presets", "zh": "快速创建个性化智能体预设" },
+          "body": {
+            "en": "Open New agent preset from the composer menu. Names suggest valid, collision-free IDs until you edit the ID yourself. Choose a built-in icon and color, randomize them, or upload and crop a PNG, JPEG or WebP image. The same icon appears in the editor, preset list and composer picker.",
+            "zh": "从输入区预设菜单直接新建智能体预设。名称会自动建议合法且不冲突的 ID，手动编辑 ID 后停止跟随名称。可选择内置图标及颜色、随机组合，或上传并裁剪 PNG、JPEG、WebP 图片；编辑器、预设列表与输入区选择器显示同一图标。"
+          },
+          "refs": [142]
+        }
+      ],
+      "changes": {
+        "new": [
+          {
+            "targets": ["desktop"],
+            "title": { "en": "Three clear preset prompt modes", "zh": "三种明确的预设提示词模式" },
+            "body": {
+              "en": "Choose to extend default instructions, replace coding instructions, or provide the complete system prompt. The editor explains the selected mode and validates its required body. Runtime context moves into Advanced settings, while tool restrictions and existing prompt semantics are preserved.",
+              "zh": "明确选择扩展默认指令、替换编程指令或提供完整系统提示词。编辑器说明所选模式并校验必要正文；运行时上下文移入高级设置，工具限制及已有提示词语义保持兼容。"
+            },
+            "refs": [142]
+          }
+        ],
+        "improved": [
+          {
+            "targets": ["desktop"],
+            "title": { "en": "Readable Settings at smaller window sizes", "zh": "窄窗口下的设置页更易用" },
+            "body": {
+              "en": "Cards retain space around labels and controls, navigation stays reachable, long paths and dates wrap, and theme preview controls fit narrow windows. Loading failures now stop loading and offer retry instead of appearing as empty results.",
+              "zh": "卡片文字与控件保留两侧留白，导航保持可达，长路径与日期可换行，主题预览控件适配窄窗口。加载失败会停止加载并提供重试，不再伪装成空列表。"
+            },
+            "refs": [144]
+          },
+          {
+            "targets": ["desktop"],
+            "title": { "en": "Magpie is easier to find", "zh": "更容易找到 Magpie" },
+            "body": {
+              "en": "Magpie appears third in the Add Provider catalog, after DeepSeek and OpenCode, while the remaining brands keep their relative order.",
+              "zh": "添加模型服务时，Magpie 位于 DeepSeek、OpenCode 之后的第三位，其他品牌的相对顺序保持不变。"
+            },
+            "refs": [143]
+          }
+        ],
+        "fixed": [
+          {
+            "targets": ["desktop"],
+            "title": { "en": "Provider icons keep their brand identity", "zh": "服务商图标保持品牌身份" },
+            "body": {
+              "en": "Generated or renamed connections and model rows retain the preset brand instead of showing a protocol or upstream model vendor's icon. GMI Cloud and Xiaomi MiMo artwork is included; brands without artwork keep their monograms.",
+              "zh": "自动生成或重命名的连接及模型行保留预设品牌，不再误用协议或上游模型厂商的图标。补齐 GMI Cloud 与小米 MiMo 图标；没有图稿的品牌继续显示首字母。"
+            },
+            "refs": [143]
+          },
+          {
+            "targets": ["desktop"],
+            "title": { "en": "Tooltips no longer cover open menus", "zh": "提示气泡不再覆盖已展开菜单" },
+            "body": {
+              "en": "Preset, project and session menus hide their trigger's tooltip while expanded, including delayed hover and focus callbacks. Menu content no longer reopens the trigger's help when it receives focus.",
+              "zh": "预设、项目和会话菜单展开时隐藏触发按钮的提示气泡，包括延迟的悬停与焦点回调；菜单内容获得焦点时也不会重新打开提示。"
+            },
+            "refs": [141]
+          },
+          {
+            "targets": ["desktop"],
+            "title": { "en": "Release notes open the latest Desktop release", "zh": "发布说明打开最新桌面版本" },
+            "body": {
+              "en": "About's Open on web action and newly created heartbeat update suggestions use the latest Desktop release URL instead of an incomplete tag URL that returned 404.",
+              "zh": "关于页的在网页查看及新建心跳更新建议使用最新桌面版发布链接，不再打开返回 404 的不完整标签地址。"
+            },
+            "refs": [138]
+          }
+        ]
+      },
+      "upgrade": [
+        {
+          "level": "info", "targets": ["desktop"],
+          "title": { "en": "Verify official update packages", "zh": "校验官方更新包" },
+          "body": {
+            "en": "Desktop packages must pass Minisign integrity and provenance verification, macOS signing and notarization, and the Windows Authenticode policy for this version. Use the official download links and retain package verification when updating.",
+            "zh": "桌面安装包须通过 Minisign 完整性及来源验证、macOS 签名与公证，以及适用于本版本的 Windows Authenticode 策略。请使用官方下载链接，并在更新时保留安装包校验。"
+          }
+        },
+        {
+          "level": "warning", "targets": ["desktop", "cli"],
+          "title": { "en": "Update before sharing image or color presets", "zh": "共享图片或彩色预设前先升级" },
+          "body": {
+            "en": "Custom icons add optional icon-image and icon-color YAML fields. Update older Desktop and CLI installations before sharing these presets; older versions reject unfamiliar fields. Glyph-only presets remain compatible, and display metadata does not change runtime fingerprints or provider prompts.",
+            "zh": "自定义图标新增可选的 icon-image、icon-color YAML 字段。共享此类预设前请先升级旧桌面端和 CLI，旧版会拒绝未知字段。仅用内置图标的预设保持兼容，显示元数据不会改变运行时指纹或供应商提示词。"
+          },
+          "refs": [142]
+        }
+      ],
+      "risks": [
+        {
+          "targets": ["desktop", "cli"],
+          "title": { "en": "Windows remains unsigned for this release", "zh": "本版 Windows 仍未代码签名" },
+          "body": {
+            "en": "The maintainer explicitly approved an unsigned Windows 0.0.4 exception. These files have no Deepzora Authenticode publisher signature, so Windows may show unknown-publisher or SmartScreen warnings. Minisign integrity signatures, provenance and final-package native acceptance remain mandatory. This approval does not cover later versions.",
+            "zh": "维护者已明确批准 Windows 0.0.4 未签名发布例外。相关文件没有 Deepzora 的 Authenticode 发布者签名，Windows 可能显示未知发布者或 SmartScreen 提示。Minisign 完整性签名、来源验证及最终安装包原生验收仍必须完成。此批准不适用于后续版本。"
+          }
+        },
+        {
+          "targets": ["desktop"],
+          "title": { "en": "Reported Windows shutdown stall remains under investigation", "zh": "Windows 退出卡住的报告仍在排查" },
+          "body": {
+            "en": "The report of shutdown stopping at shutdown_incomplete: desktop shutdown stopped in cancelling_background remains open. This release's Settings and preset improvements do not resolve it. If affected, attach service.log and service.log.1 from %APPDATA%\\Deepzora\\logs to issue #126, retaining the desktop: shutdown step entries.",
+            "zh": "退出停在 shutdown_incomplete: desktop shutdown stopped in cancelling_background 的报告仍未关闭，本版设置和预设改进不代表已解决该问题。如遇到，请向 issue #126 附上 %APPDATA%\\Deepzora\\logs 下的 service.log 与 service.log.1，并保留 desktop: shutdown step 记录。"
+          },
+          "refs": [126]
+        }
+      ],
+      "contributors": [],
+      "links": {
+        "github": "https://github.com/SivanCola/deepzora/releases/tag/v0.0.4",
+        "compare": "https://github.com/SivanCola/deepzora/compare/v0.0.3...v0.0.4",
+        "download": "https://deepzora.app/#download"
+      }
+    },
+    {
       "version": "0.0.3",
       "releaseId": "0.0.3",
       "baseVersion": "0.0.3",
