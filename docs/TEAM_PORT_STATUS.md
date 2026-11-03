@@ -58,9 +58,10 @@ checks, native platform acceptance and publication are separate evidence.
   persisted history and native browser Cookie isolation on three runners. It
   never publishes. The fixture provider and optional closed secret gate are
   recorded explicitly; successful native dispatch evidence is still required.
-- The complete root Go suite passed. The first independent Desktop sweep hit
-  its 20-minute package alarm while the current test had run for only 2 seconds;
-  a JSON-instrumented rerun is in progress with less competing local work.
+- The complete root Go suite passed. The independent Desktop Go suite passed
+  (main package 938.525s, 1,774 top-level passes and 8 platform-specific skips).
+  Cleanup/kernel/race regressions and updated frontend/static gates passed for
+  the subsequent durable retirement fix.
   The assembled macOS production app passed startup/quit and real Team private,
   group, background, approval, schedule and restart flows against the loopback
   fixture. The real native browser fixture passed member Cookie isolation,
@@ -70,9 +71,16 @@ checks, native platform acceptance and publication are separate evidence.
   final naming because qualification used a prerelease version. Qualification
   now uses unpublished numeric `v0.0.0` plus the source SHA in build metadata;
   release naming rules are unchanged. The replacement dispatch is running.
-- Real-model acceptance needs a usable test connection. The configured default
-  currently has a placeholder credential; no successful real inference is
-  claimed. No existing conversation data was copied into qualification homes.
+- A user-supplied isolated test credential qualified actual DeepSeek Flash over
+  the OpenAI protocol on macOS: one private call plus two sequential group calls
+  passed, with three owned usage records (22,572 total tokens). Existing user
+  conversations/configuration were not copied or modified. Test credential
+  files and temporary app homes are private, outside the repository.
+- The numeric-version native dispatch passed packaged Team flows and browser
+  isolation on Linux and macOS. Windows passed startup/private/group/background/
+  approval, then exposed missing packaged IANA data at schedule creation.
+  The owning layer-5 fix embeds Go's timezone database and passed DST/calendar
+  regressions; it has been propagated through layers 6 and 7.
 
 第七层已接入精确值、JSON 与跨块流遮罩、Provider/扩展/事件/工具/后台/持久化边界，
 以及成员、群组、席位和调用来源用量聚合。已通过的模拟与本机原生 Shell 测试不等于
