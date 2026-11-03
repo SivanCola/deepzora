@@ -65,13 +65,14 @@ func UnifiedProviderToolNames() []string {
 // applyUnifiedProviderToolSurface restricts Schemas/ContractEntries to the
 // shared core + host-control tools. use_capability can still Get every
 // registered tool, including those hidden from the provider schema.
-func applyUnifiedProviderToolSurface(reg *tool.Registry) {
+func applyUnifiedProviderToolSurface(reg *tool.Registry, extra ...string) {
 	if reg == nil {
 		return
 	}
 	allow := make([]string, 0, 16)
 	names := coreProviderToolNamesForRegistry(reg)
 	names = append(names, HostControlToolNames()...)
+	names = append(names, extra...)
 	for _, name := range names {
 		if _, ok := reg.Get(name); ok {
 			allow = append(allow, name)

@@ -12,7 +12,7 @@ preset definitions instead of following later preset edits.
 | Layer | Owner | Status |
 | --- | --- | --- |
 | 1 | Versioned roster, exchanges, group orchestration | Implemented; focused/race/static checks and full root Go suite passed; PR #146 |
-| 2 | Controller seat, tools, approvals and delegation ceilings | Pending |
+| 2 | Controller seat, tools, approvals and delegation ceilings | Implemented; Controller/Agent/boot/Team/builtin/evidence suites, focused race and static gates passed |
 | 3 | Desktop runtime, lease and browser isolation | Pending |
 | 4 | Desktop Team UI and generated contract | Pending |
 | 5 | Memory, opt-in review and schedules | Pending |
@@ -60,4 +60,31 @@ Studio HTTP plumbing, terminal outbox, unrelated fixes or release infrastructure
 
 本层已实现名册、交换账本、群轮次与宿主 framing，定向测试、race、vet、repolint
 通过；Windows amd64 测试二进制已交叉编译，尚无 Windows 原生运行证据。
-本层没有接入 Controller、Desktop、模型或界面入口，其余六层仍待完成。
+第一层单独不启用 Controller 或桌面入口；后续层状态见上表。
+
+## Seat/controller increment
+
+- Added an optional host-owned boot seat and a fixed Team tool set, preserved
+  across controller rebuild. Ordinary boots do not register Team tools.
+- Identity and roster ride the turn tail; provider-boundary tests compare the
+  unchanged ordinary system prefix and stable Team schemas across turns.
+- Team input uses the existing durable inbox and explicit host message origin.
+  Admission validates pending work; replay of interrupted exchanges is refused.
+  The admitted envelope owns immutable turn metadata instead of rereading a
+  mutable sidecar to discover authority during execution.
+- Scoped execution ceilings preserve the user's persistent permission and also
+  reach child execution and resolved proxy targets. A compiler-overlay negative
+  control executes the forbidden writer when enforcement is removed.
+- Fresh Team configuration approvals cannot reuse session grants or Full access.
+  Writes compare the reviewed roster revision and recheck target authority.
+- Queue prose editors cannot rewrite a host-authored Team delivery. Task children
+  cannot borrow their parent's Team identity. Coordination is classified as host
+  state, not a work-product mutation.
+- Focused regressions and race checks passed. The broad Controller suite exposed
+  an approved-plan fallback regression; the repair limits the restriction to an
+  actual active Team ceiling. The complete Controller, Agent, boot, Team,
+  builtin, host-frame and evidence suites passed after that repair.
+
+第二层已接入可选席位、固定工具目录、持久 inbox、宿主来源、回合结算和临时执行上限，
+并验证系统前缀稳定、只读代理执行、陈旧审批拒绝及已结算任务不重放。普通已批准计划的
+回归已修复，全套相关包已通过。桌面 TeamHost 与界面尚未接入。

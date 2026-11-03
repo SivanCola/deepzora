@@ -360,6 +360,9 @@ func (c *Controller) UpdateInboxItem(id, display, raw, submit string) (sessionin
 		return sessioninbox.InboxItemMeta{}, err
 	}
 	env := previous
+	if previous.Extra["team.kind"] != "" {
+		return sessioninbox.InboxItemMeta{}, errInboxStructuredEdit
+	}
 	env.DisplayText, env.RawText, env.SubmitText = display, raw, submit
 	if err := c.freezeInboxEnvelopeReferences(context.Background(), &env, submit, env.ExplicitRefs); err != nil {
 		return sessioninbox.InboxItemMeta{}, err
@@ -381,6 +384,9 @@ func (c *Controller) AppendInboxItem(id, text, idempotency string, extra map[str
 	meta, previous, err := st.ReadItem(id)
 	if err != nil {
 		return sessioninbox.InboxItemMeta{}, err
+	}
+	if previous.Extra["team.kind"] != "" || extra["team.kind"] != "" {
+		return sessioninbox.InboxItemMeta{}, errInboxStructuredEdit
 	}
 	text = strings.TrimSpace(text)
 	if text == "" {

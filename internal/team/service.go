@@ -56,6 +56,8 @@ type Caller struct {
 	Ceiling string
 	// ConfigurationApproved means the host obtained fresh human approval for this exact change.
 	ConfigurationApproved bool
+	// ConfigurationRevision fences the roster the human reviewed.
+	ConfigurationRevision *uint64
 }
 
 // MessageRequest is what message_agent asks for. To is an agent id or its

@@ -4,8 +4,8 @@
 
 The Team port targets local macOS, Linux and Windows Desktop. Its implementation
 is tracked in [the delivery ledger](TEAM_PORT_STATUS.md). The current increment
-provides the storage and orchestration foundation; it has no production caller
-and does not enable a desktop Team feature yet.
+provides storage, orchestration and an optional Controller/boot seat adapter.
+The Desktop host and interface are not enabled yet.
 
 ## Ownership
 
@@ -51,7 +51,11 @@ canonical permissions, idempotency, handoff cycles, consumed replies, group
 timers, approval contracts and restart recovery. Windows cross-compilation is
 only compilation evidence; native runtime acceptance remains a separate gate.
 
-This increment changes no existing provider request, tool registry, session,
-preset, credential or desktop RPC format. The copied MIT license is retained
+Ordinary boots keep their existing provider request and tool registry. Team
+boots add the same Team tools and append current identity at the turn tail.
+Incoming Team work has host provenance and a scoped execution ceiling; it cannot
+rewrite the member's persistent permission. Fresh configuration approvals compare
+the reviewed roster revision before committing. Existing session, preset,
+credential and desktop RPC formats are unchanged. The copied MIT license is retained
 in `internal/team/UPSTREAM_LICENSE` and also covers the extracted roster and
 host-framing packages.

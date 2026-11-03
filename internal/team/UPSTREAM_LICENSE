@@ -23,3 +23,7 @@ SOFTWARE.
 Adapted from esengine/DeepSeek-Reasonix PR #14636, snapshot
 1c8f9818013e30de612fd794b6f2b9039bd854f9. This notice also covers the
 extracted internal/teamroster and internal/hostframe packages.
+
+The controller/tool integration additionally adapts PR #14637, snapshot
+c54659170682ea1011cfde895b2bb86ca9e7aef6. The same upstream MIT notice
+applies to the extracted Team tool contracts, built-ins and controller adapter.

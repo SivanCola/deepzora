@@ -1643,8 +1643,15 @@ func completedMCPConnect(reg *tool.Registry, name string) (string, bool) {
 	return "", false
 }
 
-func (a *Agent) readOnlyExecutionBlock(visible tool.Tool, resolved *tool.ResolvedCall) (toolOutcome, bool) {
-	if a == nil || !a.readOnlyExecution {
+func (a *Agent) enforcesReadOnly(ctx context.Context) bool {
+	if a == nil {
+		return false
+	}
+	return a.readOnlyExecution || tool.ExecutionCeiling(ctx) == "read-only"
+}
+
+func (a *Agent) readOnlyExecutionBlock(ctx context.Context, visible tool.Tool, resolved *tool.ResolvedCall) (toolOutcome, bool) {
+	if !a.enforcesReadOnly(ctx) {
 		return toolOutcome{}, false
 	}
 	block := func(reason string) (toolOutcome, bool) {

@@ -6,6 +6,7 @@ import (
 )
 
 func (opts *Options) inheritSessionBinding(old *control.Controller) {
+	opts.TeamSeat = old.BoundTeamSeat()
 	opts.SessionCreateService = old.SessionCreationService()
 	if old.UsesExclusiveSession() {
 		opts.SessionService = old.SessionService()

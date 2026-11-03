@@ -77,8 +77,13 @@ func (c *Controller) prepareInboxRunContext(ctx context.Context, env sessioninbo
 	if len(requests) == 0 {
 		return func(ctx context.Context) error {
 			ctx = contextWithPreparedImageReferences(ctx, preparedImageReferences{inputs: env.ImageInputs})
-			return c.runGoalLoopWithFrozenImagesRawDisplay(c.withTurnFormat(ctx, strings.TrimSpace(env.Format)), submit, raw, display, frozenImages)
+			return c.runTeamInbox(ctx, env, func(ctx context.Context) error {
+				return c.runGoalLoopWithFrozenImagesRawDisplay(c.withTurnFormat(ctx, strings.TrimSpace(env.Format)), submit, raw, display, frozenImages)
+			})
 		}, "", nil
+	}
+	if env.Extra["team.kind"] != "" {
+		return nil, "team delivery cannot invoke composer commands", nil
 	}
 	prepared, err := c.prepareInvocationTurn(submit, requests)
 	if err != nil {

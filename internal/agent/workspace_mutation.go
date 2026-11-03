@@ -75,6 +75,9 @@ func workspaceMutationForCall(toolID, toolName string, args json.RawMessage, rea
 }
 
 func workspaceHostStateOnlyTool(toolName string) bool {
+	if evidence.IsTeamStateTool(toolName) {
+		return true
+	}
 	if strings.HasPrefix(toolName, "mcp_connect__") {
 		return true
 	}

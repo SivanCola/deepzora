@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"testing"
+
+	"deepzora/internal/teamroster"
 )
 
 func TestAgentCannotSilentlyChangeStandingConfiguration(t *testing.T) {
@@ -44,5 +46,21 @@ func TestConfigurationApprovalDoesNotGrantAuthorityOverAnotherAgent(t *testing.T
 	}
 	if got, err := h.svc.UpdateAgent(t.Context(), c, "", AgentChange{Instructions: new("changed")}); err != nil || got.Instructions != "changed" {
 		t.Fatalf("authorized approved change: %+v, %v", got, err)
+	}
+}
+
+func TestApprovalCannotCommitAgainstAChangedRoster(t *testing.T) {
+	h := newHarness(t, "Chief", "Ada")
+	c := Caller{Agent: h.id("Chief"), ConfigurationApproved: true}
+	_, revision, err := h.svc.AgentForUpdateAt(c, "Ada")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = h.svc.UserUpdateAgent(t.Context(), h.id("Ada"), UserAgentChange{Pinned: new(true)}); err != nil {
+		t.Fatal(err)
+	}
+	c.ConfigurationRevision = &revision
+	if _, err = h.svc.UpdateAgent(t.Context(), c, h.id("Ada"), AgentChange{Instructions: new("stale instructions")}); !errors.Is(err, teamroster.ErrConflict) {
+		t.Fatalf("stale approval committed: %v", err)
 	}
 }

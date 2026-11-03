@@ -42,15 +42,21 @@ func (s *Service) CheckCreateAgent(c Caller) error {
 
 // AgentForUpdate resolves an authorized target to its immutable id before approval.
 func (s *Service) AgentForUpdate(c Caller, target string) (teamroster.Agent, error) {
+	a, _, err := s.AgentForUpdateAt(c, target)
+	return a, err
+}
+
+// AgentForUpdateAt resolves identity and revision from one authorized snapshot.
+func (s *Service) AgentForUpdateAt(c Caller, target string) (teamroster.Agent, uint64, error) {
 	r, err := s.store.Load()
 	if err != nil {
-		return teamroster.Agent{}, err
+		return teamroster.Agent{}, 0, err
 	}
 	a, err := authorizeUpdate(&r, c, target)
 	if err != nil {
-		return teamroster.Agent{}, err
+		return teamroster.Agent{}, 0, err
 	}
-	return *a, nil
+	return *a, r.Revision, nil
 }
 
 // RequiresApproval identifies changes that affect a seat's future instructions or execution.

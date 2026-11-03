@@ -11,6 +11,9 @@ import (
 func ClassifyEffect(in EffectInput) EffectProfile {
 	name := strings.ToLower(strings.TrimSpace(in.ToolName))
 	args := json.RawMessage(in.Args)
+	if IsTeamStateTool(name) {
+		return EffectProfile{Known: true, HostState: true, Reason: ReasonHostState}
+	}
 	if isShellToolName(name) {
 		return classifyBashEffect(args, in)
 	}
@@ -31,6 +34,16 @@ func ClassifyEffect(in EffectInput) EffectProfile {
 		applyCallHint(&profile, in.Hint)
 	}
 	return profile
+}
+
+// IsTeamStateTool distinguishes orchestration from product-file mutations.
+func IsTeamStateTool(name string) bool {
+	switch name {
+	case "message_agent", "post_to_group", "pass_turn", "hand_turn", "create_agent", "update_agent", "stop_agent", "create_group", "update_group", "delete_group":
+		return true
+	default:
+		return false
+	}
 }
 
 func isShellToolName(name string) bool {

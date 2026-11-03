@@ -197,10 +197,10 @@ func (a *Agent) applyPlanModeAndProxy(ctx context.Context, plan *toolCallPlan) (
 		}
 		plan.readOnly = rc.ReadOnly
 		plan.classifyEffects()
-		if outcome, blocked := a.readOnlyExecutionBlock(t, &rc); blocked {
+		if outcome, blocked := a.readOnlyExecutionBlock(ctx, t, &rc); blocked {
 			return blockedShellOutcome(outcome, plan), true
 		}
-	} else if outcome, blocked := a.readOnlyExecutionBlock(t, nil); blocked {
+	} else if outcome, blocked := a.readOnlyExecutionBlock(ctx, t, nil); blocked {
 		return blockedShellOutcome(outcome, plan), true
 	}
 
