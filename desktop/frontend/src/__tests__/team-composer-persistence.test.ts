@@ -12,8 +12,8 @@ let entered:(()=>void)|undefined;
 let loseResponse=false;
 const requests:SaveTeamGroupDraftRequest[]=[];
 installDesktopHostStub({
-  ReadTeamGroupDraft:async group=>structuredClone(saved.get(group)??{revision:0,draft:emptyTeamDraft}),
-  SaveTeamGroupDraft:async request=>{
+  ReadTeamGroupDraft:async (group:string)=>structuredClone(saved.get(group)??{revision:0,draft:emptyTeamDraft}),
+  SaveTeamGroupDraft:async (request:SaveTeamGroupDraftRequest)=>{
     requests.push(structuredClone(request));
     entered?.();if(pause)await pause;
     const previous=saved.get(request.groupId);
