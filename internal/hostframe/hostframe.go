@@ -18,7 +18,7 @@ type Attr struct{ Name, Value string }
 var defusers sync.Map
 
 // hostTags is the complete vocabulary whose authority belongs to the team host.
-var hostTags = []string{"agent-message", "agent-reply", "group-turn", "line", "event"}
+var hostTags = []string{"agent-message", "agent-reply", "group-turn", "line", "event", "agent-identity", "team-roster", "group-roster", "team-memory"}
 
 func defuser(tag string) *regexp.Regexp {
 	if re, ok := defusers.Load(tag); ok {

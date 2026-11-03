@@ -145,7 +145,7 @@ func applyAgent(a *teamroster.Agent, ch AgentChange) {
 func (s *Service) UpdateAgent(ctx context.Context, c Caller, target string, ch AgentChange) (teamroster.Agent, error) {
 	defer s.changed()
 	var out teamroster.Agent
-	_, err := s.store.Update(ctx, func(r *teamroster.Roster) error {
+	mutate := func(r *teamroster.Roster) error {
 		a, err := authorizeUpdate(r, c, target)
 		if err != nil {
 			return err
@@ -156,7 +156,13 @@ func (s *Service) UpdateAgent(ctx context.Context, c Caller, target string, ch A
 		applyAgent(a, ch)
 		out = *a
 		return nil
-	})
+	}
+	var err error
+	if c.ConfigurationRevision != nil {
+		_, err = s.store.UpdateAt(ctx, *c.ConfigurationRevision, mutate)
+	} else {
+		_, err = s.store.Update(ctx, mutate)
+	}
 	return out, err
 }
 

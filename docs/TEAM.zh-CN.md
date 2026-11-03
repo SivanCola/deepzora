@@ -3,7 +3,7 @@
 [English](TEAM.md)
 
 Team 移植面向本机 macOS、Linux、Windows Desktop，进度见[交付清单](TEAM_PORT_STATUS.md)。
-当前增量提供存储与编排基础，尚无生产调用方，桌面端尚未启用团队功能。
+当前增量提供存储、编排和可选的 Controller/boot 席位适配，桌面宿主和界面尚未启用。
 
 ## 状态归属
 
@@ -39,6 +39,8 @@ Shell 继续遵守 Deepzora 现有的当前系统账户执行约定。
 规范权限、幂等、交办循环、回复消费、群计时、审批契约及重启恢复。Windows 交叉编译
 只证明可编译，原生运行仍是独立验收项。
 
-本增量不改变现有模型请求、工具目录、会话、预设、凭据或 Desktop RPC 格式。
+普通 boot 保持既有模型请求与工具目录。团队 boot 注册一致的团队工具，将当前身份追加
+到回合尾部。团队输入带有宿主来源及临时执行上限，不覆盖成员的长期权限；持久配置审批
+提交时校验用户审阅的名册 revision。既有会话、预设、凭据和 Desktop RPC 格式不变。
 提取代码的 MIT 许可证保留在 `internal/team/UPSTREAM_LICENSE`，同时覆盖名册与宿主
 framing 包。

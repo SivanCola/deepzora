@@ -80,6 +80,8 @@ var ErrUnknownModel = errors.New("unknown model")
 // read from configuration. Model "" falls back to default_model; MaxSteps 0
 // uses automatic execution; RequireKey fails fast on a missing key.
 type Options struct {
+	// TeamSeat is supplied only by the local Desktop Team host.
+	TeamSeat        control.TeamSeat
 	BackgroundScope *jobs.SessionBackgroundScope
 	Model           string
 	MaxSteps        int
@@ -596,6 +598,15 @@ func build(ctx context.Context, opts Options) (*BuildResult, error) {
 
 	reg := tool.NewRegistry()
 	applyAgentPresetTools(preset, reg)
+	var teamLink *tool.TeamLink
+	var teamNames []string
+	if opts.TeamSeat != nil {
+		teamLink = &tool.TeamLink{}
+		teamNames = builtin.TeamToolNames()
+		for _, t := range builtin.TeamTools(teamLink) {
+			reg.Add(t)
+		}
+	}
 	writeRoots := cfg.WriteRootsForRoot(root)
 	writeRoots = appendUniquePaths(writeRoots, additionalDirs...)
 	if opts.WorkspaceOnly {
@@ -1460,6 +1471,7 @@ func build(ctx context.Context, opts Options) (*BuildResult, error) {
 		Sink:                           sink,
 		Policy:                         policy,
 		SubagentGate:                   headlessGate,
+		Team:                           control.TeamOptions{Seat: opts.TeamSeat, Link: teamLink},
 		Label:                          label,
 		ModelRef:                       modelRef,
 		ModelIdentity:                  cfg.ModelSelectionIdentity(modelRef),
@@ -1603,7 +1615,7 @@ func build(ctx context.Context, opts Options) (*BuildResult, error) {
 
 	// Provider-visible tool surface is identical for every role setting before
 	// the extension snapshot freezes registry schemas for cache diagnostics.
-	applyUnifiedProviderToolSurface(reg)
+	applyUnifiedProviderToolSurface(reg, teamNames...)
 	reportUnmatchedPresetTools(preset, reg, sink)
 
 	// Freeze the extension kernel's snapshot of exactly what this build wired.

@@ -82,6 +82,7 @@ var (
 // Controller drives one chat session. Construct with New; drive with the command
 // methods; observe through the Sink passed in Options.
 type Controller struct {
+	team                 teamBinding
 	lifecycleDiagnostics lifecycleDiagnosticBuffer
 	providerDiagnostics  providerDiagnosticBuffer
 	runtimeState         controllerRuntimeState
@@ -421,6 +422,7 @@ type externalFolderToolRefs interface {
 // lets the controller mint and rotate session files; Host/Commands are surfaced
 // to frontends that resolve MCP prompts and slash commands.
 type Options struct {
+	Team             TeamOptions
 	ImageRouteConfig *config.Config
 	Runner           agent.Runner
 	Executor         *agent.Agent
@@ -730,6 +732,7 @@ func New(opts Options) *Controller {
 	}
 	c.authentication.initialForModel = opts.AuthenticationForModel
 	c.initializeOwnedResources(opts)
+	c.startTeam(opts.Team)
 	c.bindAttachmentService()
 	if opts.ImageRouteConfig != nil {
 		c.captureImageRoutes(opts.ImageRouteConfig)
@@ -1914,7 +1917,7 @@ func (c *Controller) EnableInteractiveApproval() {
 		c.executor.SetConfigWriteApprover(configApprover)
 		c.executor.SetWriteAccessGate(c)
 		c.executor.SetWriteRoots(c.writeAccess.roots)
-		c.executor.SetPermissionPresetProvider(c.ToolApprovalMode)
+		c.executor.SetPermissionPresetProvider(c.effectiveApprovalMode)
 		c.executor.SetAsker(c)
 		c.executor.SetInteractionBroker(c)
 	}
@@ -1934,7 +1937,7 @@ func (c *Controller) EnableInteractiveApproval() {
 		setter.SetWriteAccessGate(c)
 	}
 	if setter, ok := c.runner.(interface{ SetPermissionPresetProvider(func() string) }); ok {
-		setter.SetPermissionPresetProvider(c.ToolApprovalMode)
+		setter.SetPermissionPresetProvider(c.effectiveApprovalMode)
 	}
 	if setter, ok := c.runner.(interface {
 		SetWriteRoots(*sandbox.WritableRootSet)
@@ -2090,7 +2093,7 @@ func (c *Controller) ApplyHeadlessApprovalMode(mode string) {
 		c.executor.SetGate(c.newHeadlessGate(mode))
 		c.executor.SetWriteAccessGate(c)
 		c.executor.SetWriteRoots(c.writeAccess.roots)
-		c.executor.SetPermissionPresetProvider(c.ToolApprovalMode)
+		c.executor.SetPermissionPresetProvider(c.effectiveApprovalMode)
 	}
 }
 
@@ -3945,7 +3948,7 @@ func (c *Controller) ApplyToolApprovalMode(mode string) []string {
 func (c *Controller) applyToolApprovalModeLocked(mode string) []string {
 	mode = normalizeToolApprovalMode(mode)
 	c.promptResolveMu.Lock()
-	previousMode := c.approval.mode()
+	previousMode := c.approval.persistentMode()
 	if previousMode == mode {
 		c.promptResolveMu.Unlock()
 		return nil
@@ -3953,7 +3956,7 @@ func (c *Controller) applyToolApprovalModeLocked(mode string) []string {
 	c.permissionStateMu.Lock()
 	pending := c.approval.setMode(mode)
 	if c.subagentGate != nil {
-		c.subagentGate.Update(mode)
+		c.subagentGate.Update(c.effectiveApprovalMode())
 	}
 	c.refreshInteractiveGate()
 	// Publish the revision only after every enforcement owner has adopted the
@@ -4002,7 +4005,7 @@ func permissionPresetRank(mode string) int {
 }
 
 func (c *Controller) ToolApprovalMode() string {
-	return c.approval.mode()
+	return c.approval.persistentMode()
 }
 
 // ApplyComposerProfile publishes the collaboration, approval, and Goal axes as
@@ -4459,6 +4462,8 @@ func (c *Controller) requestFreshApprovalDecision(ctx context.Context, tool, sub
 }
 
 type approvalDecisionOptions struct {
+	// oneShotHuman forbids reuse of even an explicit session grant.
+	oneShotHuman bool
 	// fresh marks a user trust/business decision rather than an ordinary tool
 	// permission. It may reuse an explicit session grant, but YOLO/auto approval
 	// must not answer or drain the prompt.
@@ -4473,7 +4478,7 @@ func (c *Controller) requestApprovalDecisionWithOptions(ctx context.Context, too
 	// YOLO/full access and the just-approved-plan execution window auto-allow
 	// approval-gated tools without prompting. Plan approval is a user decision,
 	// not a tool permission, so it deliberately stays interactive.
-	if c.approval.preApprovedForDecisionOptions(tool, subject, args, opts.fresh, opts.requireHuman) {
+	if !opts.oneShotHuman && c.approval.preApprovedForDecisionOptions(tool, subject, args, opts.fresh, opts.requireHuman) {
 		return approvalReply{allow: true}, nil
 	}
 
@@ -4502,7 +4507,7 @@ func (c *Controller) requestApprovalDecisionWithOptions(ctx context.Context, too
 	c.approval.promptEmitMu.Lock()
 	// Re-check at the publication boundary: a session grant may have landed
 	// after the initial policy check.
-	if c.approval.preApprovedForDecisionOptions(tool, subject, args, opts.fresh, opts.requireHuman) {
+	if !opts.oneShotHuman && c.approval.preApprovedForDecisionOptions(tool, subject, args, opts.fresh, opts.requireHuman) {
 		c.approval.promptEmitMu.Unlock()
 		return approvalReply{allow: true}, nil
 	}

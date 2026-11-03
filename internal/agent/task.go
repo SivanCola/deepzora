@@ -413,7 +413,7 @@ func (t *SubagentRunner) RunProfileSpec(ctx context.Context, spec ProfileExecSpe
 	if spec.Sched.RunInBackground || spec.Context.ContinueFrom != "" {
 		return "", fmt.Errorf("background and continuation are retired; use spawn_agents")
 	}
-	spec.Grant.ReadOnly = spec.Grant.ReadOnly || PlanModeFromContext(ctx)
+	spec.Grant.ReadOnly = spec.Grant.ReadOnly || forceReadOnlySpawn(ctx)
 	// One progress owner publishes each child terminal after resource cleanup.
 	trk := newSubagentProgressTracker(ctx, subSink(ctx))
 	parentCtx := ctx

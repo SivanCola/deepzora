@@ -147,6 +147,9 @@ func (a *Agent) applyWriteAccess(ctx context.Context, plan *toolCallPlan) (toolO
 			blocked: true,
 		}, true
 	}
+	if !tool.ExecutionPresetAllowed(ctx, declaration.RequestedPreset) {
+		return writeAccessBlocked("the requested execution preset exceeds the delegated turn's ceiling"), true
+	}
 	if a.svc.writeAccess == nil {
 		if a.svc.writeRoots == nil || len(declaration.Directories) == 0 {
 			return toolOutcome{}, false

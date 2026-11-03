@@ -132,6 +132,7 @@ func (s *turnEventSink) observe(e event.Event) {
 		ledger.ObserveRawEvent(e)
 	}
 	s.c.turnEvents.openStream.observe(e)
+	s.c.observeTeamEvent(e)
 	s.c.liveness.observe(e, time.Now())
 }
 

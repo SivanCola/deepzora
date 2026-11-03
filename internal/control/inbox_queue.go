@@ -137,7 +137,7 @@ func readInboxQueueEdit(st *sessioninbox.Store, id string) (*InboxQueueEdit, err
 	if meta.State != sessioninbox.StateQueued && meta.State != sessioninbox.StateBlocked && meta.State != sessioninbox.StateUncertain {
 		return nil, sessioninbox.ErrInvalidState
 	}
-	if len(env.Invocations) > 0 {
+	if len(env.Invocations) > 0 || env.Extra["team.kind"] != "" {
 		return nil, errInboxStructuredEdit
 	}
 	refs := append([]string{}, env.Attachments...)
