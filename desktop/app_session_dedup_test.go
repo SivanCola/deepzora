@@ -515,6 +515,9 @@ func TestEnsureBlankTabOpensExistingProjectSidebarBlankTopic(t *testing.T) {
 
 func TestEnsureBlankTabDoesNotReuseProjectTopicWithSession(t *testing.T) {
 	app, root, refs := canonicalOrganizationFixture(t, "existing")
+	// This case creates a live Controller in addition to the fixture's store.
+	// Join runtime teardown before the fixture shuts down its session service.
+	t.Cleanup(func() { app.shutdown(context.Background()) })
 	before := refs["existing"]
 	installNoopRuntimeEvents(app)
 	app.readyHook = func() {}

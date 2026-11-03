@@ -3,6 +3,7 @@ package control
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"time"
 
@@ -116,8 +117,7 @@ func (c *Controller) runTeamInbox(ctx context.Context, env sessioninbox.PromptEn
 }
 
 func teamFinalAnswer(messages []provider.Message) (string, string) {
-	for i := len(messages) - 1; i >= 0; i-- {
-		m := messages[i]
+	for _, m := range slices.Backward(messages) {
 		if m.Role == provider.RoleUser {
 			return "", ""
 		}
