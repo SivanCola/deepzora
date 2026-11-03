@@ -10,7 +10,7 @@ PR，也不发布正式版本。
 - Port base: `c6591b22d714ff43f17750974cb1c8078eb4ff99`.
 - Refreshed main: `dfcd04d3a204f50904fdf416c6f95c150f847e5e`. The foundation
   remains mergeable; a virtual merge of the complete stack has no conflicts.
-  The stack retains the approved base instead of importing unrelated changes.
+  This is the original implementation qualification base, before review integration.
 - Runtime boundary candidate: `253cb7ec286c4e69f72f6d2af9a22b2ab3f3a9bb`.
 - Installer qualification adds only acceptance scripts in
   `58aa56f3f7c76322635fc6bae4b801f94f89e618`; all three native installed-artifact
@@ -19,6 +19,38 @@ PR，也不发布正式版本。
   product runtime code is unchanged.
 - All seven fixed upstream sources and license ownership are recorded in
   [the implementation ledger](TEAM_PORT_STATUS.md).
+
+## Incremental review integration / 逐层审查集成
+
+The seven PRs were reviewed against their immediate predecessors. Review fixes
+also integrate main `73c695a65feaa317d56180aa1042444313e76cd1`, including its
+replacement of task/fleet execution with `spawn_agents`. The package and real-model
+results below identify historical candidates; they are not exact-head evidence
+for these subsequent runtime corrections. Current check results and merge state
+belong to each PR. / 七层均按相对前一层的增量审查，并接入上述 main 的新子 Agent
+执行实现。下文安装包及真实模型结果属于注明的历史候选，不能当作本轮运行时修复
+后的同提交证据；最新检查与合并状态以各 PR 为准。
+
+- Layer 1 serializes exchange admission with creation, retains unread replies and
+  dependency ancestry, and interrupts failed reply chains without pretending
+  consumption. Recovery reuses the inbox identity and never reruns original work.
+- Layer 2 preserves read-only ceilings through Team coordination and direct,
+  capability and runner spawning; controller panics settle Team work as failure.
+- Layer 3 host lifetime and browser identity checks found no new owner defect.
+- Layer 4 copies the selected preset snapshot and revalidates configuration and
+  session binding inside final foreground/inbox turn admission.
+- Layer 5 includes every checkpointed human turn within the review prompt budget.
+- Layer 6 validates metadata before writing plaintext and journals new slots for
+  recovery against the committed secret book. Unknown/corrupt books block cleanup.
+- Layer 7 masks image locators at provider egress while preserving inline binary
+  payloads and no-hit request bytes; spawned-child usage tests cover the new API.
+  Retired-slot deletion requires durable metadata before removing credential files.
+
+对应修复覆盖：原子交办准入、未消费回复与恢复、只读多跳与子任务权限、异常结算、
+预设复制及回合准入竞态、整理证据不丢整条、密钥创建失败恢复，以及图片地址脱敏、
+退役值清理耐久性和新子 Agent 用量归属。测试使用可控失败和交错，不扩大权限、
+预算或超时。创建日志新增独立版本化目录，不改变现有 TeamSecretBook schema；
+旧数据无日志时保持可读，恢复不扫描删除未跟踪的历史凭据文件。
 
 ## Local source checks / 本地源码检查
 

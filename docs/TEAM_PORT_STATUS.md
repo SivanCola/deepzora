@@ -1,8 +1,9 @@
 # Team port implementation ledger
 
 Base: `c6591b22d714ff43f17750974cb1c8078eb4ff99` (Deepzora main).
-Refreshed main: `dfcd04d3a204f50904fdf416c6f95c150f847e5e`; the foundation
-and a virtual merge of the full stack remain conflict-free. No PR is merged.
+Review integration base: `73c695a65feaa317d56180aa1042444313e76cd1`.
+The stack incorporates the current `spawn_agents` execution contract. PR merge
+state is tracked on GitHub; qualification records do not imply release.
 
 The accepted scope is the complete seven-layer Team feature for local macOS,
 Linux and Windows Desktop. CLI and remote Team entry points are excluded.
@@ -53,7 +54,7 @@ their historical pending notes do not replace this current delivery table.
   refuse unprojected ranges. Legacy history/search/outline/export presentation
   paths project text too. Historical bodies over 64 MiB fail closed.
 - Optional Agent/group/seat identity augments existing usage records. Actual
-  foreground/background task-child tests and a real loopback HTTP review request
+  writable/read-only spawned-child tests and a real loopback HTTP review request
   verify ownership and one record per call. Review cleanup flushes usage. Team
   aggregates preserve currency buckets, unpriced calls and old unattributed rows.
 - macOS native shell save/command/delete/retirement/confirmed-forget regression
@@ -93,7 +94,7 @@ their historical pending notes do not replace this current delivery table.
 第七层已接入精确值、JSON 与跨块流遮罩、Provider/扩展/事件/工具/后台/持久化边界，
 以及成员、群组、席位和调用来源用量聚合。三平台已分别通过原生打包、真实 Shell、
 安装后团队流程及浏览器隔离检查；macOS 下载候选通过真实 DeepSeek Flash 验收。
-七层完整移植已完成，密钥仅在完整第七层开放。PR 仍未合并，也未正式发布。
+七层完整移植已实现，密钥仅在完整第七层开放。当前合并状态以 GitHub 为准；验收不代表正式发布。
 
 ## Memory and scheduler increment
 

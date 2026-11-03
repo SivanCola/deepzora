@@ -8,17 +8,11 @@ import (
 func (s *SecretSink) RuntimeStateChanged(snapshot RuntimeStateSnapshot) {
 	PublishRuntimeState(s.Inner, secrets.Project(snapshot))
 }
-func (s *SecretSink) RecordReadinessAudit(a evidence.ReadinessAudit) {
-	RecordReadinessAudit(s.Inner, secrets.Project(a))
-}
 func (s *SecretSink) RecordAnchorSafetyAudit(a AnchorSafetyAudit) {
 	RecordAnchorSafetyAudit(s.Inner, secrets.Project(a))
 }
 func (s *SecretSink) RecordContractShadow(a ContractShadowAudit) {
 	RecordContractShadow(s.Inner, secrets.Project(a))
-}
-func (s *SecretSink) RecordCompletionReport(a CompletionReportAudit) {
-	RecordCompletionReport(s.Inner, secrets.Project(a))
 }
 func (s *SecretSink) RecordMemoryRecall(a MemoryRecallAudit) {
 	RecordMemoryRecall(s.Inner, secrets.Project(a))
