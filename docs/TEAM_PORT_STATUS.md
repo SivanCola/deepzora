@@ -13,7 +13,7 @@ preset definitions instead of following later preset edits.
 | --- | --- | --- |
 | 1 | Versioned roster, exchanges, group orchestration | Implemented; focused/race/static checks and full root Go suite passed; PR #146 |
 | 2 | Controller seat, tools, approvals and delegation ceilings | Implemented; full root suite passed; PR #147; hosted Desktop/lint repairs under verification |
-| 3 | Desktop runtime, lease and browser isolation | Implemented locally; broad validation and delivery in progress |
+| 3 | Desktop runtime, lease and browser isolation | Implemented; full root/Desktop suites and macOS native browser fixture passed; PR #148 |
 | 4 | Desktop Team UI and generated contract | Pending |
 | 5 | Memory, opt-in review and schedules | Pending |
 | 6 | Private credential slots and shell injection | Pending |
@@ -111,10 +111,13 @@ Studio HTTP plumbing, terminal outbox, unrelated fixes or release infrastructure
 - Adapter/host race regressions, all 325 Electron tests, focused browser tests,
   Electron/frontend typechecks, Desktop lint and repolint
   passed. Broad root validation initially failed only the generated inventory;
-  regeneration and its owning test passed. Full Desktop validation is running.
+  regeneration and its owning test passed, followed by a successful complete
+  root rerun. The complete Desktop Go suite also passed (main package 730.880s).
+  Generated Team command bridge declarations and the frontend production build
+  passed after repairing an omitted declaration.
 - Linux/Windows native Team acceptance and packaged acceptance are still pending.
   No secret feature is exposed by this layer.
 
 第三层已接入规范会话、后台生命周期、类型化配置命令和成员浏览器分区，真实 Controller
-与 inbox 测试及 macOS 原生 Cookie/恢复/清理测试通过。完整 Desktop 验证仍在运行；
+与 inbox 测试及 macOS 原生 Cookie/恢复/清理测试通过。完整根模块与 Desktop 测试通过；
 Linux、Windows 原生功能验收尚未完成，团队界面及第五至七层尚待实施。

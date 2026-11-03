@@ -120,6 +120,9 @@ func (h *Host) recover(ctx context.Context, svc *team.Service) error {
 	h.mu.Lock()
 	h.ready = true
 	h.mu.Unlock()
+	if h.opts.Changed != nil {
+		h.opts.Changed()
+	}
 	return nil
 }
 

@@ -264,3 +264,24 @@ func TestLongRunningSeatGetsAFullIdleWindowAfterFinishing(t *testing.T) {
 		t.Fatal("finished seat was never reclaimed")
 	}
 }
+
+func TestRecoveryPublishesReadyAfterOpeningTheAdmissionFence(t *testing.T) {
+	var h *Host
+	observedReady := false
+	var err error
+	h, err = New(Options{Store: teamroster.Store{Dir: t.TempDir()}, Open: func(context.Context, team.SeatRef, *team.Service) (Runtime, error) { return &fakeRuntime{}, nil }, Changed: func() {
+		if h != nil && h.Ready() {
+			observedReady = true
+		}
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h.Shutdown(context.Background())
+	if err := h.Claim(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if !observedReady {
+		t.Fatal("UI was notified only while recovered host was still read-only")
+	}
+}
