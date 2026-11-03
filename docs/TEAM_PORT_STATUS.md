@@ -11,7 +11,7 @@ preset definitions instead of following later preset edits.
 
 | Layer | Owner | Status |
 | --- | --- | --- |
-| 1 | Versioned roster, exchanges, group orchestration | Implemented; focused/race/static checks passed; broad verification in progress |
+| 1 | Versioned roster, exchanges, group orchestration | Implemented; focused/race/static checks and full root Go suite passed; PR #146 |
 | 2 | Controller seat, tools, approvals and delegation ceilings | Pending |
 | 3 | Desktop runtime, lease and browser isolation | Pending |
 | 4 | Desktop Team UI and generated contract | Pending |
@@ -54,6 +54,8 @@ Studio HTTP plumbing, terminal outbox, unrelated fixes or release infrastructure
   the store now rejects those mismatches.
 - Focused package tests, race tests, vet and repolint passed. Windows amd64 test
   binaries compiled; Windows native execution has not been performed.
+- The full root `go test ./...` completed successfully. Linux amd64 roster and
+  service test binaries also compiled. Hosted CI remains separate evidence.
 - No Controller, Desktop, provider or UI entry point is enabled by this increment.
 
 本层已实现名册、交换账本、群轮次与宿主 framing，定向测试、race、vet、repolint
