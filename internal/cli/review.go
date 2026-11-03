@@ -11,7 +11,6 @@ import (
 	"deepzora/internal/agent"
 	"deepzora/internal/boot"
 	"deepzora/internal/config"
-	"deepzora/internal/event"
 	"deepzora/internal/gitcmd"
 	"deepzora/internal/hook"
 	"deepzora/internal/sandbox"
@@ -98,18 +97,17 @@ func reviewCommand(args []string) int {
 
 	// 7. Run the review subagent.
 	ctx := context.Background()
-	// Deliberately minimal Options: this one-shot CLI path has no gate, no
-	// compaction, and no session, unlike the in-session sub-agent paths built
-	// through TaskTool.subagentOptions / boot's subagentSkillOptions. If a new
-	// Options field becomes load-bearing for sub-agents, decide explicitly
-	// whether this path needs it too.
-	result, err := agent.RunReadOnlySubAgentWithSession(ctx, prov, reg, agent.NewSession(reviewSk.Body), task, agent.Options{
-		MaxSteps:      12,
-		Hooks:         reviewHookRunner(root),
-		Temperature:   cfg.Agent.Temperature,
-		Pricing:       entry.Price,
-		ContextWindow: entry.ContextWindow,
-	}, event.Discard)
+	// This one-shot entry retains its selected CLI model, user-only hooks and
+	// twelve-step budget, while sharing child execution and terminal handling.
+	hooks := reviewHookRunner(root)
+	runner := agent.NewSubagentRunner(agent.SubagentRunnerOptions{
+		Provider: prov, ParentRegistry: reg, MaxSteps: 24,
+		HooksForSession: func(string) agent.ToolHooks { return hooks },
+		Temperature:     cfg.Agent.Temperature, Pricing: entry.Price, ContextWindow: entry.ContextWindow,
+	}).WithTranscripts(nil, root, modelName, entry.Effort)
+	reviewSk.ReadOnly = true
+	reviewSk.Model, reviewSk.Effort = "", ""
+	result, err := runner.RunSkill(ctx, reviewSk, task, skill.SubagentRunOptions{})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error: review failed:", err)
 		return 1

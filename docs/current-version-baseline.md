@@ -1,5 +1,8 @@
 # Current baseline / 当前基线
 
+- Delegation uses `spawn_agents` and one shared Runner for ordinary and professional subagents. Read-only work runs concurrently; writable children run serially. Background delegation, continuation, dependency graphs, nested delegation and `complete_subtask` are retired. Historical results remain readable; see [Subagent execution](SUBAGENT_EXECUTION.md).
+- 普通委派与专业子代理统一使用 `spawn_agents` 和共享 Runner；只读并行、写任务串行。后台委派、续跑、依赖图、嵌套委派与 `complete_subtask` 已退役，历史结果继续可读，详见[子代理执行契约](SUBAGENT_EXECUTION.md)。
+
 Deepzora starts with the current implementation as its first supported version. It does not inherit upstream release numbering or historical migrations. LICENSE and NOTICE preserve attribution.
 
 Deepzora 将当前实现作为第一个受支持版本，不继承上游发布编号和历史迁移逻辑，LICENSE 与 NOTICE 保留署名。

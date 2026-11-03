@@ -23,6 +23,13 @@ type testSubagentTranscript struct {
 	full, model []provider.Message
 	active      bool
 	flushErr    error
+	cancel      context.CancelFunc
+}
+
+func (h *testSubagentTranscript) SetCancellation(cancel context.CancelFunc) {
+	h.parent.mu.Lock()
+	defer h.parent.mu.Unlock()
+	h.cancel = cancel
 }
 
 func (s *testSubagentPersistence) Root() string { return s.dir }
@@ -45,21 +52,6 @@ func (s *testSubagentPersistence) Open(_ context.Context, id string) (SubagentTr
 	}
 	h.active = true
 	return h, nil
-}
-func (s *testSubagentPersistence) Copy(ctx context.Context, source string, meta SubagentMeta) (SubagentTranscript, error) {
-	s.mu.Lock()
-	old := s.records[source]
-	if old == nil {
-		s.mu.Unlock()
-		return nil, os.ErrNotExist
-	}
-	full, model := append([]provider.Message(nil), old.full...), append([]provider.Message(nil), old.model...)
-	s.mu.Unlock()
-	h, err := s.Create(ctx, meta, full)
-	if err == nil {
-		h.(*testSubagentTranscript).model = model
-	}
-	return h, err
 }
 func (s *testSubagentPersistence) Read(_ context.Context, id string) ([]provider.Message, error) {
 	s.mu.Lock()

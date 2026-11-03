@@ -1886,8 +1886,8 @@ function makeMockApp(): MockAppBindings {
     }, 800);
   }
   const mockModelCatalog = [
-    { ref: "deepseek/deepseek-v4-flash", provider: "deepseek", model: "deepseek-v4-flash" },
-    { ref: "deepseek/deepseek-v4-pro", provider: "deepseek", model: "deepseek-v4-pro" },
+    { ref: "deepseek/deepseek-v4-flash", provider: "deepseek", model: "deepseek-v4-flash", modelDisplayName: "DeepSeek-V4.1-Flash" },
+    { ref: "deepseek/deepseek-v4-pro", provider: "deepseek", model: "deepseek-v4-pro", modelDisplayName: "DeepSeek-V4-Pro" },
   ];
   const defaultMockModelRef = mockModelCatalog[0].ref;
   const mockModelRef = (name: string): string => {
@@ -4169,14 +4169,16 @@ function makeMockApp(): MockAppBindings {
       if (!p.baseUrl.trim()) throw new Error(t("settings.fetchModelsMissingBaseUrl"));
       if (providerRequiresKey(p) && !p.apiKeyEnv.trim()) throw new Error(t("settings.fetchModelsMissingKeyEnv"));
       await delay(350);
-      const models = p.baseUrl.includes("deepseek") ? ["deepseek-v4-flash","deepseek-v4-pro"]
+      const deepSeek = p.baseUrl.includes("deepseek");
+      const models = deepSeek ? ["deepseek-flash","deepseek-v4-pro"]
         : p.baseUrl.includes("token-plan") ? ["mimo-v2.5","mimo-v2.5-pro"]
         : p.baseUrl.includes("xiaomimimo") ? ["mimo-v2.5-pro","mimo-v2.5"]
         : ["gpt-5","gpt-5-mini","qwen3-coder"];
       return models.map((model) => ({
         model,
-        inputModalities: p.modelCapabilities?.find((item) => item.model === model)?.inputModalities ?? [],
-        state: p.modelCapabilities?.find((item) => item.model === model)?.state ?? "unknown",
+        displayName: deepSeek ? model === "deepseek-flash" ? "DeepSeek-V4.1-Flash" : "DeepSeek-V4-Pro" : undefined,
+        inputModalities: deepSeek ? model === "deepseek-flash" ? ["text", "image"] : ["text"] : p.modelCapabilities?.find((item) => item.model === model)?.inputModalities ?? [],
+        state: deepSeek ? model === "deepseek-flash" ? "supported" : "unsupported" : p.modelCapabilities?.find((item) => item.model === model)?.state ?? "unknown",
         source: "adapter",
       }));
     },

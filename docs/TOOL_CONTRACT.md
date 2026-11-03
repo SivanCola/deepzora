@@ -84,7 +84,7 @@ mid-session. The model chooses verification, review, and completion from task co
 Every session uses the same provider-visible core tools and the same
 `use_capability` proxy.
 
-The two-model Planner and all task/fleet sub-agents also use `use_capability`
+The two-model Planner and all spawned sub-agents also use `use_capability`
 (and never direct `mcp__*` schemas). Planner and ordinary writer-capable
 sub-agents may call installed or project-configured MCP without
 `readOnlyHint`; Planner leaves `destructiveHint` tools for the Executor, while
@@ -140,28 +140,23 @@ frontend is cloned. A restricted child that already has `use_capability` may
 read only its own results; an allowed-tools profile without the proxy is not
 widened.
 
-`ask`, `docs`, `explore`, `fleet`, `forget`, `history`, `install_skill`, `install_source`,
+`ask`, `docs`, `explore`, `forget`, `history`, `install_skill`, `install_source`,
 `list_sessions`, `lsp_definition`, `lsp_diagnostics`, `lsp_hover`,
-`lsp_references`, `memory`, `parallel_tasks`, `read_only_skill`,
-`read_only_task`, `read_session`, `read_skill`, `read_subagent_result`, `remember`, `research`,
-`review`, `run_skill`, `security_review`, `slash_command`, `task`.
+`lsp_references`, `memory`, `read_only_skill`,
+`read_session`, `read_skill`, `read_subagent_result`, `remember`, `research`,
+`review`, `run_skill`, `security_review`, `slash_command`, `spawn_agents`.
 
-`parallel_tasks` and `fleet` keep their combined result below the single-tool
-output limit by returning a fair preview and a stable `Subagent reference` for
-every persisted child. `read_subagent_result` pages through one referenced
-final answer by UTF-8 byte offset, so long parallel research remains lossless
-without injecting every report into the parent context at once. References are
-restricted to the current conversation lineage and workspace.
-
-Persisted child results also carry an explicit `status` (`completed`, `partial`,
-`failed`, or `cancelled`) and `retryable` flag. A partial or failed child may
-include its last visible answer and reference; use `read_subagent_result` for
-inspection and the original `task`/`run_skill` `continue_from` parameter for a
-retryable continuation. `session:tool_result` is only for ordinary tool output.
+`spawn_agents` accepts 1–8 independent tasks with `title`, `task`, and optional
+`profile`, `read_only`, `tools`. Batch inputs are validated before execution.
+Read-only children run concurrently, writable children run serially, and each
+starts fresh without recursive delegation. Results contain execution status,
+bounded preview, retained reference and observed paths. `read_subagent_result`
+retains UTF-8 pagination and owner checks, including partial failures. Retired
+task/fleet calls remain historical data, never execution aliases. See
+[Subagent execution](SUBAGENT_EXECUTION.md).
 
 `use_capability` (`action` = `list` | `inspect` | `call` | `decline`) is on the
-provider-visible surface for every task. Host verification obligations come
-from real tool actions, not from preclassifying the prompt. Optional tools stay registered for host dispatch but are not
+provider-visible surface for every task. Host records describe actual execution; quality judgments do not gate completion. Optional tools stay registered for host dispatch but are not
 expanded into the top-level provider schema; the model reaches them through
 `use_capability` without cache-breaking schema churn.
 

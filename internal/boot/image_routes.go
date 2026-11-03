@@ -5,15 +5,9 @@ import (
 	"deepzora/internal/attachment"
 	"deepzora/internal/config"
 	"deepzora/internal/control"
-	"deepzora/internal/imageinput"
 	"deepzora/internal/provider"
 	"fmt"
 )
-
-type childImageRouting struct {
-	controller func() *control.Controller
-	config     *imageinput.Config
-}
 
 type controllerImageResolver struct{ controller func() *control.Controller }
 

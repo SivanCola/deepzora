@@ -147,7 +147,7 @@ function TeamAgentEditor({initial,memberID,revision,tabId,workspaceKey,onSaved,o
   const patch=(next:Partial<TeamAgentSettings>)=>setDraft(previous=>({...previous,...next}));
   const dirty=editingIcon||JSON.stringify(draft)!==JSON.stringify(initial)||presetID!==undefined;
   const invalid=!draft.name.trim()||draft.name.length>40||editingIcon;
-  const submit=()=>operation.save({draft,presetID},requestId=>app.SaveTeamAgent({id:memberID,expectedRevision:revision,requestId,settings:draft,presetId:presetID}));
+  const submit=()=>operation.save(draft,requestId=>app.SaveTeamAgent({id:memberID,expectedRevision:revision,requestId,settings:draft}));
   const guard=useSettingsDraft({label:t("team.members"),order:1,dirty,busy:operation.busy,canSave:!invalid,save:submit,discard:()=>{setDraft(initial);setPresetID(undefined);}});
   useEffect(()=>{let current=true;void app.Models().then(list=>{if(current)setModels(list);},cause=>{if(current)setModelError(String(cause));});return()=>{current=false;};},[]);
   if(editingPreset) {

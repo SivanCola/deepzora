@@ -3,7 +3,7 @@ package agent
 import "context"
 
 // childMaxSteps resolves a sub-agent budget; an explicit request always wins.
-func (t *TaskTool) childMaxSteps(requested int) int {
+func (t *SubagentRunner) childMaxSteps(requested int) int {
 	return childMaxStepsForParent(t.maxSteps, requested)
 }
 
@@ -17,13 +17,12 @@ func childMaxStepsForParent(parent, requested int) int {
 	return max(parent/2, 5)
 }
 
-func (t *TaskTool) childMaxStepsForContext(_ context.Context, requested int) int {
+func (t *SubagentRunner) childMaxStepsForContext(_ context.Context, requested int) int {
 	return t.childMaxSteps(requested)
 }
 
-func (t *TaskTool) childMaxStepsForSpec(ctx context.Context, spec *ProfileExecSpec) (context.Context, int) {
+func (t *SubagentRunner) childMaxStepsForSpec(ctx context.Context, spec *ProfileExecSpec) (context.Context, int) {
 	applyReviewBudget(spec)
-	fillChildFacts(ctx, spec)
 	if spec == nil {
 		return ctx, t.childMaxStepsForContext(ctx, 0)
 	}

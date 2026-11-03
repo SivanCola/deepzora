@@ -68,7 +68,7 @@
 .provider-model-draft--inline .provider-model-draft__option { flex-wrap: nowrap; min-height: 56px; box-sizing: border-box; padding: 8px 12px; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; font-family: var(--font-sans); font-size: var(--font-control); }
 .provider-model-draft--inline .provider-model-draft__option:last-child { border-bottom: 0; }
 .provider-model-draft--inline .provider-model-draft__model { display: flex; align-items: center; min-width: 0; gap: 12px; }
-.provider-model-draft--inline .provider-model-draft__model span { min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+.provider-model-draft--inline .provider-model-draft__name { min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
 .provider-model-draft--inline input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; }
 .provider-context-badge { flex-shrink: 0; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; color: var(--fg-faint); font-size: var(--font-control-small); }
 .provider-editor--compact .provider-capabilities { padding: 0; }
