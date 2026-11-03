@@ -48,7 +48,11 @@ func TestModelSettingsChildCreatedAfterSaveInheritsAcceptedRunSnapshot(t *testin
 		})
 		w.Header().Set("Content-Type", "text/event-stream")
 		if request.Model == "parent" && request.Messages[len(request.Messages)-1].Role != "tool" {
-			fmt.Fprint(w, "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"child-task\",\"type\":\"function\",\"function\":{\"name\":\"task\",\"arguments\":\"{\\\"prompt\\\":\\\"answer the delegated task\\\"}\"}}]},\"finish_reason\":\"tool_calls\"}]}\n\ndata: [DONE]\n\n")
+			fmt.Fprint(w, `data: {"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "child-task", "type": "function", "function": {"name": "spawn_agents", "arguments": "{\"tasks\": [{\"title\": \"delegate\", \"task\": \"answer the delegated task\"}]}"}}]}, "finish_reason": "tool_calls"}]}
+
+data: [DONE]
+
+`)
 			return
 		}
 		fmt.Fprint(w, "data: {\"choices\":[{\"delta\":{\"content\":\"snapshot child answer\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n")

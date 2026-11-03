@@ -19,7 +19,7 @@ type originProbe struct {
 
 func (p *originProbe) RecordDelegationAudit(a evidence.DelegationAudit) { p.got = append(p.got, a) }
 
-// runDelegationForOrigin spawns one real child through TaskTool that reads
+// runDelegationForOrigin spawns one real child through SubagentRunner that reads
 // src/parser.go and src/scanner.go, and returns the audit the sink received.
 func runDelegationForOrigin(t *testing.T, prompt string) evidence.DelegationAudit {
 	t.Helper()
@@ -31,7 +31,7 @@ func runDelegationForOrigin(t *testing.T, prompt string) evidence.DelegationAudi
 		{testutil.ToolCallChunk("2", "read_file", `{"path":"src/scanner.go"}`), {Type: provider.ChunkDone}},
 		{{Type: provider.ChunkText, Text: "done"}, {Type: provider.ChunkDone}},
 	}}
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: prov, Pricing: nil, ParentRegistry: reg, MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
+	task := NewSubagentRunner(SubagentRunnerOptions{Provider: prov, Pricing: nil, ParentRegistry: reg, MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
 		WithTranscripts(mustSubagentStore(t), t.TempDir(), "base", "high").
 		WithScheduler(NewSubagentScheduler(4, 4))
 	ctx := withCallContext(context.Background(), "call-1", probe, nil, false)
@@ -43,7 +43,7 @@ func runDelegationForOrigin(t *testing.T, prompt string) evidence.DelegationAudi
 		t.Fatalf("task: %v", err)
 	}
 	if len(probe.got) != 1 {
-		t.Fatalf("got %d audits through the TaskTool path, want 1", len(probe.got))
+		t.Fatalf("got %d audits through the SubagentRunner path, want 1", len(probe.got))
 	}
 	return probe.got[0]
 }

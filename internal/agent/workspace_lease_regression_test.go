@@ -211,7 +211,7 @@ func TestWritableHooksUseWorkspaceLease(t *testing.T) {
 func TestWritableHooksReserveWholeParentWorkspace(t *testing.T) {
 	root := t.TempDir()
 	scheduler := NewSubagentScheduler(4, 2)
-	hookClaim, err := NormalizeWritePaths(root, []string{"hook-side.go"})
+	hookClaim, err := testWriterReservation(root)
 	if err != nil {
 		t.Fatal(err)
 	}

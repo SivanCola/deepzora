@@ -400,7 +400,7 @@ func captureTokenProfileSurface(t *testing.T, tokenMode string) (provider.Reques
 	return reqs[0], ctrl.ToolContractEntries()
 }
 
-func TestBuildSubagentSkillFailedContinuationPersistsTranscript(t *testing.T) {
+func TestBuildRejectedContinuationPreservesOriginalTranscript(t *testing.T) {
 	isolateConfigHome(t)
 	dir := robustTempDir(t)
 	t.Chdir(dir)
@@ -440,16 +440,16 @@ models = ["x"]
 	ref := subagentRefFromHistory(t, ctrl.History())
 	prov.setContinueRef(ref)
 
-	if err := ctrl.Run(context.Background(), "continue review"); err != nil {
-		t.Fatalf("second Run: %v", err)
+	if err := ctrl.Run(context.Background(), "continue review"); err == nil {
+		t.Fatal("retired continuation must fail")
 	}
 	store := agent.NewSubagentStore(testSubagentPersistence(t, config.SessionDir()))
 	meta, err := store.LoadMeta(ref)
 	if err != nil {
 		t.Fatalf("LoadMeta: %v", err)
 	}
-	if meta.Status != agent.SubagentFailed {
-		t.Fatalf("status = %q, want failed", meta.Status)
+	if meta.Status != agent.SubagentCompleted {
+		t.Fatalf("original status = %q, want completed", meta.Status)
 	}
 	if meta.ParentSession != parentRef.SessionID {
 		t.Fatalf("parent session = %q, want v3 identity %q", meta.ParentSession, parentRef.SessionID)
@@ -663,7 +663,7 @@ models = ["x"]
 	for _, e := range ctrl.AllToolContractEntries() {
 		registered[e.Name] = true
 	}
-	if !registered["task"] && !registered["review"] {
+	if !registered["spawn_agents"] && !registered["review"] {
 		t.Fatalf("capability registry missing task/review for skill subagent dispatch")
 	}
 	if !requestToolSchemaContains(parentReq, shellName, "run_in_background") {
@@ -861,7 +861,7 @@ func (p *bootSubagentTestProvider) Stream(_ context.Context, req provider.Reques
 		case 1:
 			chunks = []provider.Chunk{{Type: provider.ChunkToolCall, ToolCall: &provider.ToolCall{ID: "child-read-first", Name: "read_file", Arguments: `{"path":"marker.txt"}`}}}
 		case 4:
-			args, _ := json.Marshal(map[string]string{"name": "hook-probe", "arguments": "read marker.txt again", "continue_from": ref})
+			args, _ := json.Marshal(map[string]string{"name": "hook-probe", "arguments": "read marker.txt again"})
 			chunks = []provider.Chunk{{Type: provider.ChunkToolCall, ToolCall: &provider.ToolCall{ID: "skill-resume", Name: "run_skill", Arguments: string(args)}}}
 		case 5:
 			chunks = []provider.Chunk{{Type: provider.ChunkToolCall, ToolCall: &provider.ToolCall{ID: "child-read-resume", Name: "read_file", Arguments: `{"path":"marker.txt"}`}}}
@@ -991,13 +991,13 @@ models = ["x"]
 	if !strings.Contains(toolContent.String(), "subagent answer") {
 		t.Fatalf("task tool result = %q, want sub-agent answer", toolContent.String())
 	}
-	if !strings.Contains(toolContent.String(), "Subagent reference") {
+	if !strings.Contains(toolContent.String(), `"ref":"sa_`) {
 		t.Fatalf("persistent v3 headless run should expose a transcript reference: %s", toolContent.String())
 	}
 }
 
 func TestBuildRunsPreToolUseInsideTaskSubagent(t *testing.T) {
-	for _, delegationTool := range []string{"task", "read_only_task", "run_skill", "read_only_skill"} {
+	for _, delegationTool := range []string{"spawn_agents", "run_skill", "read_only_skill"} {
 		t.Run(delegationTool, func(t *testing.T) {
 			isolateConfigHome(t)
 			dir := robustTempDir(t)
@@ -1127,7 +1127,7 @@ func (p *headlessTaskTestProvider) Stream(_ context.Context, req provider.Reques
 		case 0:
 			chunks = []provider.Chunk{{Type: provider.ChunkToolCall, ToolCall: &provider.ToolCall{ID: "parent-read", Name: "read_file", Arguments: `{"path":"marker.txt"}`}}}
 		case 1:
-			args := `{"prompt":"read marker.txt"}`
+			args := `{"tasks":[{"title":"read marker","task":"read marker.txt"}]}`
 			if p.delegationTool == "run_skill" || p.delegationTool == "read_only_skill" {
 				args = `{"name":"hook-probe","arguments":"read marker.txt"}`
 			}
@@ -1153,7 +1153,7 @@ func (p *headlessTaskTestProvider) Stream(_ context.Context, req provider.Reques
 	}
 	switch call {
 	case 0:
-		chunks = []provider.Chunk{{Type: provider.ChunkToolCall, ToolCall: &provider.ToolCall{ID: "task-1", Name: "task", Arguments: `{"prompt":"find callers"}`}}}
+		chunks = []provider.Chunk{{Type: provider.ChunkToolCall, ToolCall: &provider.ToolCall{ID: "task-1", Name: "spawn_agents", Arguments: `{"tasks":[{"title":"find callers","task":"find callers"}]}`}}}
 	case 1:
 		chunks = []provider.Chunk{{Type: provider.ChunkText, Text: "subagent answer"}, {Type: provider.ChunkDone}}
 	default:
@@ -1379,7 +1379,7 @@ func setHeadlessTaskWriteTestProvider(t *testing.T, p *headlessTaskWriteTestProv
 
 // headlessTaskWriteTestProvider scripts a parent turn that spawns a `task`
 // sub-agent, which itself calls write_file before answering — reproducing the
-// exact call shape TaskTool.runSubSession drives so the boot-level gate wiring
+// exact call shape SubagentRunner.runSubSession drives so the boot-level gate wiring
 // is exercised end to end, not just the gate object in isolation.
 type headlessTaskWriteTestProvider struct {
 	mu    sync.Mutex
@@ -1397,7 +1397,7 @@ func (p *headlessTaskWriteTestProvider) Stream(_ context.Context, req provider.R
 	var chunks []provider.Chunk
 	switch call {
 	case 0:
-		chunks = []provider.Chunk{{Type: provider.ChunkToolCall, ToolCall: &provider.ToolCall{ID: "task-1", Name: "task", Arguments: `{"prompt":"write a file"}`}}}
+		chunks = []provider.Chunk{{Type: provider.ChunkToolCall, ToolCall: &provider.ToolCall{ID: "task-1", Name: "spawn_agents", Arguments: `{"tasks":[{"title":"write","task":"write a file"}]}`}}}
 	case 1:
 		chunks = []provider.Chunk{{Type: provider.ChunkToolCall, ToolCall: &provider.ToolCall{ID: "write-1", Name: "write_file", Arguments: `{"path":"sub.txt","content":"hi"}`}}}
 	case 2:

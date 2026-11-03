@@ -54,7 +54,7 @@ func TestExplicitMaxStepsStillAppliesToGoal(t *testing.T) {
 }
 
 func TestUnboundedGoalParentLeavesChildUnbounded(t *testing.T) {
-	task := &TaskTool{}
+	task := &SubagentRunner{}
 	if got := task.childMaxStepsForContext(context.Background(), 0); got != 0 {
 		t.Fatalf("child steps = %d, want unlimited", got)
 	}

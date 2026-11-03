@@ -28,7 +28,7 @@ func (*wholeWorkspaceDelegate) Schema() json.RawMessage { return json.RawMessage
 func (*wholeWorkspaceDelegate) ReadOnly() bool          { return false }
 
 func (d *wholeWorkspaceDelegate) Execute(ctx context.Context, _ json.RawMessage) (string, error) {
-	whole, err := WholeWorkspaceWriteClaim(d.root)
+	whole, err := testWriterReservation(d.root)
 	if err != nil {
 		return "", err
 	}
@@ -94,7 +94,7 @@ func TestDepthZeroDelegationIsNotBlockedByItsOwnHookParentClaim(t *testing.T) {
 func TestDelegationInsideParentClaimIsNotQueuedBehindWritersThatClaimBlocks(t *testing.T) {
 	root := t.TempDir()
 	sched := NewSubagentScheduler(4, 2)
-	whole, err := WholeWorkspaceWriteClaim(root)
+	whole, err := testWriterReservation(root)
 	if err != nil {
 		t.Fatal(err)
 	}

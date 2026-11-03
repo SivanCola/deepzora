@@ -1004,7 +1004,7 @@ func TestDefaultPlannerPromptRequiresSubmittedPlan(t *testing.T) {
 func TestDefaultPlannerPromptDefinesLightAndFullEvidenceContracts(t *testing.T) {
 	for _, want := range []string{
 		"submit_plan",
-		"command-level verification",
+		"per-step risks",
 		"assumptions",
 	} {
 		// The verified/candidate split is asserted where it is enforced: the schema.

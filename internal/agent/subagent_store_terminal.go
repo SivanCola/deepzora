@@ -26,7 +26,7 @@ func (s *SubagentStore) SaveOutcome(run *SubagentRun, outcome SubagentOutcome) e
 		return fmt.Errorf("subagent %q already has a persisted terminal outcome", run.Ref)
 	}
 	var sessionErr error
-	if run.Persistence != nil {
+	if run.Persistence != nil && !run.persistenceClosed {
 		sessionErr = run.Persistence.Flush(context.Background())
 	}
 	meta := run.Meta

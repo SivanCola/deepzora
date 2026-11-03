@@ -61,7 +61,7 @@ func TestFillChildFactsFromParentTurnAndLedger(t *testing.T) {
 }
 
 func TestChildMaxStepsForSpecStampsReviewOutputBudget(t *testing.T) {
-	task := &TaskTool{}
+	task := &SubagentRunner{}
 	spec := ProfileExecSpec{Worker: WorkerSpec{Profile: "review"}}
 	ctx, steps := task.childMaxStepsForSpec(context.Background(), &spec)
 	if steps != 0 {
@@ -87,7 +87,7 @@ func TestPrepareReviewSubagentContextAddsBoundedVerifiedFacts(t *testing.T) {
 	if !ok || tokens != defaultReviewOutputTokens {
 		t.Fatalf("review budget = ok:%v tokens:%d", ok, tokens)
 	}
-	for _, want := range []string{"tool=go_test", "output_bytes=42", "output_digest=0123456789ab", "verification=passed", "a.go", "verdict"} {
+	for _, want := range []string{"tool=go_test", "output_bytes=42", "output_digest=0123456789ab", "verification=passed", "a.go", "findings"} {
 		if !strings.Contains(prompt, want) {
 			t.Fatalf("review prompt missing %q:\n%s", want, prompt)
 		}
