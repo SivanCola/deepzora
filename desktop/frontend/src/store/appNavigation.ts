@@ -4,9 +4,10 @@ import type { SettingsInitialFocus } from "../components/SettingsPanel";
 import type { SettingsTab } from "../lib/types";
 import { applySetState } from "./setState";
 
-export type AppPage = { kind: "workspace" } | { kind: "settings"; tab: SettingsTab } | { kind: "trash" } | { kind: "automation" };
+export type AppPage = { kind: "workspace"; teamGroupID?:string } | { kind: "settings"; tab: SettingsTab } | { kind: "trash" } | { kind: "automation" };
 type NavigationState = {
   page: AppPage;
+  workspaceTeamGroupID?:string;
   workspaceFocus: HTMLElement | null;
   generation: number;
   visitedTrash: boolean;
@@ -26,6 +27,7 @@ export const useAppNavigationStore = create<NavigationState>((set, get) => ({
   lastSettingsTarget: "general", settingsFocus: null, automationReturn: false,
   openPage: (page) => set((state) => ({
     page,
+    workspaceTeamGroupID:page.kind==="workspace"?page.teamGroupID:state.page.kind==="workspace"?state.page.teamGroupID:state.workspaceTeamGroupID,
     workspaceFocus: state.page.kind === "workspace" && page.kind !== "workspace" && typeof document !== "undefined" ? document.activeElement as HTMLElement | null : state.workspaceFocus,
     generation: state.generation + 1,
     visitedTrash: state.visitedTrash || page.kind === "trash",
@@ -33,7 +35,7 @@ export const useAppNavigationStore = create<NavigationState>((set, get) => ({
     lastSettingsTarget: page.kind === "settings" ? page.tab : state.lastSettingsTarget,
     automationReturn: false,
   })),
-  returnToWorkspace: () => get().openPage({ kind: "workspace" }),
+  returnToWorkspace: () => { const group=get().workspaceTeamGroupID;get().openPage(group?{kind:"workspace",teamGroupID:group}:{kind:"workspace"}); },
   enterConversation: () => get().openPage({ kind: "workspace" }),
   setSettingsTarget: (update) => {
     const state = get();

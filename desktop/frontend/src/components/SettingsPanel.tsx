@@ -110,6 +110,7 @@ const PluginsSettingsPage = lazy(() => import("./CapabilitiesPanel").then((modul
 const MemorySettingsPage = lazy(() => import("./MemoryPanel").then((module) => ({ default: module.MemorySettingsPage })));
 const SubagentsSettingsPage = lazy(() => import("./SubagentsPanel").then((module) => ({ default: module.SubagentsSettingsPage })));
 const AgentPresetsSettingsPage = lazy(() => import("./AgentPresetsSettingsPage").then((module) => ({ default: module.AgentPresetsSettingsPage })));
+const TeamSettingsPage = lazy(() => import("./TeamSettingsPage").then(module => ({ default: module.TeamSettingsPage })));
 const DiagnosticsSettingsPage = lazy(() => import("./DiagnosticsSettingsPage").then((module) => ({ default: module.DiagnosticsSettingsPage })));
 const StorageSettingsPage = lazy(() => import("./StorageSettingsPage").then((module) => ({ default: module.StorageSettingsPage })));
 const BrowserControlSettingsPage = lazy(() => import("./BrowserControlSettingsPage").then((module) => ({ default: module.BrowserControlSettingsPage })));
@@ -449,6 +450,7 @@ function SettingsPanelContent({
                 {tab === "mcp" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><MCPServersSettingsPage /></Suspense></SettingsPageShell>}
                 {tab === "skills" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><SkillsSettingsPage activeWorkspaceKey={activeWorkspaceKey} /></Suspense></SettingsPageShell>}
                 {tab === "agent-presets" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><AgentPresetsSettingsPage key={activeWorkspaceKey} tabId={activeTabId} workspaceKey={activeWorkspaceKey} createRequestId={acceptedFocus?.target === "agent-preset-create" ? acceptedFocus.requestId : null} /></Suspense></SettingsPageShell>}
+                {tab === "team" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><TeamSettingsPage tabId={activeTabId} workspaceKey={activeWorkspaceKey}/></Suspense></SettingsPageShell>}
                 {tab === "subagents" && s && <SettingsPageShell key={tab} s={s} tab={tab} busy={busy} apply={apply}><Suspense fallback={lazySettingsPageFallback}><SubagentsSettingsPage s={s} onUseInChat={(command) => {
                   pendingSubagentCommandRef.current = command;
                   requestClose();
@@ -560,7 +562,7 @@ function SettingsPageShell({ s: _s, tab, children }: { s: SettingsView | null; t
 export function settingsPageLayout(tab: SettingsTab): "form" | "list" | "detail" | "tool" {
   if (tab === "providers") return "detail";
   if (["model-stats", "diagnostics", "hooks", "updates"].includes(tab)) return "tool";
-  if (["mcp", "skills", "agent-presets", "subagents", "plugins", "memory", "shortcuts"].includes(tab)) return "list";
+  if (["mcp", "skills", "agent-presets", "team", "subagents", "plugins", "memory", "shortcuts"].includes(tab)) return "list";
   return "form";
 }
 
@@ -573,6 +575,7 @@ function settingsPageKind(tab: SettingsTab): "form" | "manager" {
     case "mcp":
     case "skills":
     case "agent-presets":
+    case "team":
     case "subagents":
     case "plugins":
     case "memory":
@@ -615,6 +618,7 @@ type ModelsSectionProps = SectionProps & {
 
 function settingsTabLabel(id: SettingsTab, t: ReturnType<typeof useT>): string {
   switch (id) {
+    case "team": return t("settings.tab.team");
     case "model-stats": return t("settings.modelTab.stats");
     case "general":
       return t("settings.tab.general");
@@ -656,6 +660,7 @@ function settingsTabLabel(id: SettingsTab, t: ReturnType<typeof useT>): string {
 
 function settingsTabMeta(id: SettingsTab, s: SettingsView, t: ReturnType<typeof useT>): string {
   switch (id) {
+    case "team": return t("team.navHint");
     case "model-stats": return "";
     case "models":
       return settingsModelMeta(s, t);

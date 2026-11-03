@@ -6,6 +6,7 @@ import type { useAppRuntimeAdapter } from "./useAppRuntimeAdapter";
 import type { SessionOperationAuthority } from "./useResourceOperations";
 
 export type DesktopNavigationIntent =
+  | { kind:"team-agent"; agentID:string }
   | { kind: "canonical-session"; ref: SessionRef }
   | { kind: "topic"; scope: string; workspaceRoot: string; topicId: string; sessionPath?: string }
   | { kind: "blank"; scope: string; workspaceRoot: string }
@@ -17,6 +18,7 @@ export type DesktopNavigationPorts = Pick<Runtime["navigation"],
   | "ensureBlankSurface" | "createIsolatedWorktree" | "registeredNavigationIntent"> &
   Pick<Runtime["sessionActions"], "openChannelSession" | "resumeSession"> & {
     listTabs(): Promise<TabMeta[]>;
+    prepareTeamAgent?(agentID:string):Promise<SessionRef>;
     applyTabs(tabs: TabMeta[]): void;
     seedTab(tab: TabMeta): void;
     topicAccepted?(intent: number): void;
@@ -62,6 +64,13 @@ export async function executeDesktopNavigation(input: DesktopNavigationCapture, 
     ports.ensureBlankSurface(scope, scope === "project" ? workspace : "", seq);
   checkpoint();
   try {
+    if(request.kind==="team-agent") {
+      if(!ports.prepareTeamAgent)throw new Error("Team execution requires the local Desktop host");
+      const ref=await ports.prepareTeamAgent(request.agentID);
+      checkpoint();
+      await ports.openCanonicalSession(ref,seq);
+      checkpoint();ports.closeHistory();await refresh();checkpoint();ports.reveal();return;
+    }
     if (request.kind === "canonical-session") {
       await ports.openCanonicalSession(request.ref, seq);
       checkpoint(); ports.closeHistory();
@@ -102,7 +111,7 @@ export async function executeDesktopNavigation(input: DesktopNavigationCapture, 
     ports.reveal(); await refresh();
   } catch (error) {
     checkpoint();
-    if (request.kind === "canonical-session") {
+    if (request.kind === "canonical-session" || request.kind === "team-agent") {
       ports.notice({ message: error instanceof Error ? error.message : String(error), tone: "error" });
       return;
     }

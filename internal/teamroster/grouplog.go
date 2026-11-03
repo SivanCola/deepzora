@@ -59,17 +59,19 @@ func (k EventKind) valid() bool {
 // round itself, and Code says why when the host knows. Length is the rune count
 // of a post's text before it was cut to MaxLineRunes, 0 when whole.
 type GroupLine struct {
-	Seq      int64     `json:"seq"`
-	At       time.Time `json:"at"`
-	From     string    `json:"from"`
-	Kind     LineKind  `json:"kind"`
-	Text     string    `json:"text,omitempty"`
-	Length   int       `json:"length,omitempty"`
-	Mentions []string  `json:"mentions,omitempty"`
-	Event    EventKind `json:"event,omitempty"`
-	Count    int       `json:"count,omitempty"`
-	Code     string    `json:"code,omitempty"`
-	Late     bool      `json:"late,omitempty"`
+	Seq           int64     `json:"seq"`
+	At            time.Time `json:"at"`
+	From          string    `json:"from"`
+	Kind          LineKind  `json:"kind"`
+	Text          string    `json:"text,omitempty"`
+	Length        int       `json:"length,omitempty"`
+	Mentions      []string  `json:"mentions,omitempty"`
+	Event         EventKind `json:"event,omitempty"`
+	Count         int       `json:"count,omitempty"`
+	Code          string    `json:"code,omitempty"`
+	Late          bool      `json:"late,omitempty"`
+	RequestID     string    `json:"requestId,omitempty"`
+	RequestDigest string    `json:"requestDigest,omitempty"`
 }
 
 func (l *GroupLine) check() error {
@@ -167,12 +169,33 @@ func (s Store) LinesBefore(group string, before int64, limit int) ([]GroupLine, 
 	err = readLines(filepath.Join(dir, GroupLogFile), func(l GroupLine) {
 		if before <= 0 || l.Seq < before {
 			out = append(out, l)
+			if limit > 0 && len(out) > limit {
+				copy(out, out[len(out)-limit:])
+				out = out[:limit]
+			}
 		}
 	})
 	if limit > 0 && len(out) > limit {
 		out = out[len(out)-limit:]
 	}
 	return out, err
+}
+
+// ScanLines streams persisted group events without retaining the transcript.
+func (s Store) ScanLines(group string, visit func(GroupLine)) error {
+	dir, err := s.groupDir(group)
+	if err != nil {
+		return err
+	}
+	return readLines(filepath.Join(dir, GroupLogFile), visit)
+}
+
+func (s Store) GroupLogPath(group string) (string, error) {
+	dir, err := s.groupDir(group)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, GroupLogFile), nil
 }
 
 func readLines(path string, fn func(GroupLine)) error {

@@ -483,6 +483,8 @@ export interface SessionRuntimeView {
 
 // Tab management types (desktop/tabs.go).
 export interface TabMeta {
+	teamAgentId?:string;
+	teamGroupId?:string;
   id: string;
   tabType?: "session" | "file";
   scope: string;
@@ -1410,7 +1412,7 @@ export interface MemoryView {
 }
 
 // SettingsTab is the top-level navigation item in the Settings Centre modal.
-export type SettingsTab = "general" | "models" | "model-stats" | "providers" | "mcp" | "skills" | "agent-presets" | "subagents" | "plugins" | "memory" | "hooks" | "diagnostics" | "shortcuts" | "permissions" | "sandbox" | "network" | "browser" | "appearance" | "storage" | "updates";
+export type SettingsTab = "general" | "models" | "model-stats" | "providers" | "mcp" | "skills" | "agent-presets" | "team" | "subagents" | "plugins" | "memory" | "hooks" | "diagnostics" | "shortcuts" | "permissions" | "sandbox" | "network" | "browser" | "appearance" | "storage" | "updates";
 
 export type { RuntimeDoctorReport } from "./runtimeDoctorTypes";
 

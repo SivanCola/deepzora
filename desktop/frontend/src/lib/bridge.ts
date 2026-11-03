@@ -3,7 +3,8 @@ import type { AttachmentBindings } from "./attachmentBindings";
 import { makeMockSessionLifecycleBindings, type SessionLifecycleBindings } from "./sessionLifecycleBindings";
 import { makeMockModelSettingsBindings, type ModelSettingsBindings } from "./modelSettingsBridge";
 import type { AgentPresetBindings } from "./agentPresets";
-import { makeUnavailableTeamHostMock, type TeamHostBindings } from "./teamBindings";
+import type { TeamHostBindings } from "./teamBindings";
+import { makeMockTeamBindings } from "./teamMock";
 import { makeMockAgentPresetBindings } from "./agentPresetMock";
 import { mockProviderTemplate, mockPreset, mockBundlePreset, mockKimiAPIModels, mockLongCatModels, mockTokenRhythmModels, mockTokenRhythmModelOverrides, mockMiMoDefaults, mockMiniMaxModels, mockGLMAPIModels, mockGLMCodingModels, mockGLMAnthropicModels, mockQwenAPIModels, mockQwenPlanModels, mockQwenPlanVisionModels, mockStepFunModels, mockOpenCodeGoModels, mockNovitaModels, mockGMIModels, mockVercelModels, mockOllamaCloudModels } from "./mockProviderTemplates";
 // The Electron host and the browser mock share this React-to-Go contract.
@@ -2405,6 +2406,7 @@ function makeMockApp(): MockAppBindings {
     if (!tabID?.trim()) throw new Error("tabId is required");
     if (!submissionID?.trim()) throw new Error("submissionId is required");
   };
+  const mockTeamSessionAgents=new Map<string,string>();
   const mockApi: MockAppBindings = { ...({} as AttachmentBindings),
     ...makeLazySessionUIMock(async (scope, root, id) => {
       const tab = { ...mockTabs[0], id: `tab-${id}`, topicId: id, scope, workspaceRoot: root,
@@ -2420,7 +2422,12 @@ function makeMockApp(): MockAppBindings {
 		...makeMockSessionExportBindings(),
     ...makeMockSessionCatalogBindings(cloneProjectTree),
     ...makeMockBlankProjectBindings(),
-    ...makeUnavailableTeamHostMock(),
+    ...makeMockTeamBindings({presets:()=>mockApi.ListAgentPresets(""),createSession:async agentID=>{
+      const created=await mockApi.BeginManualSessionCreation({operationId:`team-${agentID}`,workspaceId:"global",scope:"global",workspaceRoot:""});
+      mockTeamSessionAgents.set(created.ref.sessionId,agentID);
+      mockTabs=mockTabs.map(tab=>tab.sessionId===created.ref.sessionId?{...tab,teamAgentId:agentID}:tab);
+      return created.ref;
+    }}),
     ...makeMockAgentPresetBindings({
       tabs: () => mockTabs,
       update: tab => { mockTabs = mockTabs.map(item => item.id === tab.id ? tab : item); },
@@ -2485,6 +2492,8 @@ function makeMockApp(): MockAppBindings {
       const { rebindMockSessionTab } = await import("./bridgeMockSessionNavigation");
       const localTab = mockTabs.find((candidate) => candidate.active) ?? mockTabs[0];
       const rebound = rebindMockSessionTab(ref, localTab, mockProjectTreeForDisplay(), globalWorkspaceRoot, mockTopicRunsInScenario);
+      rebound.teamAgentId=mockTeamSessionAgents.get(ref.sessionId);
+      rebound.teamGroupId=undefined;
       mockTabs = mockTabs.map((tab) => tab.id === rebound.id ? rebound : { ...tab, active: false });
       emitMockReady(rebound.id);
       return mockHistoryPage(await readMockHistory(rebound.id), 0, 60);

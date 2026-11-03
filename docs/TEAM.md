@@ -5,8 +5,8 @@
 The Team port targets local macOS, Linux and Windows Desktop. Its implementation
 is tracked in [the delivery ledger](TEAM_PORT_STATUS.md). The current increment
 provides storage, orchestration, Controller seats and a local Desktop host with
-generated member/group configuration and private-session commands. The Team UI,
-memory, schedules, credentials and complete masking boundaries remain pending.
+generated member/group configuration, private conversations and group chat.
+Memory, schedules, credentials and complete masking boundaries remain pending.
 
 ## Ownership
 
@@ -87,3 +87,49 @@ derives persistent partitions from that identity; different seats of one member
 share login state and different members use different stores. Renderer page-open
 requests ask Go for their owner and cannot choose a partition. Restored pages
 retain the same partition and reject callbacks from the replaced page instance.
+
+## Desktop Team navigation
+
+Open **Team → Manage team** to create members and groups. Members copy the
+entire selected preset, including prompt mode, runtime context and tool limits.
+Edit that independent copy in the member editor. The initial model seeds new
+conversations; existing sessions retain their chosen model. Names and avatars
+update immediately. Static prompt/tool changes wait for an idle rebuild and
+show pending status until applied.
+
+Member permissions own every private and group seat. Restoration and chat
+controls cannot widen that persistent choice. Full access uses the standard
+Desktop acknowledgement, including the existing Windows Shell description.
+Directory changes require idle affected seats and fork at a verified completed
+turn into the new canonical workspace, preserving history. Reopen the member
+from Team after moving its directory; the old binding rejects new work. Normal
+workspace trust checks still apply.
+
+Members and groups support ordering, pinning and hiding. Hiding leaves work
+running. Confirmed deletion refuses active work, approvals, unconsumed exchanges
+and queued rounds, and offers a stop action for the affected target. Retired
+identities and logs remain readable. Retired groups appear under **Archived
+history** and cannot receive messages.
+
+**Archive member** removes execution access while retaining the stable identity,
+private session and copied preset. **Archived members → Restore member** restores
+that same member. Review and add group memberships again explicitly; restoration
+does not join groups automatically. Deleted members cannot use this restore path.
+
+Group chat uses the standard transcript, ChatSource and sole viewport writer.
+Mentions store IDs, including names with spaces, and explicitly flag departed
+members. History has immutable cursors in both directions and at most three
+resident 32-event pages. Appends preserve cursors; replacement returns
+`stale_cursor`, retaining the current reading window until explicit reload.
+Reader intent defers live replacement.
+
+Group drafts, mentions and submission identities persist in the Team namespace.
+Draft CAS conflicts preserve input and require an explicit reload before
+overwriting it. Quit joins admitted submissions and draft saves. A restart retry
+uses the same saved submission identity. Read watermarks bind to the presented
+snapshot; late acknowledgements cannot read a replacement log. Private unread
+indicators reuse the existing canonical-session result sequence metric.
+
+The browser gate uses the existing preview bridge and never fabricates member
+model replies. It verifies UI/navigation separately from native-host, real-model
+and installed-package acceptance.

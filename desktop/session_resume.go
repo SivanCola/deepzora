@@ -178,7 +178,11 @@ func (a *App) replaceControllerForSessionOpenLocked(ctx context.Context, tab *Wo
 	}
 
 	_, fallbackPreset := desktopNewSessionDefaults(snap.scope, root)
-	runtime := prepareCanonicalControllerRuntime(candidate, snap, a.sessionPresets.restore(ref.SessionID, fallbackPreset))
+	preset, err := teamPermissionForController(candidate, a.sessionPresets.restore(ref.SessionID, fallbackPreset))
+	if err != nil {
+		return nil, err
+	}
+	runtime := prepareCanonicalControllerRuntime(candidate, snap, preset)
 
 	confirmed, err := a.canonicalSessionWorkspace(ctx, ref)
 	if err != nil {

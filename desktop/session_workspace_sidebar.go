@@ -352,7 +352,7 @@ func (a *App) canonicalTopicNodes(req ProjectTopicPageRequest, state workspacest
 	query := strings.ToLower(strings.TrimSpace(req.Query))
 	cutoff := projectTopicTimeCutoff(req)
 	for index, id := range workspace.SessionIDs {
-		if state.SessionStates[id].Lifecycle != workspacestate.Active {
+		if strings.HasPrefix(id, "desktop-team-") || state.SessionStates[id].Lifecycle != workspacestate.Active {
 			continue
 		}
 		info, found := infos[id]

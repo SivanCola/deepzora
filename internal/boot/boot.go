@@ -1471,7 +1471,7 @@ func build(ctx context.Context, opts Options) (*BuildResult, error) {
 		Sink:                           sink,
 		Policy:                         policy,
 		SubagentGate:                   headlessGate,
-		Team:                           control.TeamOptions{Seat: opts.TeamSeat, Link: teamLink},
+		Team:                           control.TeamOptions{Seat: opts.TeamSeat, Link: teamLink, PresetFingerprint: agentPresetFingerprint(preset)},
 		Label:                          label,
 		ModelRef:                       modelRef,
 		ModelIdentity:                  cfg.ModelSelectionIdentity(modelRef),

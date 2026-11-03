@@ -39,6 +39,7 @@ import { submitBlockReason } from "../lib/sessionAvailability";
 
 const WindowsWindowControls = lazy(() => import("./WindowsWindowControls").then((module) => ({ default: module.WindowsWindowControls })));
 const ConversationStatusPanel = lazy(() => import("../components/ConversationStatusPanel").then(module => ({ default: module.ConversationStatusPanel })));
+const TeamGroupChat=lazy(()=>import("../components/TeamGroupChat").then(module=>({default:module.TeamGroupChat})));
 
 const WORKSPACE_RESIZER_WIDTH = 8;
 const SHOW_CONTEXT_DOCK = true;
@@ -111,6 +112,7 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
     shellGeometry, appRef, layoutRef, footerHeight, footerRef,
   } = session;
   const { chromeCommands, navigationCommands } = navigation;
+  const activeTeamGroup=shell.page.kind==="workspace"?shell.page.teamGroupID:undefined;
   const runtimeTransitioning = core.surface.transitioning;
   const showFirstLaunchWelcome = session.transcript.emptyHero && (shell.providerSetupNeeded || !activeTabId);
   const browserPreviewChrome = navigation.browserPreviewChrome;
@@ -145,8 +147,8 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
     browserPreview: browserPreviewChrome,
     sidebarCollapsed: shell.sidebarCollapsed,
     sidebarResizing: shell.sidebarResizing,
-    dockGridOpen: surfaceWorkspacePanelGridOpen,
-    dockOverlay: surfaceWorkspacePanelOverlay,
+    dockGridOpen: surfaceWorkspacePanelGridOpen&&!activeTeamGroup,
+    dockOverlay: surfaceWorkspacePanelOverlay&&!activeTeamGroup,
     terminalOpen: terminalSurfaceOpen,
     terminalResizing: shell.terminalResizing,
     dockOpen: shell.workspacePanelOpen,
@@ -193,9 +195,9 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
     <ShellExpandProvider>
     <UpdaterProvider>
     <WorkspaceChangesProvider tabId={activeTabId ?? ""} scopeKey={session.workspaceScopeKey}
-      enabled={Boolean(activeTabId && controllerReady && !runtimeTransitioning && state.meta?.cwd && !shell.managementActive && !session.transcript.emptyHero)}
+      enabled={Boolean(activeTabId && controllerReady && !runtimeTransitioning && state.meta?.cwd && !shell.managementActive && !session.transcript.emptyHero&&!activeTeamGroup)}
       running={state.running}>
-    <ShellHotkeys />
+    <ShellHotkeys enabled={!activeTeamGroup}/>
     <TextSizeHotkeys />
     <WindowChromeLifecycle />
     <StartupGateLifecycle />
@@ -241,10 +243,12 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
             onOpenAutomation: () => shell.openPage({ kind: "automation" }),
             onOpenSettings: chromeCommands.openSidebarSettings,
             onOpenTopic: navigationCommands.handleOpenTopic,
+            onOpenTeamAgent:id=>void navigationCommands.handleOpenTeamAgent(id),
+            onOpenTeamGroup:navigationCommands.handleOpenTeamGroup,
           },
         })} />
 
-        <TopicbarRegion view={buildTopicbarView({
+        {!activeTeamGroup&&<TopicbarRegion view={buildTopicbarView({
             t, locale, activeTab: activeTab, cwd: state.meta?.cwd,
             chromeHidden: workbenchChromeHidden, windowsBrand: windowsFramelessChrome,
             automationReturn: shell.automationReturn,
@@ -269,9 +273,10 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
               onOpenTaskSession={navigationCommands.openTaskMonitorSession}
               dockToggle={<DockToggleButton renderable={surfaceWorkspacePanelRenderable} t={t} onToggle={session.workspacePanelCommands.toggleWorkspacePanel} />}
             />
-          </TopicbarRegion>
+          </TopicbarRegion>}
 
-        <section className={`chat-pane${session.transcript.emptyHero ? " chat-pane--creation-empty" : ""}`}>
+        <section className={`chat-pane${session.transcript.emptyHero&&!activeTeamGroup ? " chat-pane--creation-empty" : ""}`}>
+          {activeTeamGroup?<Suspense fallback={<p role="status">{t("settings.loading")}</p>}><TeamGroupChat key={activeTeamGroup} groupID={activeTeamGroup} onManage={()=>chromeCommands.openSidebarSettings("team")} onRevealSeat={id=>void session.tabBarCommands.revealBackgroundRuntime(id)}/></Suspense>:<>
           <SessionStatusBanners {...buildSessionStatusBannerProps({
             t,
             activeTab,
@@ -314,6 +319,7 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
             transcript={{
               state,
               items: session.transcript.visibleTranscriptItems,
+              assistantSpeaker:session.transcript.assistantSpeaker,
               tabId: session.transcript.visibleTranscriptTabId,
               geometrySessionKey: session.transcript.visibleTranscriptGeometryKey,
               footerHeight,
@@ -415,10 +421,11 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
               guidance: session.transcript.latestGuidanceConsumed,
             })}
           />
+          </>}
         </section>
 
         <WorkspaceDockRegion navigation={dockNavigation} fileNavigation={fileNavigation} workspaceRoot={activeTab?.workspaceRoot ?? state.meta?.cwd ?? ""} {...buildWorkspaceDockProps({
-          surface: { renderable: surfaceWorkspacePanelRenderable, overlay: surfaceWorkspacePanelOverlay, gridOpen: surfaceWorkspacePanelGridOpen },
+          surface: { renderable: surfaceWorkspacePanelRenderable&&!activeTeamGroup, overlay: surfaceWorkspacePanelOverlay&&!activeTeamGroup, gridOpen: surfaceWorkspacePanelGridOpen&&!activeTeamGroup },
           showContext: SHOW_CONTEXT_DOCK,
           t,
           context: conversationView.context,
@@ -442,8 +449,8 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
         })} />
         <AppBottomRegions {...buildBottomRegionsProps({
           t,
-          chatSurfaceVisible: session.chatSurfaceVisible,
-          surfaceOpen: terminalSurfaceOpen,
+          chatSurfaceVisible: session.chatSurfaceVisible&&!activeTeamGroup,
+          surfaceOpen: terminalSurfaceOpen&&!activeTeamGroup,
           contentVisible: local.terminalContentVisible,
           readOnly: Boolean(activeTab?.readOnly),
           tabId: activeTabId,
@@ -456,7 +463,7 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
             onAddOutput: (sessionId) => void session.insertCommands.addTerminalOutputToComposer(sessionId),
             onAddToChat: session.insertCommands.addTerminalSelectionToComposer,
           },
-          status: !session.statusBarVisible ? undefined : {
+          status: !session.statusBarVisible||activeTeamGroup ? undefined : {
             base: conversationView.status,
             rewindCommitting: session.sessionUndo.rewindCommitting,
             sessionTurns: session.sessionTurns,

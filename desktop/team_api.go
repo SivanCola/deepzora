@@ -11,37 +11,48 @@ import (
 
 	"deepzora/internal/agentpreset"
 	"deepzora/internal/boot"
+	"deepzora/internal/session"
 	"deepzora/internal/team"
 	"deepzora/internal/teamroster"
 )
 
 type TeamView struct {
-	Roster   teamroster.Roster `json:"roster"`
-	Writable bool              `json:"writable"`
-	Seats    []TeamSeatView    `json:"seats"`
+	Roster        TeamRosterView      `json:"roster"`
+	Writable      bool                `json:"writable"`
+	Seats         []TeamSeatView      `json:"seats"`
+	GroupStatus   []TeamGroupStatus   `json:"groupStatus"`
+	AgentActivity []TeamAgentActivity `json:"agentActivity"`
+}
+
+type TeamAgentActivity struct {
+	AgentID        string `json:"agentId"`
+	SessionID      string `json:"sessionId"`
+	ResultSequence uint64 `json:"resultSequence"`
+	Ready          bool   `json:"ready"`
 }
 
 type TeamSeatView struct {
-	AgentID    string         `json:"agentId"`
-	GroupID    string         `json:"groupId,omitempty"`
-	TabID      string         `json:"tabId"`
-	SessionID  string         `json:"sessionId"`
-	Generation uint64         `json:"generation"`
-	Work       ActiveWorkView `json:"work"`
+	AgentID         string         `json:"agentId"`
+	GroupID         string         `json:"groupId,omitempty"`
+	TabID           string         `json:"tabId"`
+	SessionID       string         `json:"sessionId"`
+	Generation      uint64         `json:"generation"`
+	Work            ActiveWorkView `json:"work"`
+	SettingsPending bool           `json:"settingsPending"`
 }
 
 type TeamAgentSettings struct {
-	Name         string              `json:"name"`
-	Role         string              `json:"role"`
-	Instructions string              `json:"instructions"`
-	Avatar       teamroster.Avatar   `json:"avatar"`
-	InitialModel string              `json:"initialModel"`
-	Folder       string              `json:"folder"`
-	Permission   string              `json:"permission"`
-	Main         bool                `json:"main"`
-	Pinned       bool                `json:"pinned"`
-	Hidden       bool                `json:"hidden"`
-	Preset       *agentpreset.Preset `json:"preset,omitempty"`
+	Name         string                `json:"name"`
+	Role         string                `json:"role"`
+	Instructions string                `json:"instructions"`
+	Avatar       teamroster.Avatar     `json:"avatar"`
+	InitialModel string                `json:"initialModel"`
+	Folder       string                `json:"folder"`
+	Permission   string                `json:"permission"`
+	Main         bool                  `json:"main"`
+	Pinned       bool                  `json:"pinned"`
+	Hidden       bool                  `json:"hidden"`
+	Preset       *TeamPresetDefinition `json:"preset,omitempty"`
 }
 
 type SaveTeamAgentRequest struct {
@@ -89,7 +100,22 @@ func (a *App) GetTeam() (TeamView, error) {
 	if err != nil {
 		return TeamView{}, err
 	}
-	view := TeamView{Roster: r, Writable: h.Ready(), Seats: []TeamSeatView{}}
+	view := TeamView{Roster: teamRosterView(r), Writable: h.Ready(), Seats: []TeamSeatView{}, GroupStatus: []TeamGroupStatus{}, AgentActivity: []TeamAgentActivity{}}
+	for _, member := range r.Agents {
+		id, ok := parseSessionRoute(member.SessionPath)
+		if !ok {
+			continue
+		}
+		info, err := a.desktopSessionService("").Query().Stat(a.bootContext(), session.SessionRef{HostID: localDesktopHostID, SessionID: id})
+		view.AgentActivity = append(view.AgentActivity, TeamAgentActivity{AgentID: member.ID, SessionID: id, ResultSequence: info.ResultSequence, Ready: err == nil && info.MetadataStatus == session.MetadataReady && info.Error == ""})
+	}
+	for _, group := range r.Groups {
+		status, err := teamGroupStatus(desktopTeamStore(), group.ID)
+		if err != nil {
+			return TeamView{}, err
+		}
+		view.GroupStatus = append(view.GroupStatus, status)
+	}
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	for _, tab := range a.runtimeTabsLocked() {
@@ -97,7 +123,13 @@ func (a *App) GetTeam() (TeamView, error) {
 			continue
 		}
 		_, ref := tab.teamSeat.Team()
-		view.Seats = append(view.Seats, TeamSeatView{AgentID: ref.Agent, GroupID: ref.Group, TabID: tab.ID, SessionID: tab.SessionID, Generation: tab.SessionGeneration, Work: activeWorkForController(tab.Ctrl)})
+		pending := false
+		if member, ok := r.Agent(ref.Agent); ok {
+			if applied, ok := tab.Ctrl.(interface{ TeamPresetFingerprint() string }); ok {
+				pending = applied.TeamPresetFingerprint() != savedTeamPresetFingerprint(*member)
+			}
+		}
+		view.Seats = append(view.Seats, TeamSeatView{AgentID: ref.Agent, GroupID: ref.Group, TabID: tab.ID, SessionID: tab.SessionID, Generation: tab.SessionGeneration, Work: activeWorkForController(tab.Ctrl), SettingsPending: pending})
 	}
 	return view, nil
 }
@@ -118,7 +150,7 @@ func teamMutationReason(err error) string {
 		return "permission_denied"
 	case errors.Is(err, teamroster.ErrUnknownAgent), errors.Is(err, teamroster.ErrUnknownGroup), errors.Is(err, teamroster.ErrNotMember):
 		return "target_invalid"
-	case errors.Is(err, errTeamBusy):
+	case errors.Is(err, errTeamBusy), errors.Is(err, team.ErrBusy):
 		return "busy"
 	case errors.Is(err, teamroster.ErrRequestReused):
 		return "request_reused"
@@ -140,10 +172,13 @@ func (a *App) mutateTeam(revision uint64, key string, request any, mutate func(c
 		return TeamMutationResult{}, err
 	}
 	if err = h.Claim(a.bootContext()); err == nil {
-		err = h.WithWriter(a.bootContext(), func(ctx context.Context, _ *team.Service) error {
-			_, target, err := desktopTeamStore().Mutate(ctx, revision, key, teamMutationDigest(request), func(r *teamroster.Roster) (string, error) { return mutate(ctx, r) })
-			resultTarget = target
-			return err
+		err = h.WithWriter(a.bootContext(), func(ctx context.Context, service *team.Service) error {
+			return service.Configure(ctx, func() error {
+				defer a.lockRuntimeMutation("commit team configuration")()
+				_, target, err := desktopTeamStore().Mutate(ctx, revision, key, teamMutationDigest(request), func(r *teamroster.Roster) (string, error) { return mutate(ctx, r) })
+				resultTarget = target
+				return err
+			})
 		})
 	}
 	view, readErr := a.GetTeam()
@@ -157,6 +192,9 @@ func (a *App) mutateTeam(revision uint64, key string, request any, mutate func(c
 		result.Message = err.Error()
 	}
 	if err == nil {
+		if err := a.reconcileTeamPermissions(); err != nil {
+			return result, err
+		}
 		a.emitTeamChanged()
 	}
 	return result, nil
@@ -178,8 +216,15 @@ func (a *App) SaveTeamAgent(req SaveTeamAgentRequest) (TeamMutationResult, error
 			member, _ = r.Agent(created.ID)
 		}
 		settings := req.Settings
-		preset := settings.Preset
-		if req.PresetID != nil {
+		directoryChanged := member.Folder != settings.Folder
+		var preset *agentpreset.Preset
+		if settings.Preset != nil {
+			definition := settings.Preset.definition()
+			preset = &definition
+		}
+		// An explicit copy is the user's selected definition, including project
+		// scope. The member's execution directory is not its preset source.
+		if preset == nil && req.PresetID != nil {
 			resolved, err := agentpreset.Resolve(boot.AgentPresetDirs(settings.Folder), *req.PresetID)
 			if err != nil {
 				return "", err
@@ -205,6 +250,14 @@ func (a *App) SaveTeamAgent(req SaveTeamAgentRequest) (TeamMutationResult, error
 		if req.ID == "" && len(r.Agents) == 1 {
 			member.Main = true
 		}
+		if err := r.Validate(); err != nil {
+			return "", err
+		}
+		if directoryChanged {
+			if err := a.migrateTeamAgentDirectories(ctx, r, member.ID, req.RequestID); err != nil {
+				return "", err
+			}
+		}
 		return member.ID, nil
 	})
 }
@@ -218,17 +271,34 @@ func (a *App) SaveTeamGroup(req SaveTeamGroupRequest) (TeamMutationResult, error
 			if !ok {
 				return "", teamroster.ErrUnknownGroup
 			}
+			if group.Folder != req.Settings.Folder || group.Archived != req.Settings.Archived || !slices.Equal(group.Members, req.Settings.Members) {
+				if err := a.requireTeamTargetIdle("", group.ID); err != nil {
+					return "", err
+				}
+			}
 		} else {
 			created := r.AddGroup(teamroster.Group{CreatedBy: teamroster.ByUser, CreatedAt: time.Now().UTC()})
 			group, _ = r.Group(created.ID)
 		}
 		s := req.Settings
+		directoryChanged := group.Folder != s.Folder
+		unarchiving := group.Archived && !s.Archived
 		group.Name, group.Notice, group.Members = s.Name, s.Notice, slices.Clone(s.Members)
 		group.Admin, group.Mode, group.RelayLimit = s.Admin, s.Mode, s.RelayLimit
 		group.Folder, group.Pinned, group.Hidden, group.Archived = s.Folder, s.Pinned, s.Hidden, s.Archived
 		for id := range group.MemberSessions {
 			if !group.IsMember(id) {
 				delete(group.MemberSessions, id)
+			}
+		}
+		if err := r.Validate(); err != nil {
+			return "", err
+		}
+		if (directoryChanged || unarchiving) && !group.Archived {
+			for _, id := range group.Members {
+				if err := a.migrateTeamDirectory(ctx, r, team.SeatRef{Agent: id, Group: group.ID}, req.RequestID); err != nil {
+					return "", err
+				}
 			}
 		}
 		return group.ID, nil
@@ -260,4 +330,33 @@ func (a *App) OpenTeamAgent(agentID, groupID string) (TabMeta, error) {
 		h.SetVisible(ref, true)
 	}
 	return meta, err
+}
+
+// PrepareTeamAgentSession creates or recovers a background seat. The existing
+// Desktop navigation transaction decides whether its result may gain focus.
+func (a *App) PrepareTeamAgentSession(agentID string) (session.SessionRef, error) {
+	h, err := a.localTeamHost()
+	if err != nil {
+		return session.SessionRef{}, err
+	}
+	if err := h.Claim(a.bootContext()); err != nil {
+		return session.SessionRef{}, err
+	}
+	ref := team.SeatRef{Agent: agentID}
+	if _, err := h.Ensure(a.bootContext(), ref); err != nil {
+		return session.SessionRef{}, err
+	}
+	r, err := desktopTeamStore().Load()
+	if err != nil {
+		return session.SessionRef{}, err
+	}
+	path, err := teamSessionPath(&r, ref)
+	if err != nil {
+		return session.SessionRef{}, err
+	}
+	id, ok := parseSessionRoute(path)
+	if !ok {
+		return session.SessionRef{}, teamroster.ErrInvalid
+	}
+	return session.SessionRef{HostID: localDesktopHostID, SessionID: id}, nil
 }

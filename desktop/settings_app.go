@@ -1390,6 +1390,11 @@ func (a *App) buildSettingReplacementController(tab *WorkspaceTab, snap tabRunti
 		return nil, normalizedTabRuntime{}, "", err
 	}
 	ctrl.EnableInteractiveApproval()
+	runtime.toolApprovalMode, err = teamPermissionForController(ctrl, runtime.toolApprovalMode)
+	if err != nil {
+		discardReplacementController(ctrl, oldCtrl)
+		return nil, normalizedTabRuntime{}, "", err
+	}
 	applyTabModeToController(ctrl, runtime.tabMode())
 	restored, err := normalizeRestoredControllerRuntime(ctrl, runtime)
 	if err != nil {

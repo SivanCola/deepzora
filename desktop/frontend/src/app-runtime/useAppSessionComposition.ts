@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useCommittedCommand } from "../lib/useCommittedCommand";
+import { useTeamSpeaker } from "../lib/useTeamSpeaker";
 import { projectSessionAvailability } from "../lib/sessionAvailability";
 import { activeLeaseBlockedTab } from "../lib/tabMetaRefresh";
 import { topicTitle } from "../lib/sessionTitles";
@@ -225,7 +226,8 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
   const conversationView = projectConversation({ local: state,
     tab: activeTab, activeTabId, backgroundRuntimes, connectingLabel: t("status.connecting") });
   const visibleRuntimeState = conversationView.runtime;
-  const chatSurfaceVisible = true;
+  const teamGroupVisible=shell.page.kind==="workspace"&&!!shell.page.teamGroupID;
+  const chatSurfaceVisible = !teamGroupVisible;
   const { dockVisible: surfaceWorkspacePanelRenderable, dockGridOpen: surfaceWorkspacePanelGridOpen,
     dockOverlay: surfaceWorkspacePanelOverlay,
     terminalOpen: terminalSurfaceOpen } = projectConversationLayout({
@@ -581,7 +583,7 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
   });
 
   const terminalPanelCommands = useTerminalPanelCommands({
-    tabId: activeTabId, shortcutsEnabled: !managementActive,
+    tabId: activeTabId, shortcutsEnabled: !managementActive&&!teamGroupVisible,
   });
 
   const layoutStyle = useMemo(
@@ -639,12 +641,14 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
     ports: { isNavigationIntentCurrent, activateTopic,
       ensureBlankSurface, openCanonicalSession, createIsolatedWorktree, openChannelSession, resumeSession,
       registeredNavigationIntent,
+      prepareTeamAgent:desktopBridge.prepareTeamAgent,
       listTabs: desktopBridge.listTabs, applyTabs: setTabMetas, seedTab: seedActiveTabMeta, listSessions, topicAccepted,
     },
     setTabRevealSignal, setProjectRevision, setHistory: setHistView, t, showToast,
     noteIntent: noteNavigationIntent, beginSurface: beginNavigationSurface, settleSurface: settleNavigationSurface,
     showChat: enterConversation,
   });
+  const assistantSpeaker=useTeamSpeaker(tabMetas.find(tab=>tab.id===visibleTranscriptTabId)?.teamAgentId);
   return {
     tabMetas,
     insertCommands,
@@ -673,6 +677,7 @@ export function useAppSessionComposition(input: AppSessionCompositionInput) {
     },
     todoPanel: { showTodos, scopedTodoBatch, todos, dismissTodos, handleTodoContinue },
     transcript: {
+      assistantSpeaker,
       transcriptHydrating, emptyHero, availability,
       visibleTranscriptItems, visibleTranscriptTabId, visibleTranscriptGeometryKey,
       handleLoadOlderHistory, handleLoadNewerHistory, handleNavigateToTurn, handleSurfacePaintReady, latestGuidanceConsumed, handleTranscriptPrompt,

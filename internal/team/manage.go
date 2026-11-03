@@ -144,6 +144,8 @@ func applyAgent(a *teamroster.Agent, ch AgentChange) {
 // agent that has not started its conversation yet.
 func (s *Service) UpdateAgent(ctx context.Context, c Caller, target string, ch AgentChange) (teamroster.Agent, error) {
 	defer s.changed()
+	s.configuration.RLock()
+	defer s.configuration.RUnlock()
 	var out teamroster.Agent
 	mutate := func(r *teamroster.Roster) error {
 		a, err := authorizeUpdate(r, c, target)
@@ -153,7 +155,13 @@ func (s *Service) UpdateAgent(ctx context.Context, c Caller, target string, ch A
 		if ch.RequiresApproval(*a) && !c.ConfigurationApproved {
 			return ErrConfigurationApproval
 		}
+		before := *a
 		applyAgent(a, ch)
+		if s.agentConfigurationChanged != nil {
+			if err := s.agentConfigurationChanged(ctx, r, before, *a); err != nil {
+				return err
+			}
+		}
 		out = *a
 		return nil
 	}
@@ -233,6 +241,14 @@ func (s *Service) CreateGroup(ctx context.Context, c Caller, name, notice string
 // a main agent may leave a group without an admin. It returns what changed.
 func (s *Service) UpdateGroup(ctx context.Context, c Caller, group string, ch GroupChange) ([]string, error) {
 	defer s.changed()
+	s.configuration.RLock()
+	defer s.configuration.RUnlock()
+	defer s.rounds.lock(group)()
+	if len(ch.Remove) > 0 {
+		if err := s.requireGroupIdle(group); err != nil {
+			return nil, err
+		}
+	}
 	var changed []string
 	_, err := s.store.Update(ctx, func(r *teamroster.Roster) error {
 		self, err := s.caller(r, c)
@@ -308,6 +324,12 @@ func applyGroup(r *teamroster.Roster, g *teamroster.Group, ch GroupChange) ([]st
 // no new posts. Removing it for good is the user's call.
 func (s *Service) DeleteGroup(ctx context.Context, c Caller, group string) error {
 	defer s.changed()
+	s.configuration.RLock()
+	defer s.configuration.RUnlock()
+	defer s.rounds.lock(group)()
+	if err := s.requireGroupIdle(group); err != nil {
+		return err
+	}
 	_, err := s.store.Update(ctx, func(r *teamroster.Roster) error {
 		self, err := s.caller(r, c)
 		if err != nil {
@@ -324,6 +346,17 @@ func (s *Service) DeleteGroup(ctx context.Context, c Caller, group string) error
 		return nil
 	})
 	return err
+}
+
+func (s *Service) requireGroupIdle(group string) error {
+	round, err := s.store.Round(group)
+	if err != nil {
+		return err
+	}
+	if round.Speaking != nil || len(round.Working) > 0 || len(round.Queue) > 0 || len(round.Parked) > 0 {
+		return ErrBusy
+	}
+	return nil
 }
 
 // groupRef resolves a group by id or exact name.

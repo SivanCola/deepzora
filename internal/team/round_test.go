@@ -88,6 +88,28 @@ func (h *harness) post(group, text string, mentions ...string) {
 	}
 }
 
+func TestUserGroupPostRetryCannotCreateAnotherRoundOrChangeMentions(t *testing.T) {
+	h := newHarness(t, "Chief", "Ada")
+	g := h.group("Group", teamroster.ModeEveryone, "", "Chief", "Ada")
+	first, err := h.svc.UserPostWithID(t.Context(), g, "hello", []string{h.id("Ada")}, false, "post-retry-one")
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, _ := h.store.Round(g)
+	retry, err := h.svc.UserPostWithID(t.Context(), g, "hello", []string{h.id("Ada")}, false, "post-retry-one")
+	if err != nil || retry.Seq != first.Seq {
+		t.Fatalf("retry: %+v %v", retry, err)
+	}
+	after, _ := h.store.Round(g)
+	if before.Round != after.Round || before.Step != after.Step {
+		t.Fatal("retry advanced group execution")
+	}
+	_, err = h.svc.UserPostWithID(t.Context(), g, "hello", []string{h.id("Chief")}, false, "post-retry-one")
+	if !errors.Is(err, teamroster.ErrRequestReused) {
+		t.Fatalf("request changed mentions: %v", err)
+	}
+}
+
 func TestTheAdminAnswersAndMembersSpeakOneAtATime(t *testing.T) {
 	h := newHarness(t, "Chief", "Ada", "Ben")
 	g := h.group("Launch", teamroster.ModeEveryone, "Ada", "Chief", "Ada", "Ben")

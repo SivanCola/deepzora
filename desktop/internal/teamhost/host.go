@@ -32,16 +32,19 @@ type Options struct {
 	Store teamroster.Store
 	// Open's context bounds admission only. The existing Desktop owner supplies
 	// the returned runtime's lifetime, independently of this operation context.
-	Open     func(context.Context, team.SeatRef, *team.Service) (Runtime, error)
-	Changed  func()
-	Now      func() time.Time
-	Validate func(team.SeatRef) error
+	Open                      func(context.Context, team.SeatRef, *team.Service) (Runtime, error)
+	Changed                   func()
+	Now                       func() time.Time
+	Validate                  func(team.SeatRef) error
+	Binding                   func(team.SeatRef) (string, error)
+	AgentConfigurationChanged func(context.Context, *teamroster.Roster, teamroster.Agent, teamroster.Agent) error
 }
 
 type entry struct {
 	runtime Runtime
 	used    time.Time
 	visible bool
+	binding string
 }
 
 type Host struct {
@@ -102,7 +105,7 @@ func (h *Host) Claim(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	svc := team.New(team.Options{Store: h.opts.Store, Panes: h, Now: h.opts.Now, OnChange: h.opts.Changed})
+	svc := team.New(team.Options{Store: h.opts.Store, Panes: h, Now: h.opts.Now, OnChange: h.opts.Changed, AgentConfigurationChanged: h.opts.AgentConfigurationChanged})
 	h.mu.Lock()
 	h.service, h.release = svc, release
 	h.mu.Unlock()
@@ -168,12 +171,21 @@ func (h *Host) Ensure(ctx context.Context, ref team.SeatRef) (team.Pane, error) 
 			return nil, err
 		}
 	}
+	binding := ""
+	if h.opts.Binding != nil {
+		var err error
+		binding, err = h.opts.Binding(ref)
+		if err != nil {
+			return nil, err
+		}
+	}
 	h.mu.Lock()
 	if h.closing || h.service == nil || (!h.ready && ctx.Value(recoveryContextKey{}) != h) {
 		h.mu.Unlock()
 		return nil, teamroster.ErrReadOnly
 	}
-	if e := h.seats[ref]; e != nil {
+	previous := h.seats[ref]
+	if e := previous; e != nil && (h.opts.Binding == nil || e.binding == binding) {
 		e.used = h.opts.Now()
 		rt := e.runtime
 		h.mu.Unlock()
@@ -183,6 +195,24 @@ func (h *Host) Ensure(ctx context.Context, ref team.SeatRef) (team.Pane, error) 
 	h.ops.Add(1)
 	h.mu.Unlock()
 	defer h.ops.Done()
+	if previous != nil {
+		closer, ok := previous.runtime.(interface {
+			CloseRebound(context.Context) (bool, error)
+		})
+		if !ok {
+			return nil, errors.New("team runtime cannot replace a changed binding")
+		}
+		closed, err := closer.CloseRebound(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if !closed {
+			return nil, errors.New("team runtime is busy while its binding changed")
+		}
+		h.mu.Lock()
+		delete(h.seats, ref)
+		h.mu.Unlock()
+	}
 	rt, err := h.opts.Open(ctx, ref, svc)
 	if err != nil {
 		return nil, err
@@ -190,13 +220,16 @@ func (h *Host) Ensure(ctx context.Context, ref team.SeatRef) (team.Pane, error) 
 	if rt == nil {
 		return nil, errors.New("team runtime adapter returned no runtime")
 	}
+	if owner, ok := rt.(interface{ BindingKey() string }); ok {
+		binding = owner.BindingKey()
+	}
 	h.mu.Lock()
 	if h.closing {
 		h.seats[ref] = &entry{runtime: rt, used: h.opts.Now()}
 		h.mu.Unlock()
 		return nil, errors.New("team host closed during seat creation")
 	}
-	h.seats[ref] = &entry{runtime: rt, used: h.opts.Now(), visible: h.visible[ref]}
+	h.seats[ref] = &entry{runtime: rt, used: h.opts.Now(), visible: h.visible[ref], binding: binding}
 	h.mu.Unlock()
 	return rt, nil
 }

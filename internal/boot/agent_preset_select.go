@@ -79,6 +79,10 @@ func agentPresetFingerprint(p agentpreset.Preset) string {
 	return p.ID + "\x00" + agentpreset.Render(p)
 }
 
+// TeamPresetFingerprint lets the Desktop owner compare saved and applied
+// definitions without reading system prompt or tool bytes from the renderer.
+func TeamPresetFingerprint(p agentpreset.Preset) string { return agentPresetFingerprint(p) }
+
 // presetID is the form recorded on controllers and sessions: empty = default.
 func presetID(p agentpreset.Preset) string {
 	if p.IsDefault() {
