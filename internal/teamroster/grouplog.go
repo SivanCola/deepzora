@@ -2,6 +2,7 @@ package teamroster
 
 import (
 	"context"
+	"deepzora/internal/secrets"
 	"encoding/json"
 	"path/filepath"
 	"regexp"
@@ -119,6 +120,7 @@ func (s Store) groupDir(group string) (string, error) {
 // AppendLine adds l to the group's log under the next sequence number and
 // returns it as stored, stamped now when At is zero.
 func (s Store) AppendLine(ctx context.Context, group string, l GroupLine) (GroupLine, error) {
+	l.Text = secrets.Masker().String(l.Text)
 	if err := l.check(); err != nil {
 		return GroupLine{}, err
 	}

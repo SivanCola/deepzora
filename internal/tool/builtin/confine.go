@@ -148,6 +148,9 @@ func ConfineReaders(forbidRoots []string) []tool.Tool {
 // case-insensitive platforms (see withinFold): a case-variant of a forbidden
 // path reaches the same bytes there.
 func confineRead(forbidRoots []string, target string) bool {
+	if secrets.HostSecretPath(target) {
+		return true
+	}
 	protect := secrets.ProtectSensitiveFiles()
 	if len(forbidRoots) == 0 && !protect {
 		return false

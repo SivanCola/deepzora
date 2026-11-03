@@ -4,7 +4,7 @@ export type TeamHostBindings = Pick<GeneratedDesktopCommands,
   "BrowserTeamAgentForTab" | "GetTeam" | "OpenTeamAgent" | "SaveTeamAgent" | "SaveTeamGroup"
   | "ReadTeamGroupHistory" | "SendTeamGroupMessage" | "ContinueTeamGroup" | "StopTeamSeat" | "StopTeamGroup" | "PrepareTeamAgentSession" | "DeleteTeamTarget" | "ReorderTeam"
   | "ReadTeamGroupDraft" | "SaveTeamGroupDraft" | "MarkTeamGroupRead"
-  | "GetTeamMemory" | "SaveTeamMemory" | "GetTeamMemoryReviewStatus" | "SaveTeamMemoryPreferences" | "GetTeamSchedules" | "SaveTeamSchedule" | "RunTeamSchedule" | "ArchiveTeamAgent" | "RestoreTeamAgent" | "GetTeamSecrets" | "SaveTeamSecret" | "TeamSecretSeatForTab">;
+  | "GetTeamMemory" | "SaveTeamMemory" | "GetTeamMemoryReviewStatus" | "SaveTeamMemoryPreferences" | "GetTeamSchedules" | "SaveTeamSchedule" | "RunTeamSchedule" | "ArchiveTeamAgent" | "RestoreTeamAgent" | "GetTeamSecrets" | "SaveTeamSecret" | "TeamSecretSeatForTab" | "GetTeamUsage">;
 
 // This increment has no browser-only Team engine. The production proxy forwards
 // the generated contract to Go; the browser preview reports the absent host.
@@ -14,7 +14,8 @@ export function makeUnavailableTeamHostMock(): TeamHostBindings {
     BrowserTeamAgentForTab: async () => "",
     GetTeam: async () => ({ roster: { schemaVersion: 1, revision: 0, agents: [], groups: [], retiredAgents: [], retiredGroups: [],prefs:{memoryReview:false} }, writable: false, seats: [], groupStatus: [],agentActivity:[] }),
     GetTeamMemory: unavailable,
-    GetTeamSecrets:async()=>({available:false,revision:0,rosterRevision:0,secrets:[],requests:[],retiredCount:0}),
+    GetTeamSecrets:async()=>({available:false,revision:0,rosterRevision:0,secrets:[],requests:[],retiredCount:0,pendingCleanup:0}),
+    GetTeamUsage:async()=>[],
     SaveTeamSecret:unavailable,
     TeamSecretSeatForTab:async()=>({agentId:"",groupId:""}),
     SaveTeamMemory: unavailable,

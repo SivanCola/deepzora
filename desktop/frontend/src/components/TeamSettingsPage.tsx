@@ -18,6 +18,7 @@ import { PermissionPresetChoice } from "./PermissionPresetChoice";
 import { TeamMemorySettings } from "./TeamMemorySettings";
 import { TeamScheduleSettings } from "./TeamScheduleSettings";
 import { TeamSecretSettings } from "./TeamSecretSettings";
+import { TeamUsageSettings } from "./TeamUsageSettings";
 import { SettingsFeedback, SettingsSubpageHeader, useSettingsDraft, useSettingsExperience } from "./SettingsExperience";
 
 type Editor = { kind:"agent"; member?:Agent; revision:number } | { kind:"group"; group?:Group; revision:number };
@@ -103,6 +104,7 @@ export function TeamSettingsPage({tabId,workspaceKey}:{tabId:string;workspaceKey
       <TeamMemorySettings team={team.view} reload={team.reload}/>
       <TeamScheduleSettings team={team.view}/>
       <TeamSecretSettings team={team.view}/>
+      <TeamUsageSettings team={team.view}/>
     </>}
   </section>;
 }

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"deepzora/internal/agent"
+	"deepzora/internal/secrets"
 	"deepzora/internal/teamroster"
 )
 
@@ -29,6 +30,10 @@ func (s Seat) CommandSecretEnvironment(ctx context.Context, kind, executable, co
 	}
 	if !s.Service.SecretsAvailable() {
 		return nil, ErrSecretsUnavailable
+	}
+	_ = secrets.Masker()
+	if err := secrets.BoundaryError(); err != nil {
+		return nil, err
 	}
 	if agent.SubagentDepth(ctx) > 0 {
 		return nil, errors.New("task subagents cannot borrow a Team secret identity")

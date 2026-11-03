@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"maps"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"deepzora/desktop/internal/instanceidentity"
 	"deepzora/internal/extension/rpcwire"
 	"deepzora/internal/pathidentity"
+	"deepzora/internal/secrets"
 )
 
 // Hooks are the lifecycle owners behind the desktop/* requests. A nil hook
@@ -97,6 +99,7 @@ func (s *Server) Serve(ctx context.Context) error {
 // Emit writes one desktop/event notification. Sequence numbers are assigned
 // and written under one lock, so the wire order equals the call order.
 func (s *Server) Emit(name string, args ...any) {
+	args = secrets.Project(args)
 	if args == nil {
 		args = []any{}
 	}
@@ -280,7 +283,7 @@ func (s *Server) invoke(ctx context.Context, raw json.RawMessage) (any, error) {
 	}
 	result, err := s.cfg.Registry.Invoke(ctx, p.Method, p.Args)
 	if err == nil {
-		return result, nil
+		return secrets.Project(result), nil
 	}
 	data := map[string]any{"method": p.Method}
 	var detailed interface{ RPCErrorData() map[string]any }
@@ -292,14 +295,14 @@ func (s *Server) invoke(ctx context.Context, raw json.RawMessage) (any, error) {
 	var panicked *PanicError
 	switch {
 	case errors.As(err, &unknown):
-		return nil, &rpcwire.RPCError{Code: rpcwire.ErrMethodNotFound, Message: err.Error(), Data: data}
+		return nil, &rpcwire.RPCError{Code: rpcwire.ErrMethodNotFound, Message: secrets.RedactError(err), Data: secrets.Project(data)}
 	case errors.As(err, &invalid):
-		return nil, &rpcwire.RPCError{Code: rpcwire.ErrInvalidParams, Message: err.Error(), Data: data}
+		return nil, &rpcwire.RPCError{Code: rpcwire.ErrInvalidParams, Message: secrets.RedactError(err), Data: secrets.Project(data)}
 	case errors.As(err, &panicked):
-		slog.Error("desktop host: bound method panicked", "method", p.Method, "panic", panicked.Value, "stack", string(panicked.Stack))
-		return nil, &rpcwire.RPCError{Code: rpcwire.ErrInternal, Message: err.Error(), Data: data}
+		slog.Error("desktop host: bound method panicked", "method", p.Method, "panic", secrets.Masker().String(fmt.Sprint(panicked.Value)), "stack", secrets.Masker().String(string(panicked.Stack)))
+		return nil, &rpcwire.RPCError{Code: rpcwire.ErrInternal, Message: secrets.RedactError(err), Data: secrets.Project(data)}
 	}
-	return nil, &rpcwire.RPCError{Code: CodeBusiness, Message: err.Error(), Data: data}
+	return nil, &rpcwire.RPCError{Code: CodeBusiness, Message: secrets.RedactError(err), Data: secrets.Project(data)}
 }
 
 func decodeParams(raw json.RawMessage, into any) error {

@@ -167,7 +167,7 @@ func reviewPrompt(facts []memory.Memory, lines []ReviewLine) string {
 
 func validateReviewChanges(changes []reviewChange, facts []memory.Memory) error {
 	for _, ch := range changes {
-		if secrets.RedactCredentials(ch.Body) != ch.Body || secrets.RedactCredentials(ch.Description) != ch.Description {
+		if secrets.RedactCredentials(ch.Body) != ch.Body || secrets.RedactCredentials(ch.Description) != ch.Description || secrets.Masker().String(ch.Body) != ch.Body || secrets.Masker().String(ch.Description) != ch.Description {
 			return ErrReviewReply
 		}
 		switch ch.Op {

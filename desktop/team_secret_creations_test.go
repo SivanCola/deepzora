@@ -44,7 +44,7 @@ func TestRejectedTeamSecretNeverWritesPlaintext(t *testing.T) {
 }
 
 func TestTeamSecretCreationRecoveryUsesCommittedBook(t *testing.T) {
-	for _, outcome := range []string{"unpublished", "publish_failed", "committed", "retired", "unknown", "corrupt"} {
+	for _, outcome := range []string{"unpublished", "publish_failed", "committed", "retired", "pending_deletion", "unknown", "corrupt"} {
 		t.Run(outcome, func(t *testing.T) {
 			store := teamroster.Store{Dir: t.TempDir()}
 			slots := config.TeamSecretSlots{Dir: t.TempDir()}
@@ -67,6 +67,10 @@ func TestTeamSecretCreationRecoveryUsesCommittedBook(t *testing.T) {
 				book.Secrets = []teamroster.TeamSecret{{Name: "DEPLOY", Slot: slot, Agents: []string{}}}
 				if outcome == "retired" {
 					book.Retired = []teamroster.RetiredTeamSecret{{Name: "DEPLOY", Slot: slot}}
+					book.Secrets = nil
+				}
+				if outcome == "pending_deletion" {
+					book.PendingDeletion = []string{slot}
 					book.Secrets = nil
 				}
 				return nil

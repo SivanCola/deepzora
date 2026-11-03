@@ -56,6 +56,9 @@ func (q *Query) ReadContent(ctx context.Context, ref SessionRef, contentRef sess
 	if !q.contentAuthorized(ref.SessionID, contentRef.Digest, contentRef.Bytes, contentRef.IndexDigest) {
 		return nil, errors.New("session: content reference is not authorized for this session")
 	}
+	if err := q.checkSecretContentGrant(ctx, filesystem, ref, contentRef); err != nil {
+		return nil, err
+	}
 	return contentStoreForSessionDir(filepath.Join(filesystem.Root, ref.SessionID)).ReadRange(ctx, contentRef, offset, length)
 }
 

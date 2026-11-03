@@ -39,6 +39,28 @@ func TestTeamSecretSlotsNeverExportOrMutatePriorValues(t *testing.T) {
 	}
 }
 
+func TestTeamSecretSlotRemovalRejectsUnownedNamesAndIsRetryable(t *testing.T) {
+	s := TeamSecretSlots{Dir: t.TempDir()}
+	slot, err := s.Save(t.Context(), "removal-value")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"../config.toml", filepath.Join(s.Dir, slot), "ts-invalid"} {
+		if err := s.Remove(name); err == nil {
+			t.Fatalf("removed unowned name %q", name)
+		}
+	}
+	if err := s.Remove(slot); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Remove(slot); err != nil {
+		t.Fatal("interrupted removal cannot be retried")
+	}
+	if _, err := s.Read(slot); err == nil {
+		t.Fatal("removed slot remained readable")
+	}
+}
+
 func TestPendingTeamSecretRecoveryDoesNotSweepUntrackedSlots(t *testing.T) {
 	s := TeamSecretSlots{Dir: t.TempDir()}
 	intents := filepath.Join(t.TempDir(), "intents")

@@ -18,6 +18,7 @@ export function TeamSecretSettings({team}:{team:TeamView}){
   const done=async()=>{setEditing(null);await secrets.reload();notifyTeamChanged();};
   const remove=(secret:TeamSecretMetadata)=>operation.run({name:secret.name,revision:view.revision},requestId=>app.SaveTeamSecret({expectedRevision:view.revision,expectedRosterRevision:view.rosterRevision,requestId,operation:"delete",name:secret.name,purpose:"",value:"",agents:[],secretRequestId:"",confirmForget:false}),done);
   return <SettingsSection title={t("team.secrets")} description={t("team.secretStorageHint")}>
+    {view.pendingCleanup>0&&<SettingsFeedback kind="info">{t("team.secretCleanupPending")}</SettingsFeedback>}
     {(secrets.error||operation.error)&&<SettingsFeedback kind="error">{operation.error==="conflict"?t("team.conflict"):t("team.secretFailed")}</SettingsFeedback>}
     {editing?<TeamSecretEditor key={`${editing.secret.name}:${editing.revision}`} initial={editing.secret} request={editing.request} revision={editing.revision} rosterRevision={editing.rosterRevision} team={team} onSaved={done} onCancel={()=>setEditing(null)}/>:<>
       <button className="btn btn--small" type="button" disabled={!team.writable} onClick={()=>begin({name:"",purpose:"",agents:[],updatedAt:new Date().toISOString()})}>{t("team.secretAdd")}</button>

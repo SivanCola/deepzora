@@ -22,6 +22,9 @@ func recoverTeamSecretCreations(ctx context.Context, store teamroster.Store, slo
 		for _, sc := range book.Retired {
 			referenced[sc.Slot] = true
 		}
+		for _, slot := range book.PendingDeletion {
+			referenced[slot] = true
+		}
 		return slots.RecoverPending(ctx, teamSecretIntentDir(store), referenced)
 	})
 }

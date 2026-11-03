@@ -129,12 +129,13 @@ func (b *tailBuffer) String() string {
 // process is one spawned sidecar OS process with its pipes and tracked
 // process-tree handle.
 type process struct {
-	pluginID string
-	cmd      *exec.Cmd
-	job      uintptr
-	stdin    io.WriteCloser
-	stdout   io.ReadCloser
-	stderr   *tailBuffer
+	pluginID   string
+	cmd        *exec.Cmd
+	job        uintptr
+	stdin      io.WriteCloser
+	stdout     io.ReadCloser
+	stderr     *tailBuffer
+	stderrMask *secrets.Stream
 
 	waitOnce sync.Once
 	waitDone chan struct{}
@@ -207,20 +208,22 @@ func startProcess(pkg pluginpkg.Package, installed pluginpkg.InstalledPlugin) (*
 		return nil, newStartupFailure("pipes", started, "", err)
 	}
 	stderr := &tailBuffer{limit: stderrTailBytes}
-	cmd.Stderr = stderr
+	stderrMask := secrets.NewStream(stderr)
+	cmd.Stderr = stderrMask
 
 	job, err := proc.StartTracked(cmd)
 	if err != nil {
 		return nil, newStartupFailure("spawn", started, stderr.String(), err)
 	}
 	p := &process{
-		pluginID: installed.Name,
-		cmd:      cmd,
-		job:      job,
-		stdin:    stdin,
-		stdout:   stdout,
-		stderr:   stderr,
-		waitDone: make(chan struct{}),
+		pluginID:   installed.Name,
+		cmd:        cmd,
+		job:        job,
+		stdin:      stdin,
+		stdout:     stdout,
+		stderr:     stderr,
+		stderrMask: stderrMask,
+		waitDone:   make(chan struct{}),
 	}
 	return p, nil
 }
@@ -231,6 +234,9 @@ func (p *process) wait() {
 	p.waitOnce.Do(func() {
 		if p.cmd != nil && p.cmd.Process != nil {
 			_ = p.cmd.Wait()
+		}
+		if p.stderrMask != nil {
+			_ = p.stderrMask.Flush()
 		}
 		p.finishJob()
 		close(p.waitDone)

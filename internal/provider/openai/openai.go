@@ -475,6 +475,13 @@ var bufPool = sync.Pool{
 }
 
 func (c *client) Stream(ctx context.Context, req provider.Request) (<-chan provider.Chunk, error) {
+	if err := provider.CheckSecretSignedReplay(req); err != nil {
+		return nil, err
+	}
+	req = provider.MaskOutbound(req, provider.SignedProjection{ToolCalls: true})
+	if err := provider.CheckSecretSignedReplay(req); err != nil {
+		return nil, err
+	}
 	if err := c.reasoning.Validate(c.model, req.EffortOverride); err != nil {
 		return nil, err
 	}

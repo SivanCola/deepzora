@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 )
@@ -234,6 +235,10 @@ func (q *Query) StreamExportCommits(ctx context.Context, snapshot ExportSnapshot
 	err := q.StreamSession(ctx, snapshot.Ref, func(commit Commit) error {
 		if commit.LastSequence() > snapshot.SnapshotSequence {
 			return reached
+		}
+		commit.Events = slices.Clone(commit.Events)
+		for i := range commit.Events {
+			commit.Events[i].Payload = maskSessionEvent(commit.Events[i])
 		}
 		if err := visit(commit); err != nil {
 			return err

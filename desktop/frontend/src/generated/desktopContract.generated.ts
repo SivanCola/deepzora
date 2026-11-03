@@ -3,7 +3,7 @@
 
 export const DESKTOP_PROTOCOL_VERSION = 11;
 
-export const DESKTOP_CONTRACT_DIGEST = "sha256:4346aba655a13d56d83a60c29312234c85f7b315ad7fa402b52f118a3eb000d4";
+export const DESKTOP_CONTRACT_DIGEST = "sha256:c628fb3ac1375312437e5439129f9c2f484033b21eb6c869878141b4959f87e7";
 
 export const DESKTOP_COMMANDS = [
   "AIRenameSessionTarget",
@@ -156,6 +156,7 @@ export const DESKTOP_COMMANDS = [
   "GetTeamMemoryReviewStatus",
   "GetTeamSchedules",
   "GetTeamSecrets",
+  "GetTeamUsage",
   "GetThemeExperience",
   "GetToolRecoveryForTab",
   "GetWorkspaceSnapshot",
@@ -3902,6 +3903,7 @@ export interface TeamSecretsView {
   secrets: TeamSecretMetadata[];
   requests: TeamSecretRequest[];
   retiredCount: number;
+  pendingCleanup: number;
 }
 
 export interface TeamTargetMutationRequest {
@@ -3909,6 +3911,12 @@ export interface TeamTargetMutationRequest {
   groupId: string;
   expectedRevision: number;
   requestId: string;
+}
+
+export interface TeamUsageRequest {
+  from: string;
+  to: string;
+  agentId: string;
 }
 
 export interface TeamView {
@@ -4696,6 +4704,19 @@ export interface ProviderUsage {
   percent: number;
 }
 
+export interface TeamUsage {
+  agentId: string;
+  groupId?: string;
+  seatId?: string;
+  model: string;
+  usageSource?: string;
+  tokens: number;
+  requests: number;
+  cacheHit: number;
+  cacheMiss: number;
+  cost: CostQuote;
+}
+
 export interface EventPage {
   items: TaskEvent[];
   nextSequence: number;
@@ -5257,6 +5278,7 @@ export interface GeneratedDesktopCommands {
   GetTeamMemoryReviewStatus(): Promise<TeamMemoryReviewStatus[]>;
   GetTeamSchedules(): Promise<TeamScheduleView>;
   GetTeamSecrets(): Promise<TeamSecretsView>;
+  GetTeamUsage(arg0: TeamUsageRequest): Promise<TeamUsage[]>;
   GetThemeExperience(): Promise<ThemeExperienceView>;
   GetToolRecoveryForTab(arg0: string): Promise<ToolRecoverySnapshot>;
   GetWorkspaceSnapshot(): Promise<WorkspaceSnapshot>;

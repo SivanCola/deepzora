@@ -72,6 +72,9 @@ type Options struct {
 	// bound, preserving the historical block-forever behavior; stdio peers
 	// should always set it, since a wedged child otherwise hangs every caller.
 	MaxWriteStall time.Duration
+	// ProjectOutbound is supplied by extension hosts, never by the renderer
+	// credential input transport. It runs before byte limits and framing.
+	ProjectOutbound func(json.RawMessage) json.RawMessage
 }
 
 // Conn is one bidirectional JSON-RPC 2.0 connection framed as NDJSON.
@@ -648,22 +651,6 @@ func (c *Conn) enqueueWrite(job writeJob, blocking bool) error {
 	// gate is held. Keeping the normal send makes accounting bugs fail loudly.
 	c.writeQ <- job
 	return nil
-}
-
-func (c *Conn) prepareWrite(m outbound, ctx context.Context) (writeJob, error) {
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
-	enc.SetEscapeHTML(false)
-	if err := enc.Encode(m); err != nil {
-		return writeJob{}, err
-	}
-	if limit := c.opts.MaxOutboundBytes; limit > 0 && buf.Len() > limit {
-		return writeJob{}, &FrameTooLargeError{Direction: "outbound", Size: buf.Len(), Limit: limit}
-	}
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	return writeJob{frame: buf.Bytes(), ctx: ctx, res: make(chan error, 1)}, nil
 }
 
 // writeQueueLimit bounds queued outbound frames per connection. A wedged

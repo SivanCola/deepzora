@@ -20,7 +20,7 @@ const errors=[];
 const page=await browser.newPage({locale:"en-US",viewport:{width:1440,height:1000}});
 page.on("pageerror",error=>errors.push(error.message));
 try {
-  await page.goto(`${external??`http://127.0.0.1:${port}`}/?mock=deepseek_upgrade&bench=1&platform=windows`,{waitUntil:"domcontentloaded"});
+  await page.goto(`${external??`http://127.0.0.1:${port}`}/?mock=deepseek_upgrade&bench=1&benchTeamSecrets=1&platform=windows`,{waitUntil:"domcontentloaded"});
   await page.locator(".team-sidebar").waitFor();
   await page.locator(".team-sidebar").getByRole("button",{name:"Manage team",exact:true}).click();
   const settings=page.locator(".settings-page--team");await settings.waitFor();
@@ -57,6 +57,29 @@ try {
   await schedules.getByRole('heading',{name:'Release review',exact:true}).waitFor();
   await schedules.getByRole('button',{name:'Run now',exact:true}).click();
   await schedules.getByText('Scheduled input accepted. Check the target conversation for execution and approvals.',{exact:true}).waitFor();
+  const secrets=settings.locator('.settings-section').filter({has:page.getByRole('heading',{name:'Team secrets',exact:true})});
+  await secrets.getByRole('button',{name:'Add secret',exact:true}).click();
+  await secrets.getByRole('textbox',{name:'Variable name',exact:true}).fill('FIXTURE');
+  const password=secrets.locator('input[type=password]');
+  await password.fill('browser-only-disposable-value');
+  assert.equal(await secrets.getByRole('checkbox',{name:'Chief',exact:true}).isChecked(),false,'grants default to nobody');
+  await secrets.getByRole('checkbox',{name:'Chief',exact:true}).check();
+  await secrets.getByRole('button',{name:'Save',exact:true}).click();
+  await secrets.getByRole('heading',{name:'FIXTURE',exact:true}).waitFor();
+  assert.equal((await secrets.textContent()).includes('browser-only-disposable-value'),false,'saved metadata never displays the value');
+  await secrets.getByRole('button',{name:'Edit',exact:true}).click();
+  assert.equal(await password.inputValue(),'','authorization edit does not fetch a credential');
+  await secrets.getByRole('checkbox',{name:'Chief',exact:true}).uncheck();
+  await secrets.getByRole('button',{name:'Save',exact:true}).click();
+  await secrets.getByText('No members authorized',{exact:true}).waitFor();
+  await secrets.getByRole('button',{name:'Delete',exact:true}).click();
+  assert.equal(await secrets.getByRole('heading',{name:'FIXTURE',exact:true}).count(),1,'delete requires a second confirmation');
+  await secrets.getByRole('button',{name:'Delete',exact:true}).click();
+  await secrets.getByRole('heading',{name:'FIXTURE',exact:true}).waitFor({state:'detached'});
+  await secrets.getByRole('button',{name:'Forget retired masking values',exact:true}).click();
+  await secrets.getByRole('button',{name:'Remove masking of old values, including in history?',exact:true}).click();
+  await secrets.getByRole('button',{name:'Forget retired masking values',exact:true}).waitFor({state:'detached'});
+  await settings.getByRole('heading',{name:'Member usage',exact:true}).waitFor();
   await page.getByRole("button",{name:"Back to workspace",exact:true}).click();
   const sidebar=page.locator(".team-sidebar");
   await sidebar.getByRole("button",{name:/Project group/}).click();
@@ -81,7 +104,7 @@ try {
     await page.screenshot({path:path.join(output,`team-group-${width}.png`)});
   }
   assert.deepEqual(errors,[],"no browser runtime errors");
-  console.log("PASS Team creation, ordering, memory edits, review opt-in, schedule acceptance, structured mentions, canonical switching, retained drafts, at-most-once display and responsive group chat");
+  console.log("PASS Team creation, archive/restore, memory, review opt-in, schedules, secret password/explicit grants/revocation/confirmed retirement, usage, mentions, navigation, drafts and responsive group chat (preview fixture)");
 } finally {
   await page.close();await browser.close();if(preview)await preview.httpServer.close();
 }

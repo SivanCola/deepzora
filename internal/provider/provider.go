@@ -63,10 +63,11 @@ type Message struct {
 	// ReasoningSignature is an opaque, provider-issued proof that ReasoningContentis genuine model output.
 	// Anthropic requires the signed thinking block be replayed on the next turn when a toolcallfollowedthinking;
 	// providers without signed reasoning (e.g. the openai-compatible ones) leave it empty.
-	ReasoningSignature string          `json:"-"` // current extension/provider wire proof; stored in ThinkingBlocks
-	ReasoningState     ReasoningState  `json:"reasoning_state,omitempty"`
-	ThinkingBlocks     []ThinkingBlock `json:"thinking_blocks,omitempty"`
-	ToolCalls          []ToolCall      `json:"tool_calls,omitempty"` // set by assistant
+	ReasoningSignature      string          `json:"-"` // current extension/provider wire proof; stored in ThinkingBlocks
+	ReasoningState          ReasoningState  `json:"reasoning_state,omitempty"`
+	ThinkingBlocks          []ThinkingBlock `json:"thinking_blocks,omitempty"`
+	SecretReplayInvalidated bool            `json:"secret_replay_invalidated,omitempty"` // A local mask changed proof-bound bytes; original adapters must refuse replay.
+	ToolCalls               []ToolCall      `json:"tool_calls,omitempty"`                // set by assistant
 	// ResponsesItems preserves provider-issued Responses API output items for stateless replay.
 	ResponsesItems  []json.RawMessage  `json:"responses_items,omitempty"`
 	ServerSearch    []ServerSearchCall `json:"server_search,omitempty"`   // cards + Anthropic replay; omitempty

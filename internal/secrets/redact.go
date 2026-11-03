@@ -207,7 +207,7 @@ func RedactError(err error) string {
 	if err == nil {
 		return ""
 	}
-	return RedactCredentials(err.Error())
+	return Masker().String(RedactCredentials(err.Error()))
 }
 
 func redactKeyValues(s string) string {

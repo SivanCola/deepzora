@@ -63,6 +63,9 @@ func (d deleteSymbol) DeclareWriteAccess(args json.RawMessage) (tool.WriteAccess
 }
 
 func (d deleteSymbol) Execute(ctx context.Context, args json.RawMessage) (string, error) {
+	if err := rejectMaskedWrite(args); err != nil {
+		return "", err
+	}
 	var p struct {
 		Path   string `json:"path"`
 		Name   string `json:"name"`

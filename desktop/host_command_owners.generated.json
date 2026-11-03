@@ -2121,6 +2121,20 @@
       "inputs": []
     }
   },
+  "GetTeamUsage": {
+    "domain": "desktop/team_usage.go",
+    "owner": "App.GetTeamUsage",
+    "sources": [
+      "desktop/team_usage.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.GetTeamUsage",
+      "inputs": [
+        "req"
+      ]
+    }
+  },
   "GetThemeExperience": {
     "domain": "desktop/theme_app.go",
     "owner": "App.GetThemeExperience",

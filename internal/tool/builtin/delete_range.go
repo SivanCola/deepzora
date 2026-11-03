@@ -49,6 +49,9 @@ func (d deleteRange) DeclareWriteAccess(args json.RawMessage) (tool.WriteAccessD
 }
 
 func (d deleteRange) Execute(ctx context.Context, args json.RawMessage) (string, error) {
+	if err := rejectMaskedWrite(args); err != nil {
+		return "", err
+	}
 	var target struct {
 		Path string `json:"path"`
 	}

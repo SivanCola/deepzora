@@ -1,5 +1,5 @@
 package main
 
-// Layer 6 deliberately keeps credentials unavailable until layer 7 owns every
-// outbound, streaming, persistence and history masking boundary.
-func teamSecretMaskingReady() bool { return false }
+// Boundary regressions qualify the masking implementation. A candidate with
+// this gate enabled must pass native acceptance before entering the feature PR.
+var teamSecretMaskingReady = func() bool { return true }

@@ -145,7 +145,7 @@ func (g grepTool) Execute(ctx context.Context, args json.RawMessage) (string, er
 		return "", fmt.Errorf("grep %s: %w", rp.DisplayPath, err)
 	}
 
-	if g.rg != "" {
+	if g.rg != "" && !secrets.HostSecretTree(p.Path) {
 		out, wrapped, err := g.runRipgrep(ctx, p.Pattern, p.Path, to, rp)
 		if len(g.forbidRoots) == 0 || wrapped {
 			return out, err
@@ -278,7 +278,7 @@ func (g grepTool) runNative(ctx context.Context, pattern, path string, info os.F
 				return nil
 			}
 			if d.IsDir() {
-				if ig.skip(path, d.Name(), true) {
+				if secrets.HostSecretPath(path) || ig.skip(path, d.Name(), true) {
 					return filepath.SkipDir
 				}
 				ig.enter(path)

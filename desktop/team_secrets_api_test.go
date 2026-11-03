@@ -9,6 +9,9 @@ import (
 )
 
 func TestTeamSecretsRemainUnavailableUntilMaskingIsReady(t *testing.T) {
+	previousGate := teamSecretMaskingReady
+	teamSecretMaskingReady = func() bool { return false }
+	defer func() { teamSecretMaskingReady = previousGate }()
 	a, _ := newMemoryTeamApp(t)
 	view, err := a.GetTeamSecrets()
 	if err != nil || view.Available || len(view.Secrets) != 0 {

@@ -62,7 +62,7 @@ func validateSharedMemoryRequest(input tool.TeamSharedMemoryRequest) error {
 		return tool.Refusal{Code: "team.invalid", Message: "A memory description and body are required."}
 	}
 	for _, text := range []string{input.Name, input.Description, input.Body} {
-		if secrets.RedactCredentials(text) != text {
+		if secrets.RedactCredentials(text) != text || secrets.Masker().String(text) != text {
 			return tool.Refusal{Code: "team.credential", Message: "Credentials cannot be stored in shared memory."}
 		}
 	}

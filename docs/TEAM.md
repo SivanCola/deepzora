@@ -2,11 +2,16 @@
 
 [中文](TEAM.zh-CN.md)
 
-The Team port targets local macOS, Linux and Windows Desktop. Its implementation
-is tracked in [the delivery ledger](TEAM_PORT_STATUS.md). The current increment
+The Team port supports local macOS, Linux and Windows Desktop. Its implementation
+is tracked in [the delivery ledger](TEAM_PORT_STATUS.md), with platform and model
+evidence in [the qualification record](TEAM_ACCEPTANCE.md). It
 provides storage, orchestration, Controller seats and a local Desktop host with
-generated member/group configuration, private conversations and group chat.
-Memory, schedules, credentials and complete masking boundaries remain pending.
+generated member/group configuration, private conversations, group chat,
+shared memory, opt-in review, schedules, credential infrastructure and member
+usage. The seven-layer stack enables credentials after boundary/native acceptance;
+the standalone credential-infrastructure layer keeps them gated.
+Each data directory has one roster with up to 32 members and 16 groups. There
+are no CLI, Serve, ACP, bot or SSH Team entry points.
 
 ## Ownership
 
@@ -36,7 +41,13 @@ Interrupted trailing JSONL entries are ignored and cut before the next append.
 A request ID can retry only the same sender, recipient, parent, group, reply
 destination, execution ceiling and message. A mismatching retry is rejected.
 On restart, unfinished exchanges and rounds are interrupted before sessions resume;
-the eventual controller adapter must refuse queued work that has already settled.
+the Controller adapter refuses queued work that has already settled.
+
+Team state uses its own versioned namespace. Existing sessions and presets are
+not rewritten in bulk. Disable the Team schedules to stop new scheduled work
+while retaining its data. Before downgrading the app, exit every newer process;
+older applications must not write the new Team state. Usage indexes are rebuildable from original
+records. A shell/service/renderer contract mismatch still refuses startup.
 
 The writer lease coordinates cooperating processes on all three platforms. It
 does not isolate the store from programs running as the same operating-system
@@ -167,3 +178,59 @@ skipped, and a busy target waits only within that window. **Run now** submits
 scheduler input under existing approval rules; it does not approve sensitive
 tools, grant permissions, or resume a stopped Goal. After an interrupted
 dispatch, inspect the target conversation before creating another occurrence.
+
+## Secrets, masking and usage
+
+**Team secrets** accepts values only in its password input and
+returns metadata only. Grants name exact member IDs; an empty list authorizes
+nobody and a new member inherits nothing. Replacement/deletion immediately
+revokes new commands. Old values remain in the retired masking set across
+restart. **Forget retired masking values** requires its own confirmation and
+can make old history values visible again. This action is independent of delete.
+It also removes retired credential files using a persisted cleanup intent.
+Interrupted or blocked removals retry while Desktop is open; settings show the
+remaining cleanup count. Active credential files are never cleanup targets.
+
+Values never enter the global environment or the ordinary credentials `.env`
+backend. File tools refuse the dedicated host namespace even when the optional
+sensitive-file denylist is off. Recursive searches overlapping that namespace
+use the native confinement reader. POSIX/PowerShell AST parsing authorizes only
+direct references and never executes the source to discover variable names.
+
+The masking snapshot refreshes from current slot contents on every boundary,
+including same-length replacements with unchanged timestamps. Active and
+retired values cover provider messages, tool descriptions/schemas, extension
+frames, progress, errors, logs, background artifacts and new session output.
+Streams recognize cross-block values; JSON scalar projection preserves duplicate
+keys and unchanged bytes. Typed host counters remain numbers.
+
+Original protocol adapters may replay the opaque proofs required by their own
+protocol. Generic recipients always receive masked copies. When persistence
+masking changes proof-bound content, the message is marked invalid and replay
+is rejected before HTTP. Start a new conversation instead of reusing that proof.
+Tool, file-write and MCP entry points refuse literal `[secret:…]` placeholders.
+
+Old immutable history is projected when first read, without rewriting the source
+objects. A newly sensitive body receives a new content identity; old range grants
+return `stale_secret_projection`. Historical bodies larger than 64 MiB fail
+closed while masking is active. Stored originals and unencrypted credential
+slots remain accessible to same-account programs; exact masking cannot prevent
+encoded/transformed leakage or provide OS-level shell isolation.
+
+**Member usage** groups actual calls by member, group, canonical seat, model and
+call source. Main calls, task children and automatic review share one recording
+path; each billable event is counted once. Older records remain unattributed.
+Currency buckets, estimates and missing-price reasons survive aggregation, and
+the original global totals/index remain independent and rebuildable.
+
+Manual native qualification uses **CI → Run workflow → team_acceptance**. It
+builds installable artifacts, exercises the packaged shell/service and Team
+flows, then repeats them after DMG copying or native DEB/NSIS installation, and
+runs native browser Cookie isolation. It uploads artifacts without
+publishing a release. A loopback provider fixture is explicitly recorded as
+simulated; real-provider acceptance must be recorded separately.
+
+The exact-value, JSON and stream mechanisms derive from Reasonix layer 7
+`d5e43581e2ea6f4845e46fb29968cc1b2cb23b3a`; the retained upstream MIT license in
+`internal/team/UPSTREAM_LICENSE` also covers those extracted mechanisms. See the
+delivery ledger for all seven fixed sources and the current qualification state.

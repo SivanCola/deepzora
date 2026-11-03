@@ -264,7 +264,15 @@ func build(ctx context.Context, opts Options) (*BuildResult, error) {
 		quoted = stats.NewRecorder(quoted, config.StatsDir(), source)
 	}
 	quoted = event.NewCostQuoteSink(quoted, quoteCtx)
-	sink := event.Sync(quoted)
+	if opts.TeamSeat != nil {
+		_, ref := opts.TeamSeat.Team()
+		seatID := ""
+		if opts.SessionRuntime != nil {
+			seatID = opts.SessionRuntime.Ref().SessionID
+		}
+		quoted = event.NewTeamUsageSink(quoted, event.TeamUsageAttribution{AgentID: ref.Agent, GroupID: ref.Group, SeatID: seatID})
+	}
+	sink := event.Sync(event.NewSecretSink(quoted))
 
 	// Both sink wraps must complete BEFORE the extension UI hub closes over the
 	// sink variable: a sidecar publish during preflight lands on this closure
