@@ -2,12 +2,16 @@
 
 [中文](TEAM.zh-CN.md)
 
-The Team port targets local macOS, Linux and Windows Desktop. Its implementation
-is tracked in [the delivery ledger](TEAM_PORT_STATUS.md). The current increment
+The Team port supports local macOS, Linux and Windows Desktop. Its implementation
+is tracked in [the delivery ledger](TEAM_PORT_STATUS.md), with platform and model
+evidence in [the qualification record](TEAM_ACCEPTANCE.md). It
 provides storage, orchestration, Controller seats and a local Desktop host with
 generated member/group configuration, private conversations, group chat,
 shared memory, opt-in review, schedules, credential infrastructure and member
-usage. Credential availability remains gated until boundary/native acceptance.
+usage. The seven-layer stack enables credentials after boundary/native acceptance;
+the standalone credential-infrastructure layer keeps them gated.
+Each data directory has one roster with up to 32 members and 16 groups. There
+are no CLI, Serve, ACP, bot or SSH Team entry points.
 
 ## Ownership
 
@@ -37,7 +41,13 @@ Interrupted trailing JSONL entries are ignored and cut before the next append.
 A request ID can retry only the same sender, recipient, parent, group, reply
 destination, execution ceiling and message. A mismatching retry is rejected.
 On restart, unfinished exchanges and rounds are interrupted before sessions resume;
-the eventual controller adapter must refuse queued work that has already settled.
+the Controller adapter refuses queued work that has already settled.
+
+Team state uses its own versioned namespace. Existing sessions and presets are
+not rewritten in bulk. Disable the Team schedules to stop new scheduled work
+while retaining its data. Before downgrading the app, exit every newer process;
+older applications must not write the new Team state. Usage indexes are rebuildable from original
+records. A shell/service/renderer contract mismatch still refuses startup.
 
 The writer lease coordinates cooperating processes on all three platforms. It
 does not isolate the store from programs running as the same operating-system
@@ -171,7 +181,7 @@ dispatch, inspect the target conversation before creating another occurrence.
 
 ## Secrets, masking and usage
 
-When enabled, **Team secrets** accepts values only in its password input and
+**Team secrets** accepts values only in its password input and
 returns metadata only. Grants name exact member IDs; an empty list authorizes
 nobody and a new member inherits nothing. Replacement/deletion immediately
 revokes new commands. Old values remain in the retired masking set across
@@ -215,7 +225,8 @@ the original global totals/index remain independent and rebuildable.
 
 Manual native qualification uses **CI → Run workflow → team_acceptance**. It
 builds installable artifacts, exercises the packaged shell/service and Team
-flows, and runs native browser Cookie isolation. It uploads artifacts without
+flows, then repeats them after DMG copying or native DEB/NSIS installation, and
+runs native browser Cookie isolation. It uploads artifacts without
 publishing a release. A loopback provider fixture is explicitly recorded as
 simulated; real-provider acceptance must be recorded separately.
 

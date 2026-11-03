@@ -1,6 +1,8 @@
 # Team port implementation ledger
 
 Base: `c6591b22d714ff43f17750974cb1c8078eb4ff99` (Deepzora main).
+Refreshed main: `dfcd04d3a204f50904fdf416c6f95c150f847e5e`; the foundation
+and a virtual merge of the full stack remain conflict-free. No PR is merged.
 
 The accepted scope is the complete seven-layer Team feature for local macOS,
 Linux and Windows Desktop. CLI and remote Team entry points are excluded.
@@ -14,14 +16,20 @@ preset definitions instead of following later preset edits.
 | 1 | Versioned roster, exchanges, group orchestration | Implemented; focused/race/static checks and full root Go suite passed; PR #146 |
 | 2 | Controller seat, tools, approvals and delegation ceilings | Implemented; full root suite and hosted CI/CodeQL passed; PR #147 |
 | 3 | Desktop runtime, lease and browser isolation | Implemented; full root/Desktop suites and macOS native browser fixture passed; PR #148 |
-| 4 | Desktop Team UI and generated contract | Implemented; full root/Desktop suites, focused/race, production build, 246 settings viewport cases, Team browser flow and all 34 transcript commands passed; draft PR #149 |
-| 5 | Memory, opt-in review and schedules | Implemented; complete root/Desktop suites, focused/race, typechecks, build and Chromium flow passed; draft PR #151; hosted checks pending |
-| 6 | Private credential slots and shell injection | Implemented behind a closed masking gate; complete root suite, owning/race/static checks passed; draft PR #152; native PowerShell/packaged acceptance pending |
-| 7 | Outbound/stream masking, usage and native acceptance | Implemented locally; owning/race checks, frontend build, Team browser flow, transcript/settings and Electron checks passed; complete Go sweeps and native/package qualification in progress |
+| 4 | Desktop Team UI and generated contract | Implemented; full root/Desktop suites, focused/race, production build, 246 settings viewport cases, Team browser flow and all 34 transcript commands passed; PR #149, ready for review |
+| 5 | Memory, opt-in review and schedules | Implemented; complete root/Desktop suites, focused/race, typechecks, build, Chromium flow and hosted checks passed; PR #151, ready for review |
+| 6 | Private credential slots and shell injection | Implemented with its standalone gate closed; root/owning/race/static and full-stack native POSIX/PowerShell checks passed; PR #152, ready for review |
+| 7 | Outbound/stream masking, usage and native acceptance | Implemented; complete-stack source, native packaged and installed-artifact checks passed on macOS/Linux/Windows; real DeepSeek private/group/usage acceptance passed on macOS; PR #153 |
 
 No layer status implies completion of a later layer. Secret delivery must remain
 unavailable until its complete masking boundaries pass. Hosted checks, local
 checks, native platform acceptance and publication are separate evidence.
+The seven-layer implementation is complete. The final stack enables secrets;
+the standalone layer-6 branch deliberately does not. Exact tested commits,
+artifacts, platform/model coverage and limitations are recorded in
+[Team qualification](TEAM_ACCEPTANCE.md). The increment sections below preserve
+the evidence available when their individual owner layers were implemented;
+their historical pending notes do not replace this current delivery table.
 
 ## Masking and usage increment
 
@@ -49,7 +57,8 @@ checks, native platform acceptance and publication are separate evidence.
   verify ownership and one record per call. Review cleanup flushes usage. Team
   aggregates preserve currency buckets, unpriced calls and old unattributed rows.
 - macOS native shell save/command/delete/retirement/confirmed-forget regression
-  passed with an isolated test-process gate. The production gate remains closed.
+  passed with an isolated test-process gate. The final layer-7 gate is enabled
+  after native acceptance; layer 6 alone remains gated.
   Browser preview verifies password input, explicit grants, empty grants,
   two-step delete/forget and no value in returned metadata. These checks do not
   claim a real model, Windows PowerShell or installed package acceptance.
@@ -57,34 +66,34 @@ checks, native platform acceptance and publication are separate evidence.
   exercises packaged member/private/group/background/approval/scheduler flows,
   persisted history and native browser Cookie isolation on three runners. It
   never publishes. The fixture provider and optional closed secret gate are
-  recorded explicitly; successful native dispatch evidence is still required.
+  recorded explicitly. All three native and installed-artifact checks passed
+  for candidate `58aa56f3f7c76322635fc6bae4b801f94f89e618` in run `41604291425`.
 - The complete root Go suite passed. The independent Desktop Go suite passed
-  (main package 938.525s, 1,807 top-level passes and 8 platform-specific skips).
+  (latest main-package sweep 1,377.872s, 1,907 top-level passes and 8 platform-specific skips).
   Cleanup/kernel/race regressions and updated frontend/static gates passed for
   the subsequent durable retirement fix.
   The assembled macOS production app passed startup/quit and real Team private,
   group, background, approval, schedule and restart flows against the loopback
   fixture. The real native browser fixture passed member Cookie isolation,
   recovery and complete WebContents cleanup. These are local candidate results,
-  separate from the final exact-head installer matrix.
-- First manual installer dispatch built native payloads but correctly failed
-  final naming because qualification used a prerelease version. Qualification
-  now uses unpublished numeric `v0.0.0` plus the source SHA in build metadata;
-  release naming rules are unchanged. The replacement dispatch is running.
-- A user-supplied isolated test credential qualified actual DeepSeek Flash over
-  the OpenAI protocol on macOS: one private call plus two sequential group calls
-  passed, with three owned usage records (22,572 total tokens). Existing user
+  separate from the final exact-head installer matrix, which also passed.
+- Qualification uses unpublished numeric `v0.0.0` plus the source SHA and artifact
+  hashes. It tests the distributed DMG copy, actual DEB install/remove and NSIS
+  install/uninstall with retained user data; release naming rules are unchanged.
+- An isolated test credential qualified actual DeepSeek Flash over
+  the OpenAI protocol on the downloaded macOS candidate: one private call plus two
+  sequential group calls passed, with three owned usage records (22,615 total tokens). Existing user
   conversations/configuration were not copied or modified. Test credential
   files and temporary app homes are private, outside the repository.
-- The numeric-version native dispatch passed packaged Team flows and browser
-  isolation on Linux and macOS. Windows passed startup/private/group/background/
-  approval, then exposed missing packaged IANA data at schedule creation.
-  The owning layer-5 fix embeds Go's timezone database and passed DST/calendar
-  regressions; it has been propagated through layers 6 and 7.
+- Windows packaged and installed Team flows passed, including PowerShell secret
+  injection and fixed-zone schedules. The owning layer-5 fix embeds Go's timezone
+  database; its DST/calendar regressions passed and it was propagated through
+  layers 6 and 7. The fixture supplies PowerShell's required description field.
 
 第七层已接入精确值、JSON 与跨块流遮罩、Provider/扩展/事件/工具/后台/持久化边界，
-以及成员、群组、席位和调用来源用量聚合。已通过的模拟与本机原生 Shell 测试不等于
-三平台可安装包或真实模型验收。密钥生产开关仍关闭，完整移植交付门槛尚未全部满足。
+以及成员、群组、席位和调用来源用量聚合。三平台已分别通过原生打包、真实 Shell、
+安装后团队流程及浏览器隔离检查；macOS 下载候选通过真实 DeepSeek Flash 验收。
+七层完整移植已完成，密钥仅在完整第七层开放。PR 仍未合并，也未正式发布。
 
 ## Memory and scheduler increment
 
