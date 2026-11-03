@@ -35,6 +35,7 @@ else executable=join(root,"desktop/build/bin/app/Deepzora");
 if(!existsSync(executable))throw new Error(`packaged executable missing: ${executable}`);
 run(process.execPath,["desktop/packaging/smoke.mjs",executable]);
 run(process.execPath,["desktop/packaging/team-native-smoke.mjs",executable,evidence]);
+run(process.execPath,["scripts/team-installed-acceptance.mjs",join(evidence,"installed")]);
 run(process.execPath,["desktop/electron/scripts/browser-runtime-smoke.mjs"],{env:{...process.env,DEEPZORA_BROWSER_EVIDENCE_PATH:join(evidence,"browser")}});
 const body=readFileSync(executable);
 writeFileSync(join(evidence,"identity.json"),JSON.stringify({sha,target,version,executableSHA256:createHash("sha256").update(body).digest("hex"),provider:"controlled loopback fixture",complete:true,secretRequired:process.env.TEAM_REQUIRE_SECRETS==="1"},null,2));
