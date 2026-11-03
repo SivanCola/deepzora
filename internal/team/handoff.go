@@ -136,6 +136,11 @@ func (s *Service) admit(book []teamroster.Exchange, c Caller, from, to string) e
 
 func (s *Service) deliverMessage(ctx context.Context, from teamroster.Agent, x teamroster.Exchange, body string, steer bool) error {
 	pane, err := s.panes.Ensure(ctx, SeatRef{Agent: x.To})
+	// Publish the admitted state before delivery can start a receiver. Success
+	// is still returned only after Deliver acknowledges its durable inbox.
+	if err == nil {
+		_, err = s.store.SetExchangeState(ctx, x.ID, teamroster.ExchangeDelivered, s.now())
+	}
 	if err == nil {
 		display, text := renderMessage(from, x, body)
 		err = pane.Deliver(Delivery{
@@ -147,8 +152,7 @@ func (s *Service) deliverMessage(ctx context.Context, from teamroster.Agent, x t
 		_, stateErr := s.store.SetExchangeState(ctx, x.ID, teamroster.ExchangeFailed, s.now())
 		return errors.Join(fmt.Errorf("%w: %w", ErrUnavailable, err), stateErr)
 	}
-	_, err = s.store.SetExchangeState(ctx, x.ID, teamroster.ExchangeDelivered, s.now())
-	return err
+	return nil
 }
 
 // Settled applies the host's report of a turn in seat. Replies the turn read
