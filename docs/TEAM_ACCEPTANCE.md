@@ -15,7 +15,8 @@ PR，也不发布正式版本。
 - Installer qualification adds only acceptance scripts in
   `58aa56f3f7c76322635fc6bae4b801f94f89e618`; all three native installed-artifact
   checks passed. Later descendants contain documentation and a correction to
-  Windows evidence-directory binding; product runtime code is unchanged.
+  Windows evidence-directory binding, plus a deterministic history-search test;
+  product runtime code is unchanged.
 - All seven fixed upstream sources and license ownership are recorded in
   [the implementation ledger](TEAM_PORT_STATUS.md).
 
@@ -38,6 +39,13 @@ instrumentation (32.364 seconds); the remaining complete Session race suite
 passed in 143.444 seconds. Two all-package local attempts reached their package
 alarm during stress work; neither was counted as a pass or fixed by increasing
 the repository timeout. Native and installed-artifact checks passed separately.
+
+A later root CI run exposed an existing history-search test race: it required
+the background refresh to remain unfinished even when the current revision was
+already indexed. The test now covers an explicitly completed refresh and the
+on-demand path, validates current digests/snippets, rejects stale positional
+hits and verifies eventual refresh. The old assertion fails deterministically
+under the completed-refresh negative control. Search runtime code is unchanged.
 
 Earlier local secret runs exceeded the 15-second shell-exit assertion while
 the Go service had already exited. A native sample showed a Chromium background

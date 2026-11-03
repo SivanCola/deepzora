@@ -162,49 +162,65 @@ func TestSearchDropsCommonWordNoise(t *testing.T) {
 }
 
 func TestAroundRejectsStaleDigestAndSearchRefreshesCurrentProjection(t *testing.T) {
-	service := currentHistoryStore(t)
-	saveCurrentHistory(t, service, "changing", provider.Message{Role: provider.RoleUser, Content: "old orchid decision"})
-	searcher := newReadyIndexedSearcher(t, currentOptions(service))
-	hits, err := searcher.Search(t.Context(), SearchRequest{Query: "orchid"})
-	if err != nil || len(hits) != 1 {
-		t.Fatalf("hits: %+v %v", hits, err)
-	}
-	ref := session.SessionRef{HostID: "local", SessionID: "changing"}
-	binding, err := service.Open(t.Context(), ref)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer binding.Release(t.Context())
-	runtime, ok := service.Runtime(ref)
-	if !ok {
-		t.Fatal("opened session has no runtime")
-	}
-	payload := json.RawMessage(`{"message":{"id":"message-0","role":"user","content":"new phoenix decision"}}`)
-	if _, err := runtime.Session().AppendBatch(t.Context(), "replace", []session.Event{{Kind: "message/upsert", Payload: payload}}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := runtime.Session().Flush(t.Context()); err != nil {
-		t.Fatal(err)
-	}
-	// A term absent from the old index must queue the current revision without
-	// receiving a path-save observer hint or first matching the old content.
-	fresh, err := searcher.Search(t.Context(), SearchRequest{Query: "phoenix"})
-	if err != nil || len(fresh) != 0 || searcher.IndexStatus().State != "building" {
-		t.Fatalf("unindexed current revision: %+v %v %+v", fresh, err, searcher.IndexStatus())
-	}
-	if _, err := searcher.Around(t.Context(), AroundRequest{CatalogID: catalogID(service.Query()), SessionID: "changing", ContentDigest: hits[0].ContentDigest, MessageIndex: 0}); err == nil {
-		t.Fatal("stale positional hit accepted")
-	}
-	hits, err = searcher.Search(t.Context(), SearchRequest{Query: "orchid"})
-	if err != nil || len(hits) != 0 {
-		t.Fatalf("stale hit returned: %+v %v", hits, err)
-	}
-	if err := FlushSharedCatalog(t.Context()); err != nil {
-		t.Fatal(err)
-	}
-	hits, err = searcher.Search(t.Context(), SearchRequest{Query: "phoenix"})
-	if err != nil || len(hits) != 1 || !strings.Contains(hits[0].Snippet, "phoenix") {
-		t.Fatalf("refresh: %+v %v", hits, err)
+	for _, alreadyRefreshed := range []bool{false, true} {
+		t.Run(fmt.Sprintf("already_refreshed=%t", alreadyRefreshed), func(t *testing.T) {
+			service := currentHistoryStore(t)
+			saveCurrentHistory(t, service, "changing", provider.Message{Role: provider.RoleUser, Content: "old orchid decision"})
+			searcher := newReadyIndexedSearcher(t, currentOptions(service))
+			hits, err := searcher.Search(t.Context(), SearchRequest{Query: "orchid"})
+			if err != nil || len(hits) != 1 {
+				t.Fatalf("hits: %+v %v", hits, err)
+			}
+			ref := session.SessionRef{HostID: "local", SessionID: "changing"}
+			binding, err := service.Open(t.Context(), ref)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer binding.Release(t.Context())
+			runtime, ok := service.Runtime(ref)
+			if !ok {
+				t.Fatal("opened session has no runtime")
+			}
+			payload := json.RawMessage(`{"message":{"id":"message-0","role":"user","content":"new phoenix decision"}}`)
+			if _, err := runtime.Session().AppendBatch(t.Context(), "replace", []session.Event{{Kind: "message/upsert", Payload: payload}}); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := runtime.Session().Flush(t.Context()); err != nil {
+				t.Fatal(err)
+			}
+			if alreadyRefreshed {
+				SharedCatalog().RegisterRoot(historycatalog.CurrentRoot(service.Query()))
+				if err := FlushSharedCatalog(t.Context()); err != nil {
+					t.Fatal(err)
+				}
+			}
+			// A new term must become searchable without a path-save observer hint.
+			// An earlier search may finish reconciliation before this call, so both
+			// pending and completed refresh are valid; only current hits may return.
+			fresh, err := searcher.Search(t.Context(), SearchRequest{Query: "phoenix"})
+			if err != nil || len(fresh) > 1 || alreadyRefreshed && len(fresh) != 1 {
+				t.Fatalf("current revision: %+v %v", fresh, err)
+			}
+			for _, hit := range fresh {
+				if hit.SessionID != "changing" || hit.ContentDigest != currentDigest(t, service, "changing") || !strings.Contains(hit.Snippet, "phoenix") {
+					t.Fatalf("returned a noncurrent revision: %+v", hit)
+				}
+			}
+			if _, err := searcher.Around(t.Context(), AroundRequest{CatalogID: catalogID(service.Query()), SessionID: "changing", ContentDigest: hits[0].ContentDigest, MessageIndex: 0}); err == nil {
+				t.Fatal("stale positional hit accepted")
+			}
+			hits, err = searcher.Search(t.Context(), SearchRequest{Query: "orchid"})
+			if err != nil || len(hits) != 0 {
+				t.Fatalf("stale hit returned: %+v %v", hits, err)
+			}
+			if err := FlushSharedCatalog(t.Context()); err != nil {
+				t.Fatal(err)
+			}
+			hits, err = searcher.Search(t.Context(), SearchRequest{Query: "phoenix"})
+			if err != nil || len(hits) != 1 || !strings.Contains(hits[0].Snippet, "phoenix") {
+				t.Fatalf("refresh: %+v %v", hits, err)
+			}
+		})
 	}
 }
 
