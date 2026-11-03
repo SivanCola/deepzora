@@ -18,6 +18,7 @@ const SecretFile = "secrets.json"
 const SecretEnvPrefix = "DEEPZORA_SECRET_"
 
 var secretName = regexp.MustCompile(`^[A-Z][A-Z0-9_]{0,39}$`)
+var secretSlotName = regexp.MustCompile(`^ts-[0-9a-f]{32}$`)
 var ErrUnknownSecret = errors.New("no such Team secret")
 
 type TeamSecret struct {
@@ -41,12 +42,13 @@ type RetiredTeamSecret struct {
 }
 type SecretReceipt struct{ Key, Digest string }
 type TeamSecretBook struct {
-	SchemaVersion int                 `json:"schemaVersion"`
-	Revision      uint64              `json:"revision"`
-	Secrets       []TeamSecret        `json:"secrets"`
-	Requests      []TeamSecretRequest `json:"requests"`
-	Retired       []RetiredTeamSecret `json:"retired"`
-	Receipts      []SecretReceipt     `json:"receipts"`
+	SchemaVersion   int                 `json:"schemaVersion"`
+	Revision        uint64              `json:"revision"`
+	Secrets         []TeamSecret        `json:"secrets"`
+	Requests        []TeamSecretRequest `json:"requests"`
+	Retired         []RetiredTeamSecret `json:"retired"`
+	Receipts        []SecretReceipt     `json:"receipts"`
+	PendingDeletion []string            `json:"pendingDeletion,omitempty"`
 }
 
 func NormalizeSecretName(name string) string {
@@ -89,7 +91,7 @@ func (b *TeamSecretBook) validate() error {
 	if b.Receipts == nil {
 		b.Receipts = []SecretReceipt{}
 	}
-	if len(b.Secrets) > 128 || len(b.Requests) > 1024 || len(b.Retired) > 2048 {
+	if len(b.Secrets) > 128 || len(b.Requests) > 1024 || len(b.Retired) > 2048 || len(b.PendingDeletion) > 2048 {
 		return ErrInvalid
 	}
 	seen := map[string]bool{}
@@ -114,6 +116,11 @@ func (b *TeamSecretBook) validate() error {
 	}
 	for _, retired := range b.Retired {
 		if NormalizeSecretName(retired.Name) != retired.Name || retired.Slot == "" {
+			return ErrInvalid
+		}
+	}
+	for _, slot := range b.PendingDeletion {
+		if !secretSlotName.MatchString(slot) || slices.ContainsFunc(b.Secrets, func(sc TeamSecret) bool { return sc.Slot == slot }) || slices.ContainsFunc(b.Retired, func(sc RetiredTeamSecret) bool { return sc.Slot == slot }) {
 			return ErrInvalid
 		}
 	}

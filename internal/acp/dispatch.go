@@ -521,7 +521,7 @@ func (s *updateSink) requestAskQuestion(ctx context.Context, askID string, q eve
 	if q.Header != "" && q.Header != title {
 		content = append(content, toolContent{Type: "content", Content: textBlock(q.Header)})
 	}
-	options := make([]PermissionOption, 0, len(q.Options)+1)
+	options := make([]PermissionOption, 0, len(q.Options))
 	labelsByID := make(map[string]string, len(q.Options))
 	for i, opt := range q.Options {
 		id := fmt.Sprintf("%s:%d", q.ID, i+1)

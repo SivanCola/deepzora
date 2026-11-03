@@ -8,6 +8,7 @@ export const en = {
   "team.navHint": "Long-lived agents and group conversations",
   "team.memory": "Team memory",
   "team.secrets": "Team secrets",
+  "team.secretCleanupPending": "Retired masking was forgotten. Some local credential files await cleanup; Desktop will retry automatically while open.",
   "team.usage": "Member usage",
   "team.usageHint": "Includes main calls, task subagents and memory review. Older rows without identity stay unattributed. Currency buckets and missing pricing are preserved.",
   "team.usageAll": "All records",

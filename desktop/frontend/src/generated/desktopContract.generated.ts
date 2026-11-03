@@ -3,7 +3,7 @@
 
 export const DESKTOP_PROTOCOL_VERSION = 11;
 
-export const DESKTOP_CONTRACT_DIGEST = "sha256:99f2a2e8a1dfde25d47b0b2b4095bf63d21bba1a68b7c1e4abb56b3bdb0ee040";
+export const DESKTOP_CONTRACT_DIGEST = "sha256:c628fb3ac1375312437e5439129f9c2f484033b21eb6c869878141b4959f87e7";
 
 export const DESKTOP_COMMANDS = [
   "AIRenameSessionTarget",
@@ -3903,6 +3903,7 @@ export interface TeamSecretsView {
   secrets: TeamSecretMetadata[];
   requests: TeamSecretRequest[];
   retiredCount: number;
+  pendingCleanup: number;
 }
 
 export interface TeamTargetMutationRequest {

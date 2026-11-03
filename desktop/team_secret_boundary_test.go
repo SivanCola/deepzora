@@ -98,4 +98,7 @@ func TestDesktopTeamSecretSaveCommandRotationAndOutboundProjection(t *testing.T)
 	if err != nil || forgotten.Outcome != "applied" || forgotten.View.RetiredCount != 0 || secrets.Masker().String(value) != value {
 		t.Fatalf("confirmed retirement did not forget its value: %+v %v", forgotten, err)
 	}
+	if _, err := config.DefaultTeamSecretSlots().Read(book.Retired[0].Slot); err == nil {
+		t.Fatal("confirmed forgetting retained its plaintext credential slot")
+	}
 }

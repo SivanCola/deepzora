@@ -64,3 +64,30 @@ func (s TeamSecretSlots) Read(slot string) (string, error) {
 	}
 	return string(body), nil
 }
+
+// Remove deletes only a named regular slot; missing files are idempotent so
+// persisted cleanup intents can safely resume after an interrupted removal.
+func (s TeamSecretSlots) Remove(slot string) error {
+	if s.Dir == "" || !teamSecretSlotName.MatchString(slot) {
+		return errors.New("invalid Team secret slot reference")
+	}
+	root, err := os.OpenRoot(s.Dir)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return errors.New("Team secret cleanup unavailable")
+	}
+	defer root.Close()
+	info, err := root.Lstat(slot)
+	if errors.Is(err, os.ErrNotExist) {
+		return fileutil.SyncParentDir(filepath.Join(s.Dir, slot))
+	}
+	if err != nil || !info.Mode().IsRegular() {
+		return errors.New("Team secret cleanup requires a regular slot")
+	}
+	if err := root.Remove(slot); err != nil {
+		return errors.New("Team secret cleanup failed; it will retry while Desktop is open")
+	}
+	return fileutil.SyncParentDir(filepath.Join(s.Dir, slot))
+}

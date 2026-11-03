@@ -4,7 +4,7 @@ import type { TeamSecretsView, TeamView } from "../generated/desktopContract.gen
 // Opt-in browser interaction fixture. It stores metadata only and does not
 // authorize a command, persist a credential or manufacture model responses.
 export function makeTeamSecretMock(team:TeamView):Pick<TeamHostBindings,"GetTeamSecrets"|"SaveTeamSecret"> {
-  const view:TeamSecretsView={available:true,revision:0,rosterRevision:team.roster.revision,secrets:[],requests:[],retiredCount:0};
+  const view:TeamSecretsView={available:true,revision:0,rosterRevision:team.roster.revision,secrets:[],requests:[],retiredCount:0,pendingCleanup:0};
   const snapshot=()=>structuredClone({...view,rosterRevision:team.roster.revision});
   return {
     GetTeamSecrets:async()=>snapshot(),

@@ -32547,6 +32547,12 @@
           "type": {
             "kind": "integer"
           }
+        },
+        {
+          "name": "pendingCleanup",
+          "type": {
+            "kind": "integer"
+          }
         }
       ]
     },

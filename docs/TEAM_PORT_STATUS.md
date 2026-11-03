@@ -29,6 +29,9 @@ checks, native platform acceptance and publication are separate evidence.
   Current/retired authoritative slots refresh every snapshot without mtime/size
   caching. Unreadable metadata blocks new provider requests and secret commands.
   Confirmed forgetting fences in-flight old source reads.
+  Confirmed retirement also records durable file-cleanup intents, rejects active
+  slot targets and retries interrupted/blocked removals; metadata exposes only
+  the pending count, with no credential slot references.
 - Builtin providers, extension requests/frames, tool/schema projection, event
   streaming and optional audits, tool outcomes, jobs/artifacts, process logs and
   Desktop RPC responses share the masking kernel. Literal placeholders are
@@ -55,6 +58,21 @@ checks, native platform acceptance and publication are separate evidence.
   persisted history and native browser Cookie isolation on three runners. It
   never publishes. The fixture provider and optional closed secret gate are
   recorded explicitly; successful native dispatch evidence is still required.
+- The complete root Go suite passed. The first independent Desktop sweep hit
+  its 20-minute package alarm while the current test had run for only 2 seconds;
+  a JSON-instrumented rerun is in progress with less competing local work.
+  The assembled macOS production app passed startup/quit and real Team private,
+  group, background, approval, schedule and restart flows against the loopback
+  fixture. The real native browser fixture passed member Cookie isolation,
+  recovery and complete WebContents cleanup. These are local candidate results,
+  separate from the final exact-head installer matrix.
+- First manual installer dispatch built native payloads but correctly failed
+  final naming because qualification used a prerelease version. Qualification
+  now uses unpublished numeric `v0.0.0` plus the source SHA in build metadata;
+  release naming rules are unchanged. The replacement dispatch is running.
+- Real-model acceptance needs a usable test connection. The configured default
+  currently has a placeholder credential; no successful real inference is
+  claimed. No existing conversation data was copied into qualification homes.
 
 第七层已接入精确值、JSON 与跨块流遮罩、Provider/扩展/事件/工具/后台/持久化边界，
 以及成员、群组、席位和调用来源用量聚合。已通过的模拟与本机原生 Shell 测试不等于

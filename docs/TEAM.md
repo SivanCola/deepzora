@@ -177,6 +177,9 @@ nobody and a new member inherits nothing. Replacement/deletion immediately
 revokes new commands. Old values remain in the retired masking set across
 restart. **Forget retired masking values** requires its own confirmation and
 can make old history values visible again. This action is independent of delete.
+It also removes retired credential files using a persisted cleanup intent.
+Interrupted or blocked removals retry while Desktop is open; settings show the
+remaining cleanup count. Active credential files are never cleanup targets.
 
 Values never enter the global environment or the ordinary credentials `.env`
 backend. File tools refuse the dedicated host namespace even when the optional

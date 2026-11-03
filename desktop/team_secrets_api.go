@@ -25,6 +25,7 @@ type TeamSecretsView struct {
 	Secrets        []TeamSecretMetadata           `json:"secrets"`
 	Requests       []teamroster.TeamSecretRequest `json:"requests"`
 	RetiredCount   int                            `json:"retiredCount"`
+	PendingCleanup int                            `json:"pendingCleanup"`
 }
 
 func (a *App) GetTeamSecrets() (TeamSecretsView, error) {
@@ -44,6 +45,7 @@ func (a *App) GetTeamSecrets() (TeamSecretsView, error) {
 	view.Revision = book.Revision
 	view.Requests = book.Requests
 	view.RetiredCount = len(book.Retired)
+	view.PendingCleanup = len(book.PendingDeletion)
 	for _, sc := range book.Secrets {
 		view.Secrets = append(view.Secrets, TeamSecretMetadata{Name: sc.Name, Purpose: sc.Purpose, Agents: slices.Clone(sc.Agents), UpdatedAt: sc.UpdatedAt})
 	}
@@ -126,6 +128,11 @@ func (a *App) SaveTeamSecret(req SaveTeamSecretRequest) (TeamSecretResult, error
 			})
 		})
 	})
+	if err == nil {
+		// The durable deletion intent survives interruption and filesystem
+		// failures; cleanup never widens grants or changes a masking decision.
+		_ = a.cleanupTeamSecretSlots(a.bootContext())
+	}
 	result.View, _ = a.GetTeamSecrets()
 	if err != nil {
 		result.Reason = teamMutationReason(err)
@@ -144,6 +151,11 @@ func applyUserTeamSecret(ctx context.Context, book *teamroster.TeamSecretBook, r
 	if req.Operation == "forget_retired" {
 		if !req.ConfirmForget {
 			return errors.New("forgetting retired secret values needs independent confirmation")
+		}
+		for _, old := range book.Retired {
+			if !slices.ContainsFunc(book.Secrets, func(sc teamroster.TeamSecret) bool { return sc.Slot == old.Slot }) && !slices.Contains(book.PendingDeletion, old.Slot) {
+				book.PendingDeletion = append(book.PendingDeletion, old.Slot)
+			}
 		}
 		book.Retired = []teamroster.RetiredTeamSecret{}
 		return nil

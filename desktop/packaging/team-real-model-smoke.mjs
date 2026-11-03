@@ -31,9 +31,9 @@ try{
   await wait(async()=>{for(const candidate of application.windows())try{await candidate.evaluate(()=>window.deepzoraDesktop.invoke("Version",[]));page=candidate;return true;}catch{}return false;});
   page.on("pageerror",error=>errors.push(error.message));
   assert.equal(await application.evaluate(({app})=>app.isPackaged),true);
-  const saved=await invoke("SaveProviderWithKey",[{...connection.provider,name:"team-real",models:[connection.model],default:connection.model,modelOverrides:[{model:connection.model,maxOutputTokens:1024}]},connection.key]);
-  const providerName=typeof saved==="string"?saved:saved?.name||"team-real";
-  const model=`${providerName}/${connection.model}`;
+  await invoke("SaveProviderWithKey",[{...connection.provider,name:"team-real",models:[connection.model],default:connection.model,modelOverrides:[{model:connection.model,maxOutputTokens:1024}]},connection.key]);
+  // SaveProviderWithKey returns a rebuild warning, not a provider identity.
+  const model=`team-real/${connection.model}`;
   await invoke("SetDefaultModel",[model]);
   async function create(name,main){const team=await invoke("GetTeam");const saved=await invoke("SaveTeamAgent",[{expectedRevision:team.roster.revision,requestId:id(),settings:{name,main,permission:"read-only",initialModel:model,instructions:"For this acceptance test, follow the requested reply exactly. Do not use tools."}}]);assert.equal(saved.outcome,"applied");return saved.targetId;}
   const chief=await create("Real-model Chief",true),ada=await create("Real-model Ada",false);
@@ -57,4 +57,13 @@ try{
   const ready=parseServiceReady(readFileSync(join(home,"desktop-shell/logs/shell.log"),"utf8"));assert.ok(ready);
   await closeAndVerify(application,{shellPid,servicePid:ready.pid});application=null;
   writeFileSync(join(evidence,"real-model-result.json"),JSON.stringify({completed:true,platform:process.platform,kind:connection.provider.kind,model:connection.model,checks,requests:rows.reduce((sum,row)=>sum+row.requests,0),tokens:rows.reduce((sum,row)=>sum+row.tokens,0)},null,2));
+}catch(error){
+  if(page){
+    const tabs=await invoke("ListTabs").catch(()=>[]);
+    const history=[];
+    for(const tab of tabs)history.push(await invoke("SessionHistoryWindowForTab",[tab.id,{anchor:"newest",limit:16}]).catch(()=>null));
+    const diagnostic=JSON.stringify({tabs,history},(_key,value)=>typeof value==="string"?value.split(connection.key).join("[credential]"):value,2);
+    writeFileSync(join(evidence,"failure-diagnostic.json"),diagnostic,{mode:0o600});
+  }
+  throw new Error(String(error).split(connection.key).join("[credential]"));
 }finally{if(application)await application.close();rmSync(home,{recursive:true,force:true});}

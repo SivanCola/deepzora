@@ -1197,7 +1197,7 @@
       "kind": "command",
       "name": "GetTeamSecrets",
       "detail": "() (TeamSecretsView, error)",
-      "location": "desktop/team_secrets_api.go:30",
+      "location": "desktop/team_secrets_api.go:31",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -3229,7 +3229,7 @@
       "kind": "command",
       "name": "SaveTeamSecret",
       "detail": "(req SaveTeamSecretRequest) (TeamSecretResult, error)",
-      "location": "desktop/team_secrets_api.go:88",
+      "location": "desktop/team_secrets_api.go:90",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -4109,7 +4109,7 @@
       "kind": "command",
       "name": "TeamSecretSeatForTab",
       "detail": "(tabID string) TeamSecretSeatView",
-      "location": "desktop/team_secrets_api.go:77",
+      "location": "desktop/team_secrets_api.go:79",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },

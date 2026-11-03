@@ -303,7 +303,11 @@ test("macOS signing diagnostics require protected main and cannot publish", () =
 test("every ci job is reachable from a required aggregate", () => {
   const required = ["test", "test-windows", "race", "lint", "desktop", "root"];
   const jobs = ci.slice(ci.indexOf("\njobs:\n")); // `on:` also nests two-space keys
-  const names = [...jobs.matchAll(/^ {2}([a-z][a-z0-9-]*):$/gm)].map(match => match[1]);
+  const allNames = [...jobs.matchAll(/^ {2}([a-z][a-z0-9-]*):$/gm)].map(match => match[1]);
+  const manual = job(ci,"team-native-acceptance");
+  assert.match(manual,/if: \$\{\{ github\.event_name == 'workflow_dispatch' && inputs\.team_acceptance \}\}/);
+  assert.ok(allNames.includes("team-native-acceptance"));
+  const names=allNames.filter(name=>name!=="team-native-acceptance");
   assert.equal(names.length, 13, "twelve validation jobs plus non-gating timing evidence");
   // A bracketed list may wrap across lines, so consume up to its closing ].
   const edges = new Map(names.map(name => [name, (job(ci, name).match(/^ {4}needs:\s*(\[[^\]]*\]|\S.*)$/m)?.[1] ?? "")
