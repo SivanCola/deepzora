@@ -1,11 +1,66 @@
 package main
 
 import (
+	"reflect"
 	"testing"
 
 	"deepzora/internal/agentpreset"
 	"deepzora/internal/boot"
 )
+
+func TestTeamAgentCopiesSelectedProjectPresetIntoIndependentDirectory(t *testing.T) {
+	for _, targetDirectory := range []string{"default", "other-project"} {
+		for _, legacyID := range []bool{false, true} {
+			t.Run(targetDirectory+map[bool]string{false: "/snapshot", true: "/snapshot-with-id"}[legacyID], func(t *testing.T) {
+				isolateDesktopUserDirs(t)
+				a := NewApp()
+				a.ctx = t.Context()
+				installNoopRuntimeEvents(a)
+				t.Cleanup(func() {
+					if err := a.stopTeamHost(); err != nil {
+						t.Error(err)
+					}
+				})
+				id, sourceRoot, targetRoot := "review", t.TempDir(), ""
+				if targetDirectory == "other-project" {
+					targetRoot = t.TempDir()
+					if _, err := agentpreset.Write(boot.AgentPresetDirs(targetRoot).Project, id, "WRONG_TARGET_PROJECT"); err != nil {
+						t.Fatal(err)
+					}
+				}
+				if _, err := agentpreset.Write(boot.AgentPresetDirs("").User, id, "WRONG_USER_PRESET"); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := agentpreset.Write(boot.AgentPresetDirs(sourceRoot).Project, id, "---\nname: Source project\ncomplete: true\ninclude-runtime-context: false\ntools: []\n---\nSELECTED_PROJECT_PERSONA"); err != nil {
+					t.Fatal(err)
+				}
+				selected, err := agentpreset.Resolve(boot.AgentPresetDirs(sourceRoot), id)
+				if err != nil {
+					t.Fatal(err)
+				}
+				req := SaveTeamAgentRequest{RequestID: "copy-project-snapshot", Settings: TeamAgentSettings{Name: "Ada", Permission: "read-only", Folder: targetRoot, Preset: teamPresetView(&selected)}}
+				if legacyID {
+					req.PresetID = &id
+				}
+				result, err := a.SaveTeamAgent(req)
+				if err != nil || result.Outcome != "applied" {
+					t.Fatalf("copy selected project preset: %+v %v", result, err)
+				}
+				copied := result.View.Roster.Agents[0].Preset
+				if !reflect.DeepEqual(copied, req.Settings.Preset) {
+					t.Fatalf("changed selected configuration: got %+v, want %+v", copied, req.Settings.Preset)
+				}
+				if _, err := agentpreset.Write(boot.AgentPresetDirs(sourceRoot).Project, id, "SOURCE_CHANGED_LATER"); err != nil {
+					t.Fatal(err)
+				}
+				view, err := a.GetTeam()
+				if err != nil || !reflect.DeepEqual(view.Roster.Agents[0].Preset, req.Settings.Preset) {
+					t.Fatalf("member did not retain independent copy: %+v %v", view, err)
+				}
+			})
+		}
+	}
+}
 
 func TestDesktopTeamConfigurationCASRetryAndPresetCopy(t *testing.T) {
 	isolateDesktopUserDirs(t)

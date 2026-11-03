@@ -2,18 +2,176 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"deepzora/internal/agentpreset"
 	"deepzora/internal/control"
+	"deepzora/internal/event"
 	"deepzora/internal/team"
 )
+
+func teamAdmissionFixture(t *testing.T) (*App, *WorkspaceTab, *control.Controller, string, TeamAgentSettings) {
+	t.Helper()
+	a := newManualSessionTestApp(t)
+	if _, err := a.SaveProviderWithKey(ProviderView{Name: "team-admission", Kind: "openai", BaseURL: "http://127.0.0.1:1", Models: []string{"test"}, NoProxy: true}, "disposable-fixture"); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.SetDefaultModel("team-admission/test"); err != nil {
+		t.Fatal(err)
+	}
+	settings := TeamAgentSettings{Name: "Chief", Main: true, Permission: "read-only", Preset: &TeamPresetDefinition{ID: "copied", Name: "Copied", Complete: true, Body: "ORIGINAL_PERSONA", IncludeRuntimeContext: true}}
+	created, err := a.SaveTeamAgent(SaveTeamAgentRequest{RequestID: "create-admission-fixture", Settings: settings})
+	if err != nil || created.Outcome != "applied" {
+		t.Fatalf("create: %+v %v", created, err)
+	}
+	h, err := a.localTeamHost()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := a.stopTeamHost(); err != nil {
+			t.Error(err)
+		}
+	})
+	pane, err := h.Ensure(t.Context(), team.SeatRef{Agent: created.TargetID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	owner := pane.(*desktopTeamRuntime).owner()
+	return a, owner, a.controllerForTab(owner).(*control.Controller), created.TargetID, settings
+}
+
+func saveTeamAdmissionSettings(t *testing.T, a *App, id string, settings TeamAgentSettings) {
+	t.Helper()
+	view, err := a.GetTeam()
+	if err != nil {
+		t.Fatal(err)
+	}
+	updated, err := a.SaveTeamAgent(SaveTeamAgentRequest{ID: id, ExpectedRevision: view.Roster.Revision, RequestID: "update-admission-fixture", Settings: settings})
+	if err != nil || updated.Outcome != "applied" {
+		t.Fatalf("save: %+v %v", updated, err)
+	}
+}
+
+func TestTeamTurnAdmissionRechecksConfigurationAfterConcurrentCommit(t *testing.T) {
+	for _, entry := range []string{"human", "inbox"} {
+		for _, change := range []string{"preset", "directory"} {
+			t.Run(entry+"/"+change, func(t *testing.T) {
+				a, owner, old, id, settings := teamAdmissionFixture(t)
+				if entry == "human" {
+					meta, err := a.RevealBackgroundRuntime(owner.ID)
+					if err != nil {
+						t.Fatal(err)
+					}
+					var current control.SessionAPI
+					owner, current = a.tabAndCtrlByID(meta.ID)
+					old = current.(*control.Controller)
+				}
+				if change == "directory" {
+					settings.Folder = t.TempDir()
+				} else {
+					if len(old.ToolContractEntries()) <= 1 {
+						t.Fatal("fixture must start with tools beyond the fixed capability proxy")
+					}
+					settings.Preset = &TeamPresetDefinition{ID: "copied", Name: "Copied", Complete: true, Body: "REPLACEMENT_PERSONA", IncludeRuntimeContext: false, RestrictTools: true, Tools: []string{}}
+				}
+				var committed atomic.Bool
+				// The save wins the writer boundary after the sender's optimistic
+				// check, before that sender can acquire its final admission lock.
+				a.lifecycleCheckpointHook = func(stage string) {
+					if stage == "team-turn-before-admission" && committed.CompareAndSwap(false, true) {
+						saveTeamAdmissionSettings(t, a, id, settings)
+					}
+				}
+				var admitted control.SessionAPI
+				var err error
+				if entry == "inbox" {
+					var release func()
+					release, err = a.beforeInboxDispatch(old)
+					if release != nil {
+						release()
+					}
+				} else {
+					var admission *tabTurnAdmission
+					admission, admitted, err = a.beginTabTurn(owner.ID, false)
+					if admission != nil {
+						admission.abort()
+					}
+				}
+				if !committed.Load() {
+					t.Fatalf("test did not cross the intended configuration boundary: %v", err)
+				}
+				if change == "directory" {
+					if err == nil || !strings.Contains(err.Error(), "working directory changed") {
+						t.Fatalf("stale directory binding admitted: %v", err)
+					}
+					return
+				}
+				if entry == "inbox" {
+					if !errors.Is(err, control.ErrInboxRuntimeUnpublished) {
+						t.Fatalf("old inbox owner was not fenced after rebuild: %v", err)
+					}
+				} else if err != nil || admitted == old {
+					t.Fatalf("new turn did not use rebuilt controller: %v", err)
+				}
+				next := a.controllerForTab(owner).(*control.Controller)
+				view, err := a.GetTeam()
+				if err != nil || next == old || view.Seats[0].SettingsPending || !strings.Contains(next.SystemPrompt(), "REPLACEMENT_PERSONA") {
+					t.Fatalf("latest static configuration not applied: %+v %v", view, err)
+				}
+				// Empty preset tools retain only the existing fixed-schema proxy;
+				// its executor still enforces the empty underlying allowlist.
+				if entries := next.ToolContractEntries(); len(entries) != 1 || entries[0].Name != "use_capability" {
+					t.Fatal("new admission retained tools removed by the saved preset")
+				}
+			})
+		}
+	}
+}
+
+type pendingTeamAdmissionController struct{ *control.Controller }
+
+func (c pendingTeamAdmissionController) RuntimeStateSnapshot() event.RuntimeStateSnapshot {
+	state := c.Controller.RuntimeStateSnapshot()
+	state.PendingPrompt = true
+	return state
+}
+
+func TestTeamTurnAdmissionRejectsPendingConfigurationWhilePromptIsActive(t *testing.T) {
+	a, owner, original, id, settings := teamAdmissionFixture(t)
+	settings.Preset.Body = "REPLACEMENT_PERSONA"
+	saveTeamAdmissionSettings(t, a, id, settings)
+	a.mu.Lock()
+	owner.Ctrl = pendingTeamAdmissionController{original}
+	a.mu.Unlock()
+	defer func() {
+		a.mu.Lock()
+		owner.Ctrl = original
+		a.mu.Unlock()
+	}()
+	var attempts atomic.Int32
+	a.lifecycleCheckpointHook = func(stage string) {
+		if stage == "team-turn-before-admission" && attempts.Add(1) > 1 {
+			t.Fatal("pending prompt caused an admission retry loop")
+		}
+	}
+	admission, _, err := a.beginRuntimeTurn(owner.ID, false, true)
+	if admission != nil {
+		admission.abort()
+	}
+	var busy *rebuildBusyError
+	if !errors.As(err, &busy) || !busy.work.pendingPrompt {
+		t.Fatalf("pending prompt should defer the new static configuration: %v", err)
+	}
+}
 
 func TestTeamPresetChangeWaitsForIdleAndPreservesCanonicalHistory(t *testing.T) {
 	a := newManualSessionTestApp(t)
