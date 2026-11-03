@@ -17,10 +17,9 @@ func TestFrontendEventSinkForwardsAuditCapabilities(t *testing.T) {
 	event.RecordMemoryRecall(s, event.MemoryRecallAudit{Suppressed: "probe"})
 	event.RecordDelegationAdmission(s, event.DelegationAdmissionAudit{Tool: "probe"})
 	event.RecordContractShadow(s, event.ContractShadowAudit{Verdict: "probe"})
-	event.RecordCompletionReport(s, event.CompletionReportAudit{Verdict: "probe"})
 	event.RecordWorkspaceMutation(s, event.WorkspaceMutation{ToolName: "write_file"})
 	event.RecordRunBudget(s, event.RunBudgetSample{Currency: "USD"})
-	if inner.outcome != 1 || inner.recall != 1 || inner.delegation != 1 || inner.contract != 1 || inner.completion != 1 || inner.workspace != 1 || inner.runBudget != 1 || inner.anchorSafety != 1 {
+	if inner.outcome != 1 || inner.recall != 1 || inner.delegation != 1 || inner.contract != 1 || inner.workspace != 1 || inner.runBudget != 1 || inner.anchorSafety != 1 {
 		t.Fatalf("audits dropped by frontendEventSink: %+v", inner)
 	}
 }
@@ -39,7 +38,7 @@ func TestInboxEventSinkForwardsMissingCapabilities(t *testing.T) {
 
 type capabilityProbeSink struct {
 	event.Sink
-	outcome, recall, delegation, delegationAudit, contract, completion, workspace, runBudget, anchorSafety int
+	outcome, recall, delegation, delegationAudit, contract, workspace, runBudget, anchorSafety int
 }
 
 func (p *capabilityProbeSink) RecordOutcomeProgress(evidence.OutcomeSample) { p.outcome++ }
@@ -48,9 +47,7 @@ func (p *capabilityProbeSink) RecordDelegationAdmission(event.DelegationAdmissio
 	p.delegation++
 }
 func (p *capabilityProbeSink) RecordContractShadow(event.ContractShadowAudit) { p.contract++ }
-func (p *capabilityProbeSink) RecordCompletionReport(event.CompletionReportAudit) {
-	p.completion++
-}
+
 func (p *capabilityProbeSink) RecordDelegationAudit(evidence.DelegationAudit) {
 	p.delegationAudit++
 }

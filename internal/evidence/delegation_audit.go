@@ -10,14 +10,6 @@ type DelegationAudit struct {
 	Mutations int
 	// MutationPaths lets an aggregator detect two children touching one file.
 	MutationPaths []string
-	// ClaimViolations counts writes the host saw outside the declared claim.
-	ClaimViolations int
-	// HasReport is false when the child ended in prose instead of a typed claim.
-	HasReport bool
-	// Historical host judgments; retained for old records only. New runs leave
-	// these unset and display the model's report separately from execution facts.
-	AdjudicatedStatus string
-	Downgrades        int
 	// ParentScopeHints counts directories the delegation narrowed the search to.
 	ParentScopeHints int
 	// ParentNamedFiles counts specific files the delegation text handed over.
@@ -44,11 +36,4 @@ func (a *DelegationAudit) ClassifyEvidenceOrigin(delegationText string, evidence
 			a.DiscoveredPaths++
 		}
 	}
-}
-
-// FalseCompletion reports a child that claimed more than the host could back.
-// It is the count of refused criteria, not a comparison against a claimed
-// status the host never independently recorded.
-func (a DelegationAudit) FalseCompletion() bool {
-	return a.HasReport && a.Downgrades > 0
 }

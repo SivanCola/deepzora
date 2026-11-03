@@ -40,14 +40,6 @@ func (s *syncSink) RecordDelegationAudit(a evidence.DelegationAudit) {
 	RecordDelegationAudit(s.inner, a)
 }
 
-func (s *syncSink) RecordReadinessAudit(a evidence.ReadinessAudit) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if rs, ok := s.inner.(ReadinessAuditSink); ok {
-		rs.RecordReadinessAudit(a)
-	}
-}
-
 func (s *syncSink) RecordAnchorSafetyAudit(a AnchorSafetyAudit) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -75,14 +67,6 @@ func (s *syncSink) RecordContractShadow(a ContractShadowAudit) {
 	defer s.mu.Unlock()
 	if rs, ok := s.inner.(ContractShadowAuditSink); ok {
 		rs.RecordContractShadow(a)
-	}
-}
-
-func (s *syncSink) RecordCompletionReport(a CompletionReportAudit) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if rs, ok := s.inner.(CompletionReportAuditSink); ok {
-		rs.RecordCompletionReport(a)
 	}
 }
 

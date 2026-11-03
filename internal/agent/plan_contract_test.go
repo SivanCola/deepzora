@@ -19,12 +19,6 @@ func contractPlan() plancontract.Plan {
 				VerifiedFiles:  []string{"internal/provider/cache.go"},
 				CandidateFiles: []string{"internal/boot/boot.go"},
 				Risks:          []string{"warm caches invalidate once"},
-				Acceptance: []plancontract.Criterion{
-					{Text: "two model refs never share an entry"},
-					{Text: "existing hits keep hitting", Regression: true},
-					{Text: "the hit rate is logged", Optional: true},
-				},
-				Verification: []plancontract.Verification{{Command: "go test ./internal/provider/"}},
 			},
 		},
 	}.Normalize()

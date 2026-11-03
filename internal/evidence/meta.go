@@ -6,6 +6,7 @@ import "strings"
 // workspace state. Real mutations are recorded from child evidence or the
 // underlying target tool after resolution (use_capability call).
 var nonMutationMetaTools = map[string]bool{
+	"spawn_agents":        true,
 	"run_skill":           true,
 	"read_skill":          true,
 	"read_only_skill":     true,

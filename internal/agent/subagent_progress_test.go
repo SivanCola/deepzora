@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"strings"
 	"sync"
@@ -11,7 +10,6 @@ import (
 	"unicode/utf8"
 
 	"deepzora/internal/event"
-	"deepzora/internal/jobs"
 	"deepzora/internal/provider"
 	"deepzora/internal/tool"
 )
@@ -611,7 +609,7 @@ func (p *streamErrorProvider) Stream(context.Context, provider.Request) (<-chan 
 func TestRunProfileSpecEmitsSubagentProgress(t *testing.T) {
 	rec := &recordSink{}
 	ctx := withCallContext(context.Background(), "task-1", rec, nil, false)
-	task := newTestTaskTool(t, reasoningTextProvider{}, tool.NewRegistry(), "sys", "", "", nil)
+	task := newTestSubagentRunner(t, reasoningTextProvider{}, tool.NewRegistry(), "sys", "", "", nil)
 
 	out, err := task.RunProfileSpec(ctx, ProfileExecSpec{
 		Task: TaskSpec{Objective: "do the thing"}, Grant: CapabilityGrant{AllowNoTools: true},
@@ -629,6 +627,7 @@ func TestRunProfileSpecEmitsSubagentProgress(t *testing.T) {
 		order = append(order, progressName(e)+":"+progressOutput(e))
 	}
 	want := []string{
+		event.SubagentProgressStatusName + ":queued",
 		event.SubagentProgressStatusName + ":running",
 		// The child's reasoning→responding transition merges into the status
 		// slot and is flushed right before the previews.
@@ -665,7 +664,7 @@ func TestRunProfileSpecProgressCancelledTerminal(t *testing.T) {
 	rec := &recordSink{}
 	ctx, cancel := context.WithCancel(withCallContext(context.Background(), "task-1", rec, nil, false))
 	cancel()
-	task := newTestTaskTool(t, reasoningTextProvider{}, tool.NewRegistry(), "sys", "", "", nil)
+	task := newTestSubagentRunner(t, reasoningTextProvider{}, tool.NewRegistry(), "sys", "", "", nil)
 
 	if _, err := task.RunProfileSpec(ctx, ProfileExecSpec{
 		Task: TaskSpec{Objective: "do the thing"}, Grant: CapabilityGrant{AllowNoTools: true},
@@ -691,7 +690,7 @@ func TestRunProfileSpecProgressCancelledTerminal(t *testing.T) {
 func TestRunProfileSpecProgressFailedOnProviderError(t *testing.T) {
 	rec := &recordSink{}
 	ctx := withCallContext(context.Background(), "task-1", rec, nil, false)
-	task := newTestTaskTool(t, &streamErrorProvider{err: errors.New("transport cut")}, tool.NewRegistry(), "sys", "", "", nil)
+	task := newTestSubagentRunner(t, &streamErrorProvider{err: errors.New("transport cut")}, tool.NewRegistry(), "sys", "", "", nil)
 
 	if _, err := task.RunProfileSpec(ctx, ProfileExecSpec{
 		Task: TaskSpec{Objective: "do the thing"}, Grant: CapabilityGrant{AllowNoTools: true},
@@ -714,24 +713,13 @@ func TestRunProfileSpecProgressFailedOnProviderError(t *testing.T) {
 func TestRunProfileSpecProgressPanicEmitsFailed(t *testing.T) {
 	rec := &recordSink{}
 	ctx := withCallContext(context.Background(), "task-1", rec, nil, false)
-	task := newTestTaskTool(t, panicProvider{name: "boom"}, tool.NewRegistry(), "sys", "", "", nil)
+	task := newTestSubagentRunner(t, panicProvider{name: "boom"}, tool.NewRegistry(), "sys", "", "", nil)
 
-	panicked := false
-	func() {
-		defer func() {
-			if recover() == nil {
-				t.Error("panic must propagate after the failed terminal is emitted")
-			} else {
-				panicked = true
-			}
-		}()
-		task.RunProfileSpec(ctx, ProfileExecSpec{
-			Task: TaskSpec{Objective: "do the thing"}, Grant: CapabilityGrant{AllowNoTools: true},
-			Worker: WorkerSpec{Kind: "task", Name: "task", SystemPrompt: "sys"},
-		})
-	}()
-	if !panicked {
-		t.Fatal("provider panic must propagate through RunProfileSpec")
+	if _, err := task.RunProfileSpec(ctx, ProfileExecSpec{
+		Task: TaskSpec{Objective: "do the thing"}, Grant: CapabilityGrant{AllowNoTools: true},
+		Worker: WorkerSpec{Kind: "task", Name: "task", SystemPrompt: "sys"},
+	}); err == nil || !strings.Contains(err.Error(), "panic") {
+		t.Fatalf("panic must become a failed result: %v", err)
 	}
 
 	terminals := 0
@@ -743,239 +731,4 @@ func TestRunProfileSpecProgressPanicEmitsFailed(t *testing.T) {
 	if terminals != 1 {
 		t.Fatalf("panic failed-terminal count = %d, want exactly one", terminals)
 	}
-}
-
-func TestBackgroundTaskEmitsQueuedRunningCompleted(t *testing.T) {
-	rec := &recordSink{}
-	jm := jobs.NewManager(event.Discard)
-	defer jm.Close()
-	ctx := jobs.WithManager(withCallContext(context.Background(), "bg-task", rec, nil, false), jm)
-	ctx = jobs.WithSession(ctx, "sess-bg")
-	ctx = WithParentSession(ctx, "sess-bg")
-
-	sched := NewSubagentScheduler(1, 1)
-	holdRelease, err := sched.Acquire(context.Background(), AcquireRequest{Writer: false})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer holdRelease()
-
-	started := make(chan struct{})
-	task := newTestTaskTool(t, &blockingProvider{started: started}, tool.NewRegistry(), "sys", "", "", nil).
-		WithScheduler(sched)
-
-	done := make(chan string, 1)
-	go func() {
-		out, err := task.Execute(ctx, json.RawMessage(`{"prompt":"work","run_in_background":true,"description":"bg"}`))
-		if err != nil {
-			done <- "err:" + err.Error()
-			return
-		}
-		done <- out
-	}()
-
-	var jobID string
-	select {
-	case out := <-done:
-		if !strings.Contains(out, "Started background task") {
-			t.Fatalf("background start output = %q", out)
-		}
-		jobID = extractJobID(out)
-	case <-time.After(2 * time.Second):
-		t.Fatal("background task did not return a job id while the slot was held")
-	}
-
-	// Registered but not yet executing: the queued status is emitted
-	// synchronously at registration and must never be merged away.
-	queued := false
-	for _, e := range rec.kinds(event.ToolProgress) {
-		if progressName(e) == event.SubagentProgressStatusName && progressOutput(e) == string(subagentPhaseQueued) && e.Tool.ID == "bg-task" {
-			queued = true
-		}
-	}
-	if !queued {
-		t.Fatal("background task never emitted a queued status at registration")
-	}
-
-	// Free the slot: the job acquires it, runs, and emits its terminal.
-	holdRelease()
-	select {
-	case <-started:
-	case <-time.After(2 * time.Second):
-		t.Fatal("background job never started after slot release")
-	}
-	if jobID != "" {
-		result := jm.WaitForSession(context.Background(), "sess-bg", []string{jobID}, 5)
-		if len(result) != 1 || result[0].Status != jobs.Done {
-			t.Fatalf("background job result = %+v, want one completed job", result)
-		}
-	}
-
-	waitStatus := func(want string) {
-		t.Helper()
-		deadline := time.Now().Add(2 * time.Second)
-		for time.Now().Before(deadline) {
-			for _, e := range rec.kinds(event.ToolProgress) {
-				if progressName(e) == event.SubagentProgressStatusName && progressOutput(e) == want && e.Tool.ID == "bg-task" {
-					return
-				}
-			}
-			time.Sleep(time.Millisecond)
-		}
-		t.Fatalf("never saw %q status", want)
-	}
-	waitStatus(string(subagentPhaseRunning))
-	waitStatus(string(subagentPhaseCompleted))
-
-	// Exactly one terminal for the whole lifecycle.
-	terminals := 0
-	for _, e := range rec.kinds(event.ToolProgress) {
-		if progressName(e) == event.SubagentProgressStatusName &&
-			(progressOutput(e) == string(subagentPhaseCompleted) || progressOutput(e) == string(subagentPhaseFailed) || progressOutput(e) == string(subagentPhaseCancelled)) {
-			terminals++
-		}
-	}
-	if terminals != 1 {
-		t.Fatalf("background terminal statuses = %d, want exactly one", terminals)
-	}
-}
-
-// TestParallelTasksGroupLifecycleEvents proves the group card gets an
-// explicit lifecycle from the tool itself: running when children start and
-// exactly one terminal after every child settles, keyed by the group call ID
-// — frontends never need to infer group completion from observed children.
-func TestParallelTasksGroupLifecycleEvents(t *testing.T) {
-	rec := &recordSink{}
-	task := newTestTaskTool(t, parallelStaticProvider{}, tool.NewRegistry(), "sys", "", "", nil)
-	parallel := NewParallelTasksTool(task)
-	ctx := withCallContext(context.Background(), "parallel-call", rec, nil, false)
-
-	if _, err := parallel.Execute(ctx, json.RawMessage(`{
-		"tasks": [{"prompt": "first"}, {"prompt": "second"}]
-	}`)); err != nil {
-		t.Fatalf("Execute: %v", err)
-	}
-
-	var groupStatuses []string
-	childStatuses := map[string][]string{}
-	for _, e := range rec.kinds(event.ToolProgress) {
-		if progressName(e) != event.SubagentProgressStatusName {
-			continue
-		}
-		switch {
-		case e.Tool.ID == "parallel-call":
-			groupStatuses = append(groupStatuses, progressOutput(e))
-		case strings.HasPrefix(e.Tool.ID, "parallel-call/"):
-			childStatuses[e.Tool.ID] = append(childStatuses[e.Tool.ID], progressOutput(e))
-		}
-	}
-	if len(groupStatuses) != 2 || groupStatuses[0] != string(subagentPhaseRunning) || groupStatuses[1] != string(subagentPhaseCompleted) {
-		t.Fatalf("group lifecycle = %v, want running → completed", groupStatuses)
-	}
-	for id, st := range childStatuses {
-		if len(st) < 2 || st[0] != string(subagentPhaseRunning) || st[len(st)-1] != string(subagentPhaseCompleted) {
-			t.Fatalf("child %s lifecycle = %v, want running → … → completed", id, st)
-		}
-		terminals := 0
-		for _, out := range st {
-			if isTerminalStatusOutput(out) {
-				terminals++
-			}
-		}
-		if terminals != 1 {
-			t.Fatalf("child %s terminals = %d, want exactly one", id, terminals)
-		}
-	}
-	if len(childStatuses) != 2 {
-		t.Fatalf("child status cards = %d, want 2", len(childStatuses))
-	}
-}
-
-// TestParallelTasksGroupLifecycleCancelled proves a cancelled group emits
-// exactly one cancelled terminal.
-func TestParallelTasksGroupLifecycleCancelled(t *testing.T) {
-	rec := &recordSink{}
-	started := make(chan struct{})
-	task := newTestTaskTool(t, &cancelBlockingProvider{started: started}, tool.NewRegistry(), "sys", "", "", nil)
-	parallel := NewParallelTasksTool(task)
-	ctx, cancel := context.WithCancel(withCallContext(context.Background(), "parallel-call", rec, nil, false))
-	defer cancel()
-	go func() {
-		<-started
-		cancel()
-	}()
-
-	if _, err := parallel.Execute(ctx, json.RawMessage(`{
-		"tasks": [{"prompt": "first"}, {"prompt": "second"}]
-	}`)); err == nil {
-		t.Fatal("cancelled Execute must return an error")
-	}
-
-	terminals := 0
-	for _, e := range rec.kinds(event.ToolProgress) {
-		if progressName(e) != event.SubagentProgressStatusName || e.Tool.ID != "parallel-call" {
-			continue
-		}
-		if isTerminalStatusOutput(progressOutput(e)) {
-			terminals++
-			if progressOutput(e) != string(subagentPhaseCancelled) {
-				t.Fatalf("group terminal = %q, want cancelled", progressOutput(e))
-			}
-		}
-	}
-	if terminals != 1 {
-		t.Fatalf("group terminals = %d, want exactly one", terminals)
-	}
-}
-
-type cancelBlockingProvider struct {
-	started chan struct{}
-	once    sync.Once
-}
-
-func (p *cancelBlockingProvider) Name() string { return "cancel-blocking" }
-
-func (p *cancelBlockingProvider) Stream(ctx context.Context, _ provider.Request) (<-chan provider.Chunk, error) {
-	p.once.Do(func() { close(p.started) })
-	<-ctx.Done()
-	return nil, ctx.Err()
-}
-
-// TestParallelTasksGroupLifecycleFailedOnValidation proves validation failures
-// still emit a failed terminal for the group card.
-func TestParallelTasksGroupLifecycleFailedOnValidation(t *testing.T) {
-	rec := &recordSink{}
-	parallel := &ParallelTasksTool{} // unconfigured: fails after merger setup
-	ctx := withCallContext(context.Background(), "parallel-call", rec, nil, false)
-
-	if _, err := parallel.Execute(ctx, json.RawMessage(`{"tasks":[{"prompt":"x"}]}`)); err == nil {
-		t.Fatal("unconfigured parallel_tasks must fail")
-	}
-
-	terminals := 0
-	ran := false
-	for _, e := range rec.kinds(event.ToolProgress) {
-		if progressName(e) != event.SubagentProgressStatusName || e.Tool.ID != "parallel-call" {
-			continue
-		}
-		if progressOutput(e) == string(subagentPhaseRunning) {
-			ran = true
-		}
-		if isTerminalStatusOutput(progressOutput(e)) {
-			terminals++
-			if progressOutput(e) != string(subagentPhaseFailed) {
-				t.Fatalf("group terminal = %q, want failed", progressOutput(e))
-			}
-		}
-	}
-	if ran {
-		t.Fatal("validation failure must not emit running")
-	}
-	if terminals != 1 {
-		t.Fatalf("group terminals = %d, want exactly one failed", terminals)
-	}
-}
-
-func isTerminalStatusOutput(out string) bool {
-	return out == string(subagentPhaseCompleted) || out == string(subagentPhaseFailed) || out == string(subagentPhaseCancelled)
 }

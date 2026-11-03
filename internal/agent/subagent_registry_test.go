@@ -301,36 +301,6 @@ func TestReadOnlySubagentToolRegistryKeepsOnlyResearchToolsAndSafeBash(t *testin
 	}
 }
 
-func TestReadOnlySubagentToolRegistryAllowsOnlyReadOnlyDelegationBeforeDepthLimit(t *testing.T) {
-	parent := tool.NewRegistry()
-	for _, name := range []string{"task", "run_skill", "explore", "read_only_task", "read_only_skill", "read_skill", "write_file"} {
-		parent.Add(subagentRegistryTool{name: name, readOnly: strings.HasPrefix(name, "read_only") || name == "read_skill"})
-	}
-	parent.Add(subagentRegistryTool{name: "read_file", readOnly: true})
-
-	firstLayer := ReadOnlySubagentToolRegistryForDepth(parent, nil, 1, 2)
-	for _, want := range []string{"read_file", "read_only_task", "read_only_skill", "read_skill"} {
-		if _, ok := firstLayer.Get(want); !ok {
-			t.Fatalf("first-layer read-only registry should expose %q; got %v", want, firstLayer.Names())
-		}
-	}
-	for _, hidden := range []string{"task", "run_skill", "explore", "write_file"} {
-		if _, ok := firstLayer.Get(hidden); ok {
-			t.Fatalf("first-layer read-only registry should hide %q; got %v", hidden, firstLayer.Names())
-		}
-	}
-
-	secondLayer := ReadOnlySubagentToolRegistryForDepth(parent, nil, 2, 2)
-	for _, hidden := range []string{"task", "run_skill", "read_only_task", "read_only_skill", "explore", "write_file"} {
-		if _, ok := secondLayer.Get(hidden); ok {
-			t.Fatalf("depth-limited read-only registry should hide %q; got %v", hidden, secondLayer.Names())
-		}
-	}
-	if _, ok := secondLayer.Get("read_skill"); !ok {
-		t.Fatalf("depth-limited read-only registry should keep read_skill (it renders text, it cannot recurse); got %v", secondLayer.Names())
-	}
-}
-
 func TestReadOnlySubagentToolRegistryIncludesMCPReadOnlyHint(t *testing.T) {
 	parent := tool.NewRegistry()
 	parent.Add(subagentCapabilityProxy{subagentRegistryTool{name: "use_capability", readOnly: true}})
@@ -646,7 +616,7 @@ func TestPlannerToolRegistryClonesUseCapability(t *testing.T) {
 	}
 }
 
-func TestTaskToolBuildSubRegUsesSubagentToolRegistry(t *testing.T) {
+func TestSubagentRunnerBuildSubRegUsesSubagentToolRegistry(t *testing.T) {
 	parent := tool.NewRegistry()
 	parent.Add(subagentRegistryTool{name: "task"})
 	parent.Add(subagentRegistryTool{name: "read_only_task"})
@@ -658,12 +628,12 @@ func TestTaskToolBuildSubRegUsesSubagentToolRegistry(t *testing.T) {
 		name:   "bash",
 		schema: `{"type":"object","properties":{"command":{"type":"string"},"run_in_background":{"type":"boolean"}}}`,
 	})
-	task := (&TaskTool{parentReg: parent}).WithMaxSubagentDepth(2)
+	task := &SubagentRunner{parentReg: parent}
 
 	firstLayer := task.buildSubReg(nil, 1)
 	for _, exposed := range []string{"task", "read_only_task", "read_only_skill"} {
-		if _, ok := firstLayer.Get(exposed); !ok {
-			t.Fatalf("first-layer subagent registry should expose %q; got %v", exposed, firstLayer.Names())
+		if _, ok := firstLayer.Get(exposed); ok {
+			t.Fatalf("first-layer subagent registry should hide %q; got %v", exposed, firstLayer.Names())
 		}
 	}
 	for _, hidden := range []string{"parallel_tasks", "fleet", "job_output"} {
@@ -684,19 +654,5 @@ func TestTaskToolBuildSubRegUsesSubagentToolRegistry(t *testing.T) {
 	}
 	if strings.Contains(string(bash.Schema()), "run_in_background") {
 		t.Fatalf("task subagent bash schema should be foreground-only: %s", bash.Schema())
-	}
-}
-
-func TestTaskToolDescribesSubagentToolBoundary(t *testing.T) {
-	task := &TaskTool{}
-	for label, text := range map[string]string{
-		"description": task.Description(),
-		"schema":      string(task.Schema()),
-	} {
-		for _, want := range []string{"job_output", "job_kill", "foreground-only"} {
-			if !strings.Contains(text, want) {
-				t.Fatalf("task %s should mention %q in subagent tool boundary: %s", label, want, text)
-			}
-		}
 	}
 }

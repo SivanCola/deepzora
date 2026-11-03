@@ -21,7 +21,7 @@ type ProfileDefinition struct {
 	Model        string
 	Effort       string
 	ReadOnly     bool
-	// Invocation is "auto" or "manual". Explicit profile= on task/fleet may
+	// Invocation is "auto" or "manual". Explicit profile= on spawn_agents may
 	// call manual profiles; automatic discovery still respects the index.
 	Invocation string
 	// NamedBuiltin is true for the built-in explore/research/review/
@@ -51,9 +51,9 @@ func ProfileFromSkill(sk skill.Skill) ProfileDefinition {
 	}
 }
 
-// ProfileExecSpec is the unified execution specification shared by task,
-// fleet items, and run_skill profile runs. Call sites build a spec, then hand
-// it to TaskTool.RunProfileSpec so runners cannot drift. Its members are the
+// ProfileExecSpec is the unified execution specification shared by batch
+// children, professional profiles, and desktop previews. Call sites build a spec, then hand
+// it to SubagentRunner.RunProfileSpec so runners cannot drift. Its members are the
 // delegation boundary: place a new field in the member that decides its value,
 // never in whichever one is closest to the call site.
 type ProfileExecSpec struct {
@@ -110,12 +110,12 @@ type CapabilityGrant struct {
 }
 
 // ContextRequest is the context a child starts from, as opposed to the task it
-// is given. Today that is only a prior transcript to resume.
+// is given. Parent conversation history is never copied.
 type ContextRequest struct {
-	// ContinueFrom are transcript continuation refs (writer path).
+	// ContinueFrom is retained only to reject retired internal invocations.
 	ContinueFrom string
 	// Ephemeral forces a non-persisted transcript for entry points that promise
-	// no durable host side effects, such as read_only_task.
+	// no durable archive, such as desktop profile previews.
 	Ephemeral bool
 	// Decisions, EvidenceSummary, FileAnchors, and OutputFormat are the only
 	// parent facts a child should start from. The parent transcript is not copied.
@@ -128,17 +128,15 @@ type ContextRequest struct {
 // SchedulerPolicy is when and how the run executes. It never changes what the
 // child is asked to do or what it is allowed to touch.
 type SchedulerPolicy struct {
+	// afterWriter preserves batch submission order without consuming a slot.
+	afterWriter <-chan struct{}
 	// MaxSteps is the optional per-call step budget (0 = default).
 	MaxSteps int
 	// MaxOutputTokens is an optional child completion cap (0 = inherit).
 	MaxOutputTokens int
-	// RunInBackground starts a jobs.Manager background job.
+	// RunInBackground is retained only to reject retired internal invocations.
 	RunInBackground bool
-	// BackgroundWriter marks work already hosted by a parent background job
-	// (for example fleet). It participates in checkpoint writer exclusion
-	// without spawning a second nested job.
-	BackgroundWriter bool
-	// Nested marks nested sub-agent acquires (fail-fast on concurrency limits).
+	// Nested is always rejected: children cannot delegate.
 	Nested bool
 }
 
@@ -172,6 +170,12 @@ func ResolveProfileDefinition(lookup ProfileLookup, name string) (ProfileDefinit
 //   - both set → expand patterns against parent, then intersect; empty
 //     intersection is an error
 func IntersectToolLists(parent *tool.Registry, profileTools, callTools []string) ([]string, error) {
+	if len(profileTools) > 0 && len(cleanToolList(profileTools)) == 0 {
+		return nil, fmt.Errorf("profile tools must not be blank")
+	}
+	if len(callTools) > 0 && len(cleanToolList(callTools)) == 0 {
+		return nil, fmt.Errorf("call tools must not be blank")
+	}
 	profileTools = cleanToolList(profileTools)
 	callTools = cleanToolList(callTools)
 	if len(profileTools) == 0 {

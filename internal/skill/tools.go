@@ -82,8 +82,7 @@ func (*runSkillTool) Schema() json.RawMessage {
 "type":"object",
 "properties":{
   "name":{"type":"string","description":"Skill identifier as it appears in the pinned Skills index (e.g. 'explore', 'review'). Case-sensitive. Just the identifier, not the [🧬 subagent] tag."},
-  "arguments":{"type":"string","description":"Free-form arguments. For inline skills: appended as an 'Arguments:' line; the skill's own instructions decide how to use them. For subagent skills: REQUIRED — becomes the entire task the subagent receives."},
-  "continue_from":{"type":"string","description":"Continue a prior compatible subagent transcript in the current conversation context. Only valid for runAs=subagent skills. Pass only the 'sa_...' value from the prior result's 'Subagent reference: ...' line."}
+  "arguments":{"type":"string","description":"Free-form arguments. For inline skills: appended as an 'Arguments:' line; the skill's own instructions decide how to use them. For subagent skills: REQUIRED — becomes the entire task the subagent receives."}
 },
 "required":["name"]
 }`)
@@ -122,7 +121,7 @@ func (t *runSkillTool) CapabilityArguments(capabilityID string) (tool.Capability
 	if sk.RunAs == RunSubagent {
 		required = `,"required":["arguments"]`
 	}
-	schema := json.RawMessage(`{"type":"object","properties":{"arguments":{"type":"string","description":"Concrete task or inline skill arguments."},"continue_from":{"type":"string","description":"Optional compatible subagent reference."}}` + required + `}`)
+	schema := json.RawMessage(`{"type":"object","properties":{"arguments":{"type":"string","description":"Concrete task or inline skill arguments."}}` + required + `}`)
 	example, _ := json.Marshal(map[string]any{
 		"action":        "call",
 		"capability_id": "skill:" + name,
@@ -158,7 +157,10 @@ func (t *runSkillTool) Execute(ctx context.Context, args json.RawMessage) (strin
 	}
 	sk = t.store.Prepare(sk)
 	rawArgs := strings.TrimSpace(p.Arguments)
-	opts := SubagentRunOptions{ContinueFrom: strings.TrimSpace(p.Continue)}
+	if err := rejectRetiredSubagentArgs(args); err != nil {
+		return "", err
+	}
+	opts := SubagentRunOptions{}
 
 	if sk.RunAs == RunSubagent {
 		if t.runner == nil {
@@ -381,7 +383,7 @@ func (t *subagentSkillTool) Description() string { return t.description }
 
 func (t *subagentSkillTool) Schema() json.RawMessage {
 	return json.RawMessage(`{"type":"object","properties":{"task":{"type":"string","description":` +
-		strconv.Quote(t.taskDesc) + `},"continue_from":{"type":"string","description":"Continue a prior compatible subagent transcript in the current conversation context. Pass only the 'sa_...' value from the prior result's 'Subagent reference: ...' line."}},"required":["task"]}`)
+		strconv.Quote(t.taskDesc) + `}},"required":["task"]}`)
 }
 
 func (t *subagentSkillTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {
@@ -415,7 +417,10 @@ func (t *subagentSkillTool) Execute(ctx context.Context, args json.RawMessage) (
 	if t.runner == nil {
 		return "", fmt.Errorf("%s: no subagent runner is configured in this session", t.toolName)
 	}
-	opts := SubagentRunOptions{ContinueFrom: strings.TrimSpace(p.Continue)}
+	if err := rejectRetiredSubagentArgs(args); err != nil {
+		return "", err
+	}
+	opts := SubagentRunOptions{}
 
 	out, err := t.runner(ctx, sk, task, opts)
 	if err != nil {
@@ -731,4 +736,17 @@ func availableNames(store *Store) string {
 		names[i] = s.Name
 	}
 	return strings.Join(names, ", ")
+}
+
+func rejectRetiredSubagentArgs(args json.RawMessage) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(args, &fields); err != nil {
+		return err
+	}
+	for _, key := range []string{"continue_from", "fork_from", "run_in_background", "write_paths", "depends_on"} {
+		if _, exists := fields[key]; exists {
+			return fmt.Errorf("%s is retired; start a fresh independent subagent", key)
+		}
+	}
+	return nil
 }

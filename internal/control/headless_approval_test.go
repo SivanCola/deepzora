@@ -233,7 +233,7 @@ func TestHeadlessAutoAndYoloKeepFreshMemoryBoundary(t *testing.T) {
 // regardless of the CLI-selected headless
 // approval mode, so a task sub-agent could run a write_file call an explicit
 // ask rule was supposed to deny under auto. runSubagentGateWriteOnce drives a
-// write_file tool call through a gate exactly the way TaskTool.runSubSession
+// write_file tool call through a gate exactly the way SubagentRunner.runSubSession
 // does — a plain agent.New(...).Run(...) with the gate on agent.Options — so
 // this exercises the same mechanism a real sub-agent uses, not a mock.
 func TestBuildHeadlessApprovalGateMatchesParentExecutorContract(t *testing.T) {

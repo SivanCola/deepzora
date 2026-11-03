@@ -20,7 +20,7 @@ func ValidateModelRuntimeContinuation(old, current *Config) error {
 	if !reflect.DeepEqual(old.Tools, current.Tools) || !reflect.DeepEqual(old.Network, current.Network) || !reflect.DeepEqual(old.Skills, current.Skills) {
 		return fmt.Errorf("tool or network policy changed")
 	}
-	for _, pair := range [][2]int{{old.Agent.MaxSubagentDepth, current.Agent.MaxSubagentDepth}, {old.Agent.MaxSubagentConcurrency, current.Agent.MaxSubagentConcurrency}, {old.Agent.MaxParallelWriters, current.Agent.MaxParallelWriters}} {
+	for _, pair := range [][2]int{{old.Agent.MaxSubagentConcurrency, current.Agent.MaxSubagentConcurrency}} {
 		// Zero-value defaults require rebuilding rather than guessing a bound.
 		if pair[0] != pair[1] && (pair[0] <= 0 || pair[1] <= 0 || pair[1] < pair[0]) {
 			return fmt.Errorf("model execution limits changed")

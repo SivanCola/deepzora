@@ -18,10 +18,8 @@ type AuditForwarder struct{ Inner Sink }
 type OptionalSinkCapabilities interface {
 	RuntimeStateSink
 	DelegationAuditSink
-	ReadinessAuditSink
 	AnchorSafetyAuditSink
 	ContractShadowAuditSink
-	CompletionReportAuditSink
 	MemoryRecallSink
 	DelegationAdmissionSink
 	OutcomeProgressSink
@@ -34,10 +32,6 @@ type OptionalSinkCapabilities interface {
 
 var _ OptionalSinkCapabilities = AuditForwarder{}
 
-func (f AuditForwarder) RecordReadinessAudit(a evidence.ReadinessAudit) {
-	RecordReadinessAudit(f.Inner, a)
-}
-
 func (f AuditForwarder) RecordAnchorSafetyAudit(a AnchorSafetyAudit) {
 	RecordAnchorSafetyAudit(f.Inner, a)
 }
@@ -46,10 +40,6 @@ func (f AuditForwarder) RecordTurnCompletion() { RecordTurnCompletion(f.Inner) }
 
 func (f AuditForwarder) RecordContractShadow(a ContractShadowAudit) {
 	RecordContractShadow(f.Inner, a)
-}
-
-func (f AuditForwarder) RecordCompletionReport(a CompletionReportAudit) {
-	RecordCompletionReport(f.Inner, a)
 }
 
 func (f AuditForwarder) RecordMemoryRecall(a MemoryRecallAudit) {

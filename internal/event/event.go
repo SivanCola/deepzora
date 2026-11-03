@@ -529,12 +529,6 @@ type WorkspaceChangedPayload struct {
 	WatchState WorkspaceWatchState
 }
 
-// ReadinessAuditSink is an optional sink capability. Sinks that do not care
-// about readiness audit receipts can implement only Sink and will ignore them.
-type ReadinessAuditSink interface {
-	RecordReadinessAudit(evidence.ReadinessAudit)
-}
-
 // AnchorSafetyAudit is a content-free shadow decision for an anchor-based
 // writer. It contains only bounded enums/counts; paths, anchors, source text,
 // and digests never leave the host-side observation ledger.
@@ -577,16 +571,6 @@ func RecordTurnCompletion(s Sink) {
 	}
 	if ts, ok := s.(TurnCompletionSink); ok {
 		ts.RecordTurnCompletion()
-	}
-}
-
-// RecordReadinessAudit forwards a readiness audit receipt to sinks that opt in.
-func RecordReadinessAudit(s Sink, a evidence.ReadinessAudit) {
-	if nilutil.IsNil(s) {
-		return
-	}
-	if rs, ok := s.(ReadinessAuditSink); ok {
-		rs.RecordReadinessAudit(a)
 	}
 }
 
@@ -644,44 +628,6 @@ func RecordContractShadow(s Sink, a ContractShadowAudit) {
 	}
 	if cs, ok := s.(ContractShadowAuditSink); ok {
 		cs.RecordContractShadow(a)
-	}
-}
-
-// CompletionReportAudit is the host-authored completion report's end-of-turn
-// summary: counts, enums, and gap kinds only, never paths or command text.
-// The gap counters carry the point — what the turn left unproven.
-type CompletionReportAudit struct {
-	Verdict             string
-	Risk                string
-	Criteria            int
-	CriteriaSatisfied   int
-	Changes             int
-	ChangesUnreviewed   int
-	Verifications       int
-	VerificationsFailed int
-	VerificationsStale  int
-	Gaps                int
-	GapKinds            []string
-	// ClaimsVerified counts the turn's own asserted verifications;
-	// ClaimsUnbacked is how many of them the ledger did not support.
-	ClaimsVerified int
-	ClaimsUnbacked int
-}
-
-// CompletionReportAuditSink is an optional sink capability; implementations
-// must keep it content-free, like every other audit channel.
-type CompletionReportAuditSink interface {
-	RecordCompletionReport(CompletionReportAudit)
-}
-
-// RecordCompletionReport forwards the completion summary only to sinks that
-// explicitly opt in. Ordinary UI sinks receive nothing.
-func RecordCompletionReport(s Sink, a CompletionReportAudit) {
-	if nilutil.IsNil(s) {
-		return
-	}
-	if cs, ok := s.(CompletionReportAuditSink); ok {
-		cs.RecordCompletionReport(a)
 	}
 }
 

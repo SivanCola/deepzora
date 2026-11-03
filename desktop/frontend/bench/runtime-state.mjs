@@ -23,18 +23,19 @@ try {
   await selectSession(page, "bench:small-6t");
   await page.waitForFunction(() => document.querySelector(".transcript")?.textContent?.includes("ASYNC LAYOUT EXPANSION COMPLETE"));
   await page.evaluate(async () => {
-    const { app } = await import("/src/lib/bridge.ts");
+    const { app, __emitMockTabMeta } = await import("/src/lib/bridge.ts");
     const { runtimeStateStore } = await import("/src/lib/runtimeStateStore.ts");
     const { acceptRuntimeState } = await import("/src/lib/runtimeStateReducer.ts");
     const { sessionIdentityRoute } = await import("/src/lib/sessionIdentity.ts");
     const { installDesktopHostStub } = await import("/src/__tests__/desktopHostStub.ts");
     const { DESKTOP_COMMANDS } = await import("/src/generated/desktopContract.generated.ts");
     const fallback = Object.fromEntries(DESKTOP_COMMANDS.map(key => [key, app[key]]));
-    const tabs = await app.ListTabs();
+    const tabs = (await app.ListTabs()).map(tab => ({ ...tab, sessionGeneration: tab.sessionGeneration ?? 1 }));
     const tree = { topics: [] };
     const selected = tabs.find(tab => tab.sessionPath?.includes("small")) ?? tabs[0];
     window.__runtimeFixture = { tab: selected, revision: 0, calls: [], queries: [], fail: true, accept: (...args) => acceptRuntimeState(runtimeStateStore, ...args), topics: tree.topics };
     installDesktopHostStub(new Proxy(fallback, { get(_target, key) {
+      if (key === "ListTabs") return async () => tabs;
       // Periodic/focus reads must observe the same producer as pushed frames.
       if (key === "SyncRuntimeState" || key === "GetRuntimeStateSnapshot") return async () => runtimeStateStore.getSnapshot();
       if (key === "CaptureInboxTarget") return async (tabId, sessionPath) => {
@@ -54,6 +55,7 @@ try {
       };
       return fallback[key];
     } }));
+    __emitMockTabMeta({ tabId: selected.id, meta: selected });
   });
   const publish = async (phase, extra = {}) => page.evaluate(({ phase, extra }) => {
     const f = window.__runtimeFixture;
@@ -63,7 +65,7 @@ try {
       turnEventSeq: 1, pendingPrompt: false, cancelRequested: false, cancellable: phase === "executing", backgroundJobs: 0, activity: phase === "executing" ? "thinking" : "", ...extra };
     return f.accept({ epoch: "fixture-app", revision: f.revision, topics: f.topics, sessions: [{
       tabId: tab.id, scope: tab.scope ?? "project", workspaceRoot: tab.workspaceRoot, topicId: tab.topicId ?? "",
-      sessionId: tab.session?.sessionId, sessionPath: tab.sessionPath ?? "", sessionGeneration: tab.sessionGeneration ?? 1, open: true,
+      sessionId: tab.session?.sessionId, sessionPath: tab.sessionPath ?? "", sessionGeneration: tab.sessionGeneration, open: true,
       freshness: extra.freshness ?? "synced", state,
     }] }, true);
   }, { phase, extra });
@@ -72,7 +74,7 @@ try {
   check(await page.locator(".composer__btn--stop").count() === 0, "finishing hides Stop");
   check(await page.locator(".composer-card--running,.composer-run-strip__dot").count() === 0, "finishing has no animated run marker");
   await input.fill("durable next turn");
-  await input.press("Enter");
+  await page.locator(".composer__btn--send").click();
   await page.waitForFunction(() => window.__runtimeFixture.calls.length === 1);
   check(await input.inputValue() === "durable next turn", "failed enqueue preserves draft");
   await fs.mkdir("/tmp/deepzora-runtime-evidence", { recursive: true });
@@ -80,7 +82,7 @@ try {
   await publish("idle");
   check(await page.locator(".composer__btn--send").getAttribute("aria-label") === "Check send result", "phase transition keeps receipt confirmation action");
   await page.evaluate(() => { window.__runtimeFixture.fail = false; });
-  await input.press("Enter");
+  await page.locator(".composer__btn--send").click();
   await page.waitForFunction(() => document.querySelector("textarea.composer__input:not([aria-hidden=true])")?.value === "");
   const calls = await page.evaluate(() => window.__runtimeFixture.calls);
   const queries = await page.evaluate(() => window.__runtimeFixture.queries);
@@ -106,6 +108,7 @@ try {
   await page.waitForFunction(() => document.querySelector(".transcript")?.textContent?.includes("Geometry contract fixture complete."));
   check(errors.length === 0, "runtime scenarios produce no browser errors: " + errors.join("; "));
 } catch (error) {
+  console.error("Runtime fixture receipt:", await page.evaluate(() => ({ calls: window.__runtimeFixture?.calls, queries: window.__runtimeFixture?.queries, input: document.querySelector("textarea.composer__input:not([aria-hidden=true])")?.value })));
   console.error("Runtime fixture toasts:", await page.locator(".toast__text").allTextContents());
   console.error("Runtime fixture state:", await page.evaluate(async () => ({ tab: window.__runtimeFixture?.tab, tabs: await (await import("/src/lib/bridge.ts")).app.ListTabs(), runtime: (await import("/src/lib/runtimeStateStore.ts")).runtimeStateStore.getSnapshot() })));
   throw error;

@@ -1,56 +1,17 @@
 package boot
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"os"
 
-	"deepzora/internal/ablation"
-	"deepzora/internal/agent"
 	"deepzora/internal/config"
 	"deepzora/internal/control"
 	"deepzora/internal/event"
 	"deepzora/internal/hook"
 	"deepzora/internal/lsp"
-	"deepzora/internal/provider"
 	"deepzora/internal/sandbox"
-	"deepzora/internal/skill"
-	"deepzora/internal/tool"
-	"deepzora/internal/workspacelease"
 )
-
-func newSubagentSkillOptionsFactory(
-	cfg config.AgentConfig,
-	quoteCtx *event.QuoteContext,
-	gate agent.Gate,
-	maxDepth int,
-	ablationSet ablation.Set,
-	lease *workspacelease.Owner,
-	writeRoots *sandbox.WritableRootSet,
-	hookRunner *hook.Runner,
-	imageRoutes ...childImageRouting,
-) func(context.Context, int, *provider.Pricing, int, int) agent.Options {
-	home, stateRoot := userHomeDir(), config.MemoryUserDir()
-	return func(ctx context.Context, steps int, price *provider.Pricing, ctxWin, childDepth int) agent.Options {
-		opts := agent.Options{
-			MaxSteps: steps, Temperature: cfg.Temperature, Pricing: price, QuoteContext: quoteCtx, UsageSource: event.UsageSourceSubagent,
-			Gate: gate, ContextWindow: ctxWin,
-			CompactRatio: cfg.CompactRatio,
-			ArchiveDir:   config.ArchiveDir(), ResponseLanguage: agent.ResponseLanguageFromContext(ctx), ReasoningLanguage: agent.ReasoningLanguageFromContext(ctx),
-			SubagentDepth: childDepth, MaxSubagentDepth: maxDepth,
-			Ablation: ablationSet, WorkspaceLease: lease, WriteRoots: writeRoots,
-			DisableWriteAccessExpand: true, HomeDir: home, StateRoot: stateRoot,
-		}
-		if len(imageRoutes) > 0 {
-			opts.ImageRequestResolver = imageRoutes[0].controller()
-			opts.ImageInput = imageRoutes[0].config
-		}
-		callID, _, _, _ := agent.CallContext(ctx)
-		opts.Hooks = hookRunner.ForSession("subagent:" + callID)
-		return opts
-	}
-}
 
 func newBootHookRunner(resolved []hook.ResolvedHook, root string, shell sandbox.Shell, sink event.Sink) *hook.Runner {
 	if held, pending := hook.PendingProjectHooks(hook.LoadOptions{ProjectRoot: root}); pending {
@@ -76,39 +37,6 @@ func newHookRunner(resolved []hook.ResolvedHook, root string, shell sandbox.Shel
 		runtime.BashPath = shell.Path
 	}
 	return hook.NewRunner(resolved, root, hook.NewDefaultSpawner(runtime), notify)
-}
-
-func reviewSubagentSkillOptions(
-	ctx context.Context,
-	profile, task string,
-	steps int,
-	price *provider.Pricing,
-	ctxWin, childDepth int,
-	factory func(context.Context, int, *provider.Pricing, int, int) agent.Options,
-) (string, agent.Options) {
-	reviewTokens := 0
-	if reviewTask, tokens, ok := agent.PrepareReviewSubagentContext(ctx, profile, task); ok {
-		task, reviewTokens = reviewTask, tokens
-	}
-	opts := factory(ctx, steps, price, ctxWin, childDepth)
-	if reviewTokens > 0 {
-		opts.MaxOutputTokens = reviewTokens
-	}
-	return task, opts
-}
-
-func skillSubagentRegistry(
-	sk skill.Skill,
-	parent *tool.Registry,
-	childDepth, maxDepth int,
-	runtime *agent.MCPCapabilityRuntime,
-	writeRoots *sandbox.WritableRootSet,
-) (*tool.Registry, *sandbox.WritableRootSet) {
-	if sk.ReadOnly {
-		return agent.ReadOnlySubagentToolRegistryForDepthWithRuntime(parent, sk.AllowedTools, childDepth, maxDepth, runtime), nil
-	}
-	reg := agent.SubagentToolRegistryForDepthWithRuntime(parent, sk.AllowedTools, childDepth, maxDepth, runtime)
-	return agent.BindChildWriteRoots(reg, writeRoots, agent.WritePathSet{})
 }
 
 func projectWriteAccessPersister(root string) control.PersistWriteAccessFunc {
