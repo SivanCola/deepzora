@@ -182,7 +182,7 @@ func TestStreamReturnsRequestOnlyUsageOnProviderFailure(t *testing.T) {
 }
 
 func TestTaskUsageModelRefUsesCanonicalRuntimeIdentity(t *testing.T) {
-	task := (&TaskTool{baseModel: "deepseek/deepseek-v4-pro"}).WithTranscriptIdentityResolver(
+	task := (&SubagentRunner{baseModel: "deepseek/deepseek-v4-pro"}).WithTranscriptIdentityResolver(
 		func(modelRef, effort string) (string, string) {
 			if modelRef == "flash" {
 				return "deepseek/deepseek-v4-flash", effort

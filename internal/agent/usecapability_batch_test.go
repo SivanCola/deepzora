@@ -45,12 +45,11 @@ func TestPartitionToolCallsKeepsUnknownCapabilitySerial(t *testing.T) {
 
 func TestCapabilityWrappersForwardPureBatchClassification(t *testing.T) {
 	inner := NewUseCapabilityTool(t.Context(), nil, nil, nil, nil, nil, nil)
-	pathBound := pathBoundCapabilityProxy{inner: inner, resolver: inner}
 	restricted := &restrictedCapabilityProxy{
 		Tool: inner, resolver: inner,
 		allowed: map[string]bool{"mcp-server:github": true}, servers: map[string]bool{"github": true},
 	}
-	for name, wrapped := range map[string]tool.Tool{"path-bound": pathBound, "restricted": restricted} {
+	for name, wrapped := range map[string]tool.Tool{"restricted": restricted} {
 		t.Run(name, func(t *testing.T) {
 			reg := tool.NewRegistry()
 			reg.Add(wrapped)

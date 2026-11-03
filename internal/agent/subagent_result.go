@@ -31,7 +31,7 @@ type SubagentResultTool struct {
 	workspaceRoot string
 }
 
-func NewSubagentResultTool(task *TaskTool) *SubagentResultTool {
+func NewSubagentResultTool(task *SubagentRunner) *SubagentResultTool {
 	if task == nil {
 		return &SubagentResultTool{}
 	}
@@ -41,7 +41,7 @@ func NewSubagentResultTool(task *TaskTool) *SubagentResultTool {
 func (*SubagentResultTool) Name() string { return tool.HostReadSubagentResult }
 
 func (*SubagentResultTool) Description() string {
-	return "Read a completed or partial sub-agent's retained answer by the Subagent reference returned from task, parallel_tasks, or fleet. Failed runs may expose their last useful output and an explicit retryability status. Results are scoped to the current conversation lineage and paged by UTF-8 byte offset so large answers remain lossless without overflowing one tool result."
+	return "Read a completed or partial sub-agent's retained answer by the Subagent reference returned from spawn_agents. Failed runs may expose their last useful output and an explicit retryability status. Results are scoped to the current conversation lineage and paged by UTF-8 byte offset so large answers remain lossless without overflowing one tool result."
 }
 
 func (*SubagentResultTool) Schema() json.RawMessage {
@@ -168,99 +168,6 @@ func (s *SubagentStore) ReadFinalAnswer(ref, parentSession, workspaceRoot string
 	return "", meta.Status, fmt.Errorf("subagent reference %q has no final assistant answer", ref)
 }
 
-type subagentAggregateItem struct {
-	header string
-	status string
-	answer string
-	ref    string
-	detail string
-}
-
-func formatBoundedSubagentAggregate(prefix string, items []subagentAggregateItem) string {
-	// Attestations are reserved before prose gets any budget: a long child
-	// answer must never truncate away what the host saw it change. They
-	// degrade to header plus violations only if they would starve previews.
-	prose := make([]string, len(items))
-	receipts := make([]string, len(items))
-	receiptBytes := 0
-	for i, item := range items {
-		prose[i], receipts[i] = splitHostReceipts(item.answer)
-		receiptBytes += len(receipts[i]) + 1
-	}
-	if reserve := subagentAggregateBudgetBytes / 2; receiptBytes > reserve && len(items) > 0 {
-		receiptBytes = 0
-		for i := range receipts {
-			receipts[i] = boundedHostReceipts(receipts[i], reserve/len(items))
-			receiptBytes += len(receipts[i]) + 1
-		}
-	}
-
-	baseBytes := len(prefix) + receiptBytes
-	completed := 0
-	for i, item := range items {
-		baseBytes += len(item.header) + len(item.status) + len(item.detail)
-		if item.ref != "" {
-			baseBytes += len("Subagent reference: \n") + len(item.ref)
-		}
-		if prose[i] != "" {
-			baseBytes += len("Final answer preview:\n\n")
-			completed++
-		}
-	}
-	available := max(subagentAggregateBudgetBytes-baseBytes, 0)
-	perAnswer := 0
-	if completed > 0 {
-		perAnswer = available / completed
-	}
-
-	var b strings.Builder
-	b.Grow(min(subagentAggregateBudgetBytes, baseBytes+available))
-	b.WriteString(prefix)
-	for i, item := range items {
-		b.WriteString(item.header)
-		b.WriteString(item.status)
-		if item.ref != "" {
-			fmt.Fprintf(&b, "Subagent reference: %s\n", item.ref)
-		}
-		if item.detail != "" {
-			b.WriteString(item.detail)
-		}
-		if prose[i] != "" {
-			b.WriteString("Final answer preview:\n")
-			b.WriteString(subagentAnswerPreview(prose[i], item.ref, perAnswer))
-			b.WriteByte('\n')
-		}
-		if receipts[i] != "" {
-			b.WriteString(receipts[i])
-			b.WriteByte('\n')
-		}
-	}
-	return b.String()
-}
-
-func subagentAnswerPreview(answer, ref string, limit int) string {
-	answer = strings.TrimSpace(answer)
-	if len(answer) <= limit {
-		return answer
-	}
-	if limit <= 0 {
-		return ""
-	}
-	marker := "\n…[preview truncated; full result unavailable in this ephemeral run]…\n"
-	if ref != "" {
-		marker = fmt.Sprintf("\n…[preview truncated; read the full result with read_subagent_result(ref=%q)]…\n", ref)
-	}
-	if len(marker) >= limit {
-		return utf8Prefix(answer, limit)
-	}
-	keep := limit - len(marker)
-	headBytes := keep / 2
-	tailBytes := keep - headBytes
-	head := utf8Prefix(answer, headBytes)
-	tail := utf8Suffix(answer, tailBytes)
-	return head + marker + tail
-}
-
 func utf8Prefix(s string, limit int) string {
 	if limit >= len(s) {
 		return s
@@ -272,20 +179,6 @@ func utf8Prefix(s string, limit int) string {
 		limit--
 	}
 	return s[:limit]
-}
-
-func utf8Suffix(s string, limit int) string {
-	if limit >= len(s) {
-		return s
-	}
-	if limit <= 0 {
-		return ""
-	}
-	start := len(s) - limit
-	for start < len(s) && !utf8.RuneStart(s[start]) {
-		start++
-	}
-	return s[start:]
 }
 
 func boundedInline(s string, limit int) string {

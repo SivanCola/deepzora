@@ -21,16 +21,16 @@ func testTaskContext() context.Context {
 	return WithParentSession(context.Background(), "parent-session")
 }
 
-// TestTaskToolReturnsSubAgentFinalAnswer runs a task against a mock provider
+// TestSubagentRunnerReturnsSubAgentFinalAnswer runs a task against a mock provider
 // that emits a single text turn, and verifies the tool returns that text with a
 // transcript reference — sub-agent intermediate state isn't supposed to leak.
-func TestTaskToolReturnsSubAgentFinalAnswer(t *testing.T) {
+func TestSubagentRunnerReturnsSubAgentFinalAnswer(t *testing.T) {
 	sub := &mockProvider{name: "sub", chunks: []provider.Chunk{
 		{Type: provider.ChunkText, Text: "found 3 callers of Foo"},
 		{Type: provider.ChunkDone},
 	}}
 	parentReg := tool.NewRegistry()
-	task := newTestTaskTool(t, sub, parentReg, "test-sys-prompt", "", "", nil)
+	task := newTestSubagentRunner(t, sub, parentReg, "test-sys-prompt", "", "", nil)
 
 	out, err := task.Execute(testTaskContext(), []byte(`{"prompt":"find callers of Foo"}`))
 	if err != nil {
@@ -40,7 +40,7 @@ func TestTaskToolReturnsSubAgentFinalAnswer(t *testing.T) {
 	if !strings.Contains(out, "found 3 callers of Foo") {
 		t.Errorf("got %q, want sub-agent final answer", out)
 	}
-	if !strings.Contains(out, "To continue this same subagent transcript in a later call, pass this ref as `continue_from`. Start a fresh subagent when the next task is independent.") {
+	if !strings.Contains(out, "Read the retained result with read_subagent_result.") {
 		t.Errorf("got %q, want continuation guidance", out)
 	}
 
@@ -50,18 +50,18 @@ func TestTaskToolReturnsSubAgentFinalAnswer(t *testing.T) {
 	if sys := sub.lastReq.Messages[0]; sys.Role != provider.RoleSystem || sys.Content != "test-sys-prompt" {
 		t.Errorf("first message = %+v, want system 'test-sys-prompt'", sys)
 	}
-	if got := lastUser(sub.lastReq); !strings.Contains(got, `<subagent-context event="SubagentStart">`) || !strings.Contains(got, "find callers of Foo") || !strings.Contains(got, completeSubtaskContract) {
+	if got := lastUser(sub.lastReq); !strings.Contains(got, `<subagent-context event="SubagentStart">`) || !strings.Contains(got, "find callers of Foo") {
 		t.Errorf("sub-agent user = %q, want SubagentStart context plus prompt", got)
 	}
 }
 
-func TestTaskToolInjectsWorkspaceContextIntoSubagentPrompt(t *testing.T) {
+func TestSubagentRunnerInjectsWorkspaceContextIntoSubagentPrompt(t *testing.T) {
 	sub := &mockProvider{name: "sub", chunks: []provider.Chunk{
 		{Type: provider.ChunkText, Text: "answer"},
 		{Type: provider.ChunkDone},
 	}}
 	workspace := t.TempDir()
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: sub, Pricing: nil, ParentRegistry: tool.NewRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
+	task := NewSubagentRunner(SubagentRunnerOptions{Provider: sub, Pricing: nil, ParentRegistry: tool.NewRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
 		WithTranscripts(newTestSubagentStore(t, t.TempDir()), workspace, "base-model", "base-effort")
 
 	if _, err := task.Execute(testTaskContext(), []byte(`{"prompt":"inspect project"}`)); err != nil {
@@ -74,37 +74,17 @@ func TestTaskToolInjectsWorkspaceContextIntoSubagentPrompt(t *testing.T) {
 	if !strings.Contains(got, `<workspace-context event="SubagentWorkspace">`) ||
 		!strings.Contains(got, "Current workspace: "+strconv.Quote(workspace)) ||
 		!strings.Contains(got, `prefer "." or relative paths`) ||
-		!strings.Contains(got, "inspect project") || !strings.Contains(got, completeSubtaskContract) {
+		!strings.Contains(got, "inspect project") {
 		t.Fatalf("sub-agent user = %q, want workspace context plus prompt", got)
 	}
 }
 
-func TestTaskToolSchemaExposesOnlyContinueFromForPersistence(t *testing.T) {
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: &mockProvider{name: "sub"}, Pricing: nil, ParentRegistry: tool.NewRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil})
-	schema := string(task.Schema())
-	if !strings.Contains(schema, `"continue_from"`) {
-		t.Fatalf("task schema = %s, want continue_from", schema)
-	}
-	if strings.Contains(schema, "fork_from") {
-		t.Fatalf("task schema = %s, want no fork_from", schema)
-	}
-}
-
-func TestParallelTasksSchemaDoesNotExposePersistentContinuation(t *testing.T) {
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: &mockProvider{name: "sub"}, Pricing: nil, ParentRegistry: tool.NewRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil})
-	parallel := NewParallelTasksTool(task)
-	schema := string(parallel.Schema())
-	if strings.Contains(schema, "continue_from") || strings.Contains(schema, "fork_from") {
-		t.Fatalf("parallel_tasks schema = %s, want no persistent continuation fields", schema)
-	}
-}
-
-func TestTaskToolInheritsReasoningLanguageFromContext(t *testing.T) {
+func TestSubagentRunnerInheritsReasoningLanguageFromContext(t *testing.T) {
 	sub := &mockProvider{name: "sub", chunks: []provider.Chunk{
 		{Type: provider.ChunkText, Text: "done"},
 		{Type: provider.ChunkDone},
 	}}
-	task := newTestTaskTool(t, sub, tool.NewRegistry(), "sys", "", "", nil)
+	task := newTestSubagentRunner(t, sub, tool.NewRegistry(), "sys", "", "", nil)
 
 	ctx := WithReasoningLanguagePreference(testTaskContext(), "zh")
 	if _, err := task.Execute(ctx, []byte(`{"prompt":"inspect auth"}`)); err != nil {
@@ -116,12 +96,12 @@ func TestTaskToolInheritsReasoningLanguageFromContext(t *testing.T) {
 	}
 }
 
-func TestTaskToolPropagatesSubagentImageCandidates(t *testing.T) {
+func TestSubagentRunnerPropagatesSubagentImageCandidates(t *testing.T) {
 	sub := &mockProvider{name: "sub", chunks: []provider.Chunk{
 		{Type: provider.ChunkText, Text: "image received"},
 		{Type: provider.ChunkDone},
 	}}
-	task := newTestTaskTool(t, sub, tool.NewRegistry(), "sys", "", "", nil)
+	task := newTestSubagentRunner(t, sub, tool.NewRegistry(), "sys", "", "", nil)
 	ctx := WithSubagentImageCandidates(testTaskContext(), []string{"data:image/png;base64,AAAA"})
 	if _, err := task.Execute(ctx, []byte(`{"prompt":"inspect the attached image"}`)); err != nil {
 		t.Fatalf("Execute: %v", err)
@@ -137,11 +117,11 @@ func TestTaskToolPropagatesSubagentImageCandidates(t *testing.T) {
 	}
 }
 
-// TestTaskToolFiltersTools verifies the whitelist behaviour: when the caller
+// TestSubagentRunnerFiltersTools verifies the whitelist behaviour: when the caller
 // names a subset of tools, the sub-agent's registry contains exactly that set
 // with recursive delegation tools available while max_subagent_depth leaves one
 // more layer.
-func TestTaskToolFiltersTools(t *testing.T) {
+func TestSubagentRunnerFiltersTools(t *testing.T) {
 	sub := &mockProvider{name: "sub", chunks: []provider.Chunk{
 		{Type: provider.ChunkText, Text: "ok"},
 		{Type: provider.ChunkDone},
@@ -150,8 +130,8 @@ func TestTaskToolFiltersTools(t *testing.T) {
 	parentReg.Add(fakeTool{name: "read_file", readOnly: true})
 	parentReg.Add(fakeTool{name: "write_file", readOnly: false})
 	parentReg.Add(fakeTool{name: "bash", readOnly: false})
-	task := newTestTaskTool(t, sub, parentReg, "sys", "", "", nil)
-	parentReg.Add(task) // simulate the wiring in cli.setup
+	task := newTestSubagentRunner(t, sub, parentReg, "sys", "", "", nil)
+	parentReg.Add(NewSpawner(task)) // simulate the wiring in cli.setup
 	parentReg.Add(fakeTool{name: "run_skill", readOnly: false})
 	parentReg.Add(fakeTool{name: "read_only_skill", readOnly: true})
 	parentReg.Add(fakeTool{name: "research", readOnly: false})
@@ -166,7 +146,7 @@ func TestTaskToolFiltersTools(t *testing.T) {
 	for _, s := range sub.lastReq.Tools {
 		got[s.Name] = true
 	}
-	for _, want := range []string{"read_file", "write_file", "task", "run_skill", "read_only_skill", "research"} {
+	for _, want := range []string{"read_file", "write_file"} {
 		if !got[want] {
 			t.Errorf("sub-agent tools = %v, want %q exposed at depth 1", got, want)
 		}
@@ -176,10 +156,10 @@ func TestTaskToolFiltersTools(t *testing.T) {
 	}
 }
 
-// TestTaskToolDefaultsToParentToolsWithDepthRemaining covers the no-whitelist
+// TestSubagentRunnerDefaultsToParentToolsWithDepthRemaining covers the no-whitelist
 // path: the first-layer sub-agent inherits parent tools except always-hidden
 // background/install tools because it still has one delegation layer available.
-func TestTaskToolDefaultsToParentToolsWithoutMetaTools(t *testing.T) {
+func TestSubagentRunnerDefaultsToParentToolsWithoutMetaTools(t *testing.T) {
 	sub := &mockProvider{name: "sub", chunks: []provider.Chunk{
 		{Type: provider.ChunkText, Text: "ok"},
 		{Type: provider.ChunkDone},
@@ -187,8 +167,8 @@ func TestTaskToolDefaultsToParentToolsWithoutMetaTools(t *testing.T) {
 	parentReg := tool.NewRegistry()
 	parentReg.Add(fakeTool{name: "read_file", readOnly: true})
 	parentReg.Add(fakeTool{name: "grep", readOnly: true})
-	task := newTestTaskTool(t, sub, parentReg, "sys", "", "", nil)
-	parentReg.Add(task)
+	task := newTestSubagentRunner(t, sub, parentReg, "sys", "", "", nil)
+	parentReg.Add(NewSpawner(task))
 	parentReg.Add(fakeTool{name: "run_skill", readOnly: false})
 	parentReg.Add(fakeTool{name: "read_only_skill", readOnly: true})
 	parentReg.Add(fakeTool{name: "explore", readOnly: false})
@@ -204,51 +184,22 @@ func TestTaskToolDefaultsToParentToolsWithoutMetaTools(t *testing.T) {
 	for _, s := range sub.lastReq.Tools {
 		got[s.Name] = true
 	}
-	for _, want := range []string{"read_file", "grep", "remember", "task", "run_skill", "read_only_skill", "explore", "research", "review", "security_review"} {
+	for _, want := range []string{"read_file", "grep", "remember"} {
 		if !got[want] {
 			t.Errorf("default sub-agent tools = %v, want %q inherited at depth 1", got, want)
 		}
 	}
 }
 
-func TestTaskToolAllowsSecondLayerAndStopsThere(t *testing.T) {
-	sub := &mockProvider{name: "sub", chunks: []provider.Chunk{
-		{Type: provider.ChunkText, Text: "depth two answer"},
-		{Type: provider.ChunkDone},
-	}}
-	parentReg := tool.NewRegistry()
-	parentReg.Add(fakeTool{name: "read_file", readOnly: true})
-	task := newTestTaskTool(t, sub, parentReg, "sys", "", "", nil).WithMaxSubagentDepth(2)
-	parentReg.Add(task)
-	parentReg.Add(fakeTool{name: "run_skill", readOnly: false})
-
-	depthOneCtx := WithSubagentDepth(testTaskContext(), 1)
-	if _, err := task.Execute(depthOneCtx, []byte(`{"prompt":"spawn second layer"}`)); err != nil {
-		t.Fatalf("depth-1 task should be able to spawn depth 2: %v", err)
-	}
-	got := map[string]bool{}
-	for _, s := range sub.lastReq.Tools {
-		got[s.Name] = true
-	}
-	if got["task"] || got["run_skill"] {
-		t.Fatalf("depth-2 child should not receive recursive tools; tools=%v", toolSchemaNames(sub.lastReq.Tools))
-	}
-
-	depthTwoCtx := WithSubagentDepth(testTaskContext(), 2)
-	if _, err := task.Execute(depthTwoCtx, []byte(`{"prompt":"spawn third layer"}`)); err == nil || !strings.Contains(err.Error(), "subagent delegation depth limit reached") {
-		t.Fatalf("depth-2 task error = %v, want depth limit", err)
-	}
-}
-
-func TestTaskToolMaxSubagentDepthOneRestoresSingleLayerBoundary(t *testing.T) {
+func TestSubagentRunnerMaxSubagentDepthOneRestoresSingleLayerBoundary(t *testing.T) {
 	sub := &mockProvider{name: "sub", chunks: []provider.Chunk{
 		{Type: provider.ChunkText, Text: "single layer answer"},
 		{Type: provider.ChunkDone},
 	}}
 	parentReg := tool.NewRegistry()
 	parentReg.Add(fakeTool{name: "read_file", readOnly: true})
-	task := newTestTaskTool(t, sub, parentReg, "sys", "", "", nil).WithMaxSubagentDepth(1)
-	parentReg.Add(task)
+	task := newTestSubagentRunner(t, sub, parentReg, "sys", "", "", nil)
+	parentReg.Add(NewSpawner(task))
 	parentReg.Add(fakeTool{name: "run_skill", readOnly: false})
 	parentReg.Add(fakeTool{name: "read_only_task", readOnly: true})
 
@@ -266,12 +217,12 @@ func TestTaskToolMaxSubagentDepthOneRestoresSingleLayerBoundary(t *testing.T) {
 	}
 
 	depthOneCtx := WithSubagentDepth(testTaskContext(), 1)
-	if _, err := task.Execute(depthOneCtx, []byte(`{"prompt":"too deep"}`)); err == nil || !strings.Contains(err.Error(), "max_subagent_depth=1") {
+	if _, err := task.Execute(depthOneCtx, []byte(`{"prompt":"too deep"}`)); err == nil || !strings.Contains(err.Error(), "subagents cannot delegate") {
 		t.Fatalf("depth-1 task error = %v, want max depth rejection", err)
 	}
 }
 
-func TestTaskToolUsesConfiguredProfileForExecution(t *testing.T) {
+func TestSubagentRunnerUsesConfiguredProfileForExecution(t *testing.T) {
 	parent := &mockProvider{name: "parent", chunks: []provider.Chunk{
 		{Type: provider.ChunkText, Text: "parent answer"},
 		{Type: provider.ChunkDone},
@@ -285,7 +236,7 @@ func TestTaskToolUsesConfiguredProfileForExecution(t *testing.T) {
 		gotModel, gotEffort = model, effort
 		return resolved, nil, 0, nil
 	}
-	task := newTestTaskTool(t, parent, tool.NewRegistry(), "sys", "deepseek-pro", "max", resolve)
+	task := newTestSubagentRunner(t, parent, tool.NewRegistry(), "sys", "deepseek-pro", "max", resolve)
 
 	out, err := task.Execute(testTaskContext(), []byte(`{"prompt":"x"}`))
 	if err != nil {
@@ -299,7 +250,7 @@ func TestTaskToolUsesConfiguredProfileForExecution(t *testing.T) {
 	}
 }
 
-func TestTaskToolReturnsProfileResolutionErrors(t *testing.T) {
+func TestSubagentRunnerReturnsProfileResolutionErrors(t *testing.T) {
 	parent := &mockProvider{name: "parent", chunks: []provider.Chunk{
 		{Type: provider.ChunkText, Text: "parent answer"},
 		{Type: provider.ChunkDone},
@@ -307,7 +258,7 @@ func TestTaskToolReturnsProfileResolutionErrors(t *testing.T) {
 	resolve := func(string, string) (provider.Provider, *provider.Pricing, int, error) {
 		return nil, nil, 0, errors.New("bad effort")
 	}
-	task := newTestTaskTool(t, parent, tool.NewRegistry(), "sys", "", "", resolve)
+	task := newTestSubagentRunner(t, parent, tool.NewRegistry(), "sys", "", "", resolve)
 
 	_, err := task.Execute(testTaskContext(), []byte(`{"prompt":"x","effort":"turbo"}`))
 	if err == nil || !strings.Contains(err.Error(), "bad effort") {
@@ -315,12 +266,12 @@ func TestTaskToolReturnsProfileResolutionErrors(t *testing.T) {
 	}
 }
 
-func TestTaskToolRequiresTranscriptStore(t *testing.T) {
+func TestSubagentRunnerRequiresTranscriptStore(t *testing.T) {
 	sub := &mockProvider{name: "sub", chunks: []provider.Chunk{
 		{Type: provider.ChunkText, Text: "answer"},
 		{Type: provider.ChunkDone},
 	}}
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: sub, Pricing: nil, ParentRegistry: tool.NewRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil})
+	task := NewSubagentRunner(SubagentRunnerOptions{Provider: sub, Pricing: nil, ParentRegistry: tool.NewRegistry(), MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil})
 
 	_, err := task.Execute(testTaskContext(), []byte(`{"prompt":"x"}`))
 	if err == nil || !strings.Contains(err.Error(), "transcript store is required") {
@@ -328,15 +279,15 @@ func TestTaskToolRequiresTranscriptStore(t *testing.T) {
 	}
 }
 
-// TestTaskToolRunsEphemerallyWithoutParentSession mirrors headless `deepzora run`:
+// TestSubagentRunnerRunsEphemerallyWithoutParentSession mirrors headless `deepzora run`:
 // the store is wired but the context carries no parent session, so the sub-agent
 // must run without persistence and return its plain answer (no transcript ref).
-func TestTaskToolRunsEphemerallyWithoutParentSession(t *testing.T) {
+func TestSubagentRunnerRunsEphemerallyWithoutParentSession(t *testing.T) {
 	sub := &mockProvider{name: "sub", chunks: []provider.Chunk{
 		{Type: provider.ChunkText, Text: "headless answer"},
 		{Type: provider.ChunkDone},
 	}}
-	task := newTestTaskTool(t, sub, tool.NewRegistry(), "sys", "", "", nil)
+	task := newTestSubagentRunner(t, sub, tool.NewRegistry(), "sys", "", "", nil)
 
 	out, err := task.Execute(context.Background(), []byte(`{"prompt":"x"}`))
 	if err != nil {
@@ -350,7 +301,7 @@ func TestTaskToolRunsEphemerallyWithoutParentSession(t *testing.T) {
 	}
 }
 
-func TestReadOnlyTaskToolRunsEphemerallyWithReadOnlyRegistry(t *testing.T) {
+func TestReadOnlySubagentRunnerRunsEphemerallyWithReadOnlyRegistry(t *testing.T) {
 	sub := &mockProvider{name: "sub", chunks: []provider.Chunk{
 		{Type: provider.ChunkText, Text: "read-only findings"},
 		{Type: provider.ChunkDone},
@@ -362,10 +313,10 @@ func TestReadOnlyTaskToolRunsEphemerallyWithReadOnlyRegistry(t *testing.T) {
 	parentReg.Add(fakeTool{name: "connect_tool_source", readOnly: true})
 	parentReg.Add(fakeTool{name: "read_only_skill", readOnly: true})
 	parentReg.Add(fakeTool{name: "bash", readOnly: false})
-	task := newTestTaskTool(t, sub, parentReg, "writer sys", "", "", nil)
-	readonly := NewReadOnlyTaskTool(task)
-	parentReg.Add(task)
-	parentReg.Add(readonly)
+	task := newTestSubagentRunner(t, sub, parentReg, "writer sys", "", "", nil)
+	readonly := NewReadOnlySubagentRunner(task)
+	parentReg.Add(NewSpawner(task))
+	parentReg.Add(fakeTool{name: "read_only_task", readOnly: true})
 
 	out, err := readonly.Execute(testTaskContext(), []byte(`{"prompt":"inspect callers"}`))
 	if err != nil {
@@ -399,418 +350,22 @@ func TestReadOnlyTaskToolRunsEphemerallyWithReadOnlyRegistry(t *testing.T) {
 		}
 	}
 	for _, want := range []string{"read_only_task", "read_only_skill"} {
-		if !got[want] {
-			t.Fatalf("read_only_task depth-1 sub-agent should expose %q; tools=%v", want, toolSchemaNames(sub.lastReq.Tools))
+		if got[want] {
+			t.Fatalf("read_only_task depth-1 sub-agent should hide %q; tools=%v", want, toolSchemaNames(sub.lastReq.Tools))
 		}
 	}
 }
 
-func TestTaskToolRejectsContinuationWithoutParentSession(t *testing.T) {
+func TestSubagentRunnerRejectsContinuationWithoutParentSession(t *testing.T) {
 	sub := &mockProvider{name: "sub", chunks: []provider.Chunk{
 		{Type: provider.ChunkText, Text: "answer"},
 		{Type: provider.ChunkDone},
 	}}
-	task := newTestTaskTool(t, sub, tool.NewRegistry(), "sys", "", "", nil)
+	task := newTestSubagentRunner(t, sub, tool.NewRegistry(), "sys", "", "", nil)
 
 	_, err := task.Execute(context.Background(), []byte(`{"prompt":"x","continue_from":"sa_whatever"}`))
-	if err == nil || !strings.Contains(err.Error(), "persisted session") {
+	if err == nil || !strings.Contains(err.Error(), "retired") {
 		t.Fatalf("Execute error = %v, want persisted-session requirement", err)
-	}
-}
-
-func TestTaskToolPersistsAndContinuesTranscript(t *testing.T) {
-	sub := &mockProvider{name: "sub", streams: [][]provider.Chunk{
-		{
-			{Type: provider.ChunkText, Text: "first answer"},
-			{Type: provider.ChunkDone},
-		},
-		{
-			{Type: provider.ChunkText, Text: "second answer"},
-			{Type: provider.ChunkDone},
-		},
-	}}
-	reg := tool.NewRegistry()
-	reg.Add(fakeTool{name: "read_file", readOnly: true})
-	store := newTestSubagentStore(t, t.TempDir())
-	task := newTestTaskTool(t, sub, reg, "sys", "", "", nil).
-		WithTranscripts(store, t.TempDir(), "base-model", "base-effort")
-
-	first, err := task.Execute(testTaskContext(), []byte(`{"prompt":"first task"}`))
-	if err != nil {
-		t.Fatalf("first Execute: %v", err)
-	}
-	ref := subagentRefFromOutput(t, first)
-	meta, err := store.LoadMeta(ref)
-	if err != nil {
-		t.Fatalf("LoadMeta: %v", err)
-	}
-	if meta.ParentSession != "parent-session" {
-		t.Fatalf("parent session = %q, want parent-session", meta.ParentSession)
-	}
-	if !strings.Contains(first, "first answer") {
-		t.Fatalf("first output = %q, want answer", first)
-	}
-
-	second, err := task.Execute(testTaskContext(), []byte(`{"prompt":"second task","continue_from":"`+ref+`"}`))
-	if err != nil {
-		t.Fatalf("second Execute: %v", err)
-	}
-	if !strings.Contains(second, "second answer") {
-		t.Fatalf("second output = %q, want answer", second)
-	}
-	if len(sub.requests) != 2 {
-		t.Fatalf("provider requests = %d, want 2", len(sub.requests))
-	}
-	msgs := sub.requests[1].Messages
-	if len(msgs) < 4 {
-		t.Fatalf("continued request messages = %+v, want prior transcript plus new task", msgs)
-	}
-	if !strings.Contains(msgs[1].Content, "first task") || msgs[2].Content != "first answer" || !strings.Contains(lastUser(sub.requests[1]), "second task") {
-		t.Fatalf("continued request messages = %+v, want first task/answer then second task", msgs)
-	}
-}
-
-func TestTaskToolContinueFromAncestorReturnsCopiedReferenceGuidance(t *testing.T) {
-	sub := &mockProvider{name: "sub", streams: [][]provider.Chunk{
-		{
-			{Type: provider.ChunkText, Text: "root answer"},
-			{Type: provider.ChunkDone},
-		},
-		{
-			{Type: provider.ChunkText, Text: "child answer"},
-			{Type: provider.ChunkDone},
-		},
-	}}
-	sessionDir := t.TempDir()
-	store := newTestSubagentStore(t, filepath.Join(sessionDir, "subagents"))
-	reg := tool.NewRegistry()
-	reg.Add(fakeTool{name: "read_file", readOnly: true})
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: sub, Pricing: nil, ParentRegistry: reg, MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
-		WithTranscripts(store, t.TempDir(), "base-model", "base-effort")
-
-	rootCtx := WithParentSession(context.Background(), "root")
-	first, err := task.Execute(rootCtx, []byte(`{"prompt":"root task"}`))
-	if err != nil {
-		t.Fatalf("first Execute: %v", err)
-	}
-	rootRef := subagentRefFromOutput(t, first)
-
-	saveTestParentSession(t, sessionDir, "root", "")
-	saveTestParentSession(t, sessionDir, "child", "root")
-
-	childCtx := WithParentSession(context.Background(), "child")
-	second, err := task.Execute(childCtx, []byte(`{"prompt":"child task","continue_from":"`+rootRef+`"}`))
-	if err != nil {
-		t.Fatalf("second Execute: %v", err)
-	}
-	childRef := subagentRefFromOutput(t, second)
-	if childRef == rootRef {
-		t.Fatalf("child ref = source ref %q, want copied ref", childRef)
-	}
-	if !strings.Contains(second, "Forked from: "+rootRef) {
-		t.Fatalf("second output = %q, want Forked from source ref", second)
-	}
-	if !strings.Contains(second, "The requested ref resolves to an ancestor conversation transcript") {
-		t.Fatalf("second output = %q, want ancestor-copy guidance", second)
-	}
-	if !strings.Contains(second, "Final answer:\nchild answer") {
-		t.Fatalf("second output = %q, want final answer", second)
-	}
-}
-
-func TestTaskToolFailedForegroundContinuationPersistsAndRejectsReuse(t *testing.T) {
-	sub := &mockProvider{name: "sub", streams: [][]provider.Chunk{
-		{
-			{Type: provider.ChunkText, Text: "first answer"},
-			{Type: provider.ChunkDone},
-		},
-		{
-			{Type: provider.ChunkError, Err: errors.New("provider failed")},
-		},
-	}}
-	store := newTestSubagentStore(t, t.TempDir())
-	reg := tool.NewRegistry()
-	reg.Add(fakeTool{name: "read_file", readOnly: true})
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: sub, Pricing: nil, ParentRegistry: reg, MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
-		WithTranscripts(store, t.TempDir(), "base-model", "base-effort")
-
-	first, err := task.Execute(testTaskContext(), []byte(`{"prompt":"first task"}`))
-	if err != nil {
-		t.Fatalf("first Execute: %v", err)
-	}
-	ref := subagentRefFromOutput(t, first)
-
-	_, err = task.Execute(testTaskContext(), []byte(`{"prompt":"second task","continue_from":"`+ref+`"}`))
-	if err == nil || !strings.Contains(err.Error(), "provider failed") {
-		t.Fatalf("second Execute error = %v, want provider failure", err)
-	}
-	meta, err := store.LoadMeta(ref)
-	if err != nil {
-		t.Fatalf("LoadMeta: %v", err)
-	}
-	if meta.Status != SubagentFailed {
-		t.Fatalf("status = %q, want failed", meta.Status)
-	}
-	msgs, err := store.persistence.Read(t.Context(), ref)
-	if err != nil {
-		t.Fatalf("LoadSession: %v", err)
-	}
-	if len(msgs) != 5 || !strings.Contains(msgs[1].Content, "first task") || msgs[2].Content != "first answer" || !strings.Contains(msgs[3].Content, "second task") || !msgs[4].LocalOnly {
-		t.Fatalf("failed continuation transcript = %+v, want tasks plus provider-excluded failure recovery", msgs)
-	}
-	if _, err := task.Execute(testTaskContext(), []byte(`{"prompt":"third task","continue_from":"`+ref+`"}`)); err == nil || !strings.Contains(err.Error(), "failed and cannot be continued") {
-		t.Fatalf("reuse error = %v, want failed ref rejection", err)
-	}
-}
-
-func TestTaskToolBackgroundPanicPersistsFailedMetadata(t *testing.T) {
-	sub := panicProvider{name: "panic-sub"}
-	store := newTestSubagentStore(t, t.TempDir())
-	reg := tool.NewRegistry()
-	reg.Add(fakeTool{name: "read_file", readOnly: true})
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: sub, Pricing: nil, ParentRegistry: reg, MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
-		WithTranscripts(store, t.TempDir(), "base-model", "base-effort")
-
-	jm := jobs.NewManager(event.Discard)
-	defer jm.Close()
-	ctx := testTaskContext()
-	ctx = jobs.WithSession(ctx, "parent-session")
-	ctx = jobs.WithManager(ctx, jm)
-	out, err := task.Execute(ctx, []byte(`{"prompt":"panic task","run_in_background":true}`))
-	if err != nil {
-		t.Fatalf("Execute: %v", err)
-	}
-	ref := subagentRefFromOutput(t, out)
-	jobID := extractJobID(out)
-	if jobID == "" {
-		t.Fatalf("no background job id in output:\n%s", out)
-	}
-	res := awaitTaskJobs(t, jm, "parent-session", []string{jobID})
-	if len(res) != 1 || res[0].Status != jobs.Failed {
-		t.Fatalf("background job result = %+v, want failed", res)
-	}
-	if !strings.Contains(res[0].Output, "Subagent reference: "+ref) || !strings.Contains(res[0].Output, "status=failed") {
-		t.Fatalf("job output = %q, want failed subagent outcome for %s", res[0].Output, ref)
-	}
-	meta, err := store.LoadMeta(ref)
-	if err != nil {
-		t.Fatalf("LoadMeta: %v", err)
-	}
-	if meta.Status != SubagentFailed {
-		t.Fatalf("status = %q, want failed", meta.Status)
-	}
-	if _, err := task.Execute(testTaskContext(), []byte(`{"prompt":"again","continue_from":"`+ref+`"}`)); err == nil || !strings.Contains(err.Error(), "failed and cannot be continued") {
-		t.Fatalf("reuse error = %v, want failed continuation rejection", err)
-	}
-}
-
-func TestTaskToolBackgroundResultIncludesReferenceGuidance(t *testing.T) {
-	sub := &mockProvider{name: "sub", chunks: []provider.Chunk{
-		{Type: provider.ChunkText, Text: "background answer"},
-		{Type: provider.ChunkDone},
-	}}
-	store := newTestSubagentStore(t, t.TempDir())
-	reg := tool.NewRegistry()
-	reg.Add(fakeTool{name: "read_file", readOnly: true})
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: sub, Pricing: nil, ParentRegistry: reg, MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
-		WithTranscripts(store, t.TempDir(), "base-model", "base-effort")
-
-	jm := jobs.NewManager(event.Discard)
-	defer jm.Close()
-	ctx := testTaskContext()
-	ctx = jobs.WithSession(ctx, "parent-session")
-	ctx = jobs.WithManager(ctx, jm)
-	out, err := task.Execute(ctx, []byte(`{"prompt":"background task","run_in_background":true}`))
-	if err != nil {
-		t.Fatalf("Execute: %v", err)
-	}
-	ref := subagentRefFromOutput(t, out)
-	if !strings.Contains(out, "To continue this same subagent transcript in a later call") {
-		t.Fatalf("start output = %q, want reference guidance", out)
-	}
-	jobID := extractJobID(out)
-	if jobID == "" {
-		t.Fatalf("no background job id in output:\n%s", out)
-	}
-	res := awaitTaskJobs(t, jm, "parent-session", []string{jobID})
-	if len(res) != 1 || res[0].Status != jobs.Done {
-		t.Fatalf("background job result = %+v, want succeeded", res)
-	}
-	if !strings.Contains(res[0].Output, "Subagent reference: "+ref) ||
-		!strings.Contains(res[0].Output, "To continue this same subagent transcript in a later call") ||
-		!strings.Contains(res[0].Output, "Final answer:\nbackground answer") {
-		t.Fatalf("job output = %q, want reference guidance and final answer", res[0].Output)
-	}
-}
-
-func TestTaskToolBackgroundAncestorContinuationIncludesForkGuidance(t *testing.T) {
-	sub := &mockProvider{name: "sub", streams: [][]provider.Chunk{
-		{
-			{Type: provider.ChunkText, Text: "root answer"},
-			{Type: provider.ChunkDone},
-		},
-		{
-			{Type: provider.ChunkText, Text: "child background answer"},
-			{Type: provider.ChunkDone},
-		},
-	}}
-	sessionDir := t.TempDir()
-	store := newTestSubagentStore(t, filepath.Join(sessionDir, "subagents"))
-	reg := tool.NewRegistry()
-	reg.Add(fakeTool{name: "read_file", readOnly: true})
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: sub, Pricing: nil, ParentRegistry: reg, MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
-		WithTranscripts(store, t.TempDir(), "base-model", "base-effort")
-
-	rootCtx := WithParentSession(context.Background(), "root")
-	rootOut, err := task.Execute(rootCtx, []byte(`{"prompt":"root task"}`))
-	if err != nil {
-		t.Fatalf("root Execute: %v", err)
-	}
-	rootRef := subagentRefFromOutput(t, rootOut)
-	saveTestParentSession(t, sessionDir, "root", "")
-	saveTestParentSession(t, sessionDir, "child", "root")
-
-	jm := jobs.NewManager(event.Discard)
-	defer jm.Close()
-	childCtx := WithParentSession(context.Background(), "child")
-	childCtx = jobs.WithSession(childCtx, "child")
-	childCtx = jobs.WithManager(childCtx, jm)
-	startOut, err := task.Execute(childCtx, []byte(`{"prompt":"child task","continue_from":"`+rootRef+`","run_in_background":true}`))
-	if err != nil {
-		t.Fatalf("child Execute: %v", err)
-	}
-	childRef := subagentRefFromOutput(t, startOut)
-	if childRef == rootRef {
-		t.Fatalf("child ref = source ref %q, want copied ref", childRef)
-	}
-	if !strings.Contains(startOut, "Forked from: "+rootRef) ||
-		!strings.Contains(startOut, "The requested ref resolves to an ancestor conversation transcript") ||
-		strings.Contains(startOut, "Final answer:") {
-		t.Fatalf("start output = %q, want fork guidance without final answer", startOut)
-	}
-	jobID := extractJobID(startOut)
-	if jobID == "" {
-		t.Fatalf("no background job id in output:\n%s", startOut)
-	}
-	res := awaitTaskJobs(t, jm, "child", []string{jobID})
-	if len(res) != 1 || res[0].Status != jobs.Done {
-		t.Fatalf("background job result = %+v, want succeeded", res)
-	}
-	if !strings.Contains(res[0].Output, "Subagent reference: "+childRef) ||
-		!strings.Contains(res[0].Output, "Forked from: "+rootRef) ||
-		!strings.Contains(res[0].Output, "The requested ref resolves to an ancestor conversation transcript") ||
-		!strings.Contains(res[0].Output, "Final answer:\nchild background answer") {
-		t.Fatalf("job output = %q, want copied ref guidance and final answer", res[0].Output)
-	}
-}
-
-func TestTaskToolBackgroundCapRefusesFanOut(t *testing.T) {
-	sub := &mockProvider{name: "sub", chunks: []provider.Chunk{
-		{Type: provider.ChunkText, Text: "background answer"},
-		{Type: provider.ChunkDone},
-	}}
-	store := newTestSubagentStore(t, t.TempDir())
-	reg := tool.NewRegistry()
-	reg.Add(fakeTool{name: "read_file", readOnly: true})
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: sub, Pricing: nil, ParentRegistry: reg, MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
-		WithTranscripts(store, t.TempDir(), "base-model", "base-effort")
-
-	jm := jobs.NewManager(event.Discard)
-	defer jm.Close()
-	ctx := testTaskContext()
-	ctx = jobs.WithSession(ctx, "parent-session")
-	ctx = jobs.WithManager(ctx, jm)
-
-	// Saturate the cap with still-running task jobs owned by this session.
-	release := make(chan struct{})
-	var ids []string
-	for range maxConcurrentBackgroundTasks {
-		j := jm.StartForSession("parent-session", "task", "busy", func(jctx context.Context, _ io.Writer) (string, error) {
-			select {
-			case <-release:
-			case <-jctx.Done():
-			}
-			return "ok", nil
-		})
-		ids = append(ids, j.ID)
-	}
-
-	if _, err := task.Execute(ctx, []byte(`{"prompt":"one more","run_in_background":true}`)); err == nil ||
-		!strings.Contains(err.Error(), "limit") || !strings.Contains(err.Error(), "job_output") {
-		t.Fatalf("Execute over cap = %v, want background task limit refusal", err)
-	}
-
-	// Foreground execution is not capped.
-	if out, err := task.Execute(ctx, []byte(`{"prompt":"foreground task"}`)); err != nil || !strings.Contains(out, "background answer") {
-		t.Fatalf("foreground Execute = %q, %v; want uncapped foreground run", out, err)
-	}
-
-	// Collecting the running jobs frees the cap.
-	close(release)
-	awaitTaskJobs(t, jm, "parent-session", ids)
-	out, err := task.Execute(ctx, []byte(`{"prompt":"after drain","run_in_background":true}`))
-	if err != nil {
-		t.Fatalf("Execute after drain: %v", err)
-	}
-	jobID := extractJobID(out)
-	if jobID == "" {
-		t.Fatalf("no background job id in output:\n%s", out)
-	}
-	if res := awaitTaskJobs(t, jm, "parent-session", []string{jobID}); len(res) != 1 || res[0].Status != jobs.Done {
-		t.Fatalf("post-drain job = %+v, want done", res)
-	}
-}
-
-func TestTaskToolBackgroundRunPublishesEvidenceForCollection(t *testing.T) {
-	reg := evidenceRegistry()
-	finalText := []provider.Chunk{{Type: provider.ChunkText, Text: "done, explanations added"}, {Type: provider.ChunkDone}}
-	sub := &scriptedProvider{name: "sub", turns: [][]provider.Chunk{
-		{testutil.ToolCallChunk("criteria", "todo_write", `{"todos":[{"content":"Add explanations","status":"in_progress"}]}`), {Type: provider.ChunkDone}},
-		{testutil.ToolCallChunk("write", "write_file", `{"path":"qa/bank.md"}`), {Type: provider.ChunkDone}},
-		finalText,
-		finalText,
-		finalText,
-	}}
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: sub, Pricing: nil, ParentRegistry: reg, MaxSteps: 20, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
-		WithTranscripts(newTestSubagentStore(t, t.TempDir()), t.TempDir(), "base-model", "base-effort")
-
-	jm := jobs.NewManager(event.Discard)
-	defer jm.Close()
-	parentLedger := evidence.NewLedger()
-	ctx := testTaskContext()
-	ctx = jobs.WithSession(ctx, "parent-session")
-	ctx = jobs.WithManager(ctx, jm)
-	ctx = evidence.WithLedger(ctx, parentLedger)
-
-	out, err := task.Execute(ctx, []byte(`{"prompt":"add explanations to the question bank","run_in_background":true}`))
-	if err != nil {
-		t.Fatalf("Execute: %v", err)
-	}
-	jobID := extractJobID(out)
-	res := awaitTaskJobs(t, jm, "parent-session", []string{jobID})
-	if len(res) != 1 || res[0].Status != jobs.Done {
-		t.Fatalf("background task = %+v, want done", res)
-	}
-	if parentLedger.Summary().HasMutation() {
-		t.Fatal("background goroutine wrote directly into the parent turn ledger")
-	}
-
-	summary := jm.LeaseEvidenceForSession("parent-session", jobID)
-	if !summary.HasMutation() {
-		t.Fatal("terminal background task did not publish its mutation evidence")
-	}
-	paths := summary.MutationPaths()
-	if len(paths) != 1 || filepath.ToSlash(paths[0]) != "qa/bank.md" {
-		t.Fatalf("background mutation paths = %v, want qa/bank.md", paths)
-	}
-	// Lease does not consume: the evidence stays available until the collecting
-	// turn commits, so a cancelled/errored turn can re-collect it.
-	if again := jm.LeaseEvidenceForSession("parent-session", jobID); !again.HasMutation() {
-		t.Fatalf("lease consumed background evidence without a commit: %+v", again)
-	}
-	jm.CommitEvidenceForSession("parent-session", jobID)
-	if after := jm.LeaseEvidenceForSession("parent-session", jobID); len(after.Receipts) != 0 {
-		t.Fatalf("committed background evidence still leasable: %+v", after)
 	}
 }
 
@@ -992,37 +547,6 @@ func TestRestartRecoversPendingBackgroundMutationForcesReadinessWithoutWait(t *t
 	}
 }
 
-func TestTaskToolRejectsMismatchedContinuationProfile(t *testing.T) {
-	sub := &mockProvider{name: "sub", chunks: []provider.Chunk{
-		{Type: provider.ChunkText, Text: "answer"},
-		{Type: provider.ChunkDone},
-	}}
-	task := newTestTaskTool(t, sub, tool.NewRegistry(), "sys", "", "", nil).
-		WithTranscripts(newTestSubagentStore(t, t.TempDir()), t.TempDir(), "base-model", "")
-
-	out, err := task.Execute(testTaskContext(), []byte(`{"prompt":"first task"}`))
-	if err != nil {
-		t.Fatalf("first Execute: %v", err)
-	}
-	ref := subagentRefFromOutput(t, out)
-	_, err = task.Execute(testTaskContext(), []byte(`{"prompt":"second task","continue_from":"`+ref+`","model":"other-model"}`))
-	if err == nil || !strings.Contains(err.Error(), "model/effort") {
-		t.Fatalf("mismatched model error = %v, want compatibility failure", err)
-	}
-}
-
-func extractJobID(msg string) string {
-	quote := strings.Index(msg, `"`)
-	if quote < 0 {
-		return ""
-	}
-	end := strings.Index(msg[quote+1:], `"`)
-	if end < 0 {
-		return ""
-	}
-	return msg[quote+1 : quote+1+end]
-}
-
 func subagentRefFromOutput(t *testing.T, out string) string {
 	t.Helper()
 	for line := range strings.SplitSeq(out, "\n") {
@@ -1049,9 +573,9 @@ func TestSubSinkForwardsUsageToParent(t *testing.T) {
 	}
 }
 
-func newTestTaskTool(t *testing.T, prov provider.Provider, reg *tool.Registry, sysPrompt, subagentModel, subagentEffort string, resolve func(string, string) (provider.Provider, *provider.Pricing, int, error)) *TaskTool {
+func newTestSubagentRunner(t *testing.T, prov provider.Provider, reg *tool.Registry, sysPrompt, subagentModel, subagentEffort string, resolve func(string, string) (provider.Provider, *provider.Pricing, int, error)) *SubagentRunner {
 	t.Helper()
-	return NewTaskToolWithOptions(TaskToolOptions{
+	return NewSubagentRunner(SubagentRunnerOptions{
 		Provider:        prov,
 		ParentRegistry:  reg,
 		MaxSteps:        20,

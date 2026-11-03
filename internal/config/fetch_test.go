@@ -47,6 +47,16 @@ func TestBuildModelFetchURLs(t *testing.T) {
 			},
 		},
 		{
+			name: "complete compatible messages URL derives discovery bases",
+			base: "https://gateway.example/anthropic/messages",
+			want: []string{
+				"https://gateway.example/anthropic/models",
+				"https://gateway.example/anthropic/v1/models",
+				"https://gateway.example/models",
+				"https://gateway.example/v1/models",
+			},
+		},
+		{
 			name:     "override wins",
 			base:     "https://api.deepseek.com",
 			override: "https://api.deepseek.com/custom/models",

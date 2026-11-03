@@ -143,7 +143,7 @@ func TestDeleteParentRemovesOnlyItsCurrentChildrenAndRefusesLiveChild(t *testing
 	}
 }
 
-func TestCurrentChildTranscriptPreservesHistoryAcrossCompactionAndColdCopy(t *testing.T) {
+func TestCurrentChildTranscriptPreservesHistoryAcrossCompactionAndColdRead(t *testing.T) {
 	root := t.TempDir()
 	store, parent := testStore(t, root)
 	initial := []provider.Message{{ID: "sys", Role: provider.RoleSystem, Content: "system"}}
@@ -182,20 +182,6 @@ func TestCurrentChildTranscriptPreservesHistoryAcrossCompactionAndColdCopy(t *te
 	want := append(initial, messages...)
 	if err != nil || !reflect.DeepEqual(full, want) {
 		t.Fatalf("full history = %+v, %v", full, err)
-	}
-	copy, err := cold.Copy(t.Context(), "sa_original", agent.SubagentMeta{Ref: "sa_copy", WorkspaceRoot: root})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := copy.Messages(); !reflect.DeepEqual(got, model) {
-		t.Fatalf("copy model context = %+v", got)
-	}
-	if err := copy.Close(t.Context()); err != nil {
-		t.Fatal(err)
-	}
-	fullCopy, err := cold.Read(t.Context(), "sa_copy")
-	if err != nil || !reflect.DeepEqual(fullCopy, full) {
-		t.Fatalf("copy lost full history: %+v, %v", fullCopy, err)
 	}
 	continued, err := cold.Open(t.Context(), "sa_original")
 	if err != nil {

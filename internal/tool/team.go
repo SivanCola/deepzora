@@ -100,6 +100,13 @@ type TeamMemoryDirectory interface {
 	RememberShared(context.Context, TeamSharedMemoryRequest) (string, error)
 }
 
+// ReadOnlyTeamCoordination identifies coordination that preserves the current
+// execution ceiling. It is available to a bound, top-level team member, never
+// to a task child borrowing that member's identity.
+type ReadOnlyTeamCoordination interface {
+	ReadOnlyTeamCoordination() bool
+}
+
 // TeamLink joins the team tools, built with the registry, to the controller
 // that exists only afterwards.
 type TeamLink struct {

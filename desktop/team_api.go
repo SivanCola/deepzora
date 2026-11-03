@@ -222,7 +222,9 @@ func (a *App) SaveTeamAgent(req SaveTeamAgentRequest) (TeamMutationResult, error
 			definition := settings.Preset.definition()
 			preset = &definition
 		}
-		if req.PresetID != nil {
+		// An explicit copy is the user's selected definition, including project
+		// scope. The member's execution directory is not its preset source.
+		if preset == nil && req.PresetID != nil {
 			resolved, err := agentpreset.Resolve(boot.AgentPresetDirs(settings.Folder), *req.PresetID)
 			if err != nil {
 				return "", err

@@ -7,7 +7,6 @@ import (
 	"deepzora/internal/attachment"
 	"deepzora/internal/imageinput"
 	"deepzora/internal/provider"
-	"deepzora/internal/tool"
 )
 
 type agentImageInput struct {
@@ -43,9 +42,9 @@ func (a *Agent) SetImageRequestResolver(resolver ImageRequestResolver) {
 	if a.svc.tools == nil {
 		return
 	}
-	if item, ok := a.svc.tools.Get(tool.HostTask); ok {
-		if task, ok := item.(*TaskTool); ok {
-			task.imageResolver = resolver
+	if item, ok := a.svc.tools.Get(SpawnToolName); ok {
+		if task, ok := item.(*Spawner); ok {
+			task.runner.imageResolver = resolver
 		}
 	}
 }

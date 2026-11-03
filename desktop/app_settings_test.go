@@ -390,26 +390,29 @@ api_key_env = "DEEPSEEK_API_KEY"
 	if err := app.SetSubagentEffort("max"); err != nil {
 		t.Fatalf("SetSubagentEffort: %v", err)
 	}
-	if err := app.SetMaxSubagentDepth(1); err != nil {
-		t.Fatalf("SetMaxSubagentDepth(1): %v", err)
+	if err := app.SetMaxSubagentDepth(2); err == nil {
+		t.Fatal("retired depth setting was accepted")
 	}
-	if err := app.SetMaxSubagentDepth(2); err != nil {
-		t.Fatalf("SetMaxSubagentDepth(2): %v", err)
+	if err := app.SetMaxParallelWriters(2); err == nil {
+		t.Fatal("retired writer setting was accepted")
+	}
+	if err := app.SetMaxSubagentConcurrency(64); err != nil {
+		t.Fatal(err)
 	}
 
 	got := app.Settings()
 	if got.SubagentModel != "deepseek/deepseek-v4-pro" || got.SubagentEffort != "max" {
 		t.Fatalf("subagent settings = model:%q effort:%q", got.SubagentModel, got.SubagentEffort)
 	}
-	if got.Agent.MaxSubagentDepth != 2 {
+	if got.Agent.MaxSubagentDepth != 1 {
 		t.Fatalf("max subagent depth = %d, want 2", got.Agent.MaxSubagentDepth)
 	}
 	cfg := config.LoadForEdit(config.UserConfigPath())
 	if cfg.Agent.SubagentModel != "deepseek/deepseek-v4-pro" || cfg.Agent.SubagentEffort != "max" {
 		t.Fatalf("saved config = model:%q effort:%q", cfg.Agent.SubagentModel, cfg.Agent.SubagentEffort)
 	}
-	if cfg.Agent.MaxSubagentDepth != 2 {
-		t.Fatalf("saved max_subagent_depth = %d, want 2", cfg.Agent.MaxSubagentDepth)
+	if cfg.Agent.MaxSubagentConcurrency != 8 {
+		t.Fatalf("saved concurrency=%d, want 8", cfg.Agent.MaxSubagentConcurrency)
 	}
 }
 

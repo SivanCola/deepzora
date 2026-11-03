@@ -1,26 +1,12 @@
 package agent
 
 import (
-	"context"
 	"encoding/json"
 
 	"deepzora/internal/evidence"
 	"deepzora/internal/runtimepolicy"
 	"deepzora/internal/tool"
 )
-
-// withInheritedHostConstraints re-applies the spawning turn's host constraints
-// to a background job context. Jobs run on a root context, so without this a
-// child would re-derive its constraints from the model-authored task prompt.
-func withInheritedHostConstraints(parent, job context.Context) context.Context {
-	if c, ok := runtimepolicy.FromContext(parent); ok {
-		job = runtimepolicy.WithContext(job, c)
-	}
-	if in, ok := runtimepolicy.InheritedFromContext(parent); ok {
-		job = runtimepolicy.WithInherited(job, in)
-	}
-	return job
-}
 
 func mergeInheritedConstraints(child, parent runtimepolicy.Constraints) runtimepolicy.Constraints {
 	if parent.ForbidMutation {

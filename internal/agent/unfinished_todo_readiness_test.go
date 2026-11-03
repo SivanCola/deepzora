@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"deepzora/internal/evidence"
+	"deepzora/internal/event"
 	"deepzora/internal/provider"
 	"deepzora/internal/testutil"
 	"deepzora/internal/tool"
@@ -28,7 +28,7 @@ func TestOpenTurnMayEndWithIncompleteTodosAfterWrite(t *testing.T) {
 		},
 		{{Type: provider.ChunkText, Text: "done, more steps remain for later turns"}, {Type: provider.ChunkDone}},
 	}}
-	sink := &readinessAuditSink{}
+	sink := event.Discard
 	a := New(prov, reg, NewSession(""), Options{}, sink)
 
 	if err := a.Run(withNoClosedLoop(context.Background()), "edit with todo and leave remaining steps for later"); err != nil {
@@ -36,10 +36,5 @@ func TestOpenTurnMayEndWithIncompleteTodosAfterWrite(t *testing.T) {
 	}
 	if prov.call != 2 {
 		t.Fatalf("provider calls = %d, want 2 (write + final, no readiness retry)", prov.call)
-	}
-	for _, audit := range sink.events {
-		if audit.Result == evidence.ReadinessErrored {
-			t.Fatalf("open turn recorded errored readiness audit: %+v", audit)
-		}
 	}
 }

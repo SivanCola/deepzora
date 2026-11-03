@@ -33,12 +33,12 @@ func (urlImageResolver) PersistToolImages(context.Context, []string) ([]attachme
 	return nil, nil
 }
 
-func TestTaskToolPropagatesSubagentImageInputsWithoutCombiningImages(t *testing.T) {
+func TestSubagentRunnerPropagatesSubagentImageInputsWithoutCombiningImages(t *testing.T) {
 	sub := &mockProvider{name: "sub", chunks: []provider.Chunk{
 		{Type: provider.ChunkText, Text: "image received"},
 		{Type: provider.ChunkDone},
 	}}
-	task := newTestTaskTool(t, sub, tool.NewRegistry(), "sys", "", "", nil).WithImageRequestResolver(urlImageResolver{})
+	task := newTestSubagentRunner(t, sub, tool.NewRegistry(), "sys", "", "", nil).WithImageRequestResolver(urlImageResolver{})
 	inputs := []attachment.ImageInput{{Kind: attachment.KindURL, URL: "https://example.invalid/shot.png"}}
 	ctx := WithSubagentImageInputs(testTaskContext(), inputs)
 	ctx = WithSubagentImageCandidates(ctx, []string{"data:image/png;base64,AAAA"})

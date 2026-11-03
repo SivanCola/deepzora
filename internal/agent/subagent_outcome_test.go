@@ -15,9 +15,32 @@ type closeFailureSubagentTranscript struct {
 	calls int
 }
 
-func (s *closeFailureSubagentTranscript) Close(context.Context) error {
+func (s *closeFailureSubagentTranscript) Close(ctx context.Context) error {
 	s.calls++
+	if s.SubagentTranscript != nil {
+		return errors.Join(s.err, s.SubagentTranscript.Close(ctx))
+	}
 	return s.err
+}
+
+func TestSubagentCloseFailureCannotPublishCompletedOutcome(t *testing.T) {
+	store := newTestSubagentStore(t, t.TempDir())
+	run, err := store.PrepareFresh(testSubagentSpec(t, "review"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	closeErr := errors.New("final archive close failed")
+	run.Persistence = &closeFailureSubagentTranscript{SubagentTranscript: run.Persistence, err: closeErr}
+	appendSubagentMessages(t, run, provider.Message{Role: provider.RoleAssistant, Content: "retained findings"})
+	runner := &SubagentRunner{transcripts: store}
+	output, err := runner.finishSubagentRun(run, "retained findings", nil)
+	if !errors.Is(err, closeErr) || !strings.Contains(output, "status=failed") || !strings.Contains(output, "retained findings") {
+		t.Fatalf("close failure misreported: %q %v", output, err)
+	}
+	meta, err := store.LoadMeta(run.Ref)
+	if err != nil || meta.Status != SubagentFailed || meta.Outcome != string(SubagentOutcomeFailed) {
+		t.Fatalf("close failure metadata: %+v %v", meta, err)
+	}
 }
 
 func TestFailedSubagentSetupReleasesOwnerAndPreservesCloseError(t *testing.T) {
@@ -25,7 +48,7 @@ func TestFailedSubagentSetupReleasesOwnerAndPreservesCloseError(t *testing.T) {
 	persistence := &closeFailureSubagentTranscript{err: closeErr}
 	released := 0
 	run := &SubagentRun{Session: NewSession("system"), Persistence: persistence, release: func() { released++ }}
-	_, err := (*TaskTool)(nil).failBeforeSubagentRelease(run, cause)
+	_, err := (*SubagentRunner)(nil).finishSubagentRun(run, "", cause)
 	if !errors.Is(err, cause) || !errors.Is(err, closeErr) || released != 1 || persistence.calls != 1 {
 		t.Fatalf("release lost errors or ownership: %v, releases=%d closes=%d", err, released, persistence.calls)
 	}

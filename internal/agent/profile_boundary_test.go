@@ -68,7 +68,7 @@ func TestDelegationSpecMembersStaySeparate(t *testing.T) {
 		"ContinueFrom", "Ephemeral", "Decisions", "EvidenceSummary", "FileAnchors", "OutputFormat",
 	})
 	assertFieldSet(t, "SchedulerPolicy", SchedulerPolicy{}, []string{
-		"MaxSteps", "MaxOutputTokens", "RunInBackground", "BackgroundWriter", "Nested",
+		"MaxSteps", "MaxOutputTokens", "RunInBackground", "afterWriter", "Nested",
 	})
 }
 

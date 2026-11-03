@@ -21,6 +21,7 @@ export function providerRequestURLFromConfig(
   if (!base) return "";
   switch (kind.trim().toLowerCase()) {
     case "anthropic":
+      if (base.endsWith("/messages")) return base;
       return base.endsWith("/v1") ? `${base}/messages` : `${base}/v1/messages`;
     case "responses":
     case "dashscope-responses":
@@ -35,7 +36,7 @@ export function providerBaseURLFromRequestURL(kind: string, requestUrl: string):
   if (!exactRequestURL) return "";
   const normalizedKind = kind.trim().toLowerCase();
   const suffixes = normalizedKind === "anthropic"
-    ? ["/v1/messages"]
+    ? ["/v1/messages", "/messages"]
     : normalizedKind === "responses" || normalizedKind === "dashscope-responses"
       ? ["/responses"]
       : ["/chat/completions"];

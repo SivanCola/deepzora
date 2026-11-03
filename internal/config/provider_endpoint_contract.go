@@ -65,6 +65,9 @@ func ProviderRequestURL(kind, baseURL string) string {
 	}
 	switch normalizedProviderProtocol(kind) {
 	case "anthropic":
+		if strings.HasSuffix(base, "/messages") {
+			return base
+		}
 		if strings.HasSuffix(base, "/v1") {
 			return base + "/messages"
 		}
