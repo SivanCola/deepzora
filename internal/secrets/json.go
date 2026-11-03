@@ -3,6 +3,7 @@ package secrets
 import (
 	"encoding/json"
 	"slices"
+	"strings"
 )
 
 // JSON masks every scalar, including keys and shadowed duplicate-key values.
@@ -11,8 +12,9 @@ func (m *Mask) JSON(raw json.RawMessage) json.RawMessage {
 	return m.projectJSON(raw, false)
 }
 
-// JSONStrings projects typed host envelopes without treating sequence numbers
-// or usage counters as credential values. Model-authored JSON uses JSON.
+// JSONStrings projects typed host envelopes while retaining structural member
+// names and counters. Model-authored JSON documents (including nested argument
+// strings) use JSON, which also projects their keys and numeric values.
 func (m *Mask) JSONStrings(raw json.RawMessage) json.RawMessage { return m.projectJSON(raw, true) }
 func (m *Mask) projectJSON(raw json.RawMessage, stringsOnly bool) json.RawMessage {
 	if m == nil || len(raw) == 0 {
@@ -24,10 +26,17 @@ func (m *Mask) projectJSON(raw json.RawMessage, stringsOnly bool) json.RawMessag
 	var out []byte
 	last := 0
 	jsonScalars(raw, func(start, end int, value string) {
-		if stringsOnly && raw[start] != '"' {
+		if stringsOnly && (raw[start] != '"' || jsonMemberKey(raw, end)) {
 			return
 		}
 		masked := m.String(value)
+		// Tool arguments and schemas can be JSON documents carried inside a
+		// typed string field. Project their scalar tokens before quoting the
+		// outer string, so a numeric secret cannot leave invalid inner JSON.
+		inner := strings.TrimSpace(value)
+		if stringsOnly && raw[start] == '"' && (strings.HasPrefix(inner, "{") || strings.HasPrefix(inner, "[")) && json.Valid([]byte(value)) {
+			masked = string(m.JSON(json.RawMessage(value)))
+		}
 		if masked == value {
 			return
 		}
@@ -40,6 +49,13 @@ func (m *Mask) projectJSON(raw json.RawMessage, stringsOnly bool) json.RawMessag
 		return raw
 	}
 	return append(out, raw[last:]...)
+}
+
+func jsonMemberKey(raw []byte, end int) bool {
+	for end < len(raw) && (raw[end] == ' ' || raw[end] == '\t' || raw[end] == '\n' || raw[end] == '\r') {
+		end++
+	}
+	return end < len(raw) && raw[end] == ':'
 }
 
 // MarksJSON checks decoded arguments without dropping duplicate object keys.

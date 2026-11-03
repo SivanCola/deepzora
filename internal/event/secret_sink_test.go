@@ -64,3 +64,15 @@ func TestSecretSinkFlushPreservesShortValueWordBoundary(t *testing.T) {
 		t.Fatalf("standalone projection changed ordinary order text: %q", text.String())
 	}
 }
+
+func TestMaskingPreservesHostEventKindAndDomainCounters(t *testing.T) {
+	values := []secrets.Labeled{{Label: "EVENT_WORD", Value: "notice"}, {Label: "EVENT_COUNT", Value: "8614"}}
+	secrets.WatchValues(t.Name(), func() []secrets.Labeled { return values })
+	t.Cleanup(func() { secrets.UnwatchValues(t.Name()); secrets.ForgetValues(values) })
+	var received Event
+	sink := NewSecretSink(FuncSink(func(e Event) { received = e }))
+	sink.Emit(Event{Kind: Notice, Text: "notice", DomainPayload: []byte(`{"sequence":8614,"text":"8614"}`)})
+	if received.Kind != Notice || received.Text != "[secret:EVENT_WORD]" || string(received.DomainPayload) != `{"sequence":8614,"text":"[secret:EVENT_COUNT]"}` {
+		t.Fatalf("host event contract was masked: %+v", received)
+	}
+}

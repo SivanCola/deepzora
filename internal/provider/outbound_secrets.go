@@ -60,23 +60,26 @@ func maskOutboundMessages(m *secrets.Mask, messages []Message, keep SignedProjec
 		msg.Original = m.String(msg.Original)
 		if !keep.Reasoning || msg.ReasoningSignature == "" {
 			masked := m.String(msg.ReasoningContent)
-			if msg.ReasoningSignature != "" && masked != msg.ReasoningContent {
+			signature := m.String(msg.ReasoningSignature)
+			if msg.ReasoningSignature != "" && (masked != msg.ReasoningContent || signature != msg.ReasoningSignature) {
 				msg.SecretReplayInvalidated = true
 			}
 			msg.ReasoningContent = masked
+			msg.ReasoningSignature = signature
 		}
 		if len(msg.ThinkingBlocks) > 0 {
 			msg.ThinkingBlocks = slices.Clone(msg.ThinkingBlocks)
 			for j := range msg.ThinkingBlocks {
 				b := &msg.ThinkingBlocks[j]
-				if !keep.Reasoning || b.Signature == "" {
-					masked := m.String(b.Thinking)
-					if b.Signature != "" && masked != b.Thinking {
-						msg.SecretReplayInvalidated = true
-					}
-					b.Thinking = masked
+				proof := b.Signature != "" || b.Type == "redacted_thinking" && b.Data != ""
+				if !keep.Reasoning || !proof {
+					original := *b
+					b.Thinking = m.String(b.Thinking)
 					b.Data = m.String(b.Data)
 					b.Signature = m.String(b.Signature)
+					if proof && *b != original {
+						msg.SecretReplayInvalidated = true
+					}
 				}
 			}
 		}
@@ -86,11 +89,12 @@ func maskOutboundMessages(m *secrets.Mask, messages []Message, keep SignedProjec
 				call := &msg.ToolCalls[j]
 				if !keep.ToolCalls || call.ThoughtSignature == "" {
 					masked := string(m.JSON(json.RawMessage(call.Arguments)))
-					if call.ThoughtSignature != "" && masked != call.Arguments {
+					signature := m.String(call.ThoughtSignature)
+					if call.ThoughtSignature != "" && (masked != call.Arguments || signature != call.ThoughtSignature) {
 						msg.SecretReplayInvalidated = true
 					}
 					call.Arguments = masked
-					call.ThoughtSignature = m.String(call.ThoughtSignature)
+					call.ThoughtSignature = signature
 				}
 			}
 		}
@@ -110,11 +114,7 @@ func maskOutboundMessages(m *secrets.Mask, messages []Message, keep SignedProjec
 			}
 		}
 		if len(msg.ServerSearch) > 0 {
-			raw, _ := json.Marshal(msg.ServerSearch)
-			var projected []ServerSearchCall
-			if json.Unmarshal(m.JSON(raw), &projected) == nil {
-				msg.ServerSearch = projected
-			}
+			msg.ServerSearch = secrets.Project(msg.ServerSearch)
 		}
 	}
 	return out

@@ -110,6 +110,15 @@ func secretDeltaFinished(key secretDeltaKey, e Event) bool {
 }
 func maskEvent(e Event) Event {
 	projected := secrets.Project(e)
+	// These are host routing/accounting identities, not free-form content.
+	// Masking a public protocol word such as "notice" must not change the
+	// event kind or invalidate an exact session/prompt binding.
+	projected.Kind, projected.Source, projected.UsageSource = e.Kind, e.Source, e.UsageSource
+	projected.Code, projected.DomainKind, projected.PhaseName = e.Code, e.DomainKind, e.PhaseName
+	projected.MessageID, projected.AttemptID, projected.SessionID = e.MessageID, e.AttemptID, e.SessionID
+	projected.RuntimeEpoch, projected.SubmissionID, projected.TurnID = e.RuntimeEpoch, e.SubmissionID, e.TurnID
+	projected.PromptKind, projected.ModelRef = e.PromptKind, e.ModelRef
+	projected.DomainPayload = secrets.Masker().JSONStrings(e.DomainPayload)
 	if e.CommittedMessage != nil {
 		messages := provider.MaskMessages([]provider.Message{*e.CommittedMessage}, provider.SignedProjection{})
 		projected.CommittedMessage = &messages[0]

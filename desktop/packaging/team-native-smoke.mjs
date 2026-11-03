@@ -36,8 +36,8 @@ const fixture=createServer(async(req,res)=>{
   if(marker==="NATIVE_BACKGROUND"&&!completed){backgroundStarted=true;await new Promise(resolve=>{releaseBackground=resolve;});}
   if(marker==="NATIVE_APPROVAL"&&!completed)delta={tool_calls:[{index:0,id:callID,type:"function",function:{name:"remember_shared",arguments:JSON.stringify({tier:"team",operation:"save",name:"native-fact",description:"Native reviewed fact",body:"Use plain language",type:"feedback"})}}]};
   if(marker==="NATIVE_SECRET"){
-    if(completed){secretObserved=JSON.stringify(messages).includes("[secret:NATIVE]");assert.ok(secretObserved,"tool output was not masked");}
-    else delta={tool_calls:[{index:0,id:callID,type:"function",function:{name:process.platform==="win32"?"pwsh":"bash",arguments:JSON.stringify({command:process.platform==="win32"?"[Console]::Out.Write($env:DEEPZORA_SECRET_NATIVE)":"printf '%s' \"$DEEPZORA_SECRET_NATIVE\""})}}]};
+    if(completed){secretObserved=JSON.stringify(messages).includes("[secret:NATIVE]");assert.ok(secretObserved,`tool output was not masked: ${JSON.stringify(messages.filter(message=>message.tool_call_id===callID))}`);}
+    else delta={tool_calls:[{index:0,id:callID,type:"function",function:{name:process.platform==="win32"?"pwsh":"bash",arguments:JSON.stringify({command:process.platform==="win32"?"[Console]::Out.Write($env:DEEPZORA_SECRET_NATIVE)":"printf '%s' \"$DEEPZORA_SECRET_NATIVE\"",description:"Print the disposable authorized native test credential"})}}]};
   }
   res.writeHead(200,{"Content-Type":"text/event-stream"});
   res.end(`data: ${JSON.stringify({choices:[{index:0,delta,finish_reason:delta.tool_calls?"tool_calls":"stop"}],usage:{prompt_tokens:11,completion_tokens:2,total_tokens:13}})}\n\ndata: [DONE]\n\n`);
@@ -59,7 +59,16 @@ async function close(){
   const shellPid=await application.evaluate(()=>process.pid);
   const ready=parseServiceReady(readFileSync(join(home,"desktop-shell/logs/shell.log"),"utf8"));
   assert.ok(ready,"service handshake evidence is required");
-  await closeAndVerify(application,{shellPid,servicePid:ready.pid});application=null;
+  try{await closeAndVerify(application,{shellPid,servicePid:ready.pid});}
+  catch(error){
+    const logs=join(home,"desktop-shell/logs");
+    for(const name of readdirSync(logs)){
+      const path=join(logs,name);
+      try{writeFileSync(join(evidence,`failed-${name}`),readFileSync(path,"utf8").split(value).join("[secret:NATIVE]"));}catch{}
+    }
+    throw error;
+  }
+  application=null;
 }
 const settle=()=>waitForSmokeCondition(async()=>(await invoke("GetTeam")).seats.every(seat=>!seat.work?.running&&!seat.work?.pendingPrompt));
 async function historyHas(tabID,text){return JSON.stringify(await invoke("SessionHistoryWindowForTab",[tabID,{anchor:"newest",limit:64}])).includes(text);}

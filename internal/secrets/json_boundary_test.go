@@ -41,6 +41,27 @@ func TestJSONMasksDecodedValuesAndKeysWithoutRewritingCleanBytes(t *testing.T) {
 	}
 }
 
+func TestTypedEnvelopeKeepsStructuralKeysAndCountersButProjectsNestedArguments(t *testing.T) {
+	values := []Labeled{{Label: "HOST_WORD", Value: "result"}, {Label: "HOST_PIN", Value: "6432"}}
+	WatchValues(t.Name(), func() []Labeled { return values })
+	t.Cleanup(func() { UnwatchValues(t.Name()); ForgetValues(values) })
+	raw := json.RawMessage(`{ "result":{"value":"result","sequence":6432,"arguments":"  {\"6432\":6432,\"6432\":\"safe\"}"}}`)
+	out := Masker().JSONStrings(raw)
+	var envelope struct {
+		Result struct {
+			Value     string
+			Sequence  int
+			Arguments string
+		}
+	}
+	if err := json.Unmarshal(out, &envelope); err != nil {
+		t.Fatal(err)
+	}
+	if envelope.Result.Value != "[secret:HOST_WORD]" || envelope.Result.Sequence != 6432 || !json.Valid([]byte(envelope.Result.Arguments)) || strings.Count(envelope.Result.Arguments, "[secret:HOST_PIN]") != 3 {
+		t.Fatalf("host or nested JSON contract changed: %s", out)
+	}
+}
+
 func TestMarksJSONIncludesEscapedShadowedKeys(t *testing.T) {
 	watch("JSON_MARK", "unique-json-mark-secret")
 	got := Masker().MarksJSON(json.RawMessage(`{"k":"\u005bsecret:JSON_MARK]","k":"safe"}`))

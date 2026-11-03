@@ -39,3 +39,36 @@ func TestOutboundSecretProjectionCoversSchemasDuplicatesAndOriginalAdapterProofs
 		t.Fatal("clean provider request bytes changed")
 	}
 }
+
+func TestProofMetadataAndOpaqueBlocksAreOnlyPreservedByTheirOriginalAdapter(t *testing.T) {
+	value := "opaque-proof-private-value"
+	secrets.WatchValues(t.Name(), func() []secrets.Labeled { return []secrets.Labeled{{Label: "OPAQUE_PROOF", Value: value}} })
+	t.Cleanup(func() { secrets.UnwatchValues(t.Name()) })
+	for _, message := range []Message{
+		{ReasoningContent: "clean", ReasoningSignature: value},
+		{ThinkingBlocks: []ThinkingBlock{{Type: "thinking", Thinking: "clean", Signature: value}}},
+		{ThinkingBlocks: []ThinkingBlock{{Type: "redacted_thinking", Data: value}}},
+		{ToolCalls: []ToolCall{{ID: "call", Name: "fixture", Arguments: `{}`, ThoughtSignature: value}}},
+	} {
+		projected := MaskMessages([]Message{message}, SignedProjection{})[0]
+		raw, _ := json.Marshal(projected)
+		if strings.Contains(string(raw), value) || !projected.SecretReplayInvalidated {
+			t.Fatalf("proof metadata leaked or remained replayable: %s", raw)
+		}
+		original := MaskMessages([]Message{message}, SignedProjection{Reasoning: true, ToolCalls: true})[0]
+		if !reflect.DeepEqual(original, message) {
+			t.Fatal("original adapter changed required proof bytes")
+		}
+	}
+}
+
+func TestMalformedSearchRawContentCannotBypassTextProjection(t *testing.T) {
+	value := "search-raw-private-value"
+	secrets.WatchValues(t.Name(), func() []secrets.Labeled { return []secrets.Labeled{{Label: "SEARCH_RAW", Value: value}} })
+	t.Cleanup(func() { secrets.UnwatchValues(t.Name()) })
+	message := Message{ServerSearch: []ServerSearchCall{{Query: value, Raw: json.RawMessage("invalid " + value)}}}
+	projected := MaskMessages([]Message{message}, SignedProjection{})[0]
+	if strings.Contains(projected.ServerSearch[0].Query, value) || strings.Contains(string(projected.ServerSearch[0].Raw), value) {
+		t.Fatal("malformed raw search content bypassed masking")
+	}
+}
