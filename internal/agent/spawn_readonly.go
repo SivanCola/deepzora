@@ -12,7 +12,7 @@ type forceReadOnlySpawnKey struct{}
 
 func forceReadOnlySpawn(ctx context.Context) bool {
 	forced, _ := ctx.Value(forceReadOnlySpawnKey{}).(bool)
-	return forced || PlanModeFromContext(ctx) || planmode.Active(ctx)
+	return forced || PlanModeFromContext(ctx) || planmode.Active(ctx) || tool.ExecutionCeiling(ctx) == "read-only"
 }
 
 // A resolved read-only invocation carries its own restriction through Execute.
