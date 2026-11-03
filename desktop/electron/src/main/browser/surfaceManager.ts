@@ -9,6 +9,12 @@ import { abortable } from "./captureQueue.js";
 import type { RecoveredTab } from "./recoveryStore.js";
 
 export const SHARED_PARTITION = "persist:browser";
+// Input is supplied by the private Go grant, never by renderer open options.
+export function memberPartition(agentId?: string): string {
+  if (!agentId) return SHARED_PARTITION;
+  if (!/^a-[0-9a-f]{16}$/.test(agentId)) throw new Error("invalid team member identity");
+  return `persist:browser-team-${agentId}`;
+}
 export const USER_TASK_ID = "user";
 export const OPEN_WAIT_MS = 15_000;
 // Input the shell dispatches for the agent reaches the page as trusted, so
@@ -48,6 +54,7 @@ export interface BrowserTab {
 export interface OpenOptions {
   taskId: string;
   sessionId?: string;
+  teamAgentId?: string;
   temporary: boolean;
 }
 
@@ -136,8 +143,9 @@ export class BrowserSurfaceManager {
     for (const row of tabs.slice(0, 32)) {
       if (this.tabs.has(row.id) || this.tabs.size >= 32) continue;
       this.counter = Math.max(this.counter, Number(row.id.slice(4)));
-      const view = new LazyGuestView(this.deps.views, SHARED_PARTITION, row);
-      const tab = this.register(row.id, view, row.taskId, row.sessionId, SHARED_PARTITION, false);
+      const partition = memberPartition(row.teamAgentId);
+      const view = new LazyGuestView(this.deps.views, partition, row);
+      const tab = this.register(row.id, view, row.taskId, row.sessionId, partition, false);
       tab.viewport = row.viewport;
       view.setViewport(row.viewport);
       tab.lastURL = row.url;
@@ -146,7 +154,7 @@ export class BrowserSurfaceManager {
   }
 
   recoveryTabs(): RecoveredTab[] {
-    return this.all().filter(tab => !tab.temporary).map(tab => ({ id: tab.id, taskId: tab.taskId, sessionId: tab.sessionId, url: tab.view.page.getURL() || tab.lastURL, title: tab.view.page.getTitle(), viewport: tab.viewport, fileReference: tab.fileReference }));
+    return this.all().filter(tab => !tab.temporary).map(tab => ({ id: tab.id, taskId: tab.taskId, sessionId: tab.sessionId, teamAgentId: tab.partition.startsWith("persist:browser-team-") ? tab.partition.slice("persist:browser-team-".length) : undefined, url: tab.view.page.getURL() || tab.lastURL, title: tab.view.page.getTitle(), viewport: tab.viewport, fileReference: tab.fileReference }));
   }
 
   view(tab: BrowserTab): BrowserTabView {
@@ -185,7 +193,7 @@ export class BrowserSurfaceManager {
     if (this.tabs.size >= 32) throw new Error("browser tab limit reached (32); close an unused tab first");
     const href = normaliseBrowserURL(url);
     const id = this.nextId();
-    const partition = options.temporary ? `temp:${id}` : SHARED_PARTITION;
+    const partition = options.temporary ? `temp:${id}` : memberPartition(options.teamAgentId);
     const view = this.deps.views.create(partition);
     const tab = this.register(id, view, options.taskId, options.sessionId ?? "", partition, options.temporary);
     if (this.layout) view.setBounds(this.layout);
@@ -400,16 +408,20 @@ export class BrowserSurfaceManager {
   }
 
   private events(tab: BrowserTab): GuestViewEvents {
+    const current = () => this.tabs.get(tab.id) === tab;
     return {
       onStartLoading: () => {
+        if (!current()) return;
         tab.loading = true;
         this.broadcast();
       },
       onStopLoading: () => {
+        if (!current()) return;
         tab.loading = false;
         this.broadcast();
       },
       onNavigate: (url, inPage) => {
+        if (!current()) return;
         if (tab.fileReference && tab.fileReferenceURL !== url) { tab.fileReference = undefined; tab.fileReferenceURL = undefined; }
         tab.epoch += 1;
         tab.lifecycleEpoch += 1;
@@ -417,21 +429,22 @@ export class BrowserSurfaceManager {
         if (!inPage) tab.error = null;
         this.broadcast();
       },
-      onTitle: () => this.broadcast(),
+      onTitle: () => { if (current()) this.broadcast(); },
       onFailLoad: (code, description) => {
+        if (!current()) return;
         tab.error = { code, description };
         this.broadcast();
       },
-      onRenderProcessGone: (reason) => this.recover(tab, reason),
+      onRenderProcessGone: (reason) => { if (current()) this.recover(tab, reason); },
       onDestroyed: () => {
-        if (!this.tabs.has(tab.id)) return;
+        if (!current()) return;
         this.forget(tab);
         this.broadcast();
       },
       onPopup: () => {
-        if (!this.tabs.has(tab.id) || this.tabs.size >= 32) return null;
+        if (!current() || this.tabs.size >= 32) return null;
         return (view) => {
-          if (!this.tabs.has(tab.id) || this.tabs.size >= 32) { view.destroy(); return; }
+          if (!current() || this.tabs.size >= 32) { view.destroy(); return; }
           this.register(this.nextId(), view, tab.taskId, tab.sessionId, tab.partition, tab.temporary);
           this.broadcast();
         };

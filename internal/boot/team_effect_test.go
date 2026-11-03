@@ -5,10 +5,45 @@ import (
 	"strings"
 	"testing"
 
+	"deepzora/internal/agentpreset"
 	"deepzora/internal/team"
 	"deepzora/internal/teamroster"
 	"deepzora/internal/tool/builtin"
 )
+
+func TestEffectTeamPresetSnapshotSurvivesSourceReplacement(t *testing.T) {
+	opts, rec := presetEffectSetup(t)
+	dirs := AgentPresetDirs(opts.WorkspaceRoot)
+	p, err := agentpreset.Write(dirs.Project, "copied", "---\ncomplete: true\ninclude-runtime-context: false\ntools: []\n---\nORIGINAL_TEAM_DEFINITION")
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := teamroster.Store{Dir: t.TempDir()}
+	r, err := store.Update(t.Context(), func(r *teamroster.Roster) error {
+		r.AddAgent(teamroster.Agent{Name: "Chief", Main: true, Preset: &p})
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := agentpreset.Write(dirs.Project, "copied", "CHANGED_SOURCE"); err != nil {
+		t.Fatal(err)
+	}
+	opts.TeamSeat = team.Seat{Service: team.New(team.Options{Store: store}), Ref: team.SeatRef{Agent: r.Agents[0].ID}}
+	member := buildPresetEffect(t, opts)
+	if err := member.Controller.Run(t.Context(), "first"); err != nil {
+		t.Fatal(err)
+	}
+	request := rec.requests()[0]
+	if !strings.Contains(request.Messages[0].Content, "ORIGINAL_TEAM_DEFINITION") || strings.Contains(request.Messages[0].Content, "CHANGED_SOURCE") {
+		t.Fatal("team followed the mutable source definition")
+	}
+	for _, schema := range request.Tools {
+		if schema.Name == "write_file" {
+			t.Fatal("copied empty tool allowlist was lost")
+		}
+	}
+}
 
 func TestEffectTeamIdentityChangesOnlyTurnTailAndTeamTools(t *testing.T) {
 	opts, rec := presetEffectSetup(t)

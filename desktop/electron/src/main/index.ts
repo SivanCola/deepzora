@@ -664,7 +664,11 @@ function bootstrap(dataHome: string): void {
         openExternal: (url) => shell.openExternal(url),
         browser: {
           list: () => browser.list(),
-          open: async (url, options) => browser.view(await browser.open(url, options)),
+          open: async (url, options) => {
+            const scope = options.taskId === "user" ? "" : await service.invoke("BrowserTeamAgentForTab", [options.taskId]);
+            if (typeof scope !== "string") throw new Error("Browser task identity is unavailable");
+            return browser.view(await browser.open(url, { ...options, teamAgentId: scope }));
+          },
           close: (tabId) => browser.close(tabId),
           activate: (tabId) => browser.activate(tabId),
           navigate: async (tabId, target) => {

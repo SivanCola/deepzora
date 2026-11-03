@@ -2,6 +2,7 @@ package teamroster
 
 import (
 	"crypto/rand"
+	"deepzora/internal/agentpreset"
 	"encoding/hex"
 	"fmt"
 	"path/filepath"
@@ -69,22 +70,24 @@ type Part struct {
 // session's sidecar once that exists; InitialModel only seeds the first open.
 // Permission is the approval mode the user gave it; empty follows the window.
 type Agent struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	Role         string    `json:"role,omitempty"`
-	Instructions string    `json:"instructions,omitempty"`
-	Avatar       Avatar    `json:"avatar"`
-	Composition  string    `json:"composition,omitempty"`
-	InitialModel string    `json:"initialModel,omitempty"`
-	Folder       string    `json:"folder,omitempty"`
-	Permission   string    `json:"permission,omitempty"`
-	SessionPath  string    `json:"sessionPath,omitempty"`
-	Parts        []Part    `json:"parts,omitempty"`
-	Main         bool      `json:"main,omitempty"`
-	Pinned       bool      `json:"pinned,omitempty"`
-	Hidden       bool      `json:"hidden,omitempty"`
-	CreatedBy    string    `json:"createdBy"`
-	CreatedAt    time.Time `json:"createdAt"`
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	Role         string `json:"role,omitempty"`
+	Instructions string `json:"instructions,omitempty"`
+	Avatar       Avatar `json:"avatar"`
+	Composition  string `json:"composition,omitempty"`
+	// Preset is a definition snapshot, independent of the source preset file.
+	Preset       *agentpreset.Preset `json:"preset,omitempty"`
+	InitialModel string              `json:"initialModel,omitempty"`
+	Folder       string              `json:"folder,omitempty"`
+	Permission   string              `json:"permission,omitempty"`
+	SessionPath  string              `json:"sessionPath,omitempty"`
+	Parts        []Part              `json:"parts,omitempty"`
+	Main         bool                `json:"main,omitempty"`
+	Pinned       bool                `json:"pinned,omitempty"`
+	Hidden       bool                `json:"hidden,omitempty"`
+	CreatedBy    string              `json:"createdBy"`
+	CreatedAt    time.Time           `json:"createdAt"`
 }
 
 // Group is a chat several agents take turns in. MemberSessions maps a member
@@ -109,10 +112,11 @@ type Group struct {
 
 // Roster is the whole team as one file holds it.
 type Roster struct {
-	SchemaVersion int     `json:"schemaVersion"`
-	Revision      uint64  `json:"revision"`
-	Agents        []Agent `json:"agents"`
-	Groups        []Group `json:"groups"`
+	SchemaVersion int               `json:"schemaVersion"`
+	Revision      uint64            `json:"revision"`
+	Agents        []Agent           `json:"agents"`
+	Groups        []Group           `json:"groups"`
+	Mutations     []MutationReceipt `json:"mutations,omitempty"`
 }
 
 func newAgentID() string { return "a-" + randomHex() }

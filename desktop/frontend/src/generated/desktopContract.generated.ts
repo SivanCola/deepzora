@@ -3,7 +3,7 @@
 
 export const DESKTOP_PROTOCOL_VERSION = 11;
 
-export const DESKTOP_CONTRACT_DIGEST = "sha256:571e746f14b6b0e20864aa68475895e406e9dcf7785403988d4b2bea2826a101";
+export const DESKTOP_CONTRACT_DIGEST = "sha256:d2ab89ba4ee80d9cc4bae955ffa9de5fa858cb54aaa5576ca0250ce40b93a908";
 
 export const DESKTOP_COMMANDS = [
   "AIRenameSessionTarget",
@@ -47,6 +47,7 @@ export const DESKTOP_COMMANDS = [
   "BeginSessionComposerSubmission",
   "BeginSessionExportForTarget",
   "BeginSessionHistoryReadForTab",
+  "BrowserTeamAgentForTab",
   "Cancel",
   "CancelJob",
   "CancelJobForTab",
@@ -147,6 +148,7 @@ export const DESKTOP_COMMANDS = [
   "GetSessionOrganization",
   "GetSessionSummary",
   "GetTaskCatalogStatus",
+  "GetTeam",
   "GetThemeExperience",
   "GetToolRecoveryForTab",
   "GetWorkspaceSnapshot",
@@ -240,6 +242,7 @@ export const DESKTOP_COMMANDS = [
   "OpenSession",
   "OpenTaskSessionByKey",
   "OpenTaskSessionForTab",
+  "OpenTeamAgent",
   "OpenUserConfigPath",
   "OpenWorkspaceInExternalOpenerForTab",
   "OpenWorkspacePathForTab",
@@ -385,6 +388,8 @@ export const DESKTOP_COMMANDS = [
   "SaveReferencePathAsForTab",
   "SaveSessionComposerState",
   "SaveSessionMarkdownForTab",
+  "SaveTeamAgent",
+  "SaveTeamGroup",
   "SaveThemePack",
   "SaveWindowState",
   "SaveWorkspacePathAsForTab",
@@ -535,6 +540,7 @@ export const DESKTOP_EVENTS = [
   "runtime-state:changed",
   "runtime:rebuilt",
   "tab:meta",
+  "team:changed",
   "terminal:exit",
   "terminal:output",
   "topic:activation",
@@ -3047,6 +3053,21 @@ export interface SandboxView {
   gitRepairGuidance?: RepairGuidanceView | null;
 }
 
+export interface SaveTeamAgentRequest {
+  id: string;
+  expectedRevision: number;
+  requestId: string;
+  presetId?: string | null;
+  settings: TeamAgentSettings;
+}
+
+export interface SaveTeamGroupRequest {
+  id: string;
+  expectedRevision: number;
+  requestId: string;
+  settings: TeamGroupSettings;
+}
+
 export interface ServerView {
   name: string;
   transport: string;
@@ -3586,6 +3607,56 @@ export interface TaskPageRequest {
   query: string;
   cursor: string;
   limit: number;
+}
+
+export interface TeamAgentSettings {
+  name: string;
+  role: string;
+  instructions: string;
+  avatar: Avatar;
+  initialModel: string;
+  folder: string;
+  permission: string;
+  main: boolean;
+  pinned: boolean;
+  hidden: boolean;
+  preset?: Preset | null;
+}
+
+export interface TeamGroupSettings {
+  name: string;
+  notice: string;
+  members: string[];
+  admin: string;
+  mode: string;
+  relayLimit: number;
+  folder: string;
+  pinned: boolean;
+  hidden: boolean;
+  archived: boolean;
+}
+
+export interface TeamMutationResult {
+  outcome: string;
+  reason?: string;
+  message?: string;
+  targetId?: string;
+  view: TeamView;
+}
+
+export interface TeamSeatView {
+  agentId: string;
+  groupId?: string;
+  tabId: string;
+  sessionId: string;
+  generation: number;
+  work: ActiveWorkView;
+}
+
+export interface TeamView {
+  roster: Roster;
+  writable: boolean;
+  seats: TeamSeatView[];
 }
 
 export interface TerminalSessionView {
@@ -4436,6 +4507,68 @@ export interface TaskSnapshot {
   error_summary?: string;
 }
 
+export interface Agent {
+  id: string;
+  name: string;
+  role?: string;
+  instructions?: string;
+  avatar: Avatar;
+  composition?: string;
+  preset?: Preset | null;
+  initialModel?: string;
+  folder?: string;
+  permission?: string;
+  sessionPath?: string;
+  parts?: Part[];
+  main?: boolean;
+  pinned?: boolean;
+  hidden?: boolean;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface Avatar {
+  glyph?: string;
+  color?: string;
+}
+
+export interface Group {
+  id: string;
+  name?: string;
+  notice?: string;
+  members: string[];
+  admin?: string;
+  mode: string;
+  relayLimit?: number;
+  folder?: string;
+  memberSessions?: Record<string, string>;
+  pinned?: boolean;
+  hidden?: boolean;
+  archived?: boolean;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface MutationReceipt {
+  key: string;
+  digest: string;
+  expectedRevision: number;
+  target: string;
+}
+
+export interface Part {
+  sessionPath: string;
+  endedAt: string;
+}
+
+export interface Roster {
+  schemaVersion: number;
+  revision: number;
+  agents: Agent[];
+  groups: Group[];
+  mutations?: MutationReceipt[];
+}
+
 export interface ActiveAttempt {
   id: string;
   messageId: string;
@@ -4744,6 +4877,7 @@ export interface GeneratedDesktopCommands {
   BeginSessionComposerSubmission(arg0: SessionRef, arg1: string, arg2: string, arg3: string): Promise<SessionComposerState>;
   BeginSessionExportForTarget(arg0: SessionSelector, arg1: string, arg2: string, arg3: string, arg4: string): Promise<SessionExportHandle>;
   BeginSessionHistoryReadForTab(arg0: string): Promise<SessionHistoryReadHandle>;
+  BrowserTeamAgentForTab(arg0: string): Promise<string>;
   Cancel(): Promise<void>;
   CancelJob(arg0: string): Promise<boolean>;
   CancelJobForTab(arg0: string, arg1: string): Promise<boolean>;
@@ -4844,6 +4978,7 @@ export interface GeneratedDesktopCommands {
   GetSessionOrganization(arg0: SessionOrganizationWorkspace): Promise<SessionOrganizationSnapshot>;
   GetSessionSummary(arg0: SessionRef): Promise<ProjectNode>;
   GetTaskCatalogStatus(): Promise<taskcatalog_Status>;
+  GetTeam(): Promise<TeamView>;
   GetThemeExperience(): Promise<ThemeExperienceView>;
   GetToolRecoveryForTab(arg0: string): Promise<ToolRecoverySnapshot>;
   GetWorkspaceSnapshot(): Promise<WorkspaceSnapshot>;
@@ -4937,6 +5072,7 @@ export interface GeneratedDesktopCommands {
   OpenSession(arg0: SessionRef): Promise<HistoryPage>;
   OpenTaskSessionByKey(arg0: TaskOpenRequest): Promise<ControlResult>;
   OpenTaskSessionForTab(arg0: string, arg1: string): Promise<ControlResult>;
+  OpenTeamAgent(arg0: string, arg1: string): Promise<TabMeta>;
   OpenUserConfigPath(): Promise<void>;
   OpenWorkspaceInExternalOpenerForTab(arg0: string, arg1: string): Promise<void>;
   OpenWorkspacePathForTab(arg0: string, arg1: string): Promise<void>;
@@ -5082,6 +5218,8 @@ export interface GeneratedDesktopCommands {
   SaveReferencePathAsForTab(arg0: string, arg1: string): Promise<string>;
   SaveSessionComposerState(arg0: SessionComposerSaveRequest): Promise<SessionComposerState>;
   SaveSessionMarkdownForTab(arg0: string, arg1: string, arg2: string): Promise<void>;
+  SaveTeamAgent(arg0: SaveTeamAgentRequest): Promise<TeamMutationResult>;
+  SaveTeamGroup(arg0: SaveTeamGroupRequest): Promise<TeamMutationResult>;
   SaveThemePack(arg0: ThemeSaveInput): Promise<ThemePackView>;
   SaveWindowState(arg0: DesktopWindowState): Promise<void>;
   SaveWorkspacePathAsForTab(arg0: string, arg1: string): Promise<string>;

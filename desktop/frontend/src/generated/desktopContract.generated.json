@@ -1126,6 +1126,30 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/browser_executor.go",
+      "name": "BrowserTeamAgentForTab",
+      "owner": "App.BrowserTeamAgentForTab",
+      "params": [
+        {
+          "kind": "string"
+        }
+      ],
+      "result": {
+        "kind": "string"
+      },
+      "scope": {
+        "inputs": [
+          "tabID"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.BrowserTeamAgentForTab"
+      },
+      "sources": [
+        "desktop/browser_executor.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/app.go",
       "name": "Cancel",
       "owner": "App.Cancel",
@@ -3755,6 +3779,26 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/team_api.go",
+      "name": "GetTeam",
+      "owner": "App.GetTeam",
+      "params": [],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamView"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [],
+        "kind": "owner-state",
+        "resolver": "App.GetTeam"
+      },
+      "sources": [
+        "desktop/team_api.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/theme_app.go",
       "name": "GetThemeExperience",
       "owner": "App.GetThemeExperience",
@@ -6244,6 +6288,36 @@
       },
       "sources": [
         "desktop/app.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/team_api.go",
+      "name": "OpenTeamAgent",
+      "owner": "App.OpenTeamAgent",
+      "params": [
+        {
+          "kind": "string"
+        },
+        {
+          "kind": "string"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.TabMeta"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "agentID",
+          "groupID"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.OpenTeamAgent"
+      },
+      "sources": [
+        "desktop/team_api.go"
       ]
     },
     {
@@ -10130,6 +10204,60 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/team_api.go",
+      "name": "SaveTeamAgent",
+      "owner": "App.SaveTeamAgent",
+      "params": [
+        {
+          "kind": "object",
+          "ref": "main.SaveTeamAgentRequest"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamMutationResult"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "req"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.SaveTeamAgent"
+      },
+      "sources": [
+        "desktop/team_api.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/team_api.go",
+      "name": "SaveTeamGroup",
+      "owner": "App.SaveTeamGroup",
+      "params": [
+        {
+          "kind": "object",
+          "ref": "main.SaveTeamGroupRequest"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.TeamMutationResult"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "req"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.SaveTeamGroup"
+      },
+      "sources": [
+        "desktop/team_api.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/theme_app.go",
       "name": "SaveThemePack",
       "owner": "App.SaveThemePack",
@@ -13982,6 +14110,7 @@
     "runtime-state:changed",
     "runtime:rebuilt",
     "tab:meta",
+    "team:changed",
     "terminal:exit",
     "terminal:output",
     "topic:activation",
@@ -27554,6 +27683,74 @@
         }
       ]
     },
+    "main.SaveTeamAgentRequest": {
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "expectedRevision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "requestId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "presetId",
+          "optional": true,
+          "type": {
+            "elem": {
+              "kind": "string"
+            },
+            "kind": "nullable"
+          }
+        },
+        {
+          "name": "settings",
+          "type": {
+            "kind": "object",
+            "ref": "main.TeamAgentSettings"
+          }
+        }
+      ]
+    },
+    "main.SaveTeamGroupRequest": {
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "expectedRevision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "requestId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "settings",
+          "type": {
+            "kind": "object",
+            "ref": "main.TeamGroupSettings"
+          }
+        }
+      ]
+    },
     "main.ServerView": {
       "fields": [
         {
@@ -30431,6 +30628,256 @@
           "name": "limit",
           "type": {
             "kind": "integer"
+          }
+        }
+      ]
+    },
+    "main.TeamAgentSettings": {
+      "fields": [
+        {
+          "name": "name",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "role",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "instructions",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "avatar",
+          "type": {
+            "kind": "object",
+            "ref": "teamroster.Avatar"
+          }
+        },
+        {
+          "name": "initialModel",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "folder",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "permission",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "main",
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "pinned",
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "hidden",
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "preset",
+          "optional": true,
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "agentpreset.Preset"
+            },
+            "kind": "nullable"
+          }
+        }
+      ]
+    },
+    "main.TeamGroupSettings": {
+      "fields": [
+        {
+          "name": "name",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "notice",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "members",
+          "type": {
+            "elem": {
+              "kind": "string"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "admin",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "mode",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "relayLimit",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "folder",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "pinned",
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "hidden",
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "archived",
+          "type": {
+            "kind": "boolean"
+          }
+        }
+      ]
+    },
+    "main.TeamMutationResult": {
+      "fields": [
+        {
+          "name": "outcome",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "reason",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "message",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "targetId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "view",
+          "type": {
+            "kind": "object",
+            "ref": "main.TeamView"
+          }
+        }
+      ]
+    },
+    "main.TeamSeatView": {
+      "fields": [
+        {
+          "name": "agentId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "groupId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "tabId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "sessionId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "generation",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "work",
+          "type": {
+            "kind": "object",
+            "ref": "main.ActiveWorkView"
+          }
+        }
+      ]
+    },
+    "main.TeamView": {
+      "fields": [
+        {
+          "name": "roster",
+          "type": {
+            "kind": "object",
+            "ref": "teamroster.Roster"
+          }
+        },
+        {
+          "name": "writable",
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "seats",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "main.TeamSeatView"
+            },
+            "kind": "array"
           }
         }
       ]
@@ -34736,6 +35183,348 @@
           "optional": true,
           "type": {
             "kind": "string"
+          }
+        }
+      ]
+    },
+    "teamroster.Agent": {
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "name",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "role",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "instructions",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "avatar",
+          "type": {
+            "kind": "object",
+            "ref": "teamroster.Avatar"
+          }
+        },
+        {
+          "name": "composition",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "preset",
+          "optional": true,
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "agentpreset.Preset"
+            },
+            "kind": "nullable"
+          }
+        },
+        {
+          "name": "initialModel",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "folder",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "permission",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "sessionPath",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "parts",
+          "optional": true,
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "teamroster.Part"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "main",
+          "optional": true,
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "pinned",
+          "optional": true,
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "hidden",
+          "optional": true,
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "createdBy",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "createdAt",
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "teamroster.Avatar": {
+      "fields": [
+        {
+          "name": "glyph",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "color",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "teamroster.Group": {
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "name",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "notice",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "members",
+          "type": {
+            "elem": {
+              "kind": "string"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "admin",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "mode",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "relayLimit",
+          "optional": true,
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "folder",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "memberSessions",
+          "optional": true,
+          "type": {
+            "elem": {
+              "kind": "string"
+            },
+            "key": {
+              "kind": "string"
+            },
+            "kind": "map"
+          }
+        },
+        {
+          "name": "pinned",
+          "optional": true,
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "hidden",
+          "optional": true,
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "archived",
+          "optional": true,
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "createdBy",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "createdAt",
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "teamroster.MutationReceipt": {
+      "fields": [
+        {
+          "name": "key",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "digest",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "expectedRevision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "target",
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "teamroster.Part": {
+      "fields": [
+        {
+          "name": "sessionPath",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "endedAt",
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "teamroster.Roster": {
+      "fields": [
+        {
+          "name": "schemaVersion",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "revision",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "agents",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "teamroster.Agent"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "groups",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "teamroster.Group"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "mutations",
+          "optional": true,
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "teamroster.MutationReceipt"
+            },
+            "kind": "array"
           }
         }
       ]

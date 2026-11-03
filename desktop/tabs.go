@@ -55,6 +55,7 @@ func resolveDraftCreateModelStrict(cfg *config.Config, model string) (string, er
 // memory, permissions) scoped to a workspace root, so multiple projects and
 // topics can be active concurrently without interfering.
 type WorkspaceTab struct {
+	teamSeat                 control.TeamSeat           // host-owned, never accepted from renderer input
 	ID                       string                     // stable random id
 	Scope                    string                     // "project" | "global"
 	WorkspaceRoot            string                     // project root dir (empty for global)
@@ -424,6 +425,7 @@ func cloneDetachedRuntimeTab(tab *WorkspaceTab, key, path string) *WorkspaceTab 
 	pinnedFiles := tab.pinnedFilesState()
 
 	detached := &WorkspaceTab{
+		teamSeat:            tab.teamSeat,
 		ID:                  detachedRuntimeTabID(key),
 		Scope:               tab.Scope,
 		WorkspaceRoot:       tab.WorkspaceRoot,
@@ -546,6 +548,7 @@ func applyRuntimeTab(target, source *WorkspaceTab, path string, appCtx context.C
 	}
 
 	target.Ctrl = source.Ctrl
+	target.teamSeat = source.teamSeat
 	target.modelApplication.failure = source.modelApplication.failure
 	target.lastBuildResult = source.lastBuildResult
 	target.sink = source.sink
@@ -2210,7 +2213,7 @@ func (a *App) closeTabRuntime(tabID string, allowDetach bool) error {
 		a.mu.Unlock()
 		return fmt.Errorf("task still has active work")
 	}
-	if tab.Ctrl == nil || !tab.hasActiveRuntimeWork() {
+	if tab.Ctrl == nil || (!tab.hasActiveRuntimeWork() && tab.teamSeat == nil) {
 		a.markTabRemovedLocked(tab)
 	}
 
@@ -2250,7 +2253,7 @@ func (a *App) closeTabRuntime(tabID string, allowDetach bool) error {
 	// Tear down outside App.mu while retaining the lifecycle barrier acquired
 	// before the tab binding was removed.
 	if closeCtrl != nil {
-		if allowDetach && controllerHasActiveRuntimeWork(closeCtrl) && a.detachSessionRuntime(tab) {
+		if allowDetach && (tab.teamSeat != nil || controllerHasActiveRuntimeWork(closeCtrl)) && a.detachSessionRuntime(tab) {
 			// Detached runtimes retain their current writer and keep saving.
 			return nil
 		}
@@ -2303,7 +2306,7 @@ func (a *App) removeVisibleTabRuntimeAdmissionHeld(tab *WorkspaceTab) {
 	a.mu.RLock()
 	ctrl := tab.Ctrl
 	a.mu.RUnlock()
-	if ctrl != nil && controllerHasActiveRuntimeWork(ctrl) && a.detachSessionRuntime(tab) {
+	if ctrl != nil && (tab.teamSeat != nil || controllerHasActiveRuntimeWork(ctrl)) && a.detachSessionRuntime(tab) {
 		return
 	}
 	if err := a.snapshotTab(tab); err != nil {
@@ -2653,6 +2656,7 @@ func (a *App) buildTabControllerWithContextCore(tab *WorkspaceTab, loadedSession
 	buildToolApprovalMode := tab.toolApprovalMode
 	buildGoal := tab.goal
 	buildSink := tab.sink
+	buildTeamSeat := tab.teamSeat
 	a.saveTabsLocked()
 	a.mu.Unlock()
 	buildRuntime := (tabRuntimeSnapshot{
@@ -2683,6 +2687,7 @@ func (a *App) buildTabControllerWithContextCore(tab *WorkspaceTab, loadedSession
 		PinnedContextLoader:   pinnedContextLoader(root),
 		BeforeInboxDispatch:   a.beforeInboxDispatch,
 		OnSessionTitleChanged: a.onSessionTitleChanged,
+		TeamSeat:              buildTeamSeat,
 	}, extensionGen, buildGeneration, tabSessionID, requestedModel)
 	buildCtx, registration := booted.ctx, booted.registration
 	defer func() { registration.rollback() }()
@@ -3016,6 +3021,9 @@ func (a *App) saveTabsCollectLocked() (string, []desktopTabEntry, string, uint64
 	var entries []desktopTabEntry
 	for _, id := range a.orderedTabIDsLocked() {
 		if tab := a.tabs[id]; tab != nil {
+			if tab.teamSeat != nil {
+				continue
+			}
 			if a.suppressTabStartupRestoreLocked(tab) {
 				continue
 			}

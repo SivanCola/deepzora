@@ -185,6 +185,7 @@ type App struct {
 	sessionServicesMu      sync.Mutex
 	sessionServices        map[string]*session.Service
 	projectSessionServices map[string]*session.Service
+	teamState              desktopTeamState
 	// skillWatch is the one skill-watch service this host shares across every
 	// controller build, so the host owns a single watcher helper process
 	// instead of one per rebuild. Created on first use; closed, never cleared, at shutdown.
@@ -454,6 +455,7 @@ func (a *App) startup(ctx context.Context) {
 	a.heartbeat.Start()
 
 	go a.restoreOrBuildTabs()
+	a.startTeamHost()
 	a.startDesktopPersistenceReconciliation()
 	a.registerHistoryIndexEvents()
 	a.startSessionCatalog()
