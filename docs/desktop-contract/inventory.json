@@ -533,7 +533,7 @@
       "kind": "command",
       "name": "CloseTab",
       "detail": "(tabID string) error",
-      "location": "desktop/tabs.go:2174",
+      "location": "desktop/tabs.go:2175",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -613,7 +613,7 @@
       "kind": "command",
       "name": "ContextPanel",
       "detail": "(tabID string) ContextPanelInfo",
-      "location": "desktop/tabs.go:3851",
+      "location": "desktop/tabs.go:3852",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -709,7 +709,7 @@
       "kind": "command",
       "name": "CreateTopic",
       "detail": "(scope string, workspaceRoot string, title string) (TopicMeta, error)",
-      "location": "desktop/tabs.go:3622",
+      "location": "desktop/tabs.go:3623",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -845,7 +845,7 @@
       "kind": "command",
       "name": "EnsureBlankSurface",
       "detail": "(scope string, workspaceRoot string) (TabMeta, error)",
-      "location": "desktop/tabs.go:1833",
+      "location": "desktop/tabs.go:1834",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -1509,7 +1509,7 @@
       "kind": "command",
       "name": "ListTabs",
       "detail": "() []TabMeta",
-      "location": "desktop/tabs.go:1557",
+      "location": "desktop/tabs.go:1558",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -1877,7 +1877,7 @@
       "kind": "command",
       "name": "OpenProjectTab",
       "detail": "(workspaceRoot string, topicID string) (TabMeta, error)",
-      "location": "desktop/tabs.go:1607",
+      "location": "desktop/tabs.go:1608",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -2493,7 +2493,7 @@
       "kind": "command",
       "name": "RenameProject",
       "detail": "(workspaceRoot string, title string) error",
-      "location": "desktop/tabs.go:3645",
+      "location": "desktop/tabs.go:3646",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -2533,7 +2533,7 @@
       "kind": "command",
       "name": "RenameTopic",
       "detail": "(topicID string, title string) error",
-      "location": "desktop/tabs.go:3755",
+      "location": "desktop/tabs.go:3756",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -2549,7 +2549,7 @@
       "kind": "command",
       "name": "ReorderProjects",
       "detail": "(workspaceRoots []string) error",
-      "location": "desktop/tabs.go:3701",
+      "location": "desktop/tabs.go:3702",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -2557,7 +2557,7 @@
       "kind": "command",
       "name": "ReorderTabs",
       "detail": "(tabIDs []string) error",
-      "location": "desktop/tabs.go:2144",
+      "location": "desktop/tabs.go:2145",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -3605,7 +3605,7 @@
       "kind": "command",
       "name": "SetProjectColor",
       "detail": "(workspaceRoot string, color string) error",
-      "location": "desktop/tabs.go:3656",
+      "location": "desktop/tabs.go:3657",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -3613,7 +3613,7 @@
       "kind": "command",
       "name": "SetProjectPinned",
       "detail": "(workspaceRoot string, pinned bool) error",
-      "location": "desktop/tabs.go:3667",
+      "location": "desktop/tabs.go:3668",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -3757,7 +3757,7 @@
       "kind": "command",
       "name": "SetTopicPinned",
       "detail": "(topicID string, pinned bool) error",
-      "location": "desktop/tabs.go:3790",
+      "location": "desktop/tabs.go:3791",
       "class": "keep-business",
       "owner": "hostrpc desktop/invoke"
     },
@@ -4286,7 +4286,7 @@
     {
       "kind": "event",
       "name": "runtime:rebuilt",
-      "location": "desktop/tabs.go:1277",
+      "location": "desktop/tabs.go:1278",
       "class": "keep-business",
       "owner": "desktop/event frame (seq + generation), same payload"
     },
