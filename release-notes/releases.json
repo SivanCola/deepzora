@@ -124,6 +124,14 @@
       ],
       "risks": [
         {
+          "targets": ["desktop", "cli"],
+          "title": { "en": "Windows remains unsigned for this release", "zh": "本版 Windows 仍未代码签名" },
+          "body": {
+            "en": "The maintainer explicitly approved an unsigned Windows 0.0.4 exception. These files have no Deepzora Authenticode publisher signature, so Windows may show unknown-publisher or SmartScreen warnings. Minisign integrity signatures, provenance and final-package native acceptance remain mandatory. This approval does not cover later versions.",
+            "zh": "维护者已明确批准 Windows 0.0.4 未签名发布例外。相关文件没有 Deepzora 的 Authenticode 发布者签名，Windows 可能显示未知发布者或 SmartScreen 提示。Minisign 完整性签名、来源验证及最终安装包原生验收仍必须完成。此批准不适用于后续版本。"
+          }
+        },
+        {
           "targets": ["desktop"],
           "title": { "en": "Reported Windows shutdown stall remains under investigation", "zh": "Windows 退出卡住的报告仍在排查" },
           "body": {
