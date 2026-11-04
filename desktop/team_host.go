@@ -207,6 +207,12 @@ func (a *App) startTeamHost() {
 }
 
 func (a *App) stopTeamHost() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	return a.stopTeamHostContext(ctx)
+}
+
+func (a *App) stopTeamHostContext(ctx context.Context) error {
 	a.teamState.mu.Lock()
 	a.teamState.closing = true
 	h, cancel, done := a.teamState.host, a.teamState.cancel, a.teamState.done
@@ -218,10 +224,17 @@ func (a *App) stopTeamHost() error {
 	// Shutdown cancels outstanding seat admission before joining the clock.
 	var err error
 	if h != nil {
-		err = h.Shutdown(context.Background())
+		err = h.Shutdown(ctx)
+	}
+	if err != nil {
+		return err
 	}
 	if done != nil {
-		<-done
+		select {
+		case <-done:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 	a.releaseTeamSecretMasking()
 	return err
@@ -436,7 +449,12 @@ type desktopTeamRuntime struct {
 	ref       team.SeatRef
 	sessionID string
 	closeMu   sync.Mutex
-	closing   <-chan struct{}
+	closing   *teamRuntimeCloseAttempt
+}
+
+type teamRuntimeCloseAttempt struct {
+	done chan struct{}
+	err  error
 }
 
 func (r *desktopTeamRuntime) owner() *WorkspaceTab {
@@ -504,53 +522,92 @@ func (r *desktopTeamRuntime) CloseRebound(ctx context.Context) (bool, error) {
 	return r.close(ctx, true, true)
 }
 func (r *desktopTeamRuntime) close(ctx context.Context, idle, rebound bool) (bool, error) {
+	attempt, closed, err := r.startClose(ctx, idle, rebound)
+	if attempt == nil {
+		return closed, err
+	}
+	return awaitTeamRuntimeClosed(ctx, attempt)
+}
+
+func (r *desktopTeamRuntime) startClose(ctx context.Context, idle, rebound bool) (*teamRuntimeCloseAttempt, bool, error) {
 	r.closeMu.Lock()
 	defer r.closeMu.Unlock()
 	if r.closing != nil {
-		return r.awaitClosed(ctx)
+		return r.closing, false, nil
 	}
 	unlock := r.app.lockRuntimeMutation("close team seat")
 	if err := ctx.Err(); err != nil {
 		unlock()
-		return false, err
+		return nil, false, err
 	}
 	tab := r.owner()
 	if tab == nil {
 		unlock()
-		return true, nil
+		return nil, true, nil
 	}
 	r.app.mu.RLock()
 	visible := r.app.tabs[tab.ID] == tab
 	r.app.mu.RUnlock()
 	if idle && (visible && !rebound || !r.Idle()) {
 		unlock()
-		return false, nil
+		return nil, false, nil
 	}
 	if err := r.app.snapshotTab(tab); err != nil {
 		unlock()
-		return false, err
+		return nil, false, err
 	}
-	if c, ok := r.app.controllerForTab(tab).(interface{ Closed() <-chan struct{} }); ok {
-		r.closing = c.Closed()
-	}
-	r.app.closeTabRuntimeAdmissionHeld(tab)
+	ctrl := r.app.controllerForTab(tab)
+	attempt := &teamRuntimeCloseAttempt{done: make(chan struct{})}
+	r.closing = attempt
 	r.app.mu.Lock()
-	r.app.unregisterDetachedRuntimeLocked(tab)
-	tab.Ctrl = nil
+	// Retain the canonical registry entry and shared resources until cleanup
+	// completes, while fencing both new turns and settings rebuilds.
+	tab.Ready = false
+	rt := r.app.runtimeForTabLocked(tab)
+	if rt == nil {
+		rt = r.app.newSessionRuntimeLocked(tab, sessionRuntimeKey(sessionRoute(tab.SessionID)))
+	}
+	rt.Phase = sessionRuntimeClosing
 	r.app.mu.Unlock()
-	// A finalizing turn may deliver its final reply through another runtime's
-	// admission. Never join that work while holding the global mutation gate.
 	unlock()
-	return r.awaitClosed(ctx)
+	go r.finishClose(tab, ctrl, attempt)
+	return attempt, false, nil
 }
 
-func (r *desktopTeamRuntime) awaitClosed(ctx context.Context) (bool, error) {
-	if r.closing == nil {
-		return true, nil
+func (r *desktopTeamRuntime) finishClose(tab *WorkspaceTab, ctrl control.SessionAPI, attempt *teamRuntimeCloseAttempt) {
+	defer close(attempt.done)
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			attempt.err = fmt.Errorf("team controller cleanup panic: %v", recovered)
+		}
+	}()
+	r.app.quiesceTabAutosave(tab)
+	if ctrl != nil {
+		ctrl.Cancel()
+		ctrl.Close()
+		if c, ok := ctrl.(interface{ Closed() <-chan struct{} }); ok {
+			<-c.Closed()
+		}
 	}
+	// Controller callbacks may need either runtime gate. Host/network cleanup
+	// is also outside those gates, and happens only after durable finalization.
+	r.app.releaseTabSharedHost(tab)
+	unlock := r.app.lockRuntimeMutation("release closed team seat")
+	defer unlock()
+	if tab.sink != nil {
+		tab.sink.clearContext()
+	}
+	r.app.mu.Lock()
+	defer r.app.mu.Unlock()
+	r.app.unregisterDetachedRuntimeLocked(tab)
+	r.app.releaseSessionRuntimeLocked(tab)
+	tab.Ctrl = nil
+}
+
+func awaitTeamRuntimeClosed(ctx context.Context, attempt *teamRuntimeCloseAttempt) (bool, error) {
 	select {
-	case <-r.closing:
-		return true, nil
+	case <-attempt.done:
+		return attempt.err == nil, attempt.err
 	case <-ctx.Done():
 		return false, ctx.Err()
 	}

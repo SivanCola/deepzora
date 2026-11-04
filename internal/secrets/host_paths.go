@@ -28,6 +28,14 @@ func RegisterHostSecretPath(path string) {
 	}
 	protectedHostPaths.paths = append(protectedHostPaths.paths, resolved.PhysicalPath)
 }
+
+// HostSecretPaths snapshots host-owned namespaces for sandbox assembly. The
+// in-process readers still check HostSecretPath on every access.
+func HostSecretPaths() []string {
+	protectedHostPaths.RLock()
+	defer protectedHostPaths.RUnlock()
+	return slices.Clone(protectedHostPaths.paths)
+}
 func HostSecretPath(path string) bool {
 	protectedHostPaths.RLock()
 	empty := len(protectedHostPaths.paths) == 0

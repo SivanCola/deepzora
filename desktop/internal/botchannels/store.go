@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"deepzora/internal/filelock"
+	"deepzora/internal/secrets"
 )
 
 type Config struct {
@@ -144,10 +145,13 @@ func (s Store) Edit(fn func([]Saved) ([]Saved, error)) error {
 	if err != nil {
 		return err
 	}
+	secrets.RememberValues(credentialValues(entries))
 	entries, err = fn(entries)
 	if err != nil {
 		return err
 	}
+	// Mask both old and replacement credentials before a temporary file exists.
+	secrets.RememberValues(credentialValues(entries))
 	b, err := json.MarshalIndent(entries, "", "  ")
 	if err != nil {
 		return err

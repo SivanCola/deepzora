@@ -18,7 +18,9 @@ func (a *App) ensureTeamSecretMasking() {
 	store := desktopTeamStore()
 	secrets.RegisterHostSecretPath(slots.Dir)
 	secrets.RegisterHostSecretPath(filepath.Join(store.Dir, teamroster.SecretFile))
-	a.teamState.releaseMasking = team.InstallSecretValues(store, slots)
+	releaseTeam := team.InstallSecretValues(store, slots)
+	releaseBots := a.botStore().InstallSecretValues()
+	a.teamState.releaseMasking = func() { releaseTeam(); releaseBots() }
 	_ = secrets.Masker()
 }
 func (a *App) releaseTeamSecretMasking() {

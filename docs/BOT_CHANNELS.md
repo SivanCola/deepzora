@@ -135,6 +135,13 @@ Legacy configurations without the flag remain stopped until explicitly enabled.
 Navigation's Save and continue only saves new entries; it does not enable them.
 Secrets are write-only in UI
 and stored in a user-only local file, never in returned DTOs, logs or browser storage.
+The entire Bot credential directory is private to the host's file readers,
+including migration backups and temporary files. Existing credential snapshots
+are loaded into exact-value masking before sessions start; edits remember both
+old and replacement values before writing so in-flight replies remain masked
+after rotation or deletion. An unreadable committed credential snapshot blocks
+new outbound model requests until storage is repaired. Supported POSIX sandbox
+assembly also includes existing host-private credential namespaces.
 Saving/deleting a connected entry stops its worker first. A process lock prevents
 multiple desktop instances consuming the same bot. Shutdown cancels and joins workers.
 Save success and connect success are distinct: connection errors stay on the saved

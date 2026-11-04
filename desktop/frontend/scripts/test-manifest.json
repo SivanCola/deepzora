@@ -139,6 +139,7 @@
       ]
     ],
     "settings-responsive": [
+      ["tsx", "src/__tests__/team-settings-recovery.test.tsx"],
       ["tsx", "src/__tests__/bot-login-autofill.test.tsx"],
       ["tsx", "src/__tests__/settings-feedback.test.tsx"],
       ["tsx", "src/__tests__/settings-draft-navigation.test.tsx"],
