@@ -207,7 +207,9 @@ export class QuitSequencer {
       );
     }
     this.phase = "closing";
-    const steps = [{ name: "close permission", run: () => this.deps.onCloseAllowed() }, ...(this.deps.cleanup ?? [])];
+    // Native close events must remain vetoed while any asynchronous owner is
+    // saving. Only the final synchronous step may allow and close the window.
+    const steps = [...(this.deps.cleanup ?? []), { name: "main window", run: () => this.deps.onCloseAllowed() }];
     while (this.cleanupCompleted < steps.length) {
       const step = steps[this.cleanupCompleted]!;
       try {

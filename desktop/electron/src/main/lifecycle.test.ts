@@ -405,10 +405,9 @@ test("async cleanup finishes before destroying its window and requesting exit", 
   q = new QuitSequencer({
     service: { beforeClose: async () => false, shutdown: async () => { events.push("stopped"); }, },
     app: { quit: () => { if (q.onBeforeQuit()) events.push("quit"); }, exit: () => events.push("forced"), relaunch() {}, },
-    onCloseAllowed: () => { events.push("allowed"); },
+    onCloseAllowed: () => { events.push("allowed"); events.push("window destroyed"); },
     cleanup: [
       { name: "browser views", run: async () => { events.push("recorder started"); await recorder.promise; events.push("recorder saved"); events.push("views destroyed"); } },
-      { name: "main window", run: () => { events.push("window destroyed"); } },
     ],
     schedule: (run, ms) => { assert.equal(ms, 5000); deadlines.push(run); },
     log: { info: message => log.push(message), warn: message => log.push(message), error: message => log.push(message) },
@@ -416,11 +415,11 @@ test("async cleanup finishes before destroying its window and requesting exit", 
   q.approve(); await tick();
   q.requestQuit(); void q.requestWindowClose(); await tick();
   assert.equal(q.currentPhase,"closing");
-  assert.deepEqual(events, ["stopped", "allowed", "recorder started"]);
+  assert.deepEqual(events, ["stopped", "recorder started"], "native window close must still be vetoed during cleanup");
   assert.equal(deadlines.length,0,"pending persistence must not arm a forced exit");
   assert.ok(!log.some(message=>message.includes("cleanup browser views complete")||message.includes("resources cleaned")));
   recorder.resolve(); await tick();
-  assert.deepEqual(events, ["stopped", "allowed", "recorder started", "recorder saved", "views destroyed", "window destroyed", "quit"]);
+  assert.deepEqual(events, ["stopped", "recorder started", "recorder saved", "views destroyed", "allowed", "window destroyed", "quit"]);
   assert.equal(q.currentPhase,"completed");
   assert.equal(deadlines.length,1);deadlines[0]!(); assert.equal(events.at(-1), "forced");
 });
@@ -454,11 +453,11 @@ for (const failure of ["sync", "async"] as const) {
     assert.equal(q.currentPhase,"failed");
     assert.equal(prompts,1);
     assert.equal(scheduled,0);
-    assert.deepEqual(events,["draft","service","allowed","recorder"]);
+    assert.deepEqual(events,["draft","service","recorder"]);
     assert.ok(!calls.includes("exit")&&!calls.some(call=>call.startsWith("relaunch:")));
     assert.ok(!log.some(message=>message.includes("resources cleaned")||message.includes("cleanup recorder complete")));
     fail=false;q.requestQuit();await tick();
-    assert.deepEqual(events,["draft","service","allowed","recorder","recorder","saved","window"]);
+    assert.deepEqual(events,["draft","service","recorder","recorder","saved","window","allowed"]);
     assert.equal(q.currentPhase,"completed");
     assert.equal(scheduled,1);
     assert.equal(calls.filter(call=>call==="exit").length,1);
