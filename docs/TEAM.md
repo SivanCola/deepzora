@@ -93,6 +93,9 @@ Controller store release and only then gives up the Team lease. Waiting for
 finalization and synchronous controller cleanup run outside the global runtime gates.
 If Team cleanup takes over 20 seconds, exit reports a retryable failure; retry
 joins the same cleanup attempts and retains the lease until every seat closes.
+If an attempt has finished with a cleanup error, retry resumes the retained seat's
+teardown, skips an already finalized Controller and releases the remaining host
+resources. Completed seats are not closed again.
 Configuration commands compare revisions and commit bounded retry receipts atomically with
 the change. Conflicts retain the caller's draft; changed request-key reuse fails.
 Program approval remains at the normal workspace boundary; roster paths do not

@@ -455,6 +455,8 @@ type desktopTeamRuntime struct {
 type teamRuntimeCloseAttempt struct {
 	done chan struct{}
 	err  error
+	tab  *WorkspaceTab
+	ctrl control.SessionAPI
 }
 
 func (r *desktopTeamRuntime) owner() *WorkspaceTab {
@@ -533,7 +535,23 @@ func (r *desktopTeamRuntime) startClose(ctx context.Context, idle, rebound bool)
 	r.closeMu.Lock()
 	defer r.closeMu.Unlock()
 	if r.closing != nil {
-		return r.closing, false, nil
+		previous := r.closing
+		select {
+		case <-previous.done:
+			if previous.err != nil {
+				if err := ctx.Err(); err != nil {
+					return nil, false, err
+				}
+				// The original owner is already fenced and is intentionally
+				// absent from normal live lookups. Resume its unfinished teardown.
+				attempt := &teamRuntimeCloseAttempt{done: make(chan struct{}), tab: previous.tab, ctrl: previous.ctrl}
+				r.closing = attempt
+				go r.finishClose(attempt.tab, attempt.ctrl, attempt)
+				return attempt, false, nil
+			}
+		default:
+		}
+		return previous, false, nil
 	}
 	unlock := r.app.lockRuntimeMutation("close team seat")
 	if err := ctx.Err(); err != nil {
@@ -557,7 +575,7 @@ func (r *desktopTeamRuntime) startClose(ctx context.Context, idle, rebound bool)
 		return nil, false, err
 	}
 	ctrl := r.app.controllerForTab(tab)
-	attempt := &teamRuntimeCloseAttempt{done: make(chan struct{})}
+	attempt := &teamRuntimeCloseAttempt{done: make(chan struct{}), tab: tab, ctrl: ctrl}
 	r.closing = attempt
 	r.app.mu.Lock()
 	// Retain the canonical registry entry and shared resources until cleanup
@@ -583,10 +601,24 @@ func (r *desktopTeamRuntime) finishClose(tab *WorkspaceTab, ctrl control.Session
 	}()
 	r.app.quiesceTabAutosave(tab)
 	if ctrl != nil {
-		ctrl.Cancel()
-		ctrl.Close()
+		var closed <-chan struct{}
 		if c, ok := ctrl.(interface{ Closed() <-chan struct{} }); ok {
-			<-c.Closed()
+			closed = c.Closed()
+		}
+		finalized := false
+		if closed != nil {
+			select {
+			case <-closed:
+				finalized = true
+			default:
+			}
+		}
+		if !finalized {
+			ctrl.Cancel()
+			ctrl.Close()
+			if closed != nil {
+				<-closed
+			}
 		}
 	}
 	// Controller callbacks may need either runtime gate. Host/network cleanup

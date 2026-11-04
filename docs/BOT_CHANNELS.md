@@ -137,7 +137,11 @@ Secrets are write-only in UI
 and stored in a user-only local file, never in returned DTOs, logs or browser storage.
 The entire Bot credential directory is private to the host's file readers,
 including migration backups and temporary files. Existing credential snapshots
-are loaded into exact-value masking before sessions start; edits remember both
+are loaded into exact-value masking before Desktop, CLI and ACP sessions start,
+including the standalone CLI review command. These runtimes share a reference-counted
+snapshot source, so closing one session keeps protection active for the others;
+committed edits from another process are observed at the next masking boundary.
+Edits remember both
 old and replacement values before writing so in-flight replies remain masked
 after rotation or deletion. An unreadable committed credential snapshot blocks
 new outbound model requests until storage is repaired. Supported POSIX sandbox

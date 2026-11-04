@@ -25,6 +25,7 @@ import (
 
 	"deepzora/internal/ablation"
 	"deepzora/internal/agent"
+	"deepzora/internal/botcredentials"
 	"deepzora/internal/browser"
 	"deepzora/internal/capability"
 	"deepzora/internal/command"
@@ -219,6 +220,14 @@ type Options struct {
 // assembled. The returned controller owns plugin subprocesses; call Close
 // (via Controller.Close) to release them.
 func build(ctx context.Context, opts Options) (*BuildResult, error) {
+	releaseCredentials := botcredentials.Install(filepath.Join(config.DeepzoraHomeDir(), "bot-channels"))
+	credentialsOwned := false
+	defer func() {
+		if !credentialsOwned {
+			releaseCredentials()
+		}
+	}()
+	_ = secrets.Masker()
 	ctx, opts, owner, fileWriteReceipt := bindRuntimeOwner(ctx, opts)
 	stderr := opts.Stderr
 	if stderr == nil {
@@ -1685,6 +1694,8 @@ func build(ctx context.Context, opts Options) (*BuildResult, error) {
 		_ = extension.TrackWatcher(runtimeSet.Scope(), "skill-catalogs", func() error { skillCleanup(); return nil })
 	}
 	cleanup = wireRuntimeScopeCleanup(runtimeSet, cleanup, opts.SharedHost, pluginHost, lspMgr, opts.SessionTemp, closeBrowser)
+	previousCleanup := cleanup
+	cleanup = func() { defer releaseCredentials(); previousCleanup() }
 	ctrl.SetExtensions(extensionDispatcher)
 	if extensionMgr == nil {
 		extUIHub = nil
@@ -1714,6 +1725,7 @@ func build(ctx context.Context, opts Options) (*BuildResult, error) {
 	}
 	skillsOwned = true
 	backgroundOwned = true
+	credentialsOwned = true
 	return finalizeBuildResult(withRuntimeConfiguration(&BuildResult{Controller: ctrl, Snapshot: snap, Runtime: runtimeSet, Owner: owner, Extensions: extensionMgr, Dispatcher: extensionDispatcher, ExtensionUI: extUIHub, ProviderResolver: providerResolver, BaseProviderResolver: baseResolver, Assembly: assembly, SkillWatchService: skillWatchService}, cfg, liveSettings, opts), !opts.deferPublish), nil
 }
 
@@ -1933,12 +1945,13 @@ func appendUniquePaths(base []string, extra ...string) []string {
 // assemblers outside Build must use this helper instead of reading the config
 // roots directly.
 //
-// Provider and bot credentials are loaded into the parent process from this
-// file. macOS/Linux also hide the file from readers, shell commands, and MCP
-// servers when the optional broad sensitive-file denylist is off. Windows only
-// filters the values from child environments: WRITE_RESTRICTED does not confine
-// reads, and denying the caller SID would also lock out the host. Project .env
-// files retain their existing behavior.
+// Bot credential namespaces are private to built-in readers on every platform,
+// even when the optional broad sensitive-file denylist is off. macOS/Linux also
+// hide existing host-private paths and the global credential file from shell
+// commands and MCP servers. Windows filters credential values from child
+// environments, but WRITE_RESTRICTED does not confine external reads and denying
+// the caller SID would also lock out the host. Project .env files retain their
+// existing behavior.
 func RuntimeForbidReadRoots(cfg *config.Config, root string) []string {
 	return runtimeForbidReadRootsForGOOS(cfg, root, runtime.GOOS)
 }
@@ -1947,6 +1960,8 @@ func runtimeForbidReadRootsForGOOS(cfg *config.Config, root, goos string) []stri
 	if cfg == nil {
 		return nil
 	}
+	// Direct CLI tool assemblers also use this entry without Desktop startup.
+	secrets.RegisterHostSecretPath(filepath.Join(config.DeepzoraHomeDir(), "bot-channels"))
 	secrets.RegisterCredentialEnvKeys(cfg.CredentialEnvNames())
 	base := cfg.ForbidReadRootsForRoot(root)
 	// WRITE_RESTRICTED constrains writes only. Keep filtering credential values

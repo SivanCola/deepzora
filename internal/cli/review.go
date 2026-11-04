@@ -6,10 +6,12 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"deepzora/internal/agent"
 	"deepzora/internal/boot"
+	"deepzora/internal/botcredentials"
 	"deepzora/internal/config"
 	"deepzora/internal/gitcmd"
 	"deepzora/internal/hook"
@@ -29,6 +31,11 @@ func reviewCommand(args []string) int {
 	if code, ok := parseCommandFlags(fs, args); !ok {
 		return code
 	}
+	// This one-shot runner bypasses Build; it still owns the same credential
+	// protection before any hook, tool or provider work can start.
+	releaseCredentials := botcredentials.Install(filepath.Join(config.DeepzoraHomeDir(), "bot-channels"))
+	defer releaseCredentials()
+	_ = secrets.Masker()
 
 	// 1. Get the diff.
 	diff, err := getReviewDiff(*base, *commit)
