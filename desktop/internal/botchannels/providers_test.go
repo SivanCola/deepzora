@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,13 +26,11 @@ func TestStoreAndReceiptsSurviveRestart(t *testing.T) {
 	if err != nil || len(loaded) != 1 || loaded[0] != c {
 		t.Fatalf("read %v %v", loaded, err)
 	}
-	info, err := os.Stat(filepath.Join(s.Dir, "connections.json"))
-	if err != nil {
+	assertCredentialPrivate(t, filepath.Join(s.Dir, "connections.json"))
+	if err := s.Edit(func(entries []Saved) ([]Saved, error) { return entries, nil }); err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode().Perm()&0077 != 0 {
-		t.Fatal("credentials not private")
-	}
+	assertCredentialPrivate(t, filepath.Join(s.Dir, "connections.json"))
 	path := filepath.Join(s.Dir, "receipts.json")
 	r := Receipts{Path: path}
 	if ok, err := r.Claim("message"); !ok || err != nil {
@@ -53,7 +52,7 @@ type providerTransport func(*http.Request) (*http.Response, error)
 
 func (f providerTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 func jsonResponse(body string) *http.Response {
-	return &http.Response{StatusCode: 200, Header: http.Header{"Content-Type": []string{"application/json"}}, Body: io.NopCloser(strings.NewReader(body))}
+	return &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": []string{"application/json"}}, Body: io.NopCloser(strings.NewReader(body))}
 }
 
 func TestFeishuAndLarkUseCorrectDomainAndCacheToken(t *testing.T) {
@@ -183,14 +182,14 @@ func TestTelegramPollingAndReply(t *testing.T) {
 			fmt.Fprint(w, `{"ok":true}`)
 		default:
 			t.Error("unexpected request")
-			w.WriteHeader(404)
+			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
 	defer server.Close()
 	adapter := &telegramAdapter{config: Saved{Config: Config{ChatID: "1"}, Secret: "private-token"}, client: server.Client(), base: server.URL}
 	var got Incoming
 	err := adapter.Run(ctx, func(m Incoming) error { got = m; cancel(); return nil }, func(string) {})
-	if err != context.Canceled || got.ID != "12" || got.SenderID != "2" || got.ChatID != "1" || got.Text != "hello" {
+	if !errors.Is(err, context.Canceled) || got.ID != "12" || got.SenderID != "2" || got.ChatID != "1" || got.Text != "hello" {
 		t.Fatalf("incoming %+v %v", got, err)
 	}
 	if err := adapter.Send(t.Context(), strings.Repeat("好", 4000)); err != nil {
@@ -204,7 +203,9 @@ func TestHTTPRedactsCredentialAndRejectsRedirect(t *testing.T) {
 	targetCalls := 0
 	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { targetCalls++; fmt.Fprint(w, `{}`) }))
 	defer target.Close()
-	redirect := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, target.URL, 307) }))
+	redirect := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target.URL, http.StatusTemporaryRedirect)
+	}))
 	defer redirect.Close()
 	var result any
 	err := request(t.Context(), providerHTTP, redirect.URL+"/secret-token", map[string]string{"Authorization": "secret"}, map[string]string{}, &result)
@@ -268,7 +269,7 @@ func TestWeixinReplyRequiresAuthorizedContext(t *testing.T) {
 		}
 		return nil
 	}, func(string) {})
-	if err != context.Canceled {
+	if !errors.Is(err, context.Canceled) {
 		t.Fatal(err)
 	}
 	if err := adapter.Send(t.Context(), "answer"); err != nil {

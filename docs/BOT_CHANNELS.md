@@ -14,7 +14,9 @@ as in ordinary Team chats.
 
 Before restoring old connections, migration creates a deterministic member for
 each legacy bot, preserves credentials, allowlists and enabled state, and saves a
-0600 `connections.pre-members.json` backup. Original sessions are never changed
+a private `connections.pre-members.json` backup. Credential files and migration
+backups use mode 0600 on Unix and a protected, current-user-only DACL on Windows,
+applied before writing secrets. Original sessions are never changed
 or deleted. Verified completed history is forked into a canonical Team session;
 the original remains linked through Open original conversation. Missing/empty
 sessions start a new member chat. Unverifiable history blocks migration with a

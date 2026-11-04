@@ -74,6 +74,11 @@ func (a *App) migrateBotMembersLocked() error {
 			return err
 		}
 		if err == nil {
+			if err := botchannels.RestrictCredentialFile(f); err != nil {
+				_ = f.Close()
+				_ = os.Remove(f.Name())
+				return err
+			}
 			_, writeErr := f.Write(data)
 			syncErr := f.Sync()
 			closeErr := f.Close()
@@ -143,68 +148,8 @@ func (a *App) createLegacyBotMember(c botchannels.Saved) (string, error) {
 					break
 				}
 			}
-			if c.SessionID != "" {
-				m.Parts = []teamroster.Part{{SessionPath: sessionRoute(c.SessionID), EndedAt: time.Now().UTC()}}
-				ref := session.SessionRef{HostID: localDesktopHostID, SessionID: c.SessionID}
-				service := a.desktopSessionService("")
-				info, statErr := service.Query().Stat(ctx, ref)
-				if statErr == nil {
-					m.Folder = info.CWD
-					snapshot, err := service.Query().Snapshot(ctx, ref)
-					if err != nil {
-						return err
-					}
-					if snapshot.Projection.ModelRef != "" {
-						m.InitialModel = snapshot.Projection.ModelRef
-					}
-					if p := snapshot.Projection.PermissionPreset; p != "" {
-						m.Permission = normalizeToolApprovalMode(p)
-					}
-					a.mu.RLock()
-					for _, tab := range a.runtimeTabsLocked() {
-						if tab.SessionID == c.SessionID {
-							m.Permission = normalizeToolApprovalMode(tab.toolApprovalMode)
-							break
-						}
-					}
-					a.mu.RUnlock()
-					preset, err := agentpreset.Resolve(boot.AgentPresetDirs(m.Folder), snapshot.Projection.AgentPreset)
-					if err != nil {
-						return err
-					}
-					m.Preset = &preset
-					if info.Turns > 0 {
-						targets, err := service.ForkTargetSetFor(ctx, ref)
-						if err != nil {
-							return err
-						}
-						if !targets.Verifiable || len(targets.Targets) == 0 {
-							return errors.New("bot history cannot be verified; original history retained, migration stopped")
-						}
-						last := targets.Targets[len(targets.Targets)-1]
-						if !last.Available {
-							return errors.New("finish the bot conversation before migrating its history")
-						}
-						childID := "desktop-team-" + id + "-bot-migration"
-						workspace, err := a.ensureDesktopWorkspace(ctx, "project", m.Folder)
-						if err != nil {
-							return err
-						}
-						op := "team-create-" + childID
-						if err := a.workspaceRegistry().BeginCreate(ctx, workspacestate.PendingCreate{OperationID: op, WorkspaceID: workspace, SessionID: childID, ParentSessionID: c.SessionID}); err != nil {
-							return err
-						}
-						if _, err := service.CreateFork(ctx, session.ForkRequest{Source: ref, ChildID: childID, OperationID: op, TurnID: last.TurnID, BoundarySequence: last.BoundarySequence, CWD: m.Folder}); err != nil {
-							return err
-						}
-						if err := a.workspaceRegistry().AttachSession(ctx, op, workspace, childID, ""); err != nil {
-							return err
-						}
-						m.SessionPath = sessionRoute(childID)
-					}
-				} else if !errors.Is(statErr, session.ErrSessionNotFound) {
-					return statErr
-				}
+			if err := a.inheritLegacyBotHistory(ctx, c, &m); err != nil {
+				return err
 			}
 			if m.Folder == "" && c.WorkspaceID != "" {
 				state, err := a.workspaceRegistry().Load(ctx)
@@ -309,4 +254,72 @@ func (r *botChannelRun) ownsBotEvent(e event.Event) bool {
 		return true
 	}
 	return e.SubmissionID == "" && e.TurnID != "" && e.SessionID != "" && r.turnRoutes[e.TurnID] == e.SessionID
+}
+
+// Keep the original conversation and fork only a verified completed boundary.
+func (a *App) inheritLegacyBotHistory(ctx context.Context, c botchannels.Saved, m *teamroster.Agent) error {
+	if c.SessionID != "" {
+		m.Parts = []teamroster.Part{{SessionPath: sessionRoute(c.SessionID), EndedAt: time.Now().UTC()}}
+		ref := session.SessionRef{HostID: localDesktopHostID, SessionID: c.SessionID}
+		service := a.desktopSessionService("")
+		info, statErr := service.Query().Stat(ctx, ref)
+		if statErr == nil {
+			m.Folder = info.CWD
+			snapshot, err := service.Query().Snapshot(ctx, ref)
+			if err != nil {
+				return err
+			}
+			if snapshot.Projection.ModelRef != "" {
+				m.InitialModel = snapshot.Projection.ModelRef
+			}
+			if p := snapshot.Projection.PermissionPreset; p != "" {
+				m.Permission = normalizeToolApprovalMode(p)
+			}
+			a.mu.RLock()
+			for _, tab := range a.runtimeTabsLocked() {
+				if tab.SessionID == c.SessionID {
+					m.Permission = normalizeToolApprovalMode(tab.toolApprovalMode)
+					break
+				}
+			}
+			a.mu.RUnlock()
+			preset, err := agentpreset.Resolve(boot.AgentPresetDirs(m.Folder), snapshot.Projection.AgentPreset)
+			if err != nil {
+				return err
+			}
+			m.Preset = &preset
+			if info.Turns > 0 {
+				targets, err := service.ForkTargetSetFor(ctx, ref)
+				if err != nil {
+					return err
+				}
+				if !targets.Verifiable || len(targets.Targets) == 0 {
+					return errors.New("bot history cannot be verified; original history retained, migration stopped")
+				}
+				last := targets.Targets[len(targets.Targets)-1]
+				if !last.Available {
+					return errors.New("finish the bot conversation before migrating its history")
+				}
+				childID := "desktop-team-" + m.ID + "-bot-migration"
+				workspace, err := a.ensureDesktopWorkspace(ctx, "project", m.Folder)
+				if err != nil {
+					return err
+				}
+				op := "team-create-" + childID
+				if err := a.workspaceRegistry().BeginCreate(ctx, workspacestate.PendingCreate{OperationID: op, WorkspaceID: workspace, SessionID: childID, ParentSessionID: c.SessionID}); err != nil {
+					return err
+				}
+				if _, err := service.CreateFork(ctx, session.ForkRequest{Source: ref, ChildID: childID, OperationID: op, TurnID: last.TurnID, BoundarySequence: last.BoundarySequence, CWD: m.Folder}); err != nil {
+					return err
+				}
+				if err := a.workspaceRegistry().AttachSession(ctx, op, workspace, childID, ""); err != nil {
+					return err
+				}
+				m.SessionPath = sessionRoute(childID)
+			}
+		} else if !errors.Is(statErr, session.ErrSessionNotFound) {
+			return statErr
+		}
+	}
+	return nil
 }

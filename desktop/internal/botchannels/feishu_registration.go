@@ -33,7 +33,7 @@ func registrationRequest(ctx context.Context, client *http.Client, domain string
 	} else if domain != "feishu" {
 		return errors.New("unsupported registration domain")
 	}
-	req, err := http.NewRequestWithContext(ctx, "POST", origin+"/oauth/v1/app/registration", strings.NewReader(form.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, origin+"/oauth/v1/app/registration", strings.NewReader(form.Encode()))
 	if err != nil {
 		return errors.New("invalid registration request")
 	}
@@ -44,7 +44,7 @@ func registrationRequest(ctx context.Context, client *http.Client, domain string
 	}
 	defer response.Body.Close()
 	// OAuth pending/denied may be represented by an HTTP 400 JSON envelope.
-	if (response.StatusCode < 200 || response.StatusCode >= 300) && response.StatusCode != 400 {
+	if (response.StatusCode < 200 || response.StatusCode >= 300) && response.StatusCode != http.StatusBadRequest {
 		return fmt.Errorf("app registration HTTP %d", response.StatusCode)
 	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, (1<<20)+1))
@@ -141,8 +141,8 @@ func PollFeishuRegistration(ctx context.Context, client *http.Client, domain, co
 }
 
 func PrivateFeishuRecipient(config Config) (string, string) {
-	if strings.HasPrefix(config.ChatID, "openid:") {
-		return "open_id", strings.TrimPrefix(config.ChatID, "openid:")
+	if recipient, ok := strings.CutPrefix(config.ChatID, "openid:"); ok {
+		return "open_id", recipient
 	}
 	return "chat_id", config.ChatID
 }

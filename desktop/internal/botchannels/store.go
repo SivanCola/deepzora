@@ -157,7 +157,7 @@ func (s Store) Edit(fn func([]Saved) ([]Saved, error)) error {
 		return err
 	}
 	defer os.Remove(f.Name())
-	if err = f.Chmod(0600); err == nil {
+	if err = RestrictCredentialFile(f); err == nil {
 		_, err = f.Write(b)
 	}
 	if err == nil {

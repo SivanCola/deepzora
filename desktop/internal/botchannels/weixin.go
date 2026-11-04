@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -27,7 +28,7 @@ func (w *weixinAdapter) call(ctx context.Context, path string, body map[string]a
 	body["base_info"] = map[string]any{"channel_version": "1.0.0"}
 	var nonce [4]byte
 	_, _ = rand.Read(nonce[:])
-	return request(ctx, w.client, w.base+"/ilink/bot/"+path, map[string]string{"AuthorizationType": "ilink_bot_token", "Authorization": "Bearer " + w.config.Secret, "X-WECHAT-UIN": base64.StdEncoding.EncodeToString([]byte(fmt.Sprint(uint32(nonce[0])<<24 | uint32(nonce[1])<<16 | uint32(nonce[2])<<8 | uint32(nonce[3]))))}, body, out)
+	return request(ctx, w.client, w.base+"/ilink/bot/"+path, map[string]string{"AuthorizationType": "ilink_bot_token", "Authorization": "Bearer " + w.config.Secret, "X-WECHAT-UIN": base64.StdEncoding.EncodeToString(fmt.Append(nil, uint32(nonce[0])<<24|uint32(nonce[1])<<16|uint32(nonce[2])<<8|uint32(nonce[3])))}, body, out)
 }
 func (w *weixinAdapter) Run(ctx context.Context, receive func(Incoming) error, status func(string)) error {
 	// Keep the original connection boundary across transient retries. Waiting for
@@ -87,10 +88,10 @@ func (w *weixinAdapter) Run(ctx context.Context, receive func(Incoming) error, s
 			if m.Type != 1 || err != nil || created < w.acceptSince {
 				continue
 			}
-			text := ""
+			var text strings.Builder
 			for _, item := range m.Items {
 				if item.Type == 1 {
-					text += item.Text.Text
+					text.WriteString(item.Text.Text)
 				}
 			}
 			if m.From == w.config.SenderID && m.From == w.config.ChatID {
@@ -106,7 +107,7 @@ func (w *weixinAdapter) Run(ctx context.Context, receive func(Incoming) error, s
 				}
 				w.mu.Unlock()
 			}
-			if err := receive(Incoming{ID: string(m.ID), ChatID: m.From, SenderID: m.From, Text: text, ContextToken: m.Context}); err != nil {
+			if err := receive(Incoming{ID: string(m.ID), ChatID: m.From, SenderID: m.From, Text: text.String(), ContextToken: m.Context}); err != nil {
 				return err
 			}
 		}

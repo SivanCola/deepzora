@@ -138,7 +138,7 @@ func (a *App) restoreEnabledBotChannels() {
 		skip := a.botChannels.closed || a.botChannels.runs[entry.ID] != nil
 		a.botChannels.mu.Unlock()
 		if !skip {
-			a.startSavedBotLocked(entry.ID, true)
+			_ = a.startSavedBotLocked(entry.ID, true) // Preserve enabled intent and expose startup errors on the card.
 		}
 	}
 }

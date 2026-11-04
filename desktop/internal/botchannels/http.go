@@ -46,7 +46,7 @@ func request(ctx context.Context, client *http.Client, url string, headers map[s
 	}
 	defer res.Body.Close()
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		if res.StatusCode >= 500 || res.StatusCode == 429 {
+		if res.StatusCode >= 500 || res.StatusCode == http.StatusTooManyRequests {
 			return &temporaryError{message: fmt.Sprintf("provider HTTP %d", res.StatusCode)}
 		}
 		return fmt.Errorf("provider HTTP %d", res.StatusCode)

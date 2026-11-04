@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 )
 
@@ -32,10 +33,8 @@ func (r *Receipts) Claim(id string) (bool, error) {
 	}
 	sum := sha256.Sum256([]byte(id))
 	key := hex.EncodeToString(sum[:])
-	for _, old := range ids {
-		if old == key {
-			return false, nil
-		}
+	if slices.Contains(ids, key) {
+		return false, nil
 	}
 	// Fail closed rather than evicting deduplication identities and replaying an
 	// old command. A fresh connection credential/account gets a separate journal.

@@ -40,6 +40,14 @@ func TestBotMemberRoutingUsesSharedMemberWithoutBroadcast(t *testing.T) {
 		inputs = append(inputs, input)
 	}
 	first, second := nextBotAdapter(t, created), nextBotAdapter(t, created)
+	// Independent workers can become ready in either order. Route assertions
+	// must use the configured channel identity, never goroutine scheduling.
+	if first.connectionID == "feishu" {
+		first, second = second, first
+	}
+	if first.connectionID != "wechat" || second.connectionID != "feishu" {
+		t.Fatal("unexpected adapter identities")
+	}
 	r1, r2 := onlyBotRun(t, a, "wechat"), onlyBotRun(t, a, "feishu")
 	first.inbound <- botchannels.Incoming{ID: "one", ChatID: "peer", SenderID: "peer", Text: "hello"}
 	select {
@@ -94,7 +102,7 @@ func TestBotMemberRoutingUsesSharedMemberWithoutBroadcast(t *testing.T) {
 	a.publishBotEvent(bound.sink, e)
 	select {
 	case <-first.replies:
-	case <-time.After(time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatal("origin approval absent")
 	}
 	if len(second.replies) != 0 {

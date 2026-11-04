@@ -19,10 +19,10 @@ import (
 // diagnostics exported by this credential-owning adapter.
 type quietLogger struct{}
 
-func (quietLogger) Debug(context.Context, ...interface{}) {}
-func (quietLogger) Info(context.Context, ...interface{})  {}
-func (quietLogger) Warn(context.Context, ...interface{})  {}
-func (quietLogger) Error(context.Context, ...interface{}) {}
+func (quietLogger) Debug(context.Context, ...any) {}
+func (quietLogger) Info(context.Context, ...any)  {}
+func (quietLogger) Warn(context.Context, ...any)  {}
+func (quietLogger) Error(context.Context, ...any) {}
 
 type feishuAdapter struct {
 	config    Saved

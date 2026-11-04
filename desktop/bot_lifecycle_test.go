@@ -13,6 +13,7 @@ import (
 )
 
 type lifecycleBotAdapter struct {
+	connectionID   string
 	inbound        chan botchannels.Incoming
 	replies        chan string
 	ready, stopped chan struct{}
@@ -47,8 +48,8 @@ func (b *lifecycleBotAdapter) Send(ctx context.Context, text string) error {
 }
 func installBotAdapterFixture(a *App) <-chan *lifecycleBotAdapter {
 	created := make(chan *lifecycleBotAdapter, 16)
-	a.botChannels.adapterFactory = func(botchannels.Saved, *http.Client) botchannels.Adapter {
-		b := &lifecycleBotAdapter{inbound: make(chan botchannels.Incoming, 8), replies: make(chan string, 16), ready: make(chan struct{}), stopped: make(chan struct{})}
+	a.botChannels.adapterFactory = func(c botchannels.Saved, _ *http.Client) botchannels.Adapter {
+		b := &lifecycleBotAdapter{connectionID: c.ID, inbound: make(chan botchannels.Incoming, 8), replies: make(chan string, 16), ready: make(chan struct{}), stopped: make(chan struct{})}
 		created <- b
 		return b
 	}
