@@ -1260,6 +1260,9 @@ func (a *App) rebuildSettingTurnLocked(setting string, tab *WorkspaceTab, admiss
 // uses this to remain failure-atomic: a failed fallback build leaves both the
 // old controller and its visible model identity untouched.
 func (a *App) rebuildSettingTurnLockedWithModel(setting string, tab *WorkspaceTab, modelOverride string, admissionHeld bool, reload bool) error {
+	if a.shuttingDown.Load() {
+		return fmt.Errorf("desktop is shutting down")
+	}
 	if a.ctx == nil {
 		return nil
 	}

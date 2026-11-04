@@ -51,6 +51,9 @@ func (a *App) publishRestoredTab(tab *WorkspaceTab, releaseAdmission func()) {
 // workspaceRuntimeAdmissionErr rejects submits that race cleanup reservation
 // or controller readiness. Callers must not hold App.mu.
 func (a *App) workspaceRuntimeAdmissionErr(tab *WorkspaceTab, ctrl control.SessionAPI) error {
+	if a.shuttingDown.Load() {
+		return fmt.Errorf("desktop is shutting down")
+	}
 	a.worktreeReservations.mu.Lock()
 	defer a.worktreeReservations.mu.Unlock()
 	a.mu.RLock()

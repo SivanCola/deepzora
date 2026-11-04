@@ -5,6 +5,34 @@ import { QuitSequencer } from "./lifecycle.js";
 const silent = { info() {}, warn() {}, error() {} };
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 
+for (const trigger of ["quit", "window", "approved"] as const) {
+  test(`${trigger} bounds a stalled draft save and permits a safe retry`, async t => {
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    const oldFlush = deferred(), nextFlush = deferred();
+    let q!: QuitSequencer, saves = 0, shutdowns = 0, failures = 0, resumes = 0;
+    const { app } = fakeApp(() => q);
+    q = new QuitSequencer({
+      app, log: silent,
+      service: { beforeClose: async () => false, shutdown: async () => { shutdowns++; } },
+      flushRenderer: () => ++saves === 1 ? oldFlush.promise : nextFlush.promise,
+      resumeRenderer: () => { resumes++; return new Promise(() => {}); },
+      onPrepareFailed: message => { failures++; assert.match(message, /timed out/i); },
+      confirmRecoveryDraftLoss: () => { assert.fail("ordinary exit cannot discard an unsaved draft"); },
+      onCloseAllowed() {},
+    });
+    if (trigger === "approved") q.approve();
+    else if (trigger === "window") void q.requestWindowClose();
+    else app.quit();
+    t.mock.timers.tick(15_000); await tick();
+    assert.equal(q.currentPhase, "idle", "timeout must release quit ownership even if the renderer remains hung");
+    assert.equal(failures, 1); assert.equal(resumes, 1); assert.equal(shutdowns, 0);
+    app.quit(); oldFlush.resolve(); await tick();
+    assert.equal(shutdowns, 0, "late acknowledgement cannot authorize a new exit");
+    nextFlush.resolve(); await tick(); await tick();
+    assert.equal(shutdowns, 1); assert.equal(q.currentPhase, "completed");
+  });
+}
+
 test("recovery bounds a wedged draft save, confirms loss, and shuts down before relaunch", async () => {
   const events: string[] = [];
   let q!: QuitSequencer;
@@ -340,7 +368,7 @@ test("a failed renderer flush cancels quit before Go is asked", async () => {
   const { sequencer, app, calls, log } = build({ flushError: new Error("draft conflict"), });
   app.quit();
   await tick();
-  assert.deepEqual(log, ["flush"]);
+  assert.deepEqual(log, ["flush", "resume"]);
   assert.deepEqual(calls, ["quit"]);
   assert.equal(sequencer.currentPhase, "idle");
   assert.equal(sequencer.isQuitting, false);
@@ -350,7 +378,7 @@ test("direct approval also withholds shutdown when renderer flush fails", async 
   const { sequencer, calls, log } = build({ flushError: new Error("draft conflict"), });
   sequencer.approve();
   await tick();
-  assert.deepEqual(log, ["flush"]);
+  assert.deepEqual(log, ["flush", "resume"]);
   assert.deepEqual(calls, ["quit"]);
   assert.equal(sequencer.currentPhase, "idle");
   assert.equal(sequencer.isQuitting, false);

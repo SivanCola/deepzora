@@ -57,5 +57,21 @@ try {
   finish();await submission;await quitting;
   assert.equal(saved.get("group-a")?.draft.text,"","quit persists the accepted submission's cleared input");
   resumeTeamDraftEditing();
+  // A cancelled quit can finish after a newer quit has frozen the same draft.
+  edit("group-a","retained across quit retry");
+  let unblockTask!:()=>void, unblockSave!:()=>void;
+  const taskGate=new Promise<void>(resolve=>{unblockTask=resolve;});
+  const tracked=trackTeamSubmission("group-a",()=>taskGate);
+  const oldQuit=flushAllTeamDrafts();
+  const superseded=assert.rejects(oldQuit,/superseded/);
+  resumeTeamDraftEditing();
+  pause=new Promise<void>(resolve=>{unblockSave=resolve;});
+  const saving=new Promise<void>(resolve=>{entered=resolve;});
+  const newQuit=flushAllTeamDrafts();
+  unblockTask();await tracked;await superseded;await saving;
+  edit("group-a","must remain blocked during the new quit");
+  assert.equal(useTeamComposerStore.getState().drafts["group-a"].text,"retained across quit retry");
+  pause=undefined;entered=undefined;unblockSave();await newQuit;
+  resumeTeamDraftEditing();
   console.log("PASS Team draft concurrent saves, stale clears, durable submission identity and quit join");
 } finally {resumeTeamDraftEditing();dom.window.close();}
