@@ -12,51 +12,64 @@ import (
 
 func TestArchiveRuntimeMutationOutlastsBriefBackgroundHolders(t *testing.T) {
 	a := &App{}
-	// A background owner that keeps re-taking the lock for short slices is
-	// what a single TryLock loses to on every attempt.
-	stop := make(chan struct{})
-	held := make(chan struct{})
-	go func() {
-		first := true
-		for {
-			select {
-			case <-stop:
-				return
-			default:
-			}
-			a.runtimeRebuildMu.Lock()
-			if first {
-				close(held)
-				first = false
-				time.Sleep(80 * time.Millisecond)
-			}
-			time.Sleep(20 * time.Millisecond)
+	a.runtimeRebuildMu.Lock()
+	held := true
+	defer func() {
+		if held {
 			a.runtimeRebuildMu.Unlock()
-			time.Sleep(30 * time.Millisecond)
 		}
 	}()
-	defer close(stop)
-	<-held
-	if _, ok := a.tryLockRuntimeMutation("probe"); ok {
+	if release, ok := a.tryLockRuntimeMutation("probe"); ok {
+		release()
 		t.Fatal("fixture did not hold the runtime mutation lock")
 	}
-	release, ok := a.tryLockRuntimeMutationBounded("archive session")
+	// Model several busy observations, then release between two attempts.
+	// A synthetic clock makes retry ordering independent of scheduler slices.
+	now := time.Unix(0, 0)
+	pauses := 0
+	release, ok := a.tryLockRuntimeMutationWithClock("archive session", func() time.Time { return now }, func(wait time.Duration) {
+		pauses++
+		now = now.Add(wait)
+		if pauses == 4 {
+			a.runtimeRebuildMu.Unlock()
+			held = false
+		}
+	})
 	if !ok {
-		t.Fatal("user archive gave up while the holder only held brief slices")
+		t.Fatal("archive did not retry after the background holder released")
 	}
 	release()
+	if pauses != 4 {
+		t.Fatalf("retry pauses = %d, want 4", pauses)
+	}
 }
 
 func TestArchiveRuntimeMutationStillRefusesAPersistentHolder(t *testing.T) {
 	a := &App{}
 	a.runtimeAdmissionMu.RLock()
 	defer a.runtimeAdmissionMu.RUnlock()
-	start := time.Now()
-	if _, ok := a.tryLockRuntimeMutationBounded("archive session"); ok {
+	now := time.Unix(0, 0)
+	elapsed := time.Duration(0)
+	nextWait := 5 * time.Millisecond
+	release, ok := a.tryLockRuntimeMutationWithClock("archive session", func() time.Time { return now }, func(wait time.Duration) {
+		if wait != nextWait {
+			t.Fatalf("retry wait = %v, want %v", wait, nextWait)
+		}
+		// Failed admission must release the rebuild lock before waiting.
+		if !a.runtimeRebuildMu.TryLock() {
+			t.Fatal("archive retained runtimeRebuildMu during backoff")
+		}
+		a.runtimeRebuildMu.Unlock()
+		elapsed += wait
+		now = now.Add(wait)
+		nextWait = min(2*wait, 200*time.Millisecond)
+	})
+	if ok {
+		release()
 		t.Fatal("archive acquired the lock while a turn held admission")
 	}
-	if elapsed := time.Since(start); elapsed > runtimeMutationUserWait+time.Second {
-		t.Fatalf("bounded wait overran its budget: %v", elapsed)
+	if elapsed >= runtimeMutationUserWait || elapsed+nextWait < runtimeMutationUserWait {
+		t.Fatalf("retry budget = %v, next wait = %v, limit = %v", elapsed, nextWait, runtimeMutationUserWait)
 	}
 	// The failed attempt must leave both locks free for the next owner.
 	if !a.runtimeRebuildMu.TryLock() {

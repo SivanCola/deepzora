@@ -160,10 +160,14 @@ const runtimeMutationUserWait = 1500 * time.Millisecond
 // owners hold these locks briefly but often, so one TryLock can lose every
 // time; polling without blocking keeps the lock order free of new waits.
 func (a *App) tryLockRuntimeMutationBounded(operation string) (func(), bool) {
+	return a.tryLockRuntimeMutationWithClock(operation, time.Now, time.Sleep)
+}
+
+func (a *App) tryLockRuntimeMutationWithClock(operation string, now func() time.Time, pause func(time.Duration)) (func(), bool) {
 	if hook := a.runtimeMutationBeforeLockHook; hook != nil {
 		hook(operation)
 	}
-	deadline := time.Now().Add(runtimeMutationUserWait)
+	deadline := now().Add(runtimeMutationUserWait)
 	for wait := 5 * time.Millisecond; ; wait = min(2*wait, 200*time.Millisecond) {
 		if a.runtimeRebuildMu.TryLock() {
 			if a.runtimeAdmissionMu.TryLock() {
@@ -174,9 +178,9 @@ func (a *App) tryLockRuntimeMutationBounded(operation string) (func(), bool) {
 			}
 			a.runtimeRebuildMu.Unlock()
 		}
-		if !time.Now().Add(wait).Before(deadline) {
+		if !now().Add(wait).Before(deadline) {
 			return nil, false
 		}
-		time.Sleep(wait)
+		pause(wait)
 	}
 }
