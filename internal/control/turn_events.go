@@ -132,6 +132,7 @@ func (s *turnEventSink) observe(e event.Event) {
 		ledger.ObserveRawEvent(e)
 	}
 	s.c.turnEvents.openStream.observe(e)
+	s.c.observeTeamEvent(e)
 	s.c.liveness.observe(e, time.Now())
 }
 
@@ -386,9 +387,7 @@ func (s *turnEventDurableSink) inner() event.Sink {
 func (s *turnEventDurableSink) RecordDelegationAudit(a evidence.DelegationAudit) {
 	event.RecordDelegationAudit(s.inner(), a)
 }
-func (s *turnEventDurableSink) RecordReadinessAudit(a evidence.ReadinessAudit) {
-	event.RecordReadinessAudit(s.inner(), a)
-}
+
 func (s *turnEventDurableSink) RecordAnchorSafetyAudit(a event.AnchorSafetyAudit) {
 	event.RecordAnchorSafetyAudit(s.inner(), a)
 }
@@ -396,9 +395,7 @@ func (s *turnEventDurableSink) RecordTurnCompletion() { event.RecordTurnCompleti
 func (s *turnEventDurableSink) RecordContractShadow(a event.ContractShadowAudit) {
 	event.RecordContractShadow(s.inner(), a)
 }
-func (s *turnEventDurableSink) RecordCompletionReport(a event.CompletionReportAudit) {
-	event.RecordCompletionReport(s.inner(), a)
-}
+
 func (s *turnEventDurableSink) RecordMemoryRecall(a event.MemoryRecallAudit) {
 	event.RecordMemoryRecall(s.inner(), a)
 }

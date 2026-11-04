@@ -12,6 +12,7 @@ import (
 	"deepzora/internal/event"
 	"deepzora/internal/permission"
 	"deepzora/internal/sandbox"
+	"deepzora/internal/tool"
 )
 
 const writeAccessKind = event.ApprovalKindWriteAccess
@@ -36,6 +37,9 @@ func newControllerWriteAccess(opts Options) controllerWriteAccess {
 
 func (c *Controller) CheckWriteAccess(ctx context.Context, req agent.WriteAccessCheck) (agent.WriteAccessDecision, error) {
 	requestedPreset := strings.TrimSpace(req.Declaration.RequestedPreset)
+	if !tool.ExecutionPresetAllowed(ctx, requestedPreset) {
+		return agent.WriteAccessDecision{Allow: false, Reason: "The requested execution preset exceeds this delegated turn's ceiling."}, nil
+	}
 	if requestedPreset == "danger-full-access" && c.approval.mode() != ToolApprovalDangerFullAccess {
 		return c.checkDangerFullAccessRetry(ctx, req)
 	}

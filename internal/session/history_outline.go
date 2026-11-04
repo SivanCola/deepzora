@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"deepzora/internal/projectiondb"
+	"deepzora/internal/secrets"
 	"deepzora/internal/textutil"
 )
 
@@ -107,8 +108,9 @@ func (q *Query) ReadHistoryOutline(ctx context.Context, ref SessionRef, req Hist
 		if err := rows.Scan(&entry.MessageID, &entry.Turn, &entry.Position, &entry.Prompt, &entry.Answer); err != nil {
 			return page, err
 		}
-		entry.Prompt = textutil.ClipGraphemes(strings.Join(strings.Fields(entry.Prompt), " "), 50, "…")
-		entry.Answer = textutil.ClipGraphemes(strings.Join(strings.Fields(entry.Answer), " "), 120, "…")
+		mask := secrets.Masker()
+		entry.Prompt = textutil.ClipGraphemes(strings.Join(strings.Fields(mask.String(entry.Prompt)), " "), 50, "…")
+		entry.Answer = textutil.ClipGraphemes(strings.Join(strings.Fields(mask.String(entry.Answer)), " "), 120, "…")
 		page.Entries = append(page.Entries, entry)
 	}
 	if err := rows.Err(); err != nil {

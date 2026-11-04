@@ -10,6 +10,7 @@ import type { TopicShortcutEntry } from "../lib/topicShortcuts";
 import { useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { SessionRef } from "../lib/sessionRef";
 import type { ManualCreationObservation } from "../lib/manualCreationRequests";
+import { useAppNavigationStore } from "../store/appNavigation";
 
 const loadNavigationOwner = () => import("./navigationOwner");
 
@@ -111,6 +112,19 @@ export function useSessionNavigationCommands(input: SessionNavigationCommandsInp
     return navigation.enqueueNavigationWithIntent({ kind: "topic", scope, workspaceRoot, topicId, sessionPath }, navigationIntentSeq);
   });
 
+  const handleOpenTeamAgent=useCommittedCommand(async(agentID:string)=>{
+    const seq=input.noteNavigationIntent();
+    if(!input.isNavigationIntentCurrent(seq))return;
+    input.closeTransientOverlays();input.enterConversation();
+    await navigation.enqueueNavigationWithIntent({kind:"team-agent",agentID},seq);
+  });
+  const handleOpenTeamGroup=useCommittedCommand((groupID:string)=>{
+    const seq=input.noteNavigationIntent();
+    input.closeTransientOverlays();
+    input.beginNavigationSurface(seq);input.cancelNavigationSurface(seq);
+    useAppNavigationStore.getState().openPage({kind:"workspace",teamGroupID:groupID});
+  });
+
   const onResumeSession = useCommittedCommand(async (session: SessionMeta): Promise<void> => {
     const navigationIntentSeq = input.noteNavigationIntent();
     if (!input.isNavigationIntentCurrent(navigationIntentSeq)) return;
@@ -185,6 +199,8 @@ export function useSessionNavigationCommands(input: SessionNavigationCommandsInp
     handleNewTab,
     startInitialConversation,
     handleOpenTopic,
+    handleOpenTeamAgent,
+    handleOpenTeamGroup,
     onResumeSession,
     openTaskMonitorSession,
     refreshTabsAfterMutation,

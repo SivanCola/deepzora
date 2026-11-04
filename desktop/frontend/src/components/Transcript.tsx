@@ -21,7 +21,7 @@ import { useT } from "../lib/i18n";
 import { InvocationMetadataContext } from "./Message";
 import { MarkdownImageTabContext } from "./MarkdownImageContext";
 import { ChatFileScopeProvider } from "./ChatFileLinkContext";
-import { ChatDetails, ChatNodeList, ChatRunning, type ChatActions } from "./ChatNodes";
+import { ChatDetails, ChatNodeList, ChatRunning, ChatSpeakerContext, type ChatActions } from "./ChatNodes";
 import { Welcome } from "./Welcome";
 import { SessionLoadingIndicator } from "./SessionLoadingIndicator";
 import "./ChatTranscript.css";
@@ -29,6 +29,8 @@ const ChatTurnNavigator = lazy(() => import("./ChatTurnNavigator"));
 export { NoticeCard } from "./TranscriptCards";
 
 export type TranscriptProps = {
+  assistantSpeaker?:Item["speaker"];
+  onFollowChange?: (following:boolean)=>void;
   onNavigateToTurn?: NavigateToTurn;
   items: Item[];
   localSubmissions?: readonly LocalSubmission[];
@@ -73,7 +75,7 @@ export type TranscriptProps = {
 /** The natural-flow presentation adapter for transcript hosts. */
 export function Transcript(props: TranscriptProps) {
   const sessionKey = props.geometrySessionKey || `tab:${props.tabId ?? "preview"}`;
-  return <ChatSession key={sessionKey} {...props} sessionKey={sessionKey} />;
+  return <ChatSpeakerContext.Provider value={props.assistantSpeaker}><ChatSession key={sessionKey} {...props} sessionKey={sessionKey} /></ChatSpeakerContext.Provider>;
 }
 
 function TranscriptConnection({ tabId }: { tabId?: string }) {
@@ -146,6 +148,7 @@ function ChatSession(props: TranscriptProps & { sessionKey: string }) {
     previousSubmissionRevision.current = submissionRevision;
   }, [submissionRevision, running, hydrating, scroll, props.hasNewerHistory]);
   const position = useSyncExternalStore(scroll.subscribe, scroll.getSnapshot, scroll.getSnapshot);
+  useEffect(()=>{props.onFollowChange?.(position.following);},[props.onFollowChange,position.following]);
   const activeDetails = details && source.getNodeSnapshot(details)?.kind === "tool" ? details : undefined;
   const drawerWasOpen = useRef(false);
   useLayoutEffect(() => {

@@ -58,7 +58,7 @@ func (b foregroundOnlyBash) DeclareWriteAccess(args json.RawMessage) (tool.Write
 	return tool.WriteAccessDeclaration{}, nil
 }
 
-func (t *TaskTool) buildSubagentRegistry(spec ProfileExecSpec, toolNames []string, childDepth int) (*tool.Registry, *sandbox.WritableRootSet, error) {
+func (t *SubagentRunner) buildSubagentRegistry(spec ProfileExecSpec, toolNames []string, childDepth int) (*tool.Registry, *sandbox.WritableRootSet, error) {
 	if spec.Grant.ReadOnly {
 		reg := ReadOnlySubagentToolRegistryForDepthWithRuntime(t.parentReg, toolNames, childDepth, t.maxDepth(), t.capabilityRuntime)
 		if reg.Len() == 0 && !spec.Grant.AllowNoTools {
@@ -67,15 +67,6 @@ func (t *TaskTool) buildSubagentRegistry(spec ProfileExecSpec, toolNames []strin
 		return reg, nil, nil
 	}
 	reg := t.buildSubReg(toolNames, childDepth)
-	// Explicit paths are an execution boundary and rebind/drop tools that cannot
-	// honor it. A synthesized whole-workspace claim preserves legacy boundaries.
-	if !spec.Grant.WritePaths.Empty() && !spec.Grant.WritePaths.WholeWorkspace {
-		bound, removed := BindWritePaths(reg, spec.Grant.WritePaths, t.workspaceRoot, t.bashCanEnforceWriteRoots())
-		reg = bound
-		if len(removed) > 0 && reg.Len() == 0 {
-			return nil, nil, fmt.Errorf("no path-bound write tools available after dropping unbound writers: %s", strings.Join(removed, ", "))
-		}
-	}
 	reg, roots := BindChildWriteRoots(reg, t.writeRoots, spec.Grant.WritePaths)
 	return reg, roots, nil
 }
@@ -155,6 +146,9 @@ func (a *Agent) applyWriteAccess(ctx context.Context, plan *toolCallPlan) (toolO
 			errMsg:  firstLine(err.Error()),
 			blocked: true,
 		}, true
+	}
+	if !tool.ExecutionPresetAllowed(ctx, declaration.RequestedPreset) {
+		return writeAccessBlocked("the requested execution preset exceeds the delegated turn's ceiling"), true
 	}
 	if a.svc.writeAccess == nil {
 		if a.svc.writeRoots == nil || len(declaration.Directories) == 0 {
@@ -263,17 +257,12 @@ func (a *Agent) stampWriteRoots(ctx context.Context, plan *toolCallPlan) context
 }
 
 // BindChildWriteRoots rebinds writer/bash tools onto a snapshot of the parent
-// set (or the write_paths intersection). Later parent grants cannot expand the
-// child. A whole-workspace or empty claim inherits the current snapshot.
-func BindChildWriteRoots(reg *tool.Registry, parent *sandbox.WritableRootSet, claims WritePathSet) (*tool.Registry, *sandbox.WritableRootSet) {
+// set. Later parent grants cannot expand the child.
+func BindChildWriteRoots(reg *tool.Registry, parent *sandbox.WritableRootSet, _ WritePathSet) (*tool.Registry, *sandbox.WritableRootSet) {
 	if parent == nil || reg == nil {
 		return reg, parent
 	}
-	cap := claims.Roots()
-	if claims.Empty() || claims.WholeWorkspace {
-		cap = nil
-	}
-	childSet := parent.CloneRestricted(cap)
+	childSet := parent.CloneRestricted(nil)
 	for _, name := range reg.Names() {
 		tl, ok := reg.Get(name)
 		if !ok {
@@ -290,9 +279,6 @@ func bindToolWriteRootSet(tl tool.Tool, set *sandbox.WritableRootSet) tool.Tool 
 		t.inner = builtin.BindWriteRootSet(t.inner, set)
 		return t
 	case readOnlyBash:
-		t.inner = builtin.BindWriteRootSet(t.inner, set)
-		return t
-	case pathBoundWriter:
 		t.inner = builtin.BindWriteRootSet(t.inner, set)
 		return t
 	default:

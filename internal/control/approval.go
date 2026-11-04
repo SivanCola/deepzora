@@ -95,6 +95,7 @@ type approvalManager struct {
 	// and danger-full-access skips ordinary prompts while explicit deny rules
 	// and fresh decisions remain enforced.
 	toolApprovalMode string
+	turnCeiling      string
 	// approvalTimeout bounds how long requestApproval/Ask block on a user
 	// decision. Zero means wait indefinitely (correct for an interactive
 	// terminal); bot/headless frontends set it so a walked-away user can't wedge
@@ -284,7 +285,7 @@ func (a *approvalManager) preApprovedForDecisionOptions(tool, subject string, ar
 		return a.sessionGrantAllowsLocked(tool, subject)
 	}
 	if requireHuman {
-		return a.toolApprovalMode == ToolApprovalDangerFullAccess || a.sessionGrantAllowsLocked(tool, subject)
+		return a.effectiveModeLocked() == ToolApprovalDangerFullAccess || a.sessionGrantAllowsLocked(tool, subject)
 	}
 	return a.bypassAllowsLocked(tool, subject, args) || a.sessionGrantAllowsLocked(tool, subject)
 }
@@ -619,7 +620,7 @@ func (a *approvalManager) hasPending() bool {
 func (a *approvalManager) mode() string {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	return normalizeToolApprovalMode(a.toolApprovalMode)
+	return a.effectiveModeLocked()
 }
 
 // setMode applies a pre-normalized posture. Existing prompts remain tied to
@@ -674,7 +675,7 @@ func (a *approvalManager) snapshotPrompts() ([]event.Approval, []event.Ask) {
 
 func (a *approvalManager) bypassAllowsLocked(tool, subject string, args json.RawMessage) bool {
 	if isMemoryApprovalTool(tool) {
-		switch a.toolApprovalMode {
+		switch a.effectiveModeLocked() {
 		case ToolApprovalDangerFullAccess:
 			return true
 		case ToolApprovalWorkspaceWrite:
@@ -684,10 +685,10 @@ func (a *approvalManager) bypassAllowsLocked(tool, subject string, args json.Raw
 	if requiresFreshApprovalTool(tool) {
 		return false
 	}
-	if a.toolApprovalMode == ToolApprovalDangerFullAccess {
+	if a.effectiveModeLocked() == ToolApprovalDangerFullAccess {
 		return true
 	}
-	if !a.planAutoApprove {
+	if !a.planAutoApprove || a.readOnlyCeilingLocked() {
 		return false
 	}
 	policy := a.policy
@@ -748,7 +749,7 @@ func normalizeToolApprovalMode(mode string) string {
 // memory store may still auto-allow a bounded create-only project memory.
 func RequiresFreshHumanApprovalTool(tool string) bool {
 	switch tool {
-	case planApprovalTool, memoryRememberTool, memoryForgetTool, SandboxEscapeApprovalTool, ManagedConfigWriteApprovalTool:
+	case planApprovalTool, memoryRememberTool, memoryForgetTool, SandboxEscapeApprovalTool, ManagedConfigWriteApprovalTool, TeamChangeApprovalTool, TeamMemoryApprovalTool:
 		return true
 	default:
 		return false

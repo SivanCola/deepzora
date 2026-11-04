@@ -89,6 +89,11 @@ func (c *Controller) runModelTurn(ctx context.Context, input string) error {
 	if c == nil || c.runner == nil {
 		return nil
 	}
+	var err error
+	input, err = c.withTeamTail(input)
+	if err != nil {
+		return err
+	}
 	turnID := c.RuntimeStateSnapshot().TurnID
 	c.beginProviderDiagnosticTurn(turnID)
 	ctx = provider.WithRequestObserver(ctx, func(observation provider.RequestObservation) {

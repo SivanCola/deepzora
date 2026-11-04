@@ -17,6 +17,7 @@ import (
 	"deepzora/internal/planmode"
 	"deepzora/internal/provider"
 	"deepzora/internal/sandbox"
+	"deepzora/internal/secrets"
 	"deepzora/internal/tool"
 )
 
@@ -24,6 +25,20 @@ import (
 // — the caller emits ToolDispatch/ToolResult — so it is safe to invoke fromparallel goroutines. Stages:
 // parse → policy → prepare → finish.
 func (a *Agent) executeOne(ctx context.Context, turn *turnRuntime, call provider.ToolCall) (out toolOutcome) {
+	if secrets.ContainsPlaceholderJSON(json.RawMessage(call.Arguments)) {
+		return toolOutcome{blocked: true, output: "A masked secret placeholder cannot be executed or written. Use its authorized direct environment variable instead.", errMsg: "secret.placeholder"}
+	}
+	defer func() {
+		mask := secrets.Masker()
+		out.output = mask.String(out.output)
+		out.rawOutput = mask.String(out.rawOutput)
+		out.errMsg = mask.String(out.errMsg)
+		if out.execution != nil {
+			copy := *out.execution
+			copy.OutputTail = mask.String(copy.OutputTail)
+			out.execution = &copy
+		}
+	}()
 	defer func() { out.runState = outcomeRunState(out) }()
 	ctx = fileops.WithStore(withTurnState(a.withAgentContext(ctx), turn), a.fileObservations)
 	plan := &toolCallPlan{call: call}
@@ -197,10 +212,10 @@ func (a *Agent) applyPlanModeAndProxy(ctx context.Context, plan *toolCallPlan) (
 		}
 		plan.readOnly = rc.ReadOnly
 		plan.classifyEffects()
-		if outcome, blocked := a.readOnlyExecutionBlock(t, &rc); blocked {
+		if outcome, blocked := a.readOnlyExecutionBlock(ctx, t, &rc); blocked {
 			return blockedShellOutcome(outcome, plan), true
 		}
-	} else if outcome, blocked := a.readOnlyExecutionBlock(t, nil); blocked {
+	} else if outcome, blocked := a.readOnlyExecutionBlock(ctx, t, nil); blocked {
 		return blockedShellOutcome(outcome, plan), true
 	}
 
@@ -497,10 +512,8 @@ func (a *Agent) finishToolExecution(ctx context.Context, plan *toolCallPlan) too
 		}
 		return out
 	}
-	// A foreground `task` sub-agent just finished — its result is the final answer.
-	// (A backgrounded one returns a "Started…" string and stops later in a job, soit doesn't fire here.)
-	// SubagentStop lets a hook react to delegated work.
-	if a.svc.hooks != nil && call.Name == "task" && !isBackgroundTaskCall(call.Arguments) {
+	// A synchronous delegation has settled all its children before this hook.
+	if a.svc.hooks != nil && isDelegationTool(plan.permName) {
 		a.svc.hooks.SubagentStop(ctx, result)
 	}
 	runState := outcomeRunState(toolOutcome{executed: true, output: result})

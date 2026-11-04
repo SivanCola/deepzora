@@ -6,6 +6,7 @@ import type { SettingsTab } from "../lib/types";
 import logoWordmark from "../assets/logo-wordmark.svg";
 
 const ProjectTree = lazy(() => import("../components/ProjectTree").then((module) => ({ default: module.ProjectTree })));
+const TeamSidebar=lazy(()=>import("../components/TeamSidebar").then(module=>({default:module.TeamSidebar})));
 
 export type SidebarRegionProps = {
   className: string;
@@ -26,6 +27,9 @@ export type SidebarRegionProps = {
   onOpenTrash: () => void;
   onOpenAutomation: () => void;
   onOpenSettings: (tab: SettingsTab) => void;
+  onOpenTeamAgent?: (id:string)=>void;
+  onOpenTeamGroup?: (id:string)=>void;
+  activeTeamGroup?:string;
 };
 
 /** Workbench sidebar: brand, quick new-session, project tree and utility nav. */
@@ -45,6 +49,7 @@ export function SidebarRegion(props: SidebarRegionProps) {
           </button>
         </div>
         <section className="sidebar__section sidebar__section--projects">
+          {props.onOpenTeamAgent&&props.onOpenTeamGroup&&<Suspense fallback={null}><TeamSidebar activeSessionPath={props.projectTree.activeSessionPath} activeGroup={props.activeTeamGroup} onOpenAgent={props.onOpenTeamAgent} onOpenGroup={props.onOpenTeamGroup} onManage={()=>props.onOpenSettings("team")}/></Suspense>}
           <Suspense fallback={<div className="project-tree__empty project-tree__empty--subtle" role="status">{t("projectTree.loadingProjects")}</div>}>
             <ProjectTree {...props.projectTree} />
           </Suspense>

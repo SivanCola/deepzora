@@ -21,7 +21,7 @@ func lifecycleFixture(t *testing.T) (*App, session.SessionRef) {
 	a.ctx = t.Context()
 	pinDesktopSessionRoot(t, a)
 	installNoopRuntimeEvents(a)
-	t.Cleanup(a.closeSessionServices)
+	t.Cleanup(func() { closeLifecycleFixture(t, a) })
 	w, err := a.ensureDesktopWorkspace(t.Context(), "global", "")
 	if err != nil {
 		t.Fatal(err)

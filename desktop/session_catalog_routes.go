@@ -48,7 +48,7 @@ func (a *App) sessionIDsForDirectory(ctx context.Context, dir string) (map[strin
 		}
 		if matches {
 			for _, id := range workspace.SessionIDs {
-				if state.SessionStates[id].Lifecycle == workspacestate.Active {
+				if !strings.HasPrefix(id, "desktop-team-") && state.SessionStates[id].Lifecycle == workspacestate.Active {
 					allowed[id] = true
 				}
 			}

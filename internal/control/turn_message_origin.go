@@ -8,6 +8,9 @@ import (
 )
 
 func withTurnInputOrigin(ctx context.Context, synthetic bool) context.Context {
+	if active, _ := ctx.Value(teamInputKey{}).(bool); active {
+		return teamHostInput(ctx)
+	}
 	origin := provider.MessageOriginUser
 	if synthetic {
 		origin = provider.MessageOriginHost

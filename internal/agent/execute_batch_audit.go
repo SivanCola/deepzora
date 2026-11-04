@@ -90,7 +90,7 @@ func (a *Agent) emitBatchToolResult(ctx context.Context, c provider.ToolCall, o 
 
 func isSubagentToolName(name string) bool {
 	switch name {
-	case "task", "read_only_task", "run_skill", "read_only_skill", "explore", "research", "review", "security_review", "security-review", "parallel_tasks", "fleet":
+	case "spawn_agents", "task", "read_only_task", "run_skill", "read_only_skill", "explore", "research", "review", "security_review", "security-review", "parallel_tasks", "fleet":
 		return true
 	default:
 		return false

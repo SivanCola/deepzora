@@ -26,12 +26,10 @@ type Record struct {
 	Seq                 uint64               `json:"seq"`
 	TS                  int64                `json:"ts"`
 	Event               *eventwire.Event     `json:"event,omitempty"`
-	ReadinessAudit      *ReadinessAudit      `json:"readiness_audit,omitempty"`
 	AnchorSafetyAudit   *AnchorSafetyAudit   `json:"anchor_safety_audit,omitempty"`
 	ProtocolRecovery    string               `json:"protocol_recovery,omitempty"`
 	TurnCompletion      bool                 `json:"turn_completion,omitempty"`
 	ContractShadow      *ContractShadowAudit `json:"contract_shadow,omitempty"`
-	CompletionReport    *CompletionReport    `json:"completion_report,omitempty"`
 	OutcomeProgress     *OutcomeProgress     `json:"outcome_progress,omitempty"`
 	DelegationAdmission *DelegationAdmission `json:"delegation_admission,omitempty"`
 	MemoryRecall        *MemoryRecall        `json:"memory_recall,omitempty"`
@@ -132,39 +130,6 @@ type ContractShadowAudit struct {
 	ReadyToFinalize       bool   `json:"ready_to_finalize,omitempty"`
 }
 
-// CompletionReport mirrors event.CompletionReportAudit with stable keys.
-type CompletionReport struct {
-	Verdict             string   `json:"verdict"`
-	Risk                string   `json:"risk,omitempty"`
-	Criteria            int      `json:"criteria,omitempty"`
-	CriteriaSatisfied   int      `json:"criteria_satisfied,omitempty"`
-	Changes             int      `json:"changes,omitempty"`
-	ChangesUnreviewed   int      `json:"changes_unreviewed,omitempty"`
-	Verifications       int      `json:"verifications,omitempty"`
-	VerificationsFailed int      `json:"verifications_failed,omitempty"`
-	VerificationsStale  int      `json:"verifications_stale,omitempty"`
-	Gaps                int      `json:"gaps,omitempty"`
-	GapKinds            []string `json:"gap_kinds,omitempty"`
-	ClaimsVerified      int      `json:"claims_verified,omitempty"`
-	ClaimsUnbacked      int      `json:"claims_unbacked,omitempty"`
-}
-
-// ReadinessAudit mirrors evidence.ReadinessAudit with stable snake_case keys.
-type ReadinessAudit struct {
-	Result                    string `json:"result"`
-	Recovered                 bool   `json:"recovered,omitempty"`
-	MissingProjectChecks      int    `json:"missing_project_checks,omitempty"`
-	IncompleteTodos           int    `json:"incomplete_todos,omitempty"`
-	CommandMismatchMissing    int    `json:"command_mismatch_missing,omitempty"`
-	MissingAcceptanceCriteria int    `json:"missing_acceptance_criteria,omitempty"`
-	MissingVerification       int    `json:"missing_verification,omitempty"`
-	MissingReview             int    `json:"missing_review,omitempty"`
-	MissingSignoff            int    `json:"missing_signoff,omitempty"`
-	MissingActionEvidence     int    `json:"missing_action_evidence,omitempty"`
-	MissingMutation           int    `json:"missing_mutation,omitempty"`
-	MissingCapabilities       int    `json:"missing_capabilities,omitempty"`
-}
-
 // Recorder is an event.Sink decorator: every event (and optional-capability
 // audit) is appended as one JSONL record, then forwarded to the inner sink.
 // Recording failures never block forwarding — the first error is kept and
@@ -230,24 +195,6 @@ func (r *Recorder) RecordDelegationAudit(a evidence.DelegationAudit) {
 	event.RecordDelegationAudit(r.inner, a)
 }
 
-func (r *Recorder) RecordReadinessAudit(a evidence.ReadinessAudit) {
-	r.append(Record{ReadinessAudit: &ReadinessAudit{
-		Result:                    string(a.Result),
-		Recovered:                 a.Recovered,
-		MissingProjectChecks:      a.MissingProjectChecks,
-		IncompleteTodos:           a.IncompleteTodos,
-		CommandMismatchMissing:    a.CommandMismatchMissing,
-		MissingAcceptanceCriteria: a.MissingAcceptanceCriteria,
-		MissingVerification:       a.MissingVerification,
-		MissingReview:             a.MissingReview,
-		MissingSignoff:            a.MissingSignoff,
-		MissingActionEvidence:     a.MissingActionEvidence,
-		MissingMutation:           a.MissingMutation,
-		MissingCapabilities:       a.MissingCapabilities,
-	}})
-	event.RecordReadinessAudit(r.inner, a)
-}
-
 func (r *Recorder) RecordAnchorSafetyAudit(a event.AnchorSafetyAudit) {
 	r.append(Record{AnchorSafetyAudit: &AnchorSafetyAudit{
 		Mode: a.Mode, TaskMode: a.TaskMode, RangeLines: a.RangeLines,
@@ -271,25 +218,6 @@ func (r *Recorder) RecordContractShadow(a event.ContractShadowAudit) {
 		ReadyToFinalize:       a.ReadyToFinalize,
 	}})
 	event.RecordContractShadow(r.inner, a)
-}
-
-func (r *Recorder) RecordCompletionReport(a event.CompletionReportAudit) {
-	r.append(Record{CompletionReport: &CompletionReport{
-		Verdict:             a.Verdict,
-		Risk:                a.Risk,
-		Criteria:            a.Criteria,
-		CriteriaSatisfied:   a.CriteriaSatisfied,
-		Changes:             a.Changes,
-		ChangesUnreviewed:   a.ChangesUnreviewed,
-		Verifications:       a.Verifications,
-		VerificationsFailed: a.VerificationsFailed,
-		VerificationsStale:  a.VerificationsStale,
-		Gaps:                a.Gaps,
-		GapKinds:            a.GapKinds,
-		ClaimsVerified:      a.ClaimsVerified,
-		ClaimsUnbacked:      a.ClaimsUnbacked,
-	}})
-	event.RecordCompletionReport(r.inner, a)
 }
 
 func (r *Recorder) RecordOutcomeProgress(sample evidence.OutcomeSample) {

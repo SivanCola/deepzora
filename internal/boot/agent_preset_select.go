@@ -30,6 +30,11 @@ func AgentPresetDirs(root string) agentpreset.Dirs {
 // Explicit overrides apply only before any turn; a missing recorded definition
 // keeps its id while temporarily running the default agent.
 func resolveAgentPreset(ctx context.Context, root string, opts Options, sink event.Sink) (agentpreset.Preset, error) {
+	if source, ok := opts.TeamSeat.(interface {
+		PresetDefinition() (agentpreset.Preset, error)
+	}); ok {
+		return source.PresetDefinition()
+	}
 	id, recorded := agentpreset.NormalizeID(opts.AgentPreset), false
 	var projection *session.Projection
 	if opts.AgentPresetSource != nil {
@@ -73,6 +78,10 @@ func agentPresetFingerprint(p agentpreset.Preset) string {
 	p.IconColor = ""
 	return p.ID + "\x00" + agentpreset.Render(p)
 }
+
+// TeamPresetFingerprint lets the Desktop owner compare saved and applied
+// definitions without reading system prompt or tool bytes from the renderer.
+func TeamPresetFingerprint(p agentpreset.Preset) string { return agentPresetFingerprint(p) }
 
 // presetID is the form recorded on controllers and sessions: empty = default.
 func presetID(p agentpreset.Preset) string {

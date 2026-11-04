@@ -11,6 +11,7 @@ import (
 	"slices"
 
 	"deepzora/internal/projectiondb"
+	"deepzora/internal/secrets"
 	"deepzora/internal/sessioncontent"
 )
 
@@ -353,9 +354,15 @@ func (q *Query) readHistoryWindowPage(ctx context.Context, db *sql.DB, filesyste
 		if len(page.Messages) == limit {
 			break
 		}
-		message.Inline = append(json.RawMessage(nil), inline...)
+		message.Preview = secrets.Masker().String(message.Preview)
+		message.Inline = secrets.Masker().JSONStrings(append(json.RawMessage(nil), inline...))
 		if digest != "" {
 			contentRef := sessioncontent.Ref{Digest: digest, Bytes: contentBytes, IndexDigest: indexDigest, IntegrityBlock: sessioncontent.IntegrityBlockBytes, MediaType: "application/json"}
+			contentRef, err = projectHistoryContent(ctx, filepath.Join(filesystem.Root, ref.SessionID), contentRef)
+			if err != nil {
+				return HistoryWindowPage{}, err
+			}
+			digest, contentBytes, indexDigest = contentRef.Digest, contentRef.Bytes, contentRef.IndexDigest
 			if contentBytes <= recentInlineBytes && encodedBytes+int(contentBytes) <= HistoryPageMaxBytes {
 				body, readErr := contentStoreForSessionDir(filepath.Join(filesystem.Root, ref.SessionID)).ReadRange(ctx, contentRef, 0, contentBytes)
 				if readErr != nil {

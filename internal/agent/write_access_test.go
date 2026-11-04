@@ -3,7 +3,6 @@ package agent
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -34,30 +33,6 @@ func TestBindChildWriteRootsSnapshotsParentGrants(t *testing.T) {
 		t.Fatal("child should inherit the snapshot that existed at spawn")
 	}
 
-	pkg := filepath.Join(work, "pkg")
-	if err := os.MkdirAll(pkg, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	claims, err := NormalizeWritePaths(work, []string{"pkg"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, restricted := BindChildWriteRoots(reg, parent, claims)
-	if restricted.Covers(extra) {
-		t.Fatal("explicit write_paths must drop unrelated session grants")
-	}
-	if !restricted.Covers(pkg) {
-		t.Fatal("explicit write_paths should keep the intersection")
-	}
-
-	whole, err := WholeWorkspaceWriteClaim(work)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, inherited := BindChildWriteRoots(reg, parent, whole)
-	if !inherited.Covers(extra) {
-		t.Fatal("omitted write_paths still inherit the existing session snapshot")
-	}
 }
 
 func TestApplyWriteAccessSubagentUsesStructuredHint(t *testing.T) {

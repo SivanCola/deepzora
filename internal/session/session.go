@@ -206,6 +206,9 @@ func (s *Session) PrepareBatchContext(ctx context.Context, operationID string, b
 	if err != nil {
 		return PreparedBatch{}, err
 	}
+	for i := range events {
+		events[i].Payload = maskSessionEvent(events[i])
+	}
 	prior, found, err := s.lookupOperation(operationID)
 	if err != nil {
 		return PreparedBatch{}, fmt.Errorf("session: lookup operation %q: %w", operationID, err)

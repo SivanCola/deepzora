@@ -10,6 +10,7 @@ import { orderedLocalSubmissions } from "../lib/localSubmissionState";
 
 
 export type ChatPaneTranscriptInput = {
+  assistantSpeaker?:TranscriptProps["assistantSpeaker"];
   state: State;
   items: TranscriptProps["items"];
   tabId: TranscriptProps["tabId"];
@@ -90,6 +91,7 @@ export function ChatPaneRegion(props: ChatPaneRegionProps) {
             >
               {recoveringEmpty ? <SessionRecoveryPlaceholder availability={transcript.availability} /> : <Transcript
                 items={transcript.items}
+                assistantSpeaker={transcript.assistantSpeaker}
                 localSubmissions={localSubmissions}
                 localSubmissionSendRevision={state.localSubmissionSendRevision}
                 visibleSubmissionHandoffs={state.visibleSubmissionHandoffs}

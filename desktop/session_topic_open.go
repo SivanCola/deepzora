@@ -34,7 +34,11 @@ func (a *App) canonicalTopicOpen(path string) (SessionTarget, *canonicalTabBindi
 		target.WorkspaceRoot = ""
 	}
 	title, source := a.canonicalTabTitle(a.bootContext(), state, ref)
-	return target, &canonicalTabBinding{ref: ref, workspaceID: workspace.ID, title: title, titleSource: source}, nil
+	seat, err := a.teamSeatForCanonicalSession(id)
+	if err != nil {
+		return SessionTarget{}, nil, err
+	}
+	return target, &canonicalTabBinding{ref: ref, workspaceID: workspace.ID, title: title, titleSource: source, teamSeat: seat}, nil
 }
 
 // A cancelled startup may still be unwinding when its session is selected

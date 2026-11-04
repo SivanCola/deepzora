@@ -111,6 +111,7 @@ const MemorySettingsPage = lazy(() => import("./MemoryPanel").then((module) => (
 const SubagentsSettingsPage = lazy(() => import("./SubagentsPanel").then((module) => ({ default: module.SubagentsSettingsPage })));
 const AgentPresetsSettingsPage = lazy(() => import("./AgentPresetsSettingsPage").then((module) => ({ default: module.AgentPresetsSettingsPage })));
 const BotChannelsSettingsPage = lazy(() => import("./BotChannelsSettingsPage").then((module) => ({ default: module.BotChannelsSettingsPage })));
+const TeamSettingsPage = lazy(() => import("./TeamSettingsPage").then(module => ({ default: module.TeamSettingsPage })));
 const DiagnosticsSettingsPage = lazy(() => import("./DiagnosticsSettingsPage").then((module) => ({ default: module.DiagnosticsSettingsPage })));
 const StorageSettingsPage = lazy(() => import("./StorageSettingsPage").then((module) => ({ default: module.StorageSettingsPage })));
 const BrowserControlSettingsPage = lazy(() => import("./BrowserControlSettingsPage").then((module) => ({ default: module.BrowserControlSettingsPage })));
@@ -451,6 +452,7 @@ function SettingsPanelContent({
                 {tab === "bot-channels" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><BotChannelsSettingsPage /></Suspense></SettingsPageShell>}
                 {tab === "skills" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><SkillsSettingsPage activeWorkspaceKey={activeWorkspaceKey} /></Suspense></SettingsPageShell>}
                 {tab === "agent-presets" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><AgentPresetsSettingsPage key={activeWorkspaceKey} tabId={activeTabId} workspaceKey={activeWorkspaceKey} createRequestId={acceptedFocus?.target === "agent-preset-create" ? acceptedFocus.requestId : null} /></Suspense></SettingsPageShell>}
+                {tab === "team" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><TeamSettingsPage tabId={activeTabId} workspaceKey={activeWorkspaceKey}/></Suspense></SettingsPageShell>}
                 {tab === "subagents" && s && <SettingsPageShell key={tab} s={s} tab={tab} busy={busy} apply={apply}><Suspense fallback={lazySettingsPageFallback}><SubagentsSettingsPage s={s} onUseInChat={(command) => {
                   pendingSubagentCommandRef.current = command;
                   requestClose();
@@ -563,7 +565,7 @@ export function settingsPageLayout(tab: SettingsTab): "form" | "list" | "detail"
   if (tab === "bot-channels") return "list";
   if (tab === "providers") return "detail";
   if (["model-stats", "diagnostics", "hooks", "updates"].includes(tab)) return "tool";
-  if (["mcp", "skills", "agent-presets", "subagents", "plugins", "memory", "shortcuts"].includes(tab)) return "list";
+  if (["mcp", "skills", "agent-presets", "team", "subagents", "plugins", "memory", "shortcuts"].includes(tab)) return "list";
   return "form";
 }
 
@@ -576,6 +578,7 @@ function settingsPageKind(tab: SettingsTab): "form" | "manager" {
     case "mcp":
     case "skills":
     case "agent-presets":
+    case "team":
     case "subagents":
     case "plugins":
     case "memory":
@@ -619,6 +622,7 @@ type ModelsSectionProps = SectionProps & {
 function settingsTabLabel(id: SettingsTab, t: ReturnType<typeof useT>): string {
   switch (id) {
     case "bot-channels": return t("settings.tab.botChannels");
+    case "team": return t("settings.tab.team");
     case "model-stats": return t("settings.modelTab.stats");
     case "general":
       return t("settings.tab.general");
@@ -661,6 +665,7 @@ function settingsTabLabel(id: SettingsTab, t: ReturnType<typeof useT>): string {
 function settingsTabMeta(id: SettingsTab, s: SettingsView, t: ReturnType<typeof useT>): string {
   switch (id) {
     case "bot-channels": return "Weixin · Feishu · Lark · Telegram";
+    case "team": return t("team.navHint");
     case "model-stats": return "";
     case "models":
       return settingsModelMeta(s, t);
@@ -1794,13 +1799,8 @@ export function ModelsSection({ s, busy, apply, backgroundApply, subtab, onboard
   const compactRatioOverrideHint = agent.compactRatioOverridden
     ? t("settings.compactRatioProjectOverride", { percent: Math.round((agent.effectiveCompactRatio ?? compactRatio) * 100) })
     : "";
-  const subagentDepth = Number.isFinite(agent.maxSubagentDepth) && agent.maxSubagentDepth <= 1 ? 1 : 2;
   const subagentConcurrency = Number.isFinite(agent.maxSubagentConcurrency) && agent.maxSubagentConcurrency > 0
-    ? Math.max(1, Math.min(32, Math.floor(agent.maxSubagentConcurrency)))
-    : 6;
-  const parallelWriters = Number.isFinite(agent.maxParallelWriters) && agent.maxParallelWriters > 0
-    ? Math.max(1, Math.min(subagentConcurrency, Math.floor(agent.maxParallelWriters)))
-    : Math.min(3, subagentConcurrency);
+    ? Math.max(1, Math.min(8, Math.floor(agent.maxSubagentConcurrency))) : 6;
   const visionRefs = useMemo(() => {
     const defaultProviderName = defaultRef.split("/")[0];
     const candidates = refs.filter((ref) => {
@@ -2036,51 +2036,18 @@ export function ModelsSection({ s, busy, apply, backgroundApply, subtab, onboard
             </SettingsField>
 
             <details className="settings-subagent-advanced"><summary>{t("settings.subagentAdvanced")}</summary>
-            <SettingsField label={t("settings.subagentDepth")} hint={t("settings.subagentDepthHint")}>
-              <SettingsOptions className="provider-add-segmented" role="group" aria-label={t("settings.subagentDepth")}>
-                {[1, 2].map((depth) => (
-                  <button
-                    key={depth}
-                    type="button"
-                    className={subagentDepth === depth ? "provider-add-segmented__item provider-add-segmented__item--active" : "provider-add-segmented__item"}
-                    disabled={busy}
-                    aria-pressed={subagentDepth === depth}
-                    onClick={() => void apply(() => saveModelSettings(s, {kind: "preference", field: "depth", number: depth}))}
-                  >
-                    {depth === 1 ? t("settings.subagentDepthOne") : t("settings.subagentDepthTwo")}
-                  </button>
-                ))}
-              </SettingsOptions>
-            </SettingsField>
-
             <SettingsField label={t("settings.subagentConcurrency")} hint={t("settings.subagentConcurrencyHint")}>
               <input
                 className="mem-input"
                 type="number"
                 min={1}
-                max={32}
+                max={8}
                 value={subagentConcurrency}
                 disabled={busy}
                 onChange={(e) => {
                   const n = Number(e.target.value);
                   if (!Number.isFinite(n)) return;
                   void apply(() => saveModelSettings(s, {kind: "preference", field: "concurrency", number: n}));
-                }}
-              />
-            </SettingsField>
-
-            <SettingsField label={t("settings.parallelWriters")} hint={t("settings.parallelWritersHint")}>
-              <input
-                className="mem-input"
-                type="number"
-                min={1}
-                max={subagentConcurrency}
-                value={parallelWriters}
-                disabled={busy}
-                onChange={(e) => {
-                  const n = Number(e.target.value);
-                  if (!Number.isFinite(n)) return;
-                  void apply(() => saveModelSettings(s, {kind: "preference", field: "writers", number: n}));
                 }}
               />
             </SettingsField>

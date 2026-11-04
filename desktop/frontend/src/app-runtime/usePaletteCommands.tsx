@@ -6,7 +6,6 @@ import { clearThemePack } from "../lib/themePack";
 import { paletteSessionDisplayTitle, paletteSessionHint, paletteSessionKeywords, sessionActivityTime } from "../lib/session";
 import { useOverlayStore } from "../store/overlays";
 import { useAppNavigationStore } from "../store/appNavigation";
-import { activeTabMirror } from "./activeTabMirror";
 import type { SessionMeta } from "../lib/types";
 import type { Translator } from "../lib/i18n";
 import type { PaletteItem } from "../components/CommandPalette";
@@ -14,6 +13,7 @@ import type { PaletteItem } from "../components/CommandPalette";
 export type PaletteCommandsInput = {
   managementActive: boolean;
   activeTabId: string | undefined;
+  closeSurface?:()=>void;
   t: Translator;
   notice(message: string, kind?: "info" | "warn" | "error"): void;
   showToast(message: string, level: "info" | "warn" | "error", options?: { durationMs?: number }): void;
@@ -54,7 +54,7 @@ export function usePaletteCommands(input: PaletteCommandsInput) {
     closeTransientOverlays();
     setPaletteOpen(true);
     setPaletteSessions(await ports.listSessions().catch(() => []));
-    setPaletteExtensionActions(await app.ExtensionActions(activeTabMirror().current ?? "").catch(() => []));
+    setPaletteExtensionActions(activeTabId?await app.ExtensionActions(activeTabId).catch(() => []):[]);
   });
 
   useGlobalShortcut("commandPalette.open", () => {
@@ -69,9 +69,10 @@ export function usePaletteCommands(input: PaletteCommandsInput) {
     useAppNavigationStore.getState().setSettingsTarget(useAppNavigationStore.getState().lastSettingsTarget);
   }, [closeTransientOverlays]);
   useGlobalShortcut("tab.close", () => {
-    if (managementActive) ports.returnToWorkspace();
+    if(input.closeSurface)input.closeSurface();
+    else if (managementActive) ports.returnToWorkspace();
     else if (activeTabId) void ports.handleTabClose(activeTabId);
-  }, [activeTabId, managementActive, ports.handleTabClose, ports.returnToWorkspace], managementActive || Boolean(activeTabId));
+  }, [activeTabId, managementActive, input.closeSurface, ports.handleTabClose, ports.returnToWorkspace], managementActive || Boolean(activeTabId)||!!input.closeSurface);
   useGlobalShortcut("shortcuts.show", () => setShortcutsOpen(true));
   useGlobalShortcut("sidebar.toggle", ports.toggleSidebar, [ports.toggleSidebar], !managementActive);
 
@@ -150,7 +151,7 @@ export function usePaletteCommands(input: PaletteCommandsInput) {
       badge: t(s.turns === 1 ? "history.turnOne" : "history.turnOther", { n: s.turns }),
       run: () => void ports.onResumeSession(s),
     }));
-    const extensionItems: PaletteItem[] = paletteExtensionActions.map((action) => ({
+    const extensionItems: PaletteItem[] = (activeTabId?paletteExtensionActions:[]).map((action) => ({
       id: `ext-${action.slash}`,
       group: t("palette.group.extensions"),
       title: action.description || action.slash,
@@ -169,7 +170,7 @@ export function usePaletteCommands(input: PaletteCommandsInput) {
           .catch((err) => showToast(err instanceof Error ? err.message : String(err), "error"));
       },
     }));
-    return [...cmds, ...extensionItems, ...sessionItems];
+    return [...cmds.filter(item=>activeTabId||item.id!=="cmd-terminal"), ...extensionItems, ...sessionItems];
   }, [t, paletteSessions, paletteExtensionActions, activeTabId, ports, showToast, notice]);
 
   return { openPalette, paletteItems };

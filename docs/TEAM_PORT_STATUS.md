@@ -1,0 +1,255 @@
+# Team port implementation ledger
+
+Base: `c6591b22d714ff43f17750974cb1c8078eb4ff99` (Deepzora main).
+Review integration base: `73c695a65feaa317d56180aa1042444313e76cd1`.
+The stack incorporates the current `spawn_agents` execution contract. PR merge
+state is tracked on GitHub; qualification records do not imply release.
+
+The accepted scope is the complete seven-layer Team feature for local macOS,
+Linux and Windows Desktop. CLI and remote Team entry points are excluded.
+Windows follows the existing host-user shell permission contract. Members copy
+preset definitions instead of following later preset edits.
+
+## Delivery gates
+
+| Layer | Owner | Status |
+| --- | --- | --- |
+| 1 | Versioned roster, exchanges, group orchestration | Implemented; focused/race/static checks and full root Go suite passed; PR #146 |
+| 2 | Controller seat, tools, approvals and delegation ceilings | Implemented; full root suite and hosted CI/CodeQL passed; PR #147 |
+| 3 | Desktop runtime, lease and browser isolation | Implemented; full root/Desktop suites and macOS native browser fixture passed; PR #148 |
+| 4 | Desktop Team UI and generated contract | Implemented; full root/Desktop suites, focused/race, production build, 246 settings viewport cases, Team browser flow and all 34 transcript commands passed; PR #149, ready for review |
+| 5 | Memory, opt-in review and schedules | Implemented; complete root/Desktop suites, focused/race, typechecks, build, Chromium flow and hosted checks passed; PR #151, ready for review |
+| 6 | Private credential slots and shell injection | Implemented with its standalone gate closed; root/owning/race/static and full-stack native POSIX/PowerShell checks passed; PR #152, ready for review |
+| 7 | Outbound/stream masking, usage and native acceptance | Implemented; complete-stack source, native packaged and installed-artifact checks passed on macOS/Linux/Windows; real DeepSeek private/group/usage acceptance passed on macOS; PR #153 |
+
+No layer status implies completion of a later layer. Secret delivery must remain
+unavailable until its complete masking boundaries pass. Hosted checks, local
+checks, native platform acceptance and publication are separate evidence.
+The seven-layer implementation is complete. The final stack enables secrets;
+the standalone layer-6 branch deliberately does not. Exact tested commits,
+artifacts, platform/model coverage and limitations are recorded in
+[Team qualification](TEAM_ACCEPTANCE.md). The increment sections below preserve
+the evidence available when their individual owner layers were implemented;
+their historical pending notes do not replace this current delivery table.
+
+## Masking and usage increment
+
+- Adapted upstream exact-value, scalar-token JSON and cross-block stream masking.
+  Current/retired authoritative slots refresh every snapshot without mtime/size
+  caching. Unreadable metadata blocks new provider requests and secret commands.
+  Confirmed forgetting fences in-flight old source reads.
+  Confirmed retirement also records durable file-cleanup intents, rejects active
+  slot targets and retries interrupted/blocked removals; metadata exposes only
+  the pending count, with no credential slot references.
+- Builtin providers, extension requests/frames, tool/schema projection, event
+  streaming and optional audits, tool outcomes, jobs/artifacts, process logs and
+  Desktop RPC responses share the masking kernel. Literal placeholders are
+  refused by executable/write/MCP entry points.
+- Typed host counters remain numbers. Untouched model schemas retain original
+  scalar bytes and duplicate keys. Original-adapter proofs are the sole replay
+  exception; changed persisted proofs carry an invalidation marker and all three
+  native adapters reject them before HTTP.
+- New events are masked before persistence; old history bodies receive immutable
+  projected identities at first hit. Read grants are rechecked, and stale grants
+  refuse unprojected ranges. Legacy history/search/outline/export presentation
+  paths project text too. Historical bodies over 64 MiB fail closed.
+- Optional Agent/group/seat identity augments existing usage records. Actual
+  writable/read-only spawned-child tests and a real loopback HTTP review request
+  verify ownership and one record per call. Review cleanup flushes usage. Team
+  aggregates preserve currency buckets, unpriced calls and old unattributed rows.
+- macOS native shell save/command/delete/retirement/confirmed-forget regression
+  passed with an isolated test-process gate. The final layer-7 gate is enabled
+  after native acceptance; layer 6 alone remains gated.
+  Browser preview verifies password input, explicit grants, empty grants,
+  two-step delete/forget and no value in returned metadata. These checks do not
+  claim a real model, Windows PowerShell or installed package acceptance.
+- Manual `team_acceptance` dispatch builds native installable artifacts and
+  exercises packaged member/private/group/background/approval/scheduler flows,
+  persisted history and native browser Cookie isolation on three runners. It
+  never publishes. The fixture provider and optional closed secret gate are
+  recorded explicitly. All three native and installed-artifact checks passed
+  for candidate `58aa56f3f7c76322635fc6bae4b801f94f89e618` in run `41604291425`.
+- The complete root Go suite passed. The independent Desktop Go suite passed
+  (latest main-package sweep 1,377.872s, 1,907 top-level passes and 8 platform-specific skips).
+  Cleanup/kernel/race regressions and updated frontend/static gates passed for
+  the subsequent durable retirement fix.
+  The assembled macOS production app passed startup/quit and real Team private,
+  group, background, approval, schedule and restart flows against the loopback
+  fixture. The real native browser fixture passed member Cookie isolation,
+  recovery and complete WebContents cleanup. These are local candidate results,
+  separate from the final exact-head installer matrix, which also passed.
+- Qualification uses unpublished numeric `v0.0.0` plus the source SHA and artifact
+  hashes. It tests the distributed DMG copy, actual DEB install/remove and NSIS
+  install/uninstall with retained user data; release naming rules are unchanged.
+- An isolated test credential qualified actual DeepSeek Flash over
+  the OpenAI protocol on the downloaded macOS candidate: one private call plus two
+  sequential group calls passed, with three owned usage records (22,615 total tokens). Existing user
+  conversations/configuration were not copied or modified. Test credential
+  files and temporary app homes are private, outside the repository.
+- Windows packaged and installed Team flows passed, including PowerShell secret
+  injection and fixed-zone schedules. The owning layer-5 fix embeds Go's timezone
+  database; its DST/calendar regressions passed and it was propagated through
+  layers 6 and 7. The fixture supplies PowerShell's required description field.
+
+第七层已接入精确值、JSON 与跨块流遮罩、Provider/扩展/事件/工具/后台/持久化边界，
+以及成员、群组、席位和调用来源用量聚合。三平台已分别通过原生打包、真实 Shell、
+安装后团队流程及浏览器隔离检查；macOS 下载候选通过真实 DeepSeek Flash 验收。
+七层完整移植已实现，密钥仅在完整第七层开放。当前合并状态以 GitHub 为准；验收不代表正式发布。
+
+## Memory and scheduler increment
+
+The complete root Go suite passed. The independent Desktop Go suite passed
+(main package 804.855s). Subsequent parent archive integration passed the merged
+frontend typecheck, production build and extended Team Chromium flow. These
+local results do not substitute for pending hosted/native/package acceptance.
+
+- Member-private facts use an isolated namespace shared by that member's seats;
+  ordinary user/workspace standing instructions retain their existing authority.
+  Team/group memory is dynamic tail context. Ordinary sessions do not register
+  the two additional Team-only memory tools.
+- Shared writes require fresh approval bound to exact body, target, memory
+  revision and roster revision, even under Full access. Plan and delegated
+  read-only execution cannot publish them; authority is checked again at commit.
+- Memory batches validate all changes in staging, preserve pinned guidance and
+  use a durable before/after journal. Manual changes and retry receipts commit
+  together. Unknown schema, later conflicting edits and recovery failures retain
+  the original journal rather than overwrite user data.
+- Review defaults off and consumes oldest unreviewed batches of new human
+  evidence. Scheduler/agent/tool input is excluded. The selected review model
+  or default chat model must resolve; no other connection is selected.
+  Disabling review and shutdown cancel and join cleanup.
+- Independent versioned schedules save IANA zones, stable interval anchors and
+  occurrence keys. The writer lease executes them only while Desktop is open.
+  Busy targets wait within two minutes; older missed occurrences are skipped.
+  Interrupted dispatch claims are not replayed. Scheduled input has explicit
+  provenance and the existing `workspace-write` (ask-before-write) ceiling.
+- Team settings expose memory editing/archiving, review preferences/statuses,
+  and schedule creation/editing/deletion/immediate execution. Conflict results
+  retain drafts and require explicit review before resubmission.
+
+第五层已在本地接入成员私有、团队共享及群组共享记忆，新鲜审批、整批验证与崩溃恢复、
+默认关闭的自动整理，以及固定时区的独立团队调度。定时输入不会成为人类记忆证据或计划
+批准。界面与宿主测试证据分开记录；密钥功能仍未开放，三平台原生安装包与真实模型验收
+尚未完成。
+
+## Source snapshots
+
+The upstream repository is `SivanCola/DeepSeek-Reasonix`, submitted through
+`esengine/DeepSeek-Reasonix` PRs #14636, #14637, #14638, #14639, #14640,
+#14641 and #14623, in that order. Fixed heads:
+
+1. `1c8f9818013e30de612fd794b6f2b9039bd854f9`
+2. `c54659170682ea1011cfde895b2bb86ca9e7aef6`
+3. `58d89be95d39b77227c736fb8a1ff0058218ef41`
+4. `2fe0db5d6f8a389a0239f3d208e578a65c1cd29c`
+5. `ca38fcc4311d7c570d06a319c159ddbd61eac35a`
+6. `ac40a8944f5771f190c4a090da4dcb9af3b2cfd8`
+7. `d5e43581e2ea6f4845e46fb29968cc1b2cb23b3a`
+
+Extract mechanisms and their regressions into Deepzora owners; do not import
+Studio HTTP plumbing, terminal outbox, unrelated fixes or release infrastructure.
+
+## Foundation evidence
+
+- Extracted the fixed part-1 roster, exchange, group-round and host-frame owners
+  together with their regressions. Kept the upstream MIT attribution.
+- Adapted imports, canonical permission/ceiling values, identity-aware locks,
+  strict atomic replacement and portable path fixtures to Deepzora.
+- Added a real child-process lease regression, canonical-mode rejection and
+  stale-revision regression.
+- Found and reproduced an upstream idempotency gap: the same request key could
+  change recipient, parent, group, reply destination or execution ceiling while
+  retaining the same text. All five negative controls failed before the repair;
+  the store now rejects those mismatches.
+- Focused package tests, race tests, vet and repolint passed. Windows amd64 test
+  binaries compiled; Windows native execution has not been performed.
+- The full root `go test ./...` completed successfully. Linux amd64 roster and
+  service test binaries also compiled. Hosted CI remains separate evidence.
+- No Controller, Desktop, provider or UI entry point is enabled by this increment.
+
+本层已实现名册、交换账本、群轮次与宿主 framing，定向测试、race、vet、repolint
+通过；Windows amd64 测试二进制已交叉编译，尚无 Windows 原生运行证据。
+第一层单独不启用 Controller 或桌面入口；后续层状态见上表。
+
+## Seat/controller increment
+
+- Added an optional host-owned boot seat and a fixed Team tool set, preserved
+  across controller rebuild. Ordinary boots do not register Team tools.
+- Identity and roster ride the turn tail; provider-boundary tests compare the
+  unchanged ordinary system prefix and stable Team schemas across turns.
+- Team input uses the existing durable inbox and explicit host message origin.
+  Admission validates pending work; replay of interrupted exchanges is refused.
+  The admitted envelope owns immutable turn metadata instead of rereading a
+  mutable sidecar to discover authority during execution.
+- Scoped execution ceilings preserve the user's persistent permission and also
+  reach child execution and resolved proxy targets. A compiler-overlay negative
+  control executes the forbidden writer when enforcement is removed.
+- Fresh Team configuration approvals cannot reuse session grants or Full access.
+  Writes compare the reviewed roster revision and recheck target authority.
+- Queue prose editors cannot rewrite a host-authored Team delivery. Task children
+  cannot borrow their parent's Team identity. Coordination is classified as host
+  state, not a work-product mutation.
+- Focused regressions and race checks passed. The broad Controller suite exposed
+  an approved-plan fallback regression; the repair limits the restriction to an
+  actual active Team ceiling. The complete Controller, Agent, boot, Team,
+  builtin, host-frame and evidence suites passed after that repair.
+
+第二层已接入可选席位、固定工具目录、持久 inbox、宿主来源、回合结算和临时执行上限，
+并验证系统前缀稳定、只读代理执行、陈旧审批拒绝及已结算任务不重放。普通已批准计划的
+回归已修复，全套相关包已通过。桌面 TeamHost 与界面尚未接入。
+
+## Desktop host increment
+
+- Added the local lease/recovery fence, serialized seat creation, idle admission,
+  background retention and shutdown join. Recovery errors keep the host sealed
+  and retain the lease until repaired or all runtime teardown completes.
+- Canonical sessions use the existing workspace creation protocol and the
+  Controller/inbox lifecycle. Team routes cannot reopen as ordinary sessions
+  after eviction. Background opens preserve foreground selection. Runtime
+  teardown joins Controller.Closed outside the global admission lock.
+- Added generated query/configuration/private-open commands and Team change
+  events. Revision conflict and request-key replay are explicit results.
+- Copied presets retain complete prompt/runtime-context/tool-list semantics.
+  Provider-boundary tests prove source replacement cannot change the copy.
+- Browser storage identity comes from Go grants; different member partitions,
+  same-member seats and restoration passed the macOS native Cookie fixture.
+- That native fixture reproduced a late-destroyed-event bug: an old page could
+  delete a replacement using the same logical id. The negative regression failed
+  before the instance fence; the full native fixture passed after repair,
+  including zero remaining WebContents.
+- Adapter/host race regressions, all 325 Electron tests, focused browser tests,
+  Electron/frontend typechecks, Desktop lint and repolint
+  passed. Broad root validation initially failed only the generated inventory;
+  regeneration and its owning test passed, followed by a successful complete
+  root rerun. The complete Desktop Go suite also passed (main package 730.880s).
+  Generated Team command bridge declarations and the frontend production build
+  passed after repairing an omitted declaration.
+- Linux/Windows native Team acceptance and packaged acceptance are still pending.
+  No secret feature is exposed by this layer.
+
+第三层已接入规范会话、后台生命周期、类型化配置命令和成员浏览器分区，真实 Controller
+与 inbox 测试及 macOS 原生 Cookie/恢复/清理测试通过。完整根模块与 Desktop 测试通过；
+Linux、Windows 原生功能验收尚未完成，团队界面及第五至七层尚待实施。
+
+## Desktop UI increment
+
+- Added Team navigation, independent preset/member editing, group management,
+  ordering, visibility, confirmed retirement and retained historical identity.
+- Canonical private conversations and group transcripts reuse existing owners.
+  Structured mentions use IDs. Group history has bidirectional immutable
+  snapshots and three bounded pages; stale results preserve the reading window.
+- Configuration commits fence new exchange/round admission. Directory changes
+  preserve history through canonical forks; old bindings reject delivery.
+  Restored seats use the member-owned persistent permission.
+- Independent draft CAS, durable submission IDs and snapshot read watermarks
+  cover delayed saves, stale clears, shutdown joins, restart recovery, replacement
+  logs, busy retirement and idempotent retry receipts.
+- Frontend typecheck/build, app-layer/scroll-writer gates and unchanged resource
+  budgets passed. Settings browser verification passed 246 cases in English and
+  Chinese at 1600/900/400px. Team browser verification passed creation, ordering,
+  names with spaces, switching, retained drafts and one accepted event.
+- These browser checks use the preview bridge. They do not replace real-model
+  or Linux/Windows native/package acceptance. Layers 5–7 remain pending.
+- Complete root and separate Desktop Go suites passed (Desktop main package
+  808.763s). Final focused adapter checks cover subsequent event notification
+  changes; generated inventory and bilingual guidance were refreshed.

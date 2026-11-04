@@ -209,6 +209,8 @@
       ]
     ],
     "transcript": [
+      ["tsx", "src/__tests__/team-history-window.test.ts"],
+      ["tsx", "src/__tests__/team-composer-persistence.test.ts"],
       [
         "tsx",
         "src/__tests__/canonical-user-display.test.ts"

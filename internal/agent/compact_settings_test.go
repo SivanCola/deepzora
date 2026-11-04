@@ -36,7 +36,7 @@ func TestTaskCompactRatioSnapshotsNewChildren(t *testing.T) {
 	var bits atomic.Uint64
 	bits.Store(math.Float64bits(.85))
 	source := func() float64 { return math.Float64frombits(bits.Load()) }
-	task := NewTaskToolWithOptions(TaskToolOptions{CompactRatio: .85, CompactRatioSource: source})
+	task := NewSubagentRunner(SubagentRunnerOptions{CompactRatio: .85, CompactRatioSource: source})
 	before := task.subagentOptions(t.Context(), 0, nil, 100_000, 1, "", nil)
 	bits.Store(math.Float64bits(.8))
 	after := task.subagentOptions(t.Context(), 0, nil, 100_000, 1, "", nil)

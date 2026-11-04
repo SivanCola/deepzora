@@ -42,6 +42,8 @@ export function buildSidebarRegionProps(input: {
     onOpenAutomation: () => void;
     onOpenSettings: SidebarRegionProps["onOpenSettings"];
     onOpenTopic: SidebarRegionProps["projectTree"]["onOpenTopic"];
+    onOpenTeamAgent?:SidebarRegionProps["onOpenTeamAgent"];
+    onOpenTeamGroup?:SidebarRegionProps["onOpenTeamGroup"];
   };
   paletteShortcut: string;
 }): SidebarRegionProps {
@@ -57,6 +59,9 @@ export function buildSidebarRegionProps(input: {
     onOpenTrash: commands.onOpenTrash,
     onOpenAutomation: commands.onOpenAutomation,
     onOpenSettings: commands.onOpenSettings,
+    onOpenTeamAgent:commands.onOpenTeamAgent,
+    onOpenTeamGroup:commands.onOpenTeamGroup,
+    activeTeamGroup:shell.page.kind==="workspace"?shell.page.teamGroupID:undefined,
     resize: {
       min: geometry.sidebarResizeMinWidth, max: SIDEBAR_MAX_WIDTH, value: geometry.sidebarRenderWidth,
       onPointerDown: geometry.startSidebarResize, onKeyDown: geometry.resizeSidebarWithKeyboard,

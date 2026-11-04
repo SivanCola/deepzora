@@ -34,6 +34,9 @@ type Set struct {
 type Options struct {
 	CWD     string
 	UserDir string
+	// FactStore overrides background facts only. Standing instruction discovery
+	// retains the normal workspace/user authority and never follows this path.
+	FactStore *Store
 }
 
 // Load discovers all memory for a session: the hierarchical docs and the
@@ -53,6 +56,9 @@ func Load(opts Options) *Set {
 			InstructionDiagnostics: resolved.Diagnostics}
 	}
 	store := StoreFor(opts.UserDir, cwd)
+	if opts.FactStore != nil {
+		store = *opts.FactStore
+	}
 	return &Set{
 		Docs:                   resolved.Documents,
 		PinnedGuidance:         store.pinnedGuidanceForProject(),

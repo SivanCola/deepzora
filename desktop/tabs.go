@@ -55,6 +55,7 @@ func resolveDraftCreateModelStrict(cfg *config.Config, model string) (string, er
 // memory, permissions) scoped to a workspace root, so multiple projects and
 // topics can be active concurrently without interfering.
 type WorkspaceTab struct {
+	teamSeat                 control.TeamSeat           // host-owned, never accepted from renderer input
 	ID                       string                     // stable random id
 	Scope                    string                     // "project" | "global"
 	WorkspaceRoot            string                     // project root dir (empty for global)
@@ -424,6 +425,7 @@ func cloneDetachedRuntimeTab(tab *WorkspaceTab, key, path string) *WorkspaceTab 
 	pinnedFiles := tab.pinnedFilesState()
 
 	detached := &WorkspaceTab{
+		teamSeat:            tab.teamSeat,
 		ID:                  detachedRuntimeTabID(key),
 		Scope:               tab.Scope,
 		WorkspaceRoot:       tab.WorkspaceRoot,
@@ -546,6 +548,7 @@ func applyRuntimeTab(target, source *WorkspaceTab, path string, appCtx context.C
 	}
 
 	target.Ctrl = source.Ctrl
+	target.teamSeat = source.teamSeat
 	target.modelApplication.failure = source.modelApplication.failure
 	target.lastBuildResult = source.lastBuildResult
 	target.sink = source.sink
@@ -1042,6 +1045,7 @@ func (s *tabEventSink) Emit(e event.Event) {
 				// Publish it directly so a turn never fans out into one catalog read
 				// per expanded project folder.
 				app.emitProjectTreeRuntimeChanged()
+				app.emitTeamRuntimeChangedForTab(tabID)
 			}
 		}
 	}
@@ -1052,6 +1056,7 @@ func (s *tabEventSink) Emit(e event.Event) {
 	// Persist after each turn so a force-kill loses at most the in-flight prompt.
 	if e.Kind == event.TurnDone && app != nil {
 		app.scheduleTabSnapshot(tabID)
+		app.scheduleTeamMemoryReviewForTab(tabID)
 	}
 	if e.Kind == event.TurnDone {
 		s.mu.Lock()
@@ -1521,6 +1526,10 @@ func (a *App) tabMeta(tab *WorkspaceTab, active bool) TabMeta {
 	}
 	if repo, ok := sessionWorkspaceRepo(tab.Ctrl, tab.WorkspaceRoot); ok {
 		m.repo = repo
+	}
+	if tab.teamSeat != nil {
+		_, ref := tab.teamSeat.Team()
+		m.TeamAgentID, m.TeamGroupID = ref.Agent, ref.Group
 	}
 	if strings.TrimSpace(tab.SessionID) != "" {
 		m.Session = &session.SessionRef{HostID: "local", SessionID: strings.TrimSpace(tab.SessionID)}
@@ -2213,7 +2222,7 @@ func (a *App) closeTabRuntime(tabID string, allowDetach bool) error {
 		a.mu.Unlock()
 		return fmt.Errorf("task still has active work")
 	}
-	if tab.Ctrl == nil || (!tab.hasActiveRuntimeWork() && !(allowDetach && a.botOwnsController(tab.Ctrl))) {
+	if tab.Ctrl == nil || (!tab.hasActiveRuntimeWork() && tab.teamSeat == nil && !(allowDetach && a.botOwnsController(tab.Ctrl))) {
 		a.markTabRemovedLocked(tab)
 	}
 
@@ -2253,7 +2262,7 @@ func (a *App) closeTabRuntime(tabID string, allowDetach bool) error {
 	// Tear down outside App.mu while retaining the lifecycle barrier acquired
 	// before the tab binding was removed.
 	if closeCtrl != nil {
-		if allowDetach && a.preserveRuntimeForNavigation(closeCtrl) && a.detachSessionRuntime(tab) {
+		if allowDetach && (tab.teamSeat != nil || a.preserveRuntimeForNavigation(closeCtrl)) && a.detachSessionRuntime(tab) {
 			// Detached runtimes retain their current writer and keep saving.
 			return nil
 		}
@@ -2306,7 +2315,7 @@ func (a *App) removeVisibleTabRuntimeAdmissionHeld(tab *WorkspaceTab) {
 	a.mu.RLock()
 	ctrl := tab.Ctrl
 	a.mu.RUnlock()
-	if ctrl != nil && a.preserveRuntimeForNavigation(ctrl) && a.detachSessionRuntime(tab) {
+	if ctrl != nil && (tab.teamSeat != nil || a.preserveRuntimeForNavigation(ctrl)) && a.detachSessionRuntime(tab) {
 		return
 	}
 	if err := a.snapshotTab(tab); err != nil {
@@ -2656,6 +2665,7 @@ func (a *App) buildTabControllerWithContextCore(tab *WorkspaceTab, loadedSession
 	buildToolApprovalMode := tab.toolApprovalMode
 	buildGoal := tab.goal
 	buildSink := tab.sink
+	buildTeamSeat := tab.teamSeat
 	a.saveTabsLocked()
 	a.mu.Unlock()
 	buildRuntime := (tabRuntimeSnapshot{
@@ -2686,6 +2696,7 @@ func (a *App) buildTabControllerWithContextCore(tab *WorkspaceTab, loadedSession
 		PinnedContextLoader:   pinnedContextLoader(root),
 		BeforeInboxDispatch:   a.beforeInboxDispatch,
 		OnSessionTitleChanged: a.onSessionTitleChanged,
+		TeamSeat:              buildTeamSeat,
 	}, extensionGen, buildGeneration, tabSessionID, requestedModel)
 	buildCtx, registration := booted.ctx, booted.registration
 	defer func() { registration.rollback() }()
@@ -2732,7 +2743,14 @@ func (a *App) buildTabControllerWithContextCore(tab *WorkspaceTab, loadedSession
 		// Local Desktop restores its canonical session choice from the Desktop
 		// preset store. OpenSession publishes the session default, so restore the
 		// selected preset after binding the target identity.
-		applyTabToolApprovalModeToController(ctrl, buildRuntime.toolApprovalMode)
+		teamMode, err := teamPermissionForController(ctrl, buildRuntime.toolApprovalMode)
+		if err != nil {
+			registration.rollback()
+			a.abandonSupersededBuild(ctrl, rootKey)
+			return
+		}
+		buildRuntime.toolApprovalMode = teamMode
+		applyTabToolApprovalModeToController(ctrl, teamMode)
 		tab.replaceTelemetry(loadTelemetryFor(sessionRoute(bound.ref.SessionID)), sessionRuntimeKey(sessionIDRoutePrefix+bound.ref.SessionID))
 	}
 
@@ -3019,6 +3037,9 @@ func (a *App) saveTabsCollectLocked() (string, []desktopTabEntry, string, uint64
 	var entries []desktopTabEntry
 	for _, id := range a.orderedTabIDsLocked() {
 		if tab := a.tabs[id]; tab != nil {
+			if tab.teamSeat != nil {
+				continue
+			}
 			if a.suppressTabStartupRestoreLocked(tab) {
 				continue
 			}

@@ -117,4 +117,9 @@ test("release packaging and legacy acceptance do not run in ordinary CI", () => 
   assert.match(job("root"), /bash scripts\/release-workflows\.test\.sh/);
   assert.match(job("desktop-browser"), /test:motion-browser/);
   assert.match(job("desktop-browser"), /test:transcript-browser/);
+  const team=job("team-native-acceptance");
+  assert.match(team, /github\.event_name == 'workflow_dispatch' && inputs\.team_acceptance/);
+  assert.match(team, /os: \[ubuntu-latest, macos-latest, windows-latest\]/);
+  assert.match(team, /node scripts\/team-native-acceptance\.mjs/);
+  assert.doesNotMatch(team, /contents: write|gh release|release-desktop\.yml/);
 });

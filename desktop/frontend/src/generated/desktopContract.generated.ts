@@ -3,7 +3,7 @@
 
 export const DESKTOP_PROTOCOL_VERSION = 11;
 
-export const DESKTOP_CONTRACT_DIGEST = "sha256:1b255c1c4641aeeaca88c7994db9a0b3c351b66267ed9a5b22174c20ce0fb755";
+export const DESKTOP_CONTRACT_DIGEST = "sha256:120313cffc88c6eae46ef9e086540e6fc9665c05559160f998a531a8d4552027";
 
 export const DESKTOP_COMMANDS = [
   "AIRenameSessionTarget",
@@ -30,6 +30,7 @@ export const DESKTOP_COMMANDS = [
   "ApplyUpdateRequest",
   "ArchiveCanonicalSession",
   "ArchiveSessionTarget",
+  "ArchiveTeamAgent",
   "AttachDropped",
   "AttachDroppedForComposerTarget",
   "AttachDroppedForTab",
@@ -49,6 +50,7 @@ export const DESKTOP_COMMANDS = [
   "BeginSessionExportForTarget",
   "BeginSessionHistoryReadForTab",
   "BeginWeixinBotLogin",
+  "BrowserTeamAgentForTab",
   "Cancel",
   "CancelJob",
   "CancelJobForTab",
@@ -86,6 +88,7 @@ export const DESKTOP_COMMANDS = [
   "ConnectKey",
   "ContextPanel",
   "ContextUsageForTab",
+  "ContinueTeamGroup",
   "CopySessionTarget",
   "CopyThemePack",
   "CreateBlankProject",
@@ -104,6 +107,7 @@ export const DESKTOP_COMMANDS = [
   "DeleteProvider",
   "DeleteSessionTarget",
   "DeleteSubagentProfile",
+  "DeleteTeamTarget",
   "DeleteThemePack",
   "DesktopStartupSettings",
   "DisableThemePack",
@@ -152,6 +156,12 @@ export const DESKTOP_COMMANDS = [
   "GetSessionOrganization",
   "GetSessionSummary",
   "GetTaskCatalogStatus",
+  "GetTeam",
+  "GetTeamMemory",
+  "GetTeamMemoryReviewStatus",
+  "GetTeamSchedules",
+  "GetTeamSecrets",
+  "GetTeamUsage",
   "GetThemeExperience",
   "GetToolRecoveryForTab",
   "GetWorkspaceSnapshot",
@@ -217,6 +227,7 @@ export const DESKTOP_COMMANDS = [
   "MCPOpenAppInstanceForTab",
   "MCPOpenAppLinkForTab",
   "MCPServers",
+  "MarkTeamGroupRead",
   "Memory",
   "MemoryForTab",
   "MemoryRevisions",
@@ -246,6 +257,7 @@ export const DESKTOP_COMMANDS = [
   "OpenSession",
   "OpenTaskSessionByKey",
   "OpenTaskSessionForTab",
+  "OpenTeamAgent",
   "OpenUserConfigPath",
   "OpenWorkspaceInExternalOpenerForTab",
   "OpenWorkspacePathForTab",
@@ -265,6 +277,7 @@ export const DESKTOP_COMMANDS = [
   "Plugins",
   "PollFeishuBotLogin",
   "PollWeixinBotLogin",
+  "PrepareTeamAgentSession",
   "PrepareWorktreeMerge",
   "PreviewRewindForTab",
   "PreviewSession",
@@ -288,6 +301,8 @@ export const DESKTOP_COMMANDS = [
   "ReadSessionHistoryWindow",
   "ReadSubagentHistoryForTab",
   "ReadSubagentMessageForTab",
+  "ReadTeamGroupDraft",
+  "ReadTeamGroupHistory",
   "RebindDraftImageForTarget",
   "RebuildHistoryIndex",
   "RebuildSessionCatalog",
@@ -325,6 +340,7 @@ export const DESKTOP_COMMANDS = [
   "RenameWorkspace",
   "ReorderProjects",
   "ReorderTabs",
+  "ReorderTeam",
   "RepairCredentials",
   "ReplayPendingPromptsForTab",
   "ReportCrash",
@@ -347,6 +363,7 @@ export const DESKTOP_COMMANDS = [
   "RestoreMemoryRevision",
   "RestoreMemoryRevisionForTab",
   "RestoreSessionTarget",
+  "RestoreTeamAgent",
   "ResumeGoalForTab",
   "ResumeTranscriptSessionForTab",
   "RetryAuthenticationForTab",
@@ -363,6 +380,7 @@ export const DESKTOP_COMMANDS = [
   "RevokeWorkspaceBrowserPreview",
   "RevokeWorkspaceMediaPreview",
   "RunShellForTab",
+  "RunTeamSchedule",
   "RunWorkspaceGitActionForTab",
   "RuntimeDoctor",
   "SanitizeMarkdownSVG",
@@ -394,6 +412,13 @@ export const DESKTOP_COMMANDS = [
   "SaveReferencePathAsForTab",
   "SaveSessionComposerState",
   "SaveSessionMarkdownForTab",
+  "SaveTeamAgent",
+  "SaveTeamGroup",
+  "SaveTeamGroupDraft",
+  "SaveTeamMemory",
+  "SaveTeamMemoryPreferences",
+  "SaveTeamSchedule",
+  "SaveTeamSecret",
   "SaveThemePack",
   "SaveWindowState",
   "SaveWorkspacePathAsForTab",
@@ -405,6 +430,7 @@ export const DESKTOP_COMMANDS = [
   "SearchSessionHistoryForTab",
   "SearchSessionHistoryForTarget",
   "SearchSessionHistoryRead",
+  "SendTeamGroupMessage",
   "SessionHistoryContentForTab",
   "SessionHistoryContentForTarget",
   "SessionHistoryOutlineForTab",
@@ -489,6 +515,8 @@ export const DESKTOP_COMMANDS = [
   "SteerForTab",
   "SteerInboxItemForTurn",
   "StopTaskByKey",
+  "StopTeamGroup",
+  "StopTeamSeat",
   "StorageSettings",
   "SubmitDisplayToTabWithID",
   "SubmitEditedDisplayToTabWithID",
@@ -500,6 +528,7 @@ export const DESKTOP_COMMANDS = [
   "SummarizeFromForTab",
   "SummarizeUpToForTab",
   "SwitchWorkspace",
+  "TeamSecretSeatForTab",
   "TerminalOutputForTab",
   "TerminalWorkspaceForTab",
   "TestBotModel",
@@ -545,6 +574,7 @@ export const DESKTOP_EVENTS = [
   "runtime-state:changed",
   "runtime:rebuilt",
   "tab:meta",
+  "team:changed",
   "terminal:exit",
   "terminal:output",
   "topic:activation",
@@ -3039,6 +3069,13 @@ export interface ReadSnapshotDiagnostics {
   reservedDiskBytes: number;
 }
 
+export interface ReorderTeamRequest {
+  agentIds: string[];
+  groupIds: string[];
+  expectedRevision: number;
+  requestId: string;
+}
+
 export interface RepairGuidanceView {
   manager: string;
   command?: string;
@@ -3080,6 +3117,12 @@ export interface RewindResultView {
   error?: string;
   conflicts?: string[];
   coverage?: string;
+}
+
+export interface RunTeamScheduleRequest {
+  id: string;
+  expectedRevision: number;
+  requestId: string;
 }
 
 export interface RuntimeDoctorReport {
@@ -3132,6 +3175,63 @@ export interface SandboxView {
   shellInstallAction?: ShellInstallActionView | null;
   shellRepairGuidance?: RepairGuidanceView | null;
   gitRepairGuidance?: RepairGuidanceView | null;
+}
+
+export interface SaveTeamAgentRequest {
+  id: string;
+  expectedRevision: number;
+  requestId: string;
+  presetId?: string | null;
+  settings: TeamAgentSettings;
+}
+
+export interface SaveTeamGroupDraftRequest {
+  groupId: string;
+  expectedRevision: number;
+  draft: TeamGroupDraft;
+}
+
+export interface SaveTeamGroupRequest {
+  id: string;
+  expectedRevision: number;
+  requestId: string;
+  settings: TeamGroupSettings;
+}
+
+export interface SaveTeamMemoryPreferencesRequest {
+  expectedRevision: number;
+  requestId: string;
+  enabled: boolean;
+  model: string;
+}
+
+export interface SaveTeamMemoryRequest {
+  target: TeamMemoryTarget;
+  expectedRosterRevision: number;
+  requestId: string;
+  fact: MemoryFact;
+  archive: boolean;
+}
+
+export interface SaveTeamScheduleRequest {
+  expectedRevision: number;
+  expectedRosterRevision: number;
+  requestId: string;
+  schedule: Schedule;
+  delete: boolean;
+}
+
+export interface SaveTeamSecretRequest {
+  expectedRevision: number;
+  expectedRosterRevision: number;
+  requestId: string;
+  operation: string;
+  name: string;
+  purpose: string;
+  value: string;
+  agents: string[];
+  secretRequestId: string;
+  confirmForget: boolean;
 }
 
 export interface ServerView {
@@ -3588,6 +3688,8 @@ export interface SubagentRunView {
 }
 
 export interface TabMeta {
+  teamAgentId?: string;
+  teamGroupId?: string;
   id: string;
   scope: string;
   workspaceRoot: string;
@@ -3673,6 +3775,243 @@ export interface TaskPageRequest {
   query: string;
   cursor: string;
   limit: number;
+}
+
+export interface TeamAgentActivity {
+  agentId: string;
+  sessionId: string;
+  resultSequence: number;
+  ready: boolean;
+}
+
+export interface TeamAgentSettings {
+  name: string;
+  role: string;
+  instructions: string;
+  avatar: Avatar;
+  initialModel: string;
+  folder: string;
+  permission: string;
+  main: boolean;
+  pinned: boolean;
+  hidden: boolean;
+  preset?: TeamPresetDefinition | null;
+}
+
+export interface TeamAgentView {
+  name: string;
+  role: string;
+  instructions: string;
+  avatar: Avatar;
+  initialModel: string;
+  folder: string;
+  permission: string;
+  main: boolean;
+  pinned: boolean;
+  hidden: boolean;
+  preset?: TeamPresetDefinition | null;
+  id: string;
+  sessionPath: string;
+  createdBy: string;
+  createdAt: string;
+  archived?: boolean;
+}
+
+export interface TeamGroupDraft {
+  requestId: string;
+  text: string;
+  mentions: string[];
+  everyone: boolean;
+}
+
+export interface TeamGroupDraftResult {
+  outcome: string;
+  reason?: string;
+  view: TeamGroupDraftView;
+}
+
+export interface TeamGroupDraftView {
+  revision: number;
+  draft: TeamGroupDraft;
+}
+
+export interface TeamGroupHistoryPage {
+  status: string;
+  lines: GroupLine[];
+  olderCursor: string;
+  newerCursor: string;
+  snapshot: string;
+  maxSequence: number;
+}
+
+export interface TeamGroupPostRequest {
+  groupId: string;
+  requestId: string;
+  text: string;
+  mentions: string[];
+  everyone: boolean;
+}
+
+export interface TeamGroupPostResult {
+  outcome: string;
+  reason?: string;
+  message?: string;
+  line?: GroupLine | null;
+}
+
+export interface TeamGroupSettings {
+  name: string;
+  notice: string;
+  members: string[];
+  admin: string;
+  mode: string;
+  relayLimit: number;
+  folder: string;
+  pinned: boolean;
+  hidden: boolean;
+  archived: boolean;
+}
+
+export interface TeamGroupStatus {
+  groupId: string;
+  lastSequence: number;
+  readSequence: number;
+  unread: number;
+}
+
+export interface TeamMemoryResult {
+  outcome: string;
+  reason?: string;
+  message?: string;
+  fact: MemoryFact;
+}
+
+export interface TeamMemoryReviewStatus {
+  agentId: string;
+  groupId?: string;
+  at: string;
+  outcome: string;
+  added: number;
+  edited: number;
+  archived: number;
+  error?: string;
+}
+
+export interface TeamMemoryTarget {
+  tier: string;
+  agentId?: string;
+  groupId?: string;
+}
+
+export interface TeamMemoryView {
+  rosterRevision: number;
+  facts: MemoryFact[];
+}
+
+export interface TeamMutationResult {
+  outcome: string;
+  reason?: string;
+  message?: string;
+  targetId?: string;
+  view: TeamView;
+}
+
+export interface TeamPresetDefinition {
+  id: string;
+  name: string;
+  description: string;
+  body: string;
+  icon: string;
+  iconImage: string;
+  iconColor: string;
+  keepCoding: boolean;
+  complete: boolean;
+  includeRuntimeContext: boolean;
+  restrictTools: boolean;
+  tools: string[];
+}
+
+export interface TeamRosterView {
+  schemaVersion: number;
+  revision: number;
+  agents: TeamAgentView[];
+  groups: Group[];
+  retiredAgents: TeamAgentView[];
+  retiredGroups: Group[];
+  prefs: TeamPreferences;
+}
+
+export interface TeamScheduleResult {
+  outcome: string;
+  reason?: string;
+  message?: string;
+  targetId?: string;
+  view: TeamScheduleView;
+}
+
+export interface TeamScheduleView {
+  revision: number;
+  schedules: Schedule[];
+}
+
+export interface TeamSeatView {
+  agentId: string;
+  groupId?: string;
+  tabId: string;
+  sessionId: string;
+  generation: number;
+  work: ActiveWorkView;
+  settingsPending: boolean;
+}
+
+export interface TeamSecretMetadata {
+  name: string;
+  purpose: string;
+  agents: string[];
+  updatedAt: string;
+}
+
+export interface TeamSecretResult {
+  outcome: string;
+  reason?: string;
+  message?: string;
+  view: TeamSecretsView;
+}
+
+export interface TeamSecretSeatView {
+  agentId: string;
+  groupId: string;
+}
+
+export interface TeamSecretsView {
+  available: boolean;
+  revision: number;
+  rosterRevision: number;
+  secrets: TeamSecretMetadata[];
+  requests: TeamSecretRequest[];
+  retiredCount: number;
+  pendingCleanup: number;
+}
+
+export interface TeamTargetMutationRequest {
+  agentId: string;
+  groupId: string;
+  expectedRevision: number;
+  requestId: string;
+}
+
+export interface TeamUsageRequest {
+  from: string;
+  to: string;
+  agentId: string;
+}
+
+export interface TeamView {
+  roster: TeamRosterView;
+  writable: boolean;
+  seats: TeamSeatView[];
+  groupStatus: TeamGroupStatus[];
+  agentActivity: TeamAgentActivity[];
 }
 
 export interface TerminalSessionView {
@@ -4452,6 +4791,19 @@ export interface ProviderUsage {
   percent: number;
 }
 
+export interface TeamUsage {
+  agentId: string;
+  groupId?: string;
+  seatId?: string;
+  model: string;
+  usageSource?: string;
+  tokens: number;
+  requests: number;
+  cacheHit: number;
+  cacheMiss: number;
+  cost: CostQuote;
+}
+
 export interface EventPage {
   items: TaskEvent[];
   nextSequence: number;
@@ -4521,6 +4873,79 @@ export interface TaskSnapshot {
   updated_at: string;
   error_code?: string;
   error_summary?: string;
+}
+
+export interface Avatar {
+  glyph?: string;
+  color?: string;
+  image?: string;
+}
+
+export interface Group {
+  id: string;
+  name?: string;
+  notice?: string;
+  members: string[];
+  admin?: string;
+  mode: string;
+  relayLimit?: number;
+  folder?: string;
+  memberSessions?: Record<string, string>;
+  pinned?: boolean;
+  hidden?: boolean;
+  archived?: boolean;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface GroupLine {
+  seq: number;
+  at: string;
+  from: string;
+  kind: string;
+  text?: string;
+  length?: number;
+  mentions?: string[];
+  event?: string;
+  count?: number;
+  code?: string;
+  late?: boolean;
+  requestId?: string;
+  requestDigest?: string;
+  source?: string;
+}
+
+export interface Schedule {
+  id: string;
+  name: string;
+  agent?: string;
+  group?: string;
+  prompt: string;
+  repeat: string;
+  timezone: string;
+  clock?: string;
+  days: number[];
+  intervalMinutes?: number;
+  anchor: string;
+  enabled: boolean;
+  next: string;
+  lastOccurrence?: string;
+  lastOutcome?: string;
+  lastAt: string;
+}
+
+export interface TeamPreferences {
+  memoryReview: boolean;
+  memoryReviewStartedAt?: string;
+  memoryReviewModel?: string;
+}
+
+export interface TeamSecretRequest {
+  id: string;
+  agent: string;
+  name: string;
+  purpose: string;
+  at: string;
 }
 
 export interface ActiveAttempt {
@@ -4814,6 +5239,7 @@ export interface GeneratedDesktopCommands {
   ApplyUpdateRequest(arg0: string, arg1: string, arg2: string): Promise<void>;
   ArchiveCanonicalSession(arg0: SessionRef): Promise<void>;
   ArchiveSessionTarget(arg0: SessionSelector): Promise<SessionMutationResult>;
+  ArchiveTeamAgent(arg0: TeamTargetMutationRequest): Promise<TeamMutationResult>;
   AttachDropped(arg0: string): Promise<DroppedItem>;
   AttachDroppedForComposerTarget(arg0: ComposerTarget, arg1: string): Promise<DroppedItem>;
   AttachDroppedForTab(arg0: string, arg1: string): Promise<DroppedItem>;
@@ -4833,6 +5259,7 @@ export interface GeneratedDesktopCommands {
   BeginSessionExportForTarget(arg0: SessionSelector, arg1: string, arg2: string, arg3: string, arg4: string): Promise<SessionExportHandle>;
   BeginSessionHistoryReadForTab(arg0: string): Promise<SessionHistoryReadHandle>;
   BeginWeixinBotLogin(): Promise<BotLoginView>;
+  BrowserTeamAgentForTab(arg0: string): Promise<string>;
   Cancel(): Promise<void>;
   CancelJob(arg0: string): Promise<boolean>;
   CancelJobForTab(arg0: string, arg1: string): Promise<boolean>;
@@ -4870,6 +5297,7 @@ export interface GeneratedDesktopCommands {
   ConnectKey(arg0: string): Promise<string>;
   ContextPanel(arg0: string): Promise<ContextPanelInfo>;
   ContextUsageForTab(arg0: string): Promise<ContextInfo>;
+  ContinueTeamGroup(arg0: string): Promise<void>;
   CopySessionTarget(arg0: SessionSelector, arg1: string): Promise<SessionCreationResult>;
   CopyThemePack(arg0: string, arg1: string, arg2: string): Promise<ThemePackView>;
   CreateBlankProject(arg0: string, arg1: string): Promise<string>;
@@ -4888,6 +5316,7 @@ export interface GeneratedDesktopCommands {
   DeleteProvider(arg0: string): Promise<void>;
   DeleteSessionTarget(arg0: SessionSelector): Promise<SessionMutationResult>;
   DeleteSubagentProfile(arg0: string, arg1: string): Promise<void>;
+  DeleteTeamTarget(arg0: TeamTargetMutationRequest): Promise<TeamMutationResult>;
   DeleteThemePack(arg0: string): Promise<void>;
   DesktopStartupSettings(): Promise<DesktopStartupSettingsView>;
   DisableThemePack(): Promise<void>;
@@ -4936,6 +5365,12 @@ export interface GeneratedDesktopCommands {
   GetSessionOrganization(arg0: SessionOrganizationWorkspace): Promise<SessionOrganizationSnapshot>;
   GetSessionSummary(arg0: SessionRef): Promise<ProjectNode>;
   GetTaskCatalogStatus(): Promise<taskcatalog_Status>;
+  GetTeam(): Promise<TeamView>;
+  GetTeamMemory(arg0: TeamMemoryTarget): Promise<TeamMemoryView>;
+  GetTeamMemoryReviewStatus(): Promise<TeamMemoryReviewStatus[]>;
+  GetTeamSchedules(): Promise<TeamScheduleView>;
+  GetTeamSecrets(): Promise<TeamSecretsView>;
+  GetTeamUsage(arg0: TeamUsageRequest): Promise<TeamUsage[]>;
   GetThemeExperience(): Promise<ThemeExperienceView>;
   GetToolRecoveryForTab(arg0: string): Promise<ToolRecoverySnapshot>;
   GetWorkspaceSnapshot(): Promise<WorkspaceSnapshot>;
@@ -5001,6 +5436,7 @@ export interface GeneratedDesktopCommands {
   MCPOpenAppInstanceForTab(arg0: string, arg1: string, arg2: string, arg3: number, arg4: string, arg5: string): Promise<MCPAppInstanceView | null>;
   MCPOpenAppLinkForTab(arg0: string, arg1: string, arg2: string): Promise<void>;
   MCPServers(): Promise<ServerView[]>;
+  MarkTeamGroupRead(arg0: string, arg1: string, arg2: number): Promise<void>;
   Memory(): Promise<MemoryView>;
   MemoryForTab(arg0: string): Promise<MemoryView>;
   MemoryRevisions(arg0: string): Promise<MemoryFact[]>;
@@ -5030,6 +5466,7 @@ export interface GeneratedDesktopCommands {
   OpenSession(arg0: SessionRef): Promise<HistoryPage>;
   OpenTaskSessionByKey(arg0: TaskOpenRequest): Promise<ControlResult>;
   OpenTaskSessionForTab(arg0: string, arg1: string): Promise<ControlResult>;
+  OpenTeamAgent(arg0: string, arg1: string): Promise<TabMeta>;
   OpenUserConfigPath(): Promise<void>;
   OpenWorkspaceInExternalOpenerForTab(arg0: string, arg1: string): Promise<void>;
   OpenWorkspacePathForTab(arg0: string, arg1: string): Promise<void>;
@@ -5049,6 +5486,7 @@ export interface GeneratedDesktopCommands {
   Plugins(): Promise<PluginView[]>;
   PollFeishuBotLogin(arg0: string): Promise<BotLoginView>;
   PollWeixinBotLogin(arg0: string): Promise<BotLoginView>;
+  PrepareTeamAgentSession(arg0: string): Promise<SessionRef>;
   PrepareWorktreeMerge(arg0: string): Promise<MergeInspection>;
   PreviewRewindForTab(arg0: string, arg1: number, arg2: string): Promise<RewindPlanView>;
   PreviewSession(arg0: string): Promise<Message[]>;
@@ -5072,6 +5510,8 @@ export interface GeneratedDesktopCommands {
   ReadSessionHistoryWindow(arg0: string, arg1: HistoryWindowRequest): Promise<HistoryWindowPage>;
   ReadSubagentHistoryForTab(arg0: string, arg1: string, arg2: HistoryWindowRequest): Promise<HistoryWindowPage>;
   ReadSubagentMessageForTab(arg0: string, arg1: string, arg2: string, arg3: number, arg4: number): Promise<SubagentMessageText>;
+  ReadTeamGroupDraft(arg0: string): Promise<TeamGroupDraftView>;
+  ReadTeamGroupHistory(arg0: string, arg1: string): Promise<TeamGroupHistoryPage>;
   RebindDraftImageForTarget(arg0: string, arg1: string): Promise<DraftImageView>;
   RebuildHistoryIndex(): Promise<void>;
   RebuildSessionCatalog(): Promise<void>;
@@ -5109,6 +5549,7 @@ export interface GeneratedDesktopCommands {
   RenameWorkspace(arg0: string, arg1: string): Promise<void>;
   ReorderProjects(arg0: string[]): Promise<void>;
   ReorderTabs(arg0: string[]): Promise<void>;
+  ReorderTeam(arg0: ReorderTeamRequest): Promise<TeamMutationResult>;
   RepairCredentials(arg0: boolean): Promise<CredentialDiagnosticReport>;
   ReplayPendingPromptsForTab(arg0: string): Promise<void>;
   ReportCrash(arg0: string, arg1: string): Promise<void>;
@@ -5131,6 +5572,7 @@ export interface GeneratedDesktopCommands {
   RestoreMemoryRevision(arg0: string, arg1: number): Promise<MemoryFact>;
   RestoreMemoryRevisionForTab(arg0: string, arg1: string, arg2: number): Promise<MemoryFact>;
   RestoreSessionTarget(arg0: SessionSelector): Promise<SessionMutationResult>;
+  RestoreTeamAgent(arg0: TeamTargetMutationRequest): Promise<TeamMutationResult>;
   ResumeGoalForTab(arg0: string): Promise<boolean>;
   ResumeTranscriptSessionForTab(arg0: string, arg1: string): Promise<HistorySwitchPhases>;
   RetryAuthenticationForTab(arg0: string): Promise<AuthenticationState>;
@@ -5147,6 +5589,7 @@ export interface GeneratedDesktopCommands {
   RevokeWorkspaceBrowserPreview(arg0: string): Promise<void>;
   RevokeWorkspaceMediaPreview(arg0: string): Promise<void>;
   RunShellForTab(arg0: string, arg1: string): Promise<void>;
+  RunTeamSchedule(arg0: RunTeamScheduleRequest): Promise<TeamScheduleResult>;
   RunWorkspaceGitActionForTab(arg0: string, arg1: string, arg2: string, arg3: string): Promise<string>;
   RuntimeDoctor(): Promise<RuntimeDoctorReport>;
   SanitizeMarkdownSVG(arg0: string): Promise<MarkdownSVGView>;
@@ -5178,6 +5621,13 @@ export interface GeneratedDesktopCommands {
   SaveReferencePathAsForTab(arg0: string, arg1: string): Promise<string>;
   SaveSessionComposerState(arg0: SessionComposerSaveRequest): Promise<SessionComposerState>;
   SaveSessionMarkdownForTab(arg0: string, arg1: string, arg2: string): Promise<void>;
+  SaveTeamAgent(arg0: SaveTeamAgentRequest): Promise<TeamMutationResult>;
+  SaveTeamGroup(arg0: SaveTeamGroupRequest): Promise<TeamMutationResult>;
+  SaveTeamGroupDraft(arg0: SaveTeamGroupDraftRequest): Promise<TeamGroupDraftResult>;
+  SaveTeamMemory(arg0: SaveTeamMemoryRequest): Promise<TeamMemoryResult>;
+  SaveTeamMemoryPreferences(arg0: SaveTeamMemoryPreferencesRequest): Promise<TeamMutationResult>;
+  SaveTeamSchedule(arg0: SaveTeamScheduleRequest): Promise<TeamScheduleResult>;
+  SaveTeamSecret(arg0: SaveTeamSecretRequest): Promise<TeamSecretResult>;
   SaveThemePack(arg0: ThemeSaveInput): Promise<ThemePackView>;
   SaveWindowState(arg0: DesktopWindowState): Promise<void>;
   SaveWorkspacePathAsForTab(arg0: string, arg1: string): Promise<string>;
@@ -5189,6 +5639,7 @@ export interface GeneratedDesktopCommands {
   SearchSessionHistoryForTab(arg0: string, arg1: string, arg2: string, arg3: number): Promise<SearchHistoryPage>;
   SearchSessionHistoryForTarget(arg0: SessionSelector, arg1: string, arg2: string, arg3: number): Promise<SearchHistoryPage>;
   SearchSessionHistoryRead(arg0: string, arg1: string, arg2: string, arg3: number): Promise<SearchHistoryPage>;
+  SendTeamGroupMessage(arg0: TeamGroupPostRequest): Promise<TeamGroupPostResult>;
   SessionHistoryContentForTab(arg0: string, arg1: Ref, arg2: number): Promise<SessionHistoryContentChunk>;
   SessionHistoryContentForTarget(arg0: SessionSelector, arg1: Ref, arg2: number): Promise<SessionHistoryContentChunk>;
   SessionHistoryOutlineForTab(arg0: string, arg1: HistoryOutlineRequest): Promise<HistoryOutlinePage>;
@@ -5273,6 +5724,8 @@ export interface GeneratedDesktopCommands {
   SteerForTab(arg0: string, arg1: string): Promise<void>;
   SteerInboxItemForTurn(arg0: string, arg1: string, arg2: string): Promise<InboxReceiptView>;
   StopTaskByKey(arg0: TaskActionRequest): Promise<ControlResult>;
+  StopTeamGroup(arg0: string): Promise<void>;
+  StopTeamSeat(arg0: string, arg1: string): Promise<void>;
   StorageSettings(): Promise<StorageSettingsView>;
   SubmitDisplayToTabWithID(arg0: string, arg1: string, arg2: string, arg3: string): Promise<void>;
   SubmitEditedDisplayToTabWithID(arg0: string, arg1: string, arg2: string, arg3: string, arg4: string): Promise<void>;
@@ -5284,6 +5737,7 @@ export interface GeneratedDesktopCommands {
   SummarizeFromForTab(arg0: string, arg1: number): Promise<void>;
   SummarizeUpToForTab(arg0: string, arg1: number): Promise<void>;
   SwitchWorkspace(arg0: string): Promise<string>;
+  TeamSecretSeatForTab(arg0: string): Promise<TeamSecretSeatView>;
   TerminalOutputForTab(arg0: string, arg1: string): Promise<string>;
   TerminalWorkspaceForTab(arg0: string): Promise<TerminalWorkspaceView>;
   TestBotModel(arg0: string): Promise<void>;

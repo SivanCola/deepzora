@@ -72,7 +72,7 @@ func TestAgentConfigIsNeverAssignedAfterConstruction(t *testing.T) {
 				if !ok || !fields[sel.Sel.Name] {
 					continue
 				}
-				// Only Agent's own receiver: other types (TaskTool) legitimately
+				// Only Agent's own receiver: other types (SubagentRunner) legitimately
 				// carry same-named fields of their own.
 				recv, ok := sel.X.(*ast.Ident)
 				if !ok || recv.Name != "a" {

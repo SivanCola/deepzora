@@ -60,6 +60,28 @@ test("grant, list and open are scoped to the grant's task", async () => {
   assert.deepEqual(listed.tabs.map((tab) => tab.id), [opened.id], "another task's tabs are invisible");
 });
 
+test("team browser storage follows the host grant across seats and recovery", async () => {
+  const s = await setup();
+  const ada = "a-0000000000000001", ben = "a-0000000000000002";
+  for (const [grantId, teamAgentId] of [["ada-private", ada], ["ada-group", ada], ["ben-private", ben]]) {
+    await s.call("host/browser.grant", { grantId, tabId: grantId, sessionId: grantId, teamAgentId });
+    // Per-call input cannot override the host's storage owner.
+    await s.call("host/browser.tabs.open", { grantId, url: "https://example.test", teamAgentId: ben, partition: "persist:browser" });
+  }
+  const [first, group, other] = s.surfaces.all();
+  assert.equal(first.partition, group.partition);
+  assert.notEqual(first.partition, other.partition);
+  assert.notEqual(first.partition, "persist:browser");
+  const recovered = s.surfaces.recoveryTabs();
+  s.surfaces.destroyAll();
+  s.surfaces.restore(recovered);
+  assert.equal(s.surfaces.require(first.id).partition, first.partition);
+  assert.equal(s.surfaces.require(other.id).partition, other.partition);
+  s.grants.revoke("ada-private");
+  await assert.rejects(s.call("host/browser.tabs.open", { grantId: "ada-private", url: "https://example.test" }), code(BROWSER_ERR_NO_GRANT));
+  await assert.rejects(s.call("host/browser.grant", { grantId: "bad", tabId: "task", teamAgentId: "../../browser" }), code(BROWSER_ERR_NO_GRANT));
+});
+
 test("revoking a grant reclaims a pending open without closing a user-taken-over page", async () => {
   for (const takeover of [false, true]) {
     const s = await setup();

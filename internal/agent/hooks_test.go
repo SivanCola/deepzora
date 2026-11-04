@@ -80,18 +80,19 @@ func (h *stubHooks) HasPostLLMCall() bool { return h.hasPostLLM }
 // backgrounded one (which only returns a "started" handle and stops later).
 func TestSubagentStopFiresForForegroundTask(t *testing.T) {
 	reg := tool.NewRegistry()
-	reg.Add(okTool{name: "task"}) // stands in for the real task tool; returns "ok"
+	reg.Add(okTool{name: "spawn_agents"}) // stands in for the real task tool; returns "ok"
 	h := &stubHooks{}
 	a := New(nil, reg, NewSession(""), Options{Hooks: h}, event.Discard)
 
-	a.executeBatch(context.Background(), &a.turn, []provider.ToolCall{{Name: "task", Arguments: `{"prompt":"x"}`}})
+	a.executeBatch(context.Background(), &a.turn, []provider.ToolCall{{Name: "spawn_agents", Arguments: `{"prompt":"x"}`}})
 	if len(h.subagentSeen) != 1 || h.subagentSeen[0] != "ok" {
 		t.Fatalf("foreground task should fire SubagentStop with the answer, saw %v", h.subagentSeen)
 	}
 
-	a.executeBatch(context.Background(), &a.turn, []provider.ToolCall{{Name: "task", Arguments: `{"run_in_background":true}`}})
+	reg.Add(okTool{name: "ordinary_tool"})
+	a.executeBatch(context.Background(), &a.turn, []provider.ToolCall{{Name: "ordinary_tool", Arguments: `{}`}})
 	if len(h.subagentSeen) != 1 {
-		t.Errorf("backgrounded task must not fire SubagentStop, saw %v", h.subagentSeen)
+		t.Fatal("ordinary tool fired SubagentStop")
 	}
 }
 

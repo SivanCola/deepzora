@@ -11,6 +11,9 @@ import (
 // Embedded images travel with the Markdown definition and never reference a
 // user's original file or require a network fetch. Bound decoding as well as
 // storage; only the small square PNG produced by the editor is accepted.
+// ValidateIconImage applies the same portable PNG budget to copied Team icons.
+func ValidateIconImage(value string) error { return validateIconImage(value) }
+
 func validateIconImage(value string) error {
 	if value == "" {
 		return nil

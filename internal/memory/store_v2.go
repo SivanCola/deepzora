@@ -95,7 +95,13 @@ func (s Store) validatePinnedBudget(m Memory) error {
 func (s Store) SaveWithOptions(m Memory, opts SaveOptions) (SaveResult, error) {
 	memoryStoreMutationMu.Lock()
 	defer memoryStoreMutationMu.Unlock()
+	if err := s.recoverIsolatedBatchLocked(); err != nil {
+		return SaveResult{}, err
+	}
+	return s.saveWithOptionsLocked(m, opts)
+}
 
+func (s Store) saveWithOptionsLocked(m Memory, opts SaveOptions) (SaveResult, error) {
 	inputID := strings.TrimSpace(m.ID)
 	inputRef := parseMemoryReference(m.Name)
 	if inputID == "" && inputRef.qualified && strings.TrimSpace(string(m.Scope)) != "" &&
@@ -359,6 +365,9 @@ func (s Store) Restore(ref string, revision int) (SaveResult, error) {
 func (s Store) RestoreArchived(archivePath string) (SaveResult, error) {
 	memoryStoreMutationMu.Lock()
 	defer memoryStoreMutationMu.Unlock()
+	if err := s.recoverIsolatedBatchLocked(); err != nil {
+		return SaveResult{}, err
+	}
 
 	archivePath = cleanMemoryPath(strings.TrimSpace(archivePath))
 	archived, base, ok := s.findArchivedByPath(archivePath)

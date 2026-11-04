@@ -143,9 +143,7 @@ func setSubagentProfileEffortConfig(c *config.Config, name, level string) error 
 }
 
 func setMaxSubagentDepthConfig(c *config.Config, depth int) error {
-
-	c.Agent.MaxSubagentDepth = desktopMaxSubagentDepth(depth)
-	return nil
+	return fmt.Errorf("nested subagents are retired")
 }
 
 func setMaxSubagentConcurrencyConfig(c *config.Config, n int) error {
@@ -157,9 +155,5 @@ func setMaxSubagentConcurrencyConfig(c *config.Config, n int) error {
 }
 
 func setMaxParallelWritersConfig(c *config.Config, n int) error {
-
-	total, writers := agent.NormalizeConcurrencyLimits(c.Agent.MaxSubagentConcurrency, n)
-	c.Agent.MaxSubagentConcurrency = total
-	c.Agent.MaxParallelWriters = writers
-	return nil
+	return fmt.Errorf("writable subagents always run serially")
 }

@@ -1,0 +1,137 @@
+package team
+
+import (
+	"context"
+	"sync"
+	"time"
+
+	"deepzora/internal/teamroster"
+)
+
+// Options assembles a Service. OnChange, when set, is told after a call that
+// may have changed the team, so a window showing it can read it again.
+type Options struct {
+	Store                     teamroster.Store
+	Panes                     Panes
+	Now                       func() time.Time
+	OnChange                  func()
+	AgentConfigurationChanged func(context.Context, *teamroster.Roster, teamroster.Agent, teamroster.Agent) error
+	SecretSlots               SecretSlots
+	SecretsReady              func() bool
+}
+
+// Service is the team's orchestration in the one process that holds the
+// team's writer lease.
+type Service struct {
+	configuration             sync.RWMutex
+	store                     teamroster.Store
+	panes                     Panes
+	now                       func() time.Time
+	onChange                  func()
+	agentConfigurationChanged func(context.Context, *teamroster.Roster, teamroster.Agent, teamroster.Agent) error
+	secretSlots               SecretSlots
+	secretsReady              func() bool
+
+	mu    sync.Mutex
+	sends sendLimits
+
+	rounds roundBook
+}
+
+// Configure serializes a Desktop roster commit with new exchange/round
+// admission. The callback must not start work or wait for a running turn.
+func (s *Service) Configure(ctx context.Context, commit func() error) error {
+	s.configuration.Lock()
+	defer s.configuration.Unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return commit()
+}
+
+// New returns a Service over o.
+func New(o Options) *Service {
+	now := o.Now
+	if now == nil {
+		now = func() time.Time { return time.Now().UTC() }
+	}
+	return &Service{store: o.Store, panes: o.Panes, now: now, onChange: o.OnChange, agentConfigurationChanged: o.AgentConfigurationChanged, secretSlots: o.SecretSlots, secretsReady: o.SecretsReady}
+}
+
+func (s *Service) changed() {
+	if s.onChange != nil {
+		s.onChange()
+	}
+}
+
+// Caller is the turn a team tool was called from, as the host knows it. Step
+// is the group turn it is, when it is one.
+type Caller struct {
+	Agent   string
+	Group   string
+	Turn    string
+	Step    string
+	Serving []string
+	Ceiling string
+	// ConfigurationApproved means the host obtained fresh human approval for this exact change.
+	ConfigurationApproved bool
+	// ConfigurationRevision fences the roster the human reviewed.
+	ConfigurationRevision *uint64
+}
+
+// MessageRequest is what message_agent asks for. To is an agent id or its
+// exact name.
+type MessageRequest struct {
+	To        string
+	Message   string
+	ReplyTo   teamroster.ReplyTo
+	Steer     bool
+	RequestID string
+}
+
+// SendState is what became of a message_agent call.
+type SendState string
+
+const (
+	SendDelivered SendState = "delivered"
+	SendDuplicate SendState = "duplicate"
+)
+
+// MessageReceipt is message_agent's answer to the caller.
+type MessageReceipt struct {
+	Exchange string
+	To       string
+	ToName   string
+	State    SendState
+}
+
+// Projection is what a seat's next turn is owed about the team, rendered from
+// the roster as it stands: who the agent is, who else is on the team, and in a
+// group seat, the group.
+type Projection struct {
+	Identity string
+	Roster   string
+	Group    string
+	Memory   string
+}
+
+// Projection renders seat's projection. The same roster gives the same bytes,
+// so the controller can tell an unchanged team from a changed one by content.
+// A group seat whose agent has left the group, or whose group is gone, projects
+// no group.
+func (s *Service) Projection(seat SeatRef) (Projection, error) {
+	r, err := s.store.Load()
+	if err != nil {
+		return Projection{}, err
+	}
+	a, ok := r.Agent(seat.Agent)
+	if !ok {
+		return Projection{}, teamroster.ErrUnknownAgent
+	}
+	p := Projection{Identity: renderIdentity(*a), Roster: renderRoster(r, a.ID)}
+	if g, ok := r.Group(seat.Group); ok && g.IsMember(a.ID) {
+		p.Group = renderGroup(r, *g)
+	}
+	p.Memory = s.renderMemory(seat, p.Group != "")
+	return p, nil
+}

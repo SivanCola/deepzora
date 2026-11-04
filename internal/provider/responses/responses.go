@@ -234,6 +234,13 @@ func (c *client) ResetContext() {
 }
 
 func (c *client) Stream(ctx context.Context, req provider.Request) (<-chan provider.Chunk, error) {
+	if err := provider.CheckSecretSignedReplay(req); err != nil {
+		return nil, err
+	}
+	req = provider.MaskOutbound(req, provider.SignedProjection{Items: []string{"reasoning"}})
+	if err := provider.CheckSecretSignedReplay(req); err != nil {
+		return nil, err
+	}
 	if c.effort != "auto" && c.effort != "off" {
 		if err := c.reasoning.Validate(c.model, c.effort); err != nil {
 			return nil, err

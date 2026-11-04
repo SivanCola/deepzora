@@ -243,6 +243,7 @@ func newClient(p *process, opts ClientOptions) *Client {
 		serveExited:      make(chan struct{}),
 	}
 	c.conn = rpcwire.NewConn(p.stdout, p.stdin, rpcwire.Options{
+		ProjectOutbound:        func(raw json.RawMessage) json.RawMessage { return secrets.Masker().JSONStrings(raw) },
 		Name:                   "extension:" + p.pluginID,
 		MaxInboundBytes:        protocol.FrameBytes,
 		MaxOutboundBytes:       protocol.FrameBytes,

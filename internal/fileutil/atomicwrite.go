@@ -105,6 +105,10 @@ func syncParentDir(path string) error {
 	return nil
 }
 
+// SyncParentDir makes a completed namespace removal durable under the same
+// platform/filesystem contract used by strict atomic publication.
+func SyncParentDir(path string) error { return syncParentDir(path) }
+
 func isDirSyncUnsupported(err error) bool {
 	return errors.Is(err, syscall.EINVAL) ||
 		errors.Is(err, syscall.ENOTSUP) ||

@@ -224,6 +224,21 @@ try {
   } finally { responsive(); }
   view.destroy();
   const surfaces = new BrowserSurfaceManager({ views: factory, contentSize: () => ({ width: 800, height: 600 }), onTakeover() {}, onCrash() {}, log: { warn: console.warn } as Logger });
+  const teamURL = `http://127.0.0.1:${address.port}`;
+  const adaPrivate = await surfaces.open(teamURL, { taskId: "ada-private", sessionId: "private", teamAgentId: "a-0000000000000001", temporary: false });
+  const adaGroup = await surfaces.open(teamURL, { taskId: "ada-group", sessionId: "group", teamAgentId: "a-0000000000000001", temporary: false });
+  const benPrivate = await surfaces.open(teamURL, { taskId: "ben-private", sessionId: "private", teamAgentId: "a-0000000000000002", temporary: false });
+  await adaPrivate.view.page.mainFrame.executeJavaScript('document.cookie="team_login=ada; path=/; SameSite=Lax"');
+  assert.match(await adaGroup.view.page.mainFrame.executeJavaScript("document.cookie") as string, /team_login=ada/);
+  assert.doesNotMatch(await benPrivate.view.page.mainFrame.executeJavaScript("document.cookie") as string, /team_login=ada/);
+  const teamRecovery = surfaces.recoveryTabs();
+  surfaces.destroyAll();
+  surfaces.restore(teamRecovery);
+  const restoredAda = surfaces.require(adaPrivate.id);
+  await restoredAda.view.ensureLoaded?.();
+  assert.match(await restoredAda.view.page.mainFrame.executeJavaScript("document.cookie") as string, /team_login=ada/);
+  surfaces.destroyAll();
+  console.log("Team native Cookie isolation, shared member seats and recovery: passed");
   surfaces.setLayout({ x: 0, y: 0, width: 800, height: 600 });
   const tab = await surfaces.open(`http://127.0.0.1:${address.port}`, { taskId: "native-task", sessionId: "native-session", temporary: true });
   if (!background) surfaces.activate(tab.id);
@@ -305,6 +320,10 @@ try {
     assert.equal(webContents.getAllWebContents().length, 1, `cycle ${cycle + 1}: only owner window may remain`);
   }
   console.log(`native browser: ${cycles} lifecycle cycles released all pages`);
+} catch (error) {
+  // Keep the triggering assertion visible if cleanup also fails.
+  console.error("native browser: failure before cleanup", error);
+  throw error;
 } finally {
   releaseInitialObservation?.();
   view.destroy(); win.destroy(); server.close();

@@ -83,6 +83,9 @@ type notebook struct {
 }
 
 func (n notebookEdit) Execute(ctx context.Context, raw json.RawMessage) (string, error) {
+	if err := rejectMaskedWrite(raw); err != nil {
+		return "", err
+	}
 	a, err := parseNotebookArgs(raw)
 	if err != nil {
 		return "", err

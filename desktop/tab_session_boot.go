@@ -31,6 +31,7 @@ func (a *App) sessionOpenBootOptions(
 	root, model string,
 ) boot.Options {
 	return boot.Options{
+		TeamSeat:                snap.teamSeat,
 		Model:                   model,
 		RequireKey:              false,
 		StatsSource:             "desktop",

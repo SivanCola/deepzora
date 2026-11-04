@@ -27,7 +27,7 @@ func TestReviewSubagentUnderUncappedParentFinishesPastEightRounds(t *testing.T) 
 	turns = append(turns, testutil.Turn{Text: "verdict: approve"})
 	parent := tool.NewRegistry()
 	parent.Add(echoTool{})
-	task := NewTaskToolWithOptions(TaskToolOptions{Provider: testutil.NewMock("sub", turns...), Pricing: nil, ParentRegistry: parent, MaxSteps: 0, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
+	task := NewSubagentRunner(SubagentRunnerOptions{Provider: testutil.NewMock("sub", turns...), Pricing: nil, ParentRegistry: parent, MaxSteps: 0, ContextWindow: 0, CompactRatio: 0, Temperature: 0.0, ArchiveDir: "", SysPrompt: "sys", Gate: nil, SubagentModel: "", SubagentEffort: "", ResolveProvider: nil}).
 		WithTranscripts(mustSubagentStore(t), t.TempDir(), "base", "high").
 		WithProfileLookup(func(name string) (ProfileDefinition, bool) {
 			return ProfileDefinition{Name: name, Body: "You review changes."}, name == "review"
@@ -51,7 +51,7 @@ func TestReviewBudgetKeepsInheritedStepsAndBoundsOutput(t *testing.T) {
 		{parent: 40, requested: 0, want: 20},
 		{parent: 0, requested: 24, want: 24},
 	} {
-		task := &TaskTool{maxSteps: tc.parent}
+		task := &SubagentRunner{maxSteps: tc.parent}
 		spec := ProfileExecSpec{Worker: WorkerSpec{Profile: "review"}, Sched: SchedulerPolicy{MaxSteps: tc.requested}}
 		ctx, steps := task.childMaxStepsForSpec(context.Background(), &spec)
 		if steps != tc.want {
