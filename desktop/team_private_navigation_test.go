@@ -132,6 +132,13 @@ func TestTeamPrivateNavigationUsesMemberIdentityModelAndPermissions(t *testing.T
 		t.Fatal("Team navigation replaced retained controller")
 	}
 	checkSend(true, "member", "reattached")
+	// A member's initial model seeds creation; a later session choice survives
+	// idle reclamation and restart instead of being replaced by that seed.
+	active, _ := a.tabAndCtrlByID("")
+	if err := a.SetModelForTab(active.ID, "private-fixture/default"); err != nil {
+		t.Fatal(err)
+	}
+	memberController = a.activeCtrl()
 	if _, err := a.OpenSession(ordinary.Ref); err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +153,7 @@ func TestTeamPrivateNavigationUsesMemberIdentityModelAndPermissions(t *testing.T
 	if a.activeCtrl() == memberController {
 		t.Fatal("cold reopen retained closed controller")
 	}
-	checkSend(true, "member", "cold")
+	checkSend(true, "default", "cold")
 	for _, node := range mustListProjectTree(t, a) {
 		if strings.Contains(node.Root, member.ID) {
 			t.Fatalf("private team workspace leaked into Projects: %s", node.Root)

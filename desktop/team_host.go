@@ -325,6 +325,10 @@ func (a *App) openTeamRuntime(ctx context.Context, ref team.SeatRef, service *te
 	if member.InitialModel != "" {
 		settings.Model = member.InitialModel
 	}
+	settings.Model, err = a.teamSessionModel(ctx, id, settings.Model)
+	if err != nil {
+		return nil, err
+	}
 	settings.ToolApprovalMode = member.Permission
 	if settings.ToolApprovalMode == "" {
 		settings.ToolApprovalMode = "read-only"
@@ -380,6 +384,19 @@ func (a *App) openTeamRuntime(ctx context.Context, ref team.SeatRef, service *te
 	unlock()
 	retained = true
 	return &desktopTeamRuntime{app: a, ref: ref, sessionID: id}, nil
+}
+
+// Reopening a seat is not a new-session creation. Its saved model choice
+// takes precedence over the member seed, including after process restart.
+func (a *App) teamSessionModel(ctx context.Context, id, seed string) (string, error) {
+	saved, err := a.desktopSessionService("").Query().Stat(ctx, session.SessionRef{HostID: localDesktopHostID, SessionID: id})
+	if err != nil && !errors.Is(err, session.ErrSessionNotFound) {
+		return "", err
+	}
+	if err == nil && strings.TrimSpace(saved.ModelRef) != "" {
+		return saved.ModelRef, nil
+	}
+	return seed, nil
 }
 
 func teamRuntimeRoot(store teamroster.Store, r *teamroster.Roster, ref team.SeatRef) (string, error) {
