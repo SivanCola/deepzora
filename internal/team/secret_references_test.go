@@ -1,9 +1,13 @@
 package team
 
 import (
+	"context"
+	"errors"
+	"os"
 	"os/exec"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestPOSIXSecretReferencesRequireDirectASTExpansion(t *testing.T) {
@@ -25,6 +29,25 @@ func TestPOSIXSecretReferencesRequireDirectASTExpansion(t *testing.T) {
 				t.Fatalf("references=%v err=%v", got, err)
 			}
 		})
+	}
+}
+
+func TestPowerShellSecretParsingPreservesCallerCancellation(t *testing.T) {
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	names, err := ReferencedPowerShellSecrets(ctx, executable, `$env:DEEPZORA_SECRET_DEPLOY`)
+	if !errors.Is(err, context.Canceled) || len(names) != 0 {
+		t.Fatalf("cancelled parser granted names=%v or lost cancellation: %v", names, err)
+	}
+	expired, stop := context.WithDeadline(t.Context(), time.Unix(0, 0))
+	defer stop()
+	names, err = ReferencedPowerShellSecrets(expired, executable, `$env:DEEPZORA_SECRET_DEPLOY`)
+	if !errors.Is(err, context.DeadlineExceeded) || len(names) != 0 {
+		t.Fatalf("expired caller deadline granted names=%v or was extended: %v", names, err)
 	}
 }
 func TestPowerShellSecretReferencesUseParserWithoutExecutingInput(t *testing.T) {

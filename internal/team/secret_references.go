@@ -58,7 +58,10 @@ func ReferencedPowerShellSecrets(ctx context.Context, executable, command string
 	if len(command) > 128<<10 {
 		return nil, errors.New("secret command exceeds parsing budget")
 	}
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	// A cold PowerShell/.NET process can exceed five seconds while the host
+	// is busy. Keep parsing bounded, but allow startup without granting values
+	// on a timeout or extending a shorter caller deadline.
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	cmd := proc.CommandContext(ctx, executable, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", powershellSecretParser)
 	cmd.Stdin = strings.NewReader(command)
@@ -66,6 +69,9 @@ func ReferencedPowerShellSecrets(ctx context.Context, executable, command string
 	cmd.Stdout = &out
 	cmd.Stderr = &boundedSecretParserOutput{}
 	if err := cmd.Run(); err != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
 		return nil, errors.New("PowerShell AST parser unavailable; use PowerShell with a direct $env:DEEPZORA_SECRET_NAME reference")
 	}
 	return parsePowerShellSecretNames(out.Bytes())

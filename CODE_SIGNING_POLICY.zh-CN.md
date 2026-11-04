@@ -2,7 +2,7 @@
 
 [English](CODE_SIGNING_POLICY.md) · [隐私政策](PRIVACY.zh-CN.md) · [SignPath 审核材料](docs/SIGNPATH_REVIEW.zh-CN.md)
 
-最后更新：2026-11-03。
+最后更新：2026-11-04。
 
 ## 项目及授权范围
 
@@ -17,7 +17,7 @@ Deepzora 是采用 AGPL-3.0-only 许可证、独立维护的 AI 编程助手，�
 发布流程。提供代码签名的 Windows 版本使用 Certum，需要有效的独立凭据。
 不得使用 Reasonix 的 SignPath 项目、令牌或授权为 Deepzora 签名。
 
-维护者已明确批准 Windows v0.0.1、v0.0.2、v0.0.3 和 v0.0.4 临时以未签名版本发布。这些版本没有
+维护者已明确批准 Windows v0.0.1、v0.0.2、v0.0.3、v0.0.4 和 v0.0.5 Stable 临时以未签名版本发布。这些版本没有
 Deepzora 的 Authenticode 发布者签名，下载／发布页必须明确标注。载荷及下载完整性
 签名、来源验证和原生验收仍须完成。本例外不适用于其他版本，也不影响 macOS 签名及公证要求。
 
