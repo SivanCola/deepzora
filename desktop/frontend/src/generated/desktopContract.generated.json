@@ -10048,7 +10048,7 @@
     },
     {
       "cancellation": "before-dispatch",
-      "domain": "desktop/bot_channels.go",
+      "domain": "desktop/bot_config.go",
       "name": "SaveBotConnection",
       "owner": "App.SaveBotConnection",
       "params": [
@@ -10066,7 +10066,7 @@
         "resolver": "App.SaveBotConnection"
       },
       "sources": [
-        "desktop/bot_channels.go"
+        "desktop/bot_config.go"
       ]
     },
     {

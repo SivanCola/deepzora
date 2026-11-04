@@ -5407,10 +5407,10 @@
     }
   },
   "SaveBotConnection": {
-    "domain": "desktop/bot_channels.go",
+    "domain": "desktop/bot_config.go",
     "owner": "App.SaveBotConnection",
     "sources": [
-      "desktop/bot_channels.go"
+      "desktop/bot_config.go"
     ],
     "scope": {
       "kind": "owner-inputs",
