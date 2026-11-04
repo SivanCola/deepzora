@@ -48,6 +48,15 @@ func (a *App) sessionUIStore() *sessionui.Store {
 }
 
 func (a *App) BeginManualSessionCreation(req ManualSessionCreationRequest) (result ManualSessionCreationView, err error) {
+	if strings.HasPrefix(strings.TrimSpace(req.OperationID), "bot-session-") {
+		return result, errors.New("bot session creation is managed by Bot Channels")
+	}
+	return a.beginManualSessionCreation(req, "")
+}
+
+// A bot's explicit model is internal: ordinary manual creation retains its
+// existing defaults and API. Both paths share durable creation and recovery.
+func (a *App) beginManualSessionCreation(req ManualSessionCreationRequest, botModel string) (result ManualSessionCreationView, err error) {
 	defer func() { result = a.creationView(result) }()
 	defer func() { err = sessionUIError(err, req.WorkspaceID, req.OperationID) }()
 	if a.shuttingDown.Load() {
@@ -66,6 +75,9 @@ func (a *App) BeginManualSessionCreation(req ManualSessionCreationRequest) (resu
 		view, err := decodeManualCreation(existing)
 		if err != nil {
 			return view, err
+		}
+		if botModel != "" && view.Settings.Model != botModel {
+			return view, errors.New("bot creation model identity changed")
 		}
 		return a.replayManualCreation(req, view)
 	}
@@ -101,6 +113,11 @@ func (a *App) BeginManualSessionCreation(req ManualSessionCreationRequest) (resu
 		Ref:     session.SessionRef{HostID: localDesktopHostID, SessionID: fmt.Sprintf("desktop-manual-%x", sum[:16])},
 		TopicID: fmt.Sprintf("manual-%x", sum[:16]), Phase: "reserved", Settings: a.defaultSessionSettings(scope, root)}
 	view.Settings.ModelSource = "explicit"
+	if botModel != "" {
+		view.Ref.SessionID = fmt.Sprintf("desktop-bot-%x", sum[:16])
+		view.Settings.Model = botModel
+		view.Settings.Effort = ""
+	}
 	view.Settings.AgentPreset = agentpreset.NormalizeID(req.AgentPreset)
 	if _, err := agentpreset.Resolve(boot.AgentPresetDirs(desktopWorkspaceRoot(scope, root)), view.Settings.AgentPreset); err != nil {
 		return view, err

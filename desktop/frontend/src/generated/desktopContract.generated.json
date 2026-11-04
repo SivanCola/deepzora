@@ -1018,6 +1018,32 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/bot_channels_feishu_login.go",
+      "name": "BeginFeishuBotLogin",
+      "owner": "App.BeginFeishuBotLogin",
+      "params": [
+        {
+          "kind": "string"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.BotLoginView"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "provider"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.BeginFeishuBotLogin"
+      },
+      "sources": [
+        "desktop/bot_channels_feishu_login.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/manual_session_creation.go",
       "name": "BeginManualSessionCreation",
       "owner": "App.BeginManualSessionCreation",
@@ -1149,6 +1175,26 @@
       },
       "sources": [
         "desktop/session_history_binding.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/bot_channels_login.go",
+      "name": "BeginWeixinBotLogin",
+      "owner": "App.BeginWeixinBotLogin",
+      "params": [],
+      "result": {
+        "kind": "object",
+        "ref": "main.BotLoginView"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [],
+        "kind": "owner-state",
+        "resolver": "App.BeginWeixinBotLogin"
+      },
+      "sources": [
+        "desktop/bot_channels_login.go"
       ]
     },
     {
@@ -2032,6 +2078,28 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/bot_channels.go",
+      "name": "ConnectBotChannel",
+      "owner": "App.ConnectBotChannel",
+      "params": [
+        {
+          "kind": "string"
+        }
+      ],
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "id"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.ConnectBotChannel"
+      },
+      "sources": [
+        "desktop/bot_channels.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/app.go",
       "name": "ConnectKey",
       "owner": "App.ConnectKey",
@@ -2518,6 +2586,28 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/bot_channels.go",
+      "name": "DeleteBotConnection",
+      "owner": "App.DeleteBotConnection",
+      "params": [
+        {
+          "kind": "string"
+        }
+      ],
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "id"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.DeleteBotConnection"
+      },
+      "sources": [
+        "desktop/bot_channels.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/inbox_app.go",
       "name": "DeleteInboxItem",
       "owner": "App.DeleteInboxItem",
@@ -2699,6 +2789,28 @@
       },
       "sources": [
         "desktop/theme_app.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/bot_channels.go",
+      "name": "DisconnectBotChannel",
+      "owner": "App.DisconnectBotChannel",
+      "params": [
+        {
+          "kind": "string"
+        }
+      ],
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "id"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.DisconnectBotChannel"
+      },
+      "sources": [
+        "desktop/bot_channels.go"
       ]
     },
     {
@@ -4882,6 +4994,26 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/bot_channels.go",
+      "name": "ListBotChannels",
+      "owner": "App.ListBotChannels",
+      "params": [],
+      "result": {
+        "kind": "object",
+        "ref": "main.BotChannelsView"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [],
+        "kind": "owner-state",
+        "resolver": "App.ListBotChannels"
+      },
+      "sources": [
+        "desktop/bot_channels.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/app.go",
       "name": "ListDir",
       "owner": "App.ListDir",
@@ -6224,6 +6356,28 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/bot_team.go",
+      "name": "OpenBotMemberHistory",
+      "owner": "App.OpenBotMemberHistory",
+      "params": [
+        {
+          "kind": "string"
+        }
+      ],
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "id"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.OpenBotMemberHistory"
+      },
+      "sources": [
+        "desktop/bot_team.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/transcript_api.go",
       "name": "OpenChannelTranscriptSessionForTab",
       "owner": "App.OpenChannelTranscriptSessionForTab",
@@ -6940,6 +7094,58 @@
       },
       "sources": [
         "desktop/plugin_packages_app.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/bot_channels_feishu_login.go",
+      "name": "PollFeishuBotLogin",
+      "owner": "App.PollFeishuBotLogin",
+      "params": [
+        {
+          "kind": "string"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.BotLoginView"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "id"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.PollFeishuBotLogin"
+      },
+      "sources": [
+        "desktop/bot_channels_feishu_login.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/bot_channels_login.go",
+      "name": "PollWeixinBotLogin",
+      "owner": "App.PollWeixinBotLogin",
+      "params": [
+        {
+          "kind": "string"
+        }
+      ],
+      "result": {
+        "kind": "object",
+        "ref": "main.BotLoginView"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "id"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.PollWeixinBotLogin"
+      },
+      "sources": [
+        "desktop/bot_channels_login.go"
       ]
     },
     {
@@ -9838,6 +10044,29 @@
       },
       "sources": [
         "desktop/agent_presets_app.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
+      "domain": "desktop/bot_config.go",
+      "name": "SaveBotConnection",
+      "owner": "App.SaveBotConnection",
+      "params": [
+        {
+          "kind": "object",
+          "ref": "main.BotConnectionInput"
+        }
+      ],
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "input"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.SaveBotConnection"
+      },
+      "sources": [
+        "desktop/bot_config.go"
       ]
     },
     {
@@ -13928,6 +14157,28 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/bot_models.go",
+      "name": "TestBotModel",
+      "owner": "App.TestBotModel",
+      "params": [
+        {
+          "kind": "string"
+        }
+      ],
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "ref"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.TestBotModel"
+      },
+      "sources": [
+        "desktop/bot_models.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/provider_settings_probe.go",
       "name": "TestProviderModel",
       "owner": "App.TestProviderModel",
@@ -15150,6 +15401,158 @@
           "optional": true,
           "type": {
             "kind": "boolean"
+          }
+        }
+      ]
+    },
+    "botchannels.View": {
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "name",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "provider",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "appId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "sessionId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "chatId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "senderId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "mode",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "modelRef",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "workspaceId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "memberId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "legacySessionId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "hasSecret",
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "status",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "error",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "actualModel",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "modelError",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "enabled",
+          "type": {
+            "kind": "boolean"
+          }
+        },
+        {
+          "name": "received",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "sent",
+          "type": {
+            "kind": "integer"
+          }
+        },
+        {
+          "name": "lastReceivedAt",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "lastSentAt",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "memberName",
+          "optional": true,
+          "type": {
+            "kind": "string"
           }
         }
       ]
@@ -20628,6 +21031,329 @@
         {
           "name": "err",
           "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "main.BotChannelsView": {
+      "fields": [
+        {
+          "name": "connections",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "botchannels.View"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "sessions",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "main.BotSessionView"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "models",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "main.BotModelView"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "workspaces",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "main.BotWorkspaceView"
+            },
+            "kind": "array"
+          }
+        },
+        {
+          "name": "members",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "main.BotMemberView"
+            },
+            "kind": "array"
+          }
+        }
+      ]
+    },
+    "main.BotConnectionInput": {
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "name",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "provider",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "appId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "sessionId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "chatId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "senderId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "mode",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "modelRef",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "workspaceId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "memberId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "legacySessionId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "secret",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "loginId",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "connect",
+          "optional": true,
+          "type": {
+            "kind": "boolean"
+          }
+        }
+      ]
+    },
+    "main.BotLoginView": {
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "image",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "status",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "userId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "chatId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "appId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "provider",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "interval",
+          "optional": true,
+          "type": {
+            "kind": "integer"
+          }
+        }
+      ]
+    },
+    "main.BotMemberView": {
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "name",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "model",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "permission",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "folder",
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "main.BotModelView": {
+      "fields": [
+        {
+          "name": "ref",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "provider",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "providerLabel",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "model",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "configured",
+          "type": {
+            "kind": "boolean"
+          }
+        }
+      ]
+    },
+    "main.BotSessionView": {
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "title",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "workspace",
+          "type": {
+            "kind": "string"
+          }
+        }
+      ]
+    },
+    "main.BotWorkspaceView": {
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "title",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "root",
           "type": {
             "kind": "string"
           }

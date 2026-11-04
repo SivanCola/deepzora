@@ -1,3 +1,4 @@
+import { makeMockBotChannels, type BotChannelBindings } from "./botChannels";
 import { makeMockSessionExportBindings, type SessionExportBindings } from "./sessionExportBridge";
 import type { AttachmentBindings } from "./attachmentBindings";
 import { makeMockSessionLifecycleBindings, type SessionLifecycleBindings } from "./sessionLifecycleBindings";
@@ -205,7 +206,7 @@ interface DesktopWindowState {
 }
 import { makeLazySessionUIMock, type SessionUIBindings } from "./sessionUIBindings";
 
-export interface AppBindings extends SessionUIBindings, AgentPresetBindings, TeamHostBindings {}
+export interface AppBindings extends SessionUIBindings, AgentPresetBindings, BotChannelBindings, TeamHostBindings {}
 // AppBindings is the hand-written React-to-Go contract. _CheckGeneratedBindings
 // catches generated methods missing here; update this interface and typecheck.
 export interface AppBindings extends AttachmentBindings, SessionExportBindings, SessionLifecycleBindings, ForkTargetsBindings, ToolRecoveryBindings, ModelSettingsBindings, SessionCatalogBindings, ProjectTreeOrganizationBindings, HistoryCatalogBindings, TaskCatalogBindings, BlankProjectBindings, SessionTitleBindings, ScrollDiagnosticBindings, MCPAppBindings, PinnedContextBindings, FollowupBindings, InboxQueueBindings, TranscriptProtocolBindings, SessionReaderBindings, ExactInteractionBindings {
@@ -2407,7 +2408,7 @@ function makeMockApp(): MockAppBindings {
     if (!submissionID?.trim()) throw new Error("submissionId is required");
   };
   const mockTeamSessionAgents=new Map<string,string>();
-  const mockApi: MockAppBindings = { ...({} as AttachmentBindings),
+  const mockApi: MockAppBindings = { ...({} as AttachmentBindings), ...makeMockBotChannels(async()=>{const team=await mockApi.GetTeam();return team.roster.agents.map(m=>({id:m.id,name:m.name,model:m.initialModel||"",permission:m.permission||"read-only",folder:m.folder||""}));}),
     ...makeLazySessionUIMock(async (scope, root, id) => {
       const tab = { ...mockTabs[0], id: `tab-${id}`, topicId: id, scope, workspaceRoot: root,
         sessionId: id, session: { hostId: "local", sessionId: id }, ready: true, active: false, running: false,

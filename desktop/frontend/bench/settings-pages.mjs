@@ -22,7 +22,7 @@ const findings = [];
 let cases = 0;
 const pages = [
   ["general", ".settings-field"], ["models", ".model-assignment-row"], ["providers", ".provider-connections"],
-  ["model-stats", ".usage-stats__cards"], ["mcp", ".cap-mcp-add-btn:enabled"], ["agent-presets", ".agent-preset-row"],
+  ["model-stats", ".usage-stats__cards"], ["mcp", ".cap-mcp-add-btn:enabled"], ["bot-channels", ".bot-provider-card:enabled"], ["agent-presets", ".agent-preset-row"],
   ["team", ".settings-section__actions button:enabled"],
   ["skills", ".settings-toolbar"], ["subagents", ".subagents-profile-group"], ["plugins", ".settings-toolbar button:enabled"],
   ["memory", ".memory-tabs-row"], ["hooks", ".hooks-json-panel__textarea"], ["diagnostics", ".diag-page"],
@@ -114,7 +114,7 @@ async function openSettings(page, locale) {
   await page.locator(".settings-page--general").waitFor();
   const nav = page.locator(".settings-center__navgroups");
   const labels = await nav.locator(".settings-center__navitem").allTextContents();
-  assert.equal(labels.length, 21, "every settings entry is covered");
+  assert.equal(labels.length, pages.length, "every settings entry is covered");
   for (const [index, label] of labels.entries()) {
     await nav.getByRole("button", { name: label.trim(), exact: true }).click();
     const [id, ready] = pages[index];
@@ -350,7 +350,7 @@ try {
       const selector = page.locator(".settings-center__compact-navigation button");
       await selector.click();
       const list = page.getByRole("listbox", { name: "Settings", exact: true });
-      assert.equal(await list.getByRole("option").count(), 21);
+      assert.equal(await list.getByRole("option").count(), pages.length);
       await page.getByRole("combobox", { name: "Search settings", exact: true }).fill("network");
       await list.getByRole("option", { name: "Network", exact: true }).click();
       await page.locator(".settings-page--network").waitFor();

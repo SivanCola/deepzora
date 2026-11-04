@@ -110,6 +110,7 @@ const PluginsSettingsPage = lazy(() => import("./CapabilitiesPanel").then((modul
 const MemorySettingsPage = lazy(() => import("./MemoryPanel").then((module) => ({ default: module.MemorySettingsPage })));
 const SubagentsSettingsPage = lazy(() => import("./SubagentsPanel").then((module) => ({ default: module.SubagentsSettingsPage })));
 const AgentPresetsSettingsPage = lazy(() => import("./AgentPresetsSettingsPage").then((module) => ({ default: module.AgentPresetsSettingsPage })));
+const BotChannelsSettingsPage = lazy(() => import("./BotChannelsSettingsPage").then((module) => ({ default: module.BotChannelsSettingsPage })));
 const TeamSettingsPage = lazy(() => import("./TeamSettingsPage").then(module => ({ default: module.TeamSettingsPage })));
 const DiagnosticsSettingsPage = lazy(() => import("./DiagnosticsSettingsPage").then((module) => ({ default: module.DiagnosticsSettingsPage })));
 const StorageSettingsPage = lazy(() => import("./StorageSettingsPage").then((module) => ({ default: module.StorageSettingsPage })));
@@ -448,6 +449,7 @@ function SettingsPanelContent({
                 {tab === "general" && s && <SettingsPageShell key={tab} s={s} tab={tab} busy={busy} apply={apply}><GeneralSection s={s} busy={busy} apply={apply} agentRunning={agentRunning} /></SettingsPageShell>}
                 {(tab === "models" || tab === "providers" || tab === "model-stats") && s && <SettingsPageShell key="model-pages" s={s} tab={tab} busy={busy} apply={apply}><ModelsSection onOpenProviders={() => selectTab("providers")} s={s} busy={busy} apply={apply} backgroundApply={backgroundApply} onboarding={acceptedFocus?.target === "model-access" && acceptedFocus.onboarding} focusProvider={acceptedFocus?.target === "model-access" ? acceptedFocus.providerName : undefined} focusRequestId={acceptedFocus?.target === "model-access" ? acceptedFocus.requestId : undefined} onOnboardingComplete={requestClose} onOnboardingStart={onOnboardingStart} subtab={tab === "providers" ? "access" : tab === "model-stats" ? "stats" : "usage"} /></SettingsPageShell>}
                 {tab === "mcp" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><MCPServersSettingsPage /></Suspense></SettingsPageShell>}
+                {tab === "bot-channels" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><BotChannelsSettingsPage /></Suspense></SettingsPageShell>}
                 {tab === "skills" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><SkillsSettingsPage activeWorkspaceKey={activeWorkspaceKey} /></Suspense></SettingsPageShell>}
                 {tab === "agent-presets" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><AgentPresetsSettingsPage key={activeWorkspaceKey} tabId={activeTabId} workspaceKey={activeWorkspaceKey} createRequestId={acceptedFocus?.target === "agent-preset-create" ? acceptedFocus.requestId : null} /></Suspense></SettingsPageShell>}
                 {tab === "team" && <SettingsPageShell key={tab} s={s} tab={tab} busy={false} apply={apply}><Suspense fallback={lazySettingsPageFallback}><TeamSettingsPage tabId={activeTabId} workspaceKey={activeWorkspaceKey}/></Suspense></SettingsPageShell>}
@@ -547,7 +549,7 @@ function SettingsPanelContent({
 function SettingsPageShell({ s: _s, tab, children }: { s: SettingsView | null; tab: SettingsTab; busy: boolean; apply: (fn: () => Promise<unknown>) => Promise<boolean>; children: ReactNode }) {
   const t = useT();
   const automatic = ["general", "models", "permissions", "sandbox", "appearance", "shortcuts", "browser"].includes(tab);
-  const manual = ["providers", "network", "hooks"].includes(tab);
+  const manual = ["providers", "network", "hooks", "bot-channels"].includes(tab);
   return (
     <div aria-label={settingsTabPageTitle(tab, t)} className={`settings-page settings-page--${settingsPageKind(tab)} settings-page--${tab}`} data-layout={settingsPageLayout(tab)}>
       <header className="settings-page__header">
@@ -560,6 +562,7 @@ function SettingsPageShell({ s: _s, tab, children }: { s: SettingsView | null; t
 }
 
 export function settingsPageLayout(tab: SettingsTab): "form" | "list" | "detail" | "tool" {
+  if (tab === "bot-channels") return "list";
   if (tab === "providers") return "detail";
   if (["model-stats", "diagnostics", "hooks", "updates"].includes(tab)) return "tool";
   if (["mcp", "skills", "agent-presets", "team", "subagents", "plugins", "memory", "shortcuts"].includes(tab)) return "list";
@@ -618,6 +621,7 @@ type ModelsSectionProps = SectionProps & {
 
 function settingsTabLabel(id: SettingsTab, t: ReturnType<typeof useT>): string {
   switch (id) {
+    case "bot-channels": return t("settings.tab.botChannels");
     case "team": return t("settings.tab.team");
     case "model-stats": return t("settings.modelTab.stats");
     case "general":
@@ -660,6 +664,7 @@ function settingsTabLabel(id: SettingsTab, t: ReturnType<typeof useT>): string {
 
 function settingsTabMeta(id: SettingsTab, s: SettingsView, t: ReturnType<typeof useT>): string {
   switch (id) {
+    case "bot-channels": return "Weixin · Feishu · Lark · Telegram";
     case "team": return t("team.navHint");
     case "model-stats": return "";
     case "models":

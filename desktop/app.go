@@ -101,6 +101,7 @@ type PromptHistoryResult struct {
 // flow the other way: each tab's controller emits to a tabEventSink that
 // forwards events tagged with tabId to the frontend as host events.
 type App struct {
+	botChannels     botChannelState
 	sessionExportMu sync.Mutex
 	sessionExports  map[string]*sessionExportJob
 	ctx             context.Context
@@ -457,6 +458,7 @@ func (a *App) startup(ctx context.Context) {
 
 	go a.restoreOrBuildTabs()
 	a.startTeamHost()
+	a.goSafe("restoreBotChannels", a.restoreEnabledBotChannels)
 	a.startDesktopPersistenceReconciliation()
 	a.registerHistoryIndexEvents()
 	a.startSessionCatalog()

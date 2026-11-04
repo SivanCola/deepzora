@@ -1013,6 +1013,9 @@ func (s *tabEventSink) Emit(e event.Event) {
 		s.mu.Unlock()
 	}
 	tabID, app := s.binding()
+	if app != nil {
+		app.publishBotEvent(s, e)
+	}
 	var turnStartedAt int64
 	if app != nil {
 		if e.Kind == event.TurnDone {
@@ -2075,7 +2078,7 @@ func (a *App) blankTabMatchesTargetLocked(tab *WorkspaceTab, scope, workspaceRoo
 		// read through the session service after binding, never via a file probe.
 		return tab.SessionID == ""
 	}
-	if tab.hasActiveRuntimeWork() {
+	if tab.hasActiveRuntimeWork() || a.botOwnsController(tab.Ctrl) {
 		return false
 	}
 	return !messagesHaveConversationContent(tab.Ctrl.History())
@@ -2219,7 +2222,7 @@ func (a *App) closeTabRuntime(tabID string, allowDetach bool) error {
 		a.mu.Unlock()
 		return fmt.Errorf("task still has active work")
 	}
-	if tab.Ctrl == nil || (!tab.hasActiveRuntimeWork() && tab.teamSeat == nil) {
+	if tab.Ctrl == nil || (!tab.hasActiveRuntimeWork() && tab.teamSeat == nil && !(allowDetach && a.botOwnsController(tab.Ctrl))) {
 		a.markTabRemovedLocked(tab)
 	}
 
@@ -2259,7 +2262,7 @@ func (a *App) closeTabRuntime(tabID string, allowDetach bool) error {
 	// Tear down outside App.mu while retaining the lifecycle barrier acquired
 	// before the tab binding was removed.
 	if closeCtrl != nil {
-		if allowDetach && (tab.teamSeat != nil || controllerHasActiveRuntimeWork(closeCtrl)) && a.detachSessionRuntime(tab) {
+		if allowDetach && (tab.teamSeat != nil || a.preserveRuntimeForNavigation(closeCtrl)) && a.detachSessionRuntime(tab) {
 			// Detached runtimes retain their current writer and keep saving.
 			return nil
 		}
@@ -2312,7 +2315,7 @@ func (a *App) removeVisibleTabRuntimeAdmissionHeld(tab *WorkspaceTab) {
 	a.mu.RLock()
 	ctrl := tab.Ctrl
 	a.mu.RUnlock()
-	if ctrl != nil && (tab.teamSeat != nil || controllerHasActiveRuntimeWork(ctrl)) && a.detachSessionRuntime(tab) {
+	if ctrl != nil && (tab.teamSeat != nil || a.preserveRuntimeForNavigation(ctrl)) && a.detachSessionRuntime(tab) {
 		return
 	}
 	if err := a.snapshotTab(tab); err != nil {

@@ -20,6 +20,8 @@ import { TeamMemorySettings } from "./TeamMemorySettings";
 import { TeamScheduleSettings } from "./TeamScheduleSettings";
 import { TeamSecretSettings } from "./TeamSecretSettings";
 import { TeamUsageSettings } from "./TeamUsageSettings";
+import { BotChannelsSettingsPage } from "./BotChannelsSettingsPage";
+import { useBotText } from "../lib/botChannels";
 import { SettingsFeedback, SettingsSubpageHeader, useSettingsDraft, useSettingsExperience } from "./SettingsExperience";
 
 type Editor = { kind:"agent"; member?:Agent; revision:number } | { kind:"group"; group?:Group; revision:number };
@@ -138,10 +140,12 @@ function TeamCheck({label,checked,disabled,onChange}:{label:string;checked:boole
 
 function TeamAgentEditor({initial,memberID,revision,tabId,workspaceKey,onSaved,onCancel,onReload}:{initial:TeamAgentSettings;memberID:string;revision:number;tabId:string;workspaceKey:string;onSaved:(result:TeamMutationResult)=>Promise<boolean>;onCancel:()=>void;onReload:()=>void}) {
   const t=useT();
+  const bt=useBotText();
   const [draft,setDraft]=useState(initial);
   const [presetID,setPresetID]=useState<string|undefined>();
   const [editingPreset,setEditingPreset]=useState(false);
   const [editingIcon,setEditingIcon]=useState(false);
+  const [channelsOpen,setChannelsOpen]=useState(false);
   const [models,setModels]=useState<ModelInfo[]>([]);
   const [modelError,setModelError]=useState<string|null>(null);
   const presets=useAgentPresets(tabId,workspaceKey);
@@ -152,12 +156,13 @@ function TeamAgentEditor({initial,memberID,revision,tabId,workspaceKey,onSaved,o
   const submit=()=>operation.save(draft,requestId=>app.SaveTeamAgent({id:memberID,expectedRevision:revision,requestId,settings:draft}));
   const guard=useSettingsDraft({label:t("team.members"),order:1,dirty,busy:operation.busy,canSave:!invalid,save:submit,discard:()=>{setDraft(initial);setPresetID(undefined);}});
   useEffect(()=>{let current=true;void app.Models().then(list=>{if(current)setModels(list);},cause=>{if(current)setModelError(String(cause));});return()=>{current=false;};},[]);
+  if(channelsOpen) return <><SettingsSubpageHeader title={`${draft.name} · ${bt.channelsSection}`} description={bt.memberHint} onBack={()=>setChannelsOpen(false)}/><BotChannelsSettingsPage memberId={memberID}/></>;
   if(editingPreset) {
     const p=draft.preset;
     const snapshot:AgentPresetDraft={id:p?.id&&p.id!=="default"?p.id:"team-member",name:p?.name||draft.name,description:p?.description??"",icon:p?.icon??"",iconImage:p?.iconImage??"",iconColor:p?.iconColor??"",body:p?.body??"",keepCoding:p?.keepCoding??true,complete:p?.complete??false,includeRuntimeContext:p?.includeRuntimeContext??true,tools:p?.restrictTools?p.tools:null,scope:"user"};
     return <AgentPresetEditor initial={snapshot} editing presets={presets.view?.presets??[]} busy={operation.busy} onCancel={()=>setEditingPreset(false)} onSave={async value=>{patch({preset:presetCopy(value)});setPresetID(undefined);setEditingPreset(false);return true;}}/>;
   }
-  return <form onSubmit={event=>{event.preventDefault();if(!invalid&&!operation.busy)void submit();}}>
+  return <><form onSubmit={event=>{event.preventDefault();if(!invalid&&!operation.busy)void submit();}}>
     <SettingsSubpageHeader title={memberID?draft.name:t("team.newAgent")} description={t("team.presetHint")} onBack={onCancel}/>
     {operation.error&&<SettingsFeedback kind="error">{operation.error==="conflict"?t("team.conflict"):operation.error}</SettingsFeedback>}
     {operation.error==="conflict"&&<button className="btn" type="button" onClick={onReload}>{t("team.reloadSaved")}</button>}
@@ -177,7 +182,9 @@ function TeamAgentEditor({initial,memberID,revision,tabId,workspaceKey,onSaved,o
       <TeamCheck label={t("team.hidden")} checked={draft.hidden} disabled={operation.busy} onChange={hidden=>patch({hidden})}/>
     </SettingsSection>
     <div className="settings-save-bar"><span role="status">{dirty?t("settings.models.unsaved"):t("settings.saveExplicitly")}</span><button className="btn" type="button" disabled={operation.busy} onClick={()=>guard.leave(onCancel)}>{t("common.cancel")}</button><button className="btn btn--primary" type="submit" disabled={invalid||operation.busy||!dirty}>{t("common.save")}</button></div>
-  </form>;
+  </form>
+  {memberID ? <SettingsSection title={bt.channelsSection} description={bt.memberHint}><button className="btn" type="button" disabled={dirty||operation.busy} onClick={()=>setChannelsOpen(true)}>{bt.channelsSection}</button>{dirty&&<SettingsFeedback kind="info">{bt.memberSavedFirst}</SettingsFeedback>}</SettingsSection> : <SettingsFeedback kind="info">{bt.memberSavedFirst}</SettingsFeedback>}
+  </>;
 }
 
 function TeamGroupEditor({initial,groupID,revision,members,onSaved,onCancel,onReload}:{initial:TeamGroupSettings;groupID:string;revision:number;members:Agent[];onSaved:(result:TeamMutationResult)=>Promise<boolean>;onCancel:()=>void;onReload:()=>void}) {

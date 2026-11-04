@@ -32,7 +32,10 @@
 Team 面向本机 macOS、Linux、Windows Desktop，进度见[交付清单](TEAM_PORT_STATUS.md)。
 提供存储、编排、Controller 席位、成员和群组配置、私聊、群聊、共享记忆、自动整理、
 定时任务、密钥授权、全边界精确值遮罩及成员用量。每个数据目录只有一份名册，最多
-32 名成员、16 个群组；不提供 CLI、Serve、ACP、机器人或 SSH 团队入口。
+32 名成员、16 个群组；不提供 CLI、Serve、ACP 或 SSH 团队入口。
+成员详情的“消息渠道”可绑定微信、飞书等 Bot。渠道复用成员会话、模型、记忆和权限，
+默认只回复任务来源渠道，不广播桌面及团队内部任务。旧 Bot 配置和已完成历史迁移规则
+见 [Bot Channels](BOT_CHANNELS.md)。
 
 ## 状态归属
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"testing"
 )
 
@@ -34,13 +35,18 @@ func TestActiveOrSingleLocalTabRecoversLeaseBlockedStartup(t *testing.T) {
 	if ctrl == nil {
 		t.Fatal("lease-blocked startup was not recovered; the tab stayed without a runtime")
 	}
-	// Navigation can replace this recovered controller. Join it as well as
-	// the fixture-owned current/detached runtimes before removing their store.
+	// Navigation can retire the recovered controller and create a new owner.
+	// Seal callbacks first, join the retired owner, then use the complete App
+	// shutdown boundary for the replacement and its background services.
 	t.Cleanup(func() {
+		app.shuttingDown.Store(true)
 		app.quiesceTabAutosave(tab)
 		ctrl.Close()
 		if closed, ok := ctrl.(interface{ Closed() <-chan struct{} }); ok {
 			<-closed.Closed()
+		}
+		if _, err := app.requestShutdown(context.Background(), shutdownRequest{RequestID: "lease-recovery-cleanup", Reason: shutdownReasonUserQuit}); err != nil {
+			t.Errorf("shutdown recovered tab: %v", err)
 		}
 	})
 	if _, err := app.OpenSession(ref); err != nil {
