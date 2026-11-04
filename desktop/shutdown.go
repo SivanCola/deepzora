@@ -248,7 +248,7 @@ func (a *App) runShutdown(c *desktopShutdownCoordinator) (err error) {
 		a.runtimeRebuildMu.Unlock()
 	})
 	defer unlock()
-	items, err := a.prepareShutdownSessions(c, reason)
+	items, err := a.prepareShutdownSessions(c)
 	if err != nil {
 		return err
 	}
@@ -264,7 +264,7 @@ func (a *App) runShutdown(c *desktopShutdownCoordinator) (err error) {
 	return nil
 }
 
-func (a *App) prepareShutdownSessions(c *desktopShutdownCoordinator, reason string) ([]desktopShutdownItem, error) {
+func (a *App) prepareShutdownSessions(c *desktopShutdownCoordinator) ([]desktopShutdownItem, error) {
 	c.mu.Lock()
 	needsItems := c.items == nil
 	c.mu.Unlock()
@@ -285,7 +285,7 @@ func (a *App) prepareShutdownSessions(c *desktopShutdownCoordinator, reason stri
 	}
 	c.mu.Lock()
 	items := append([]desktopShutdownItem(nil), c.items...)
-	reason = c.status.Reason
+	reason := c.status.Reason
 	c.mu.Unlock()
 
 	c.setPhase("saving")
