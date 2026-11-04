@@ -126,7 +126,7 @@ func (a *App) buildTabControllerBootFenced(ctx context.Context, generation uint6
 // installed afterward.
 func (a *App) lockTabControllerPublication(generation uint64, scope, workspaceRoot string) (func(), bool) {
 	a.runtimeAdmissionMu.RLock()
-	if a.currentExtensionGeneration() != generation {
+	if a.shuttingDown.Load() || a.currentExtensionGeneration() != generation {
 		a.runtimeAdmissionMu.RUnlock()
 		return nil, false
 	}

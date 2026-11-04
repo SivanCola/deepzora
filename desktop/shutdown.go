@@ -59,6 +59,7 @@ type desktopShutdownCoordinator struct {
 	items    []desktopShutdownItem
 	saved    map[string]bool
 	finished map[string]bool
+	closes   map[string]*shutdownControllerClose
 }
 
 type shutdownStepError struct {
@@ -234,18 +235,36 @@ func (a *App) runShutdown(c *desktopShutdownCoordinator) (err error) {
 	if err := c.runErrorStep("team-host", a.stopTeamHost); err != nil {
 		return &shutdownStepError{code: "team_host_close_failed", err: err}
 	}
-
-	// Use the normal runtime lock order and never hold App.mu while invoking a
-	// controller. This prevents callback re-entry deadlocks during snapshots.
+	// Drain controller replacement before capturing owners. Shutdown admission
+	// rejects new work after these gates are released for cleanup callbacks.
 	c.setPhase("waiting_runtime_rebuild")
 	a.lifecycle.tracker.markShutdown(reason, "waiting_runtime_rebuild", "in_progress")
 	a.runtimeRebuildMu.Lock()
-	defer a.runtimeRebuildMu.Unlock()
 	c.setPhase("waiting_runtime_admission")
 	a.lifecycle.tracker.markShutdown(reason, "waiting_runtime_admission", "in_progress")
 	a.runtimeAdmissionMu.Lock()
-	defer a.runtimeAdmissionMu.Unlock()
+	unlock := sync.OnceFunc(func() {
+		a.runtimeAdmissionMu.Unlock()
+		a.runtimeRebuildMu.Unlock()
+	})
+	defer unlock()
+	items, err := a.prepareShutdownSessions(c)
+	if err != nil {
+		return err
+	}
+	c.setPhase("closing")
+	a.lifecycle.tracker.markShutdown(reason, "closing", "in_progress")
+	if err := a.shutdownBody(c, items, unlock); err != nil {
+		return err
+	}
+	a.lifecycle.tracker.markShutdown(reason, "completed", "success")
+	if reason == shutdownReasonUserQuit || reason == shutdownReasonUpdateRestart {
+		a.lifecycle.tracker.clean()
+	}
+	return nil
+}
 
+func (a *App) prepareShutdownSessions(c *desktopShutdownCoordinator) ([]desktopShutdownItem, error) {
 	c.mu.Lock()
 	needsItems := c.items == nil
 	c.mu.Unlock()
@@ -266,7 +285,7 @@ func (a *App) runShutdown(c *desktopShutdownCoordinator) (err error) {
 	}
 	c.mu.Lock()
 	items := append([]desktopShutdownItem(nil), c.items...)
-	reason = c.status.Reason
+	reason := c.status.Reason
 	c.mu.Unlock()
 
 	c.setPhase("saving")
@@ -283,23 +302,14 @@ func (a *App) runShutdown(c *desktopShutdownCoordinator) (err error) {
 		}
 		if err := item.ctrl.Snapshot(); err != nil {
 			a.lifecycle.tracker.markShutdown(reason, "saving", "failed")
-			return &shutdownStepError{code: "session_save_failed", err: fmt.Errorf("save session %s: %w", item.tab.ID, err)}
+			return nil, &shutdownStepError{code: "session_save_failed", err: fmt.Errorf("save session %s: %w", item.tab.ID, err)}
 		}
 		c.mu.Lock()
 		c.saved[item.tab.ID] = true
 		c.mu.Unlock()
 	}
 
-	c.setPhase("closing")
-	a.lifecycle.tracker.markShutdown(reason, "closing", "in_progress")
-	if err := a.shutdownBody(c, items); err != nil {
-		return err
-	}
-	a.lifecycle.tracker.markShutdown(reason, "completed", "success")
-	if reason == shutdownReasonUserQuit || reason == shutdownReasonUpdateRestart {
-		a.lifecycle.tracker.clean()
-	}
-	return nil
+	return items, nil
 }
 
 // completeDesktopShutdown remains the small panic-preserving primitive used by
@@ -311,7 +321,7 @@ func completeDesktopShutdown(tracker *desktopLifecycleTracker, body func()) {
 	tracker.clean()
 }
 
-func (a *App) shutdownBody(c *desktopShutdownCoordinator, items []desktopShutdownItem) error {
+func (a *App) shutdownBody(c *desktopShutdownCoordinator, items []desktopShutdownItem, unlock func()) error {
 	if a.sessionUI != nil {
 		if err := c.runErrorStep("session-ui", a.sessionUI.Close); err != nil {
 			return &shutdownStepError{code: "session_ui_close_failed", err: err}
@@ -334,14 +344,30 @@ func (a *App) shutdownBody(c *desktopShutdownCoordinator, items []desktopShutdow
 	}
 	c.runStep("window-state", a.saveWindowStateSync)
 
+	// Stop autosaves before closing their controller-owned persistence. A final
+	// TurnDone may otherwise start another writer during teardown.
 	for _, item := range items {
-		c.runStep("session:"+item.tab.ID, func() {
-			item.ctrl.Close()
-			a.mu.Lock()
-			a.releaseSessionRuntimeLocked(item.tab)
-			a.mu.Unlock()
-		})
+		c.runStep("autosave:"+item.tab.ID, func() { a.quiesceTabAutosave(item.tab) })
 	}
+	unlock()
+	// Close itself can synchronously run hooks and join jobs for an idle owner.
+	// Bound that work too, start every owner, and retain it across timeout/retry.
+	if err := c.runErrorStep("controller-finalization", func() error {
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		return c.closeControllers(ctx, items)
+	}); err != nil {
+		var step *shutdownStepError
+		if errors.As(err, &step) {
+			return err
+		}
+		return &shutdownStepError{code: "controller_close_timeout", err: err}
+	}
+	a.mu.Lock()
+	for _, item := range items {
+		a.releaseSessionRuntimeLocked(item.tab)
+	}
+	a.mu.Unlock()
 	c.runStep("update-health", func() {
 		if !a.startupReady.Load() {
 			return

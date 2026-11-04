@@ -164,6 +164,13 @@ func (a *App) stopDeferredRebuildRetry() {
 	}
 }
 
+func (a *App) deferredRebuildStopped() bool {
+	d := &a.deferredRebuild
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.stopped || a.shuttingDown.Load()
+}
+
 func (a *App) deferredRebuildLoop(stop <-chan struct{}) {
 	ticker := time.NewTicker(deferredRebuildRetryInterval)
 	defer ticker.Stop()
@@ -242,6 +249,9 @@ func (a *App) retryDeferredRebuild(tabID string, request deferredRebuildRequest)
 	// Serialize retry publication with manual runtime rebuilds.
 	a.runtimeRebuildMu.Lock()
 	defer a.runtimeRebuildMu.Unlock()
+	if a.deferredRebuildStopped() {
+		return
+	}
 	tab.turnStartMu.Lock()
 	defer tab.turnStartMu.Unlock()
 	ctrl := a.controllerForTab(tab)
@@ -299,6 +309,9 @@ func (a *App) retryDeferredRuntimeReload(tabID string, tab *WorkspaceTab, queued
 	// Serialize retry publication with manual runtime rebuilds.
 	a.runtimeRebuildMu.Lock()
 	defer a.runtimeRebuildMu.Unlock()
+	if a.deferredRebuildStopped() {
+		return
+	}
 	ctrl := a.controllerForTab(tab)
 	if ctrl == nil {
 		// Mid-(re)build on another path; racing a second build+swap against it
@@ -346,6 +359,9 @@ func (a *App) retryDeferredStartupBuild(tabID string, tab *WorkspaceTab, queuedS
 	}
 	a.runtimeRebuildMu.Lock()
 	defer a.runtimeRebuildMu.Unlock()
+	if a.deferredRebuildStopped() {
+		return
+	}
 	if !a.tabHasRetryableStartupLeaseError(tab) {
 		a.clearDeferredRebuildVersion(tabID, sequence)
 		return
@@ -379,6 +395,9 @@ func (a *App) tabHasRetryableStartupLeaseError(tab *WorkspaceTab) bool {
 }
 
 func (a *App) rebuildStartupTabLocked(tab *WorkspaceTab) error {
+	if a.shuttingDown.Load() {
+		return fmt.Errorf("desktop is shutting down")
+	}
 	buildCtx, cancel := context.WithCancel(a.bootContext())
 	a.mu.Lock()
 	if tab == nil || a.tabs[tab.ID] != tab || tab.removed {
