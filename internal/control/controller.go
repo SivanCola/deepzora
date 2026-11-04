@@ -3839,18 +3839,19 @@ func (c *Controller) finalizeControllerClose() {
 			c.releaseSessionRuntimeBinding(service)
 
 		}
+		// Drop the Controller owner reference last so background job leases
+		// that outlive close still pin retired generations until they exit.
+		// Cleanup may panic; Closed must still mean these owners are released.
+		defer c.finishBackgroundReplacement(false)
+		if c.persistentShell != nil {
+			defer c.persistentShell.Release()
+		}
+		if c.sessionTemp != nil {
+			defer c.sessionTemp.Release()
+		}
 		if c.cleanup != nil {
 			c.cleanup()
 		}
-		// Drop the Controller owner reference last so background job leases
-		// that outlive close still pin retired generations until they exit.
-		if c.sessionTemp != nil {
-			c.sessionTemp.Release()
-		}
-		if c.persistentShell != nil {
-			c.persistentShell.Release()
-		}
-		c.finishBackgroundReplacement(false)
 	})
 }
 

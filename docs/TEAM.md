@@ -89,8 +89,14 @@ be reclaimed after ten minutes; the six-seat soft cap only reclaims safe idle
 seats. Pending approvals, inbox items and jobs keep their runtime.
 
 Shutdown cancels the clock and new admission, closes every seat, waits for
-Controller store release and only then gives up the Team lease. Configuration
-commands compare revisions and commit bounded retry receipts atomically with
+Controller store release and only then gives up the Team lease. Waiting for
+finalization and synchronous controller cleanup run outside the global runtime gates.
+If Team cleanup takes over 20 seconds, exit reports a retryable failure; retry
+joins the same cleanup attempts and retains the lease until every seat closes.
+If an attempt has finished with a cleanup error, retry resumes the retained seat's
+teardown, skips an already finalized Controller and releases the remaining host
+resources. Completed seats are not closed again.
+Configuration commands compare revisions and commit bounded retry receipts atomically with
 the change. Conflicts retain the caller's draft; changed request-key reuse fails.
 Program approval remains at the normal workspace boundary; roster paths do not
 silently approve project programs. A member's copied preset retains complete
@@ -189,12 +195,18 @@ skipped, and a busy target waits only within that window. **Run now** submits
 scheduler input under existing approval rules; it does not approve sensitive
 tools, grant permissions, or resume a stopped Goal. After an interrupted
 dispatch, inspect the target conversation before creating another occurrence.
+If a schedule save conflicts with background work or another edit, **Review
+latest saved version** shows current settings without replacing the draft.
+**Keep my draft for the next save** explicitly prepares those draft settings
+against the reviewed revisions. A separate Save still checks for further changes.
 
 ## Secrets, masking and usage
 
 **Team secrets** accepts values only in its password input and
-returns metadata only. Grants name exact member IDs; an empty list authorizes
-nobody and a new member inherits nothing. Replacement/deletion immediately
+returns metadata only. While a secret save is pending, all value, description
+and member-grant controls are disabled. Failure keeps the draft and re-enables
+editing. Grants name exact member IDs; an empty list authorizes nobody and a
+new member inherits nothing. Replacement/deletion immediately
 revokes new commands. Old values remain in the retired masking set across
 restart. **Forget retired masking values** requires its own confirmation and
 can make old history values visible again. This action is independent of delete.

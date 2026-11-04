@@ -69,6 +69,30 @@ try {
   await schedules.getByRole('textbox',{name:'Task',exact:true}).fill('Review the release checklist');
   await schedules.getByRole('button',{name:'Save',exact:true}).click();
   await schedules.getByRole('heading',{name:'Release review',exact:true}).waitFor();
+  await schedules.getByRole('button',{name:'Edit',exact:true}).click();
+  await schedules.getByRole('textbox',{name:'Name',exact:true}).fill('Release review retained draft');
+  // Saving a separate Team setting changes the roster while the schedule
+  // editor retains its original CAS revision, just as background work can.
+  const reviewPrefs=settings.locator('.settings-section').filter({has:page.getByRole('heading',{name:'Automatic memory review',exact:true})});
+  await reviewPrefs.getByRole('checkbox',{name:'Automatic memory review',exact:true}).check();
+  const savePrefs=reviewPrefs.getByRole('button',{name:'Save',exact:true});
+  await savePrefs.click();
+  await page.waitForFunction(el=>el.disabled,await savePrefs.elementHandle());
+  await schedules.getByRole('button',{name:'Save',exact:true}).click();
+  await schedules.getByRole('button',{name:'Review latest saved version',exact:true}).click();
+  await schedules.getByRole('heading',{name:'Latest saved version',exact:true}).waitFor();
+  assert.equal(await schedules.getByRole('textbox',{name:'Name',exact:true}).inputValue(),'Release review retained draft');
+  assert.equal(await schedules.getByRole('button',{name:'Save',exact:true}).isDisabled(),true);
+  for(const width of [1440,400]) {
+    await page.setViewportSize({width,height:1000});
+    await schedules.locator('.settings-section').filter({has:page.getByRole('heading',{name:'Latest saved version',exact:true})}).scrollIntoViewIfNeeded();
+    assert.ok(await schedules.evaluate(el=>el.scrollWidth-el.clientWidth)<=1,`schedule conflict review fits ${width}px`);
+    await page.screenshot({path:path.join(output,`team-schedule-conflict-${width}.png`)});
+  }
+  await page.setViewportSize({width:1440,height:1000});
+  await schedules.getByRole('button',{name:'Keep my draft for the next save',exact:true}).click();
+  await schedules.getByRole('button',{name:'Save',exact:true}).click();
+  await schedules.getByRole('heading',{name:'Release review retained draft',exact:true}).waitFor();
   await schedules.getByRole('button',{name:'Run now',exact:true}).click();
   await schedules.getByText('Scheduled input accepted. Check the target conversation for execution and approvals.',{exact:true}).waitFor();
   const secrets=settings.locator('.settings-section').filter({has:page.getByRole('heading',{name:'Team secrets',exact:true})});
@@ -118,7 +142,7 @@ try {
     await page.screenshot({path:path.join(output,`team-group-${width}.png`)});
   }
   assert.deepEqual(errors,[],"no browser runtime errors");
-  console.log("PASS Team creation, archive/restore, memory, review opt-in, schedules, secret password/explicit grants/revocation/confirmed retirement, usage, mentions, navigation, drafts and responsive group chat (preview fixture)");
+  console.log("PASS Team creation, archive/restore, memory, review opt-in, schedules with explicit conflict review and retained drafts, secret password/explicit grants/revocation/confirmed retirement, usage, mentions, navigation, drafts and responsive group chat (preview fixture)");
 } finally {
   await page.close();await browser.close();if(preview)await preview.httpServer.close();
 }

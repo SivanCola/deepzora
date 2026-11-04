@@ -493,6 +493,11 @@ func (a *App) detachRuntimeForReplacementLocked(tab *WorkspaceTab) bool {
 	if tab.removed || a.tabs[tab.ID] != tab {
 		return false
 	}
+	// An asynchronous Team close retains this owner until finalization. A
+	// navigation clone must not move its controller/resources to another tab.
+	if a.sessionRuntimeViewLocked(tab).Phase == sessionRuntimeClosing {
+		return false
+	}
 	sourceIdentity := tab.currentSessionIdentity()
 	key := sessionRuntimeKey(sourceIdentity)
 	if key == "" {
@@ -2441,7 +2446,7 @@ func (a *App) startTabControllerBuildMode(tab *WorkspaceTab, async bool) {
 	a.mu.Lock()
 	// Historical shells are not ordinary dormant tabs. Only explicit
 	// preparation may replace their source identity before a runtime starts.
-	if tab == nil || tab.removed || a.shuttingDown.Load() {
+	if tab == nil || tab.removed || a.shuttingDown.Load() || a.sessionRuntimeViewLocked(tab).Phase == sessionRuntimeClosing {
 		a.mu.Unlock()
 		cancel()
 		return

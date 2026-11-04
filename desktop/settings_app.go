@@ -1263,6 +1263,12 @@ func (a *App) rebuildSettingTurnLockedWithModel(setting string, tab *WorkspaceTa
 	if a.shuttingDown.Load() {
 		return fmt.Errorf("desktop is shutting down")
 	}
+	a.mu.RLock()
+	closing := a.sessionRuntimeViewLocked(tab).Phase == sessionRuntimeClosing
+	a.mu.RUnlock()
+	if closing {
+		return fmt.Errorf("session is closing")
+	}
 	if a.ctx == nil {
 		return nil
 	}

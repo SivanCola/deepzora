@@ -35,15 +35,51 @@ export function TeamScheduleSettings({team}:{team:TeamView}){
 
 function TeamScheduleEditor({initial,revision,rosterRevision,team,onSaved,onCancel}:{initial:Schedule;revision:number;rosterRevision:number;team:TeamView;onSaved:()=>Promise<void>;onCancel:()=>void}){
   const t=useT(),operation=useTeamOperation(),[draft,setDraft]=useState(initial);
+  const [versions,setVersions]=useState({revision,rosterRevision});
+  const [reviewedTeam,setReviewedTeam]=useState<TeamView|null>(null);
+  const currentTeam=reviewedTeam&&reviewedTeam.roster.revision>team.roster.revision?reviewedTeam:team;
+  const [review,setReview]=useState<{schedule:Schedule;team:TeamView;revision:number}|null>(null);
+  const [reviewing,setReviewing]=useState(false),[reviewError,setReviewError]=useState("");
+  const alive=useRef(true),reviewLock=useRef(false);
+  useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
   const patch=(value:Partial<Schedule>)=>setDraft(old=>({...old,...value}));
   const target=draft.group?`group:${draft.group}`:`agent:${draft.agent??""}`;
-  const targets=[...team.roster.agents.map(a=>({value:`agent:${a.id}`,label:a.name})),...team.roster.groups.filter(g=>!g.archived).map(g=>({value:`group:${g.id}`,label:g.name||g.id}))];
+  const targets=[...currentTeam.roster.agents.map(a=>({value:`agent:${a.id}`,label:a.name})),...currentTeam.roster.groups.filter(g=>!g.archived).map(g=>({value:`group:${g.id}`,label:g.name||g.id}))];
   const valid=Boolean(draft.name.trim()&&draft.prompt.trim()&&targets.some(item=>item.value===target)&&draft.timezone.trim()&&Number.isFinite(Date.parse(draft.anchor))&&(draft.repeat!=="every"||((draft.intervalMinutes??0)>=10&&(draft.intervalMinutes??0)<=10080))&&(draft.repeat!=="weekly"||draft.days.length>0));
-  const save=()=>operation.run({draft,revision,rosterRevision},requestId=>app.SaveTeamSchedule({schedule:draft,expectedRevision:revision,expectedRosterRevision:rosterRevision,requestId,delete:false}),onSaved);
+  const save=async()=>!review&&!reviewLock.current&&operation.run({draft,...versions},requestId=>app.SaveTeamSchedule({schedule:draft,expectedRevision:versions.revision,expectedRosterRevision:versions.rosterRevision,requestId,delete:false}),onSaved);
+  const reviewSaved=async()=>{
+    if(reviewLock.current||operation.busy)return;
+    reviewLock.current=true;setReviewing(true);setReviewError("");
+    try {
+      const [latest,latestTeam]=await Promise.all([app.GetTeamSchedules(),app.GetTeam()]);
+      if(!alive.current)return;
+      const schedule=draft.id?latest.schedules.find(sc=>sc.id===draft.id):initial;
+      if(!schedule){setReviewError(t("team.scheduleGone"));return;}
+      setReview({schedule,team:latestTeam,revision:latest.revision});
+    }catch(cause){if(alive.current)setReviewError(String(cause));}
+    finally{reviewLock.current=false;if(alive.current)setReviewing(false);}
+  };
+  const keepDraft=()=>{
+    if(!review)return;
+    // Carry only editable configuration over the reviewed snapshot. Runtime
+    // positions belong to the host, even when the user keeps their own draft.
+    setDraft({...review.schedule,name:draft.name,prompt:draft.prompt,agent:draft.agent,group:draft.group,repeat:draft.repeat,timezone:draft.timezone,clock:draft.clock,days:draft.days,anchor:draft.anchor,enabled:draft.enabled,intervalMinutes:draft.intervalMinutes});
+    setVersions({revision:review.revision,rosterRevision:review.team.roster.revision});
+    setReviewedTeam(review.team);
+    setReview(null);operation.clearError();
+  };
   const dirty=JSON.stringify(draft)!==JSON.stringify(initial);
-  const guard=useSettingsDraft({label:t("team.schedules"),order:4,dirty,busy:operation.busy,canSave:valid&&team.writable,save,discard:()=>setDraft(initial)});
-  return <form aria-busy={operation.busy} onSubmit={event=>{event.preventDefault();if(valid)void save();}}>
+  const guard=useSettingsDraft({label:t("team.schedules"),order:4,dirty,busy:operation.busy||reviewing,canSave:valid&&currentTeam.writable&&!review,save,discard:()=>setDraft(initial)});
+  return <form aria-busy={operation.busy||reviewing} onSubmit={event=>{event.preventDefault();if(valid)void save();}}>
     {operation.error&&<SettingsFeedback kind="error">{operation.error==="conflict"?t("team.conflict"):operation.error}</SettingsFeedback>}
+    {operation.error==="conflict"&&!review&&<button className="btn" type="button" disabled={reviewing} onClick={()=>void reviewSaved()}>{t("team.scheduleReview")}</button>}
+    {reviewError&&<SettingsFeedback kind="error">{reviewError}</SettingsFeedback>}
+    {review&&<SettingsSection title={t("team.scheduleSavedVersion")} description={t("team.scheduleReviewHint")}>
+      <p>{review.schedule.name}</p><p>{review.schedule.prompt}</p>
+      <p>{review.team.roster.agents.find(a=>a.id===review.schedule.agent)?.name??review.team.roster.groups.find(g=>g.id===review.schedule.group)?.name??t("team.memoryTargetGone")}</p>
+      <p>{t(({once:"team.scheduleOnce",daily:"team.scheduleDaily",weekly:"team.scheduleWeekly",every:"team.scheduleEvery"} as const)[review.schedule.repeat as "once"|"daily"|"weekly"|"every"])} · {review.schedule.timezone} · {review.schedule.repeat==="once"||review.schedule.repeat==="every"?new Date(review.schedule.anchor).toLocaleString():review.schedule.clock}{review.schedule.repeat==="every"?` · ${review.schedule.intervalMinutes} min`:""}{review.schedule.repeat==="weekly"?` · ${review.schedule.days.map(day=>new Intl.DateTimeFormat(undefined,{weekday:"short"}).format(new Date(2023,0,1+day))).join(", ")}`:""} · {t(review.schedule.enabled?"team.scheduleEnabled":"team.scheduleDisabled")}</p>
+      <button className="btn" type="button" disabled={!team.writable||!review.team.writable} onClick={keepDraft}>{t("team.scheduleKeepDraft")}</button>
+    </SettingsSection>}
     <SettingsField label={t("team.name")}><input className="mem-input set-grow" value={draft.name} maxLength={60} disabled={operation.busy} onChange={e=>patch({name:e.target.value})}/></SettingsField>
     <SettingsField label={t("team.scheduleTarget")}><SettingsSelect value={target} options={targets} disabled={operation.busy} onValueChange={value=>{const [kind,id]=value.split(":");patch({agent:kind==="agent"?id:"",group:kind==="group"?id:""});}}/></SettingsField>
     <SettingsField label={t("team.schedulePrompt")} stacked><textarea className="mem-textarea" rows={4} value={draft.prompt} maxLength={2000} disabled={operation.busy} onChange={e=>patch({prompt:e.target.value})}/></SettingsField>
@@ -54,6 +90,6 @@ function TeamScheduleEditor({initial,revision,rosterRevision,team,onSaved,onCanc
     {draft.repeat==="every"&&<SettingsField label={t("team.scheduleInterval")}><input className="mem-input" type="number" min={10} max={10080} value={draft.intervalMinutes??60} disabled={operation.busy} onChange={e=>patch({intervalMinutes:Number(e.target.value)})}/></SettingsField>}
     {draft.repeat==="weekly"&&<SettingsField label={t("team.scheduleDays")}><div className="agent-preset-row__actions">{[0,1,2,3,4,5,6].map(day=><label key={day}><input type="checkbox" checked={draft.days.includes(day)} disabled={operation.busy} onChange={e=>patch({days:e.target.checked?[...draft.days,day]:draft.days.filter(d=>d!==day)})}/>{new Intl.DateTimeFormat(undefined,{weekday:"short"}).format(new Date(2023,0,1+day))}</label>)}</div></SettingsField>}
     <SettingsField label={t("team.scheduleEnabled")}><input type="checkbox" checked={draft.enabled} disabled={operation.busy} onChange={e=>patch({enabled:e.target.checked})}/></SettingsField>
-    <div className="settings-save-bar"><button className="btn" type="button" disabled={operation.busy} onClick={()=>guard.leave(onCancel)}>{t("common.cancel")}</button><button className="btn btn--primary" disabled={!valid||!dirty||!team.writable||operation.busy}>{t("common.save")}</button></div>
+    <div className="settings-save-bar"><button className="btn" type="button" disabled={operation.busy||reviewing} onClick={()=>guard.leave(onCancel)}>{t("common.cancel")}</button><button className="btn btn--primary" disabled={!valid||!dirty||!currentTeam.writable||operation.busy||reviewing||!!review}>{t("common.save")}</button></div>
   </form>;
 }

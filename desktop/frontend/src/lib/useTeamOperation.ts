@@ -20,5 +20,5 @@ export function useTeamOperation() {
     }catch(cause){if(alive.current)setError(String(cause));return false;}
     finally{lock.current=false;if(alive.current)setBusy(false);}
   };
-  return {run,busy,error};
+  return {run,busy,error,clearError:()=>setError("")};
 }

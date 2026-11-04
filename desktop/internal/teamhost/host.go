@@ -50,19 +50,26 @@ type entry struct {
 }
 
 type Host struct {
-	opts    Options
-	mu      sync.Mutex
-	seats   map[team.SeatRef]*entry
-	visible map[team.SeatRef]bool
-	locks   sync.Map
-	ops     sync.WaitGroup
-	service *team.Service
-	release func()
-	closing bool
-	ready   bool
-	ctx     context.Context
-	cancel  context.CancelFunc
-	claimMu sync.Mutex
+	opts       Options
+	mu         sync.Mutex
+	seats      map[team.SeatRef]*entry
+	visible    map[team.SeatRef]bool
+	locks      sync.Map
+	ops        sync.WaitGroup
+	service    *team.Service
+	release    func()
+	closing    bool
+	ready      bool
+	ctx        context.Context
+	cancel     context.CancelFunc
+	claimMu    sync.Mutex
+	shutdownMu sync.Mutex
+	shutdown   *shutdownAttempt
+}
+
+type shutdownAttempt struct {
+	done chan struct{}
+	err  error // published by closing done
 }
 
 func New(opts Options) (*Host, error) {
@@ -297,27 +304,61 @@ func (h *Host) Tick(ctx context.Context) error {
 
 func (h *Host) Shutdown(ctx context.Context) error {
 	h.cancel()
-	h.claimMu.Lock()
-	defer h.claimMu.Unlock()
 	h.mu.Lock()
 	h.closing = true
 	h.mu.Unlock()
+	h.shutdownMu.Lock()
+	attempt := h.shutdown
+	if attempt != nil {
+		select {
+		case <-attempt.done:
+			if attempt.err != nil {
+				attempt = nil
+			}
+		default:
+		}
+	}
+	if attempt == nil {
+		attempt = &shutdownAttempt{done: make(chan struct{})}
+		h.shutdown = attempt
+		go func() { defer close(attempt.done); attempt.err = h.shutdownOwned() }()
+	}
+	h.shutdownMu.Unlock()
+	select {
+	case <-attempt.done:
+		return attempt.err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// The attempt owns cleanup beyond a caller's wait deadline. Retries join it;
+// neither a cancelled waiter nor a slow Close can release the writer lease.
+func (h *Host) shutdownOwned() error {
+	h.claimMu.Lock()
+	h.mu.Lock()
+	h.closing = true
+	h.mu.Unlock()
+	h.claimMu.Unlock()
 	h.ops.Wait()
 	h.mu.Lock()
 	seats := maps.Clone(h.seats)
 	h.mu.Unlock()
-	for _, e := range seats {
-		e.runtime.Cancel()
+	results := make(chan error, len(seats))
+	for ref, e := range seats {
+		go func() {
+			err := closeRuntime(e.runtime)
+			if err == nil {
+				h.mu.Lock()
+				delete(h.seats, ref)
+				h.mu.Unlock()
+			}
+			results <- err
+		}()
 	}
 	var failures error
-	for ref, e := range seats {
-		if err := e.runtime.Close(ctx); err != nil {
-			failures = errors.Join(failures, err)
-			continue
-		}
-		h.mu.Lock()
-		delete(h.seats, ref)
-		h.mu.Unlock()
+	for range seats {
+		failures = errors.Join(failures, <-results)
 	}
 	if failures != nil {
 		return failures
@@ -330,4 +371,14 @@ func (h *Host) Shutdown(ctx context.Context) error {
 		release()
 	}
 	return nil
+}
+
+func closeRuntime(runtime Runtime) (err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = fmt.Errorf("team runtime cleanup panic: %v", recovered)
+		}
+	}()
+	runtime.Cancel()
+	return runtime.Close(context.Background())
 }

@@ -50,6 +50,9 @@ func (a *App) liveRuntimeTabMatchingLocked(exclude *WorkspaceTab, identity strin
 		if tab == nil || tab == exclude || tab.Ctrl == nil {
 			return false
 		}
+		if a.sessionRuntimeViewLocked(tab).Phase == sessionRuntimeClosing {
+			return false
+		}
 		if want == "" {
 			return false
 		}

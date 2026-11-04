@@ -56,6 +56,16 @@ func hold(l Labeled) {
 	registered.snapshot = nil
 }
 
+// RememberValues seals newly accepted host credentials before they are written
+// or used. Retain earlier values for in-flight output after rotation/deletion.
+func RememberValues(values []Labeled) {
+	registered.Lock()
+	defer registered.Unlock()
+	for _, value := range values {
+		hold(value)
+	}
+}
+
 // Mask is a snapshot of the registered values. A nil Mask masks nothing.
 type Mask struct {
 	values []spelled
