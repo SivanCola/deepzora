@@ -6,6 +6,29 @@ import (
 	"deepzora/internal/config"
 )
 
+func TestDesktopModelLabelStableAcrossBoot(t *testing.T) {
+	cfg := &config.Config{Providers: []config.ProviderEntry{{Name: "long-connection-id", Kind: "openai", Models: []string{"org/custom-model", "deepseek-v4-flash"}}}}
+	for _, model := range cfg.Providers[0].Models {
+		ref := "long-connection-id/" + model
+		cold := desktopModelLabel(cfg, ref, "")
+		ready := desktopModelLabel(cfg, ref, model)
+		info := configuredModelInfo(cfg, "long-connection-id", model, true)
+		want := info.ModelDisplayName
+		if want == "" {
+			want = model
+		}
+		if cold != want || ready != want {
+			t.Fatalf("%s: cold=%q ready=%q want=%q", ref, cold, ready, want)
+		}
+	}
+	if got := desktopModelLabel(cfg, "plugin/example/org/custom-model", "extension-owned"); got != "extension-owned" {
+		t.Fatalf("extension label changed: %q", got)
+	}
+	if got := desktopModelLabel(cfg, "long-connection-id/org/custom-model", "org/custom-model + planner custom"); got != "org/custom-model + planner custom" {
+		t.Fatalf("composite label changed: %q", got)
+	}
+}
+
 func TestConfiguredModelInfoPreservesPresetBrand(t *testing.T) {
 	for _, tc := range []struct {
 		name, preset, brand string

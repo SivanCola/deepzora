@@ -14,7 +14,7 @@ await server.listen();
 let browser;
 try {
   browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_EXECUTABLE });
-  const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, reducedMotion: "reduce" });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, reducedMotion: "reduce", locale: "en-US" });
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   const address = server.httpServer.address();
@@ -32,7 +32,10 @@ try {
     const operationFor = meta => [...operations.values()].find(op => op.ref.sessionId === (meta.session?.sessionId || meta.sessionId));
     const startup = meta => {
       const operation = operationFor(meta);
-      return operation?.phase === "starting" ? { ...meta, ready: false } : meta;
+      if (!operation) return meta;
+      // Older hosts can still send a qualified startup label. Catalog fallback
+      // must show the model ID even when no friendly model name is available.
+      return { ...meta, ready: operation.phase === "ready", label: operation.phase === "starting" ? "fixture-connection/org/custom-model" : "org/custom-model" };
     };
     installDesktopHostStub({ ...fallback,
       BeginManualSessionCreation: async request => {
@@ -52,6 +55,9 @@ try {
       ListManualSessionCreations: async () => [...operations.values()].filter(op => op.phase !== "ready"),
       ListTabs: async () => (await fallback.ListTabs()).map(startup),
       MetaForTab: async id => startup(await fallback.MetaForTab(id)),
+      ModelsForTab: async id => operationFor(await fallback.MetaForTab(id))
+        ? [{ ref: "fixture-connection/org/custom-model", provider: "fixture-connection", model: "org/custom-model", current: true }]
+        : fallback.ModelsForTab(id),
     });
     window.manualCreationFixture = {
       operations: () => [...operations.values()],
@@ -75,6 +81,10 @@ try {
   assert.equal(await page.locator(".composer__btn--send").isDisabled(), true, "typing never sends before the new controller is ready");
   const notice = page.getByTestId("creation-notice");
   await notice.getByText(/You can type now/).waitFor();
+  const hero = page.locator(".chat-pane--creation-empty");
+  await hero.locator(".welcome-creation__headline").waitFor({ state: "visible" });
+  await hero.locator(".composer-workspace-bar").waitFor({ state: "visible" });
+  await page.waitForFunction(() => document.querySelector('.modelsw__label')?.textContent === 'org/custom-model');
   assert.equal(await notice.locator("button").count(), 0, "preparation does not ask for any user choice");
   const noticeBox = await notice.boundingBox();
   const inputBox = await input.boundingBox();
@@ -92,6 +102,8 @@ try {
   const second = await page.evaluate(() => window.manualCreationFixture.operations()[1]);
   assert.notEqual(second.ref.sessionId, first.ref.sessionId, "each explicit new action allocates its own session");
   await input.fill("Second new session input while starting");
+  await hero.locator(".composer-workspace-bar").waitFor({ state: "visible" });
+  const startingFrame = await page.locator(".composer-workspace-frame").boundingBox();
   const firstReads = await page.evaluate(id => window.manualCreationFixture.reads(id), first.operationId);
   await page.evaluate(id => window.manualCreationFixture.finish(id), first.operationId);
   assert.equal(await page.evaluate(() => window.manualCreationFixture.active()), second.ref.sessionId);
@@ -100,6 +112,12 @@ try {
   await page.waitForFunction(id => window.manualCreationFixture.observedReady(id), second.operationId);
   await page.waitForFunction(() => !document.querySelector(".composer__btn--send")?.disabled);
   await notice.waitFor({ state: "detached" });
+  await hero.locator(".welcome-creation__headline").waitFor({ state: "visible" });
+  await hero.locator(".composer-workspace-bar").waitFor({ state: "visible" });
+  assert.equal(await page.locator(".modelsw__label").textContent(), "org/custom-model", "runtime completion keeps the model name consistent");
+  const readyFrame = await page.locator(".composer-workspace-frame").boundingBox();
+  assert.ok(Math.abs(startingFrame.x - readyFrame.x) < 1 && Math.abs(startingFrame.width - readyFrame.width) < 1,
+    "startup completion retains the welcome composer width and position");
   assert.equal(await input.inputValue(), "Second new session input while starting", "runtime completion preserves typed input");
   assert.equal(await page.evaluate(() => window.manualCreationFixture.active()), second.ref.sessionId, "out-of-order startup never changes the user's selection");
   assert.equal(await page.evaluate(id => window.manualCreationFixture.reads(id), first.operationId), firstReads, "leaving a starting session stops its request polling while the host continues");

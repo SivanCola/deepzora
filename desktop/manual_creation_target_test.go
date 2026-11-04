@@ -138,6 +138,10 @@ func TestManualCreationOpensInputBeforeRuntimeReady(t *testing.T) {
 	if !preservedBuild {
 		t.Fatal("opening input built a competing runtime")
 	}
+	earlyLabel := a.metaForTab(early.ID).Label
+	if earlyLabel == "" {
+		t.Fatal("new session has no model label before runtime startup")
+	}
 	input, err := a.GetSessionComposerState(v.Ref)
 	if err != nil {
 		t.Fatal(err)
@@ -158,6 +162,9 @@ func TestManualCreationOpensInputBeforeRuntimeReady(t *testing.T) {
 	a.mu.RUnlock()
 	if !correct {
 		t.Fatal("initialization did not preserve the selected session")
+	}
+	if readyLabel := a.metaForTab(active.ID).Label; readyLabel != earlyLabel {
+		t.Fatalf("startup changed model label: %q -> %q", earlyLabel, readyLabel)
 	}
 }
 
