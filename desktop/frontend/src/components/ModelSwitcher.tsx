@@ -12,6 +12,8 @@ import { AnchoredPopover } from "./AnchoredPopover";
 import { Tooltip } from "./Tooltip";
 import { useModelApplicationStatus } from "../lib/useModelApplicationStatus";
 
+const emptyModels: ModelInfo[] = [];
+
 // ModelSwitcher opens an upward popover listing configured providers. Selecting
 // one switches the active model while the current conversation continues.
 export function ModelSwitcher({
@@ -42,7 +44,11 @@ export function ModelSwitcher({
   const t = useT();
   const application=useModelApplicationStatus(tabId);
   const [open, setOpen] = useState(false);
-  const [models, setModels] = useState<ModelInfo[]>([]);
+  const catalogScope = JSON.stringify([tabId ?? "", sessionKey ?? ""]);
+  const [catalog, setCatalog] = useState<{ scope: string; models: ModelInfo[] }>({ scope: "", models: emptyModels });
+  // A new surface must not display the previous session's current model while
+  // its own catalog is loading (including rebinding within the same tab).
+  const models = catalog.scope === catalogScope ? catalog.models : emptyModels;
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [favorites, setFavorites] = useState<Set<string>>(() => readModelFavorites());
@@ -51,9 +57,11 @@ export function ModelSwitcher({
   const inputRef = useRef<HTMLInputElement>(null);
   const loadSeqRef = useRef(0);
   const currentTabKeyRef = useRef(tabId ?? "");
+  const currentCatalogScopeRef = useRef(catalogScope);
   const pendingPickCountByTabRef = useRef(new Map<string, number>());
   const pickSeqByTabRef = useRef(new Map<string, number>());
   currentTabKeyRef.current = tabId ?? "";
+  currentCatalogScopeRef.current = catalogScope;
 
   useEffect(() => {
     setOpen(false);
@@ -75,12 +83,12 @@ export function ModelSwitcher({
     const seq = ++loadSeqRef.current;
     return (targetTabId ? app.ModelsForTab(targetTabId) : app.Models())
       .then((next) => {
-        if (seq === loadSeqRef.current && currentTabKeyRef.current === targetKey) {
-          setModels(asArray(next).map(normalizeModelInfo));
+        if (seq === loadSeqRef.current && currentTabKeyRef.current === targetKey && currentCatalogScopeRef.current === catalogScope) {
+          setCatalog({ scope: catalogScope, models: asArray(next).map(normalizeModelInfo) });
         }
       })
       .catch(() => {});
-  }, []);
+  }, [catalogScope]);
 
   const loadModels = useCallback(
     () => loadModelsForTab(tabId),
@@ -155,7 +163,8 @@ export function ModelSwitcher({
   const currentModel = useMemo(() => models.find((m) => m.current)
     ?? models.find((m) => m.model === label || m.ref === label), [label, models]);
   const currentProvider = currentModel ? (currentModel.displayName?.trim() || providerLabel(currentModel.provider, t)) : null;
-  const displayLabel = currentModel?.modelDisplayName?.trim() || label;
+  const fallbackLabel = currentModel && (label === currentModel.ref || !label) ? currentModel.model : label;
+  const displayLabel = currentModel?.modelDisplayName?.trim() || fallbackLabel;
   const triggerLabel = [displayLabel, currentModel && displayLabel !== currentModel.model ? currentModel.model : null, currentProvider, detailLabel].filter(Boolean).join(" · ");
 
   const toggleFavorite = (ref: string) => {
@@ -182,7 +191,7 @@ export function ModelSwitcher({
     // Catalog requests started before this click describe the outgoing model
     // and must not overwrite the optimistic last-click choice.
     loadSeqRef.current += 1;
-    setModels((prev) => prev.map((m) => ({ ...m, current: m.ref === model.ref })));
+    setCatalog({ scope: catalogScope, models: models.map((m) => ({ ...m, current: m.ref === model.ref })) });
     pendingPickCountByTabRef.current.set(pendingKey, pendingPickCount + 1);
     const settlePick = (switched: boolean) => {
       const nextCount = Math.max(
@@ -196,11 +205,11 @@ export function ModelSwitcher({
       if (
         switched ||
         pickSeqByTabRef.current.get(pendingKey) !== pickSeq ||
-        currentTabKeyRef.current !== pendingKey
+        currentTabKeyRef.current !== pendingKey || currentCatalogScopeRef.current !== catalogScope
       ) {
         return;
       }
-      setModels(previousModels);
+      setCatalog({ scope: catalogScope, models: previousModels });
       void loadModelsForTab(tabId);
     };
     try {

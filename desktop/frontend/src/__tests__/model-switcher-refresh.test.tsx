@@ -587,5 +587,40 @@ for (const [index, fixture] of presetBrands.entries()) {
 }
 await Promise.all([...providerBrandIcons].map(id => access(new URL(`../../public/provider-icons/${id}.svg`, import.meta.url))));
 
+// Catalogs belong to the selected surface. Neither a delayed response nor a
+// failed pick in an old session may replace the new session's model name.
+const delayedCatalog = deferred<ModelInfo[]>();
+catalogLoader = () => delayedCatalog.promise;
+await act(async () => root.render(renderSwitcher("org/new-model", "new-tab", false, "new-session")));
+const modelText = () => document.querySelector(".modelsw__label")?.textContent;
+if (modelText() !== "org/new-model") throw new Error("new tab displayed the outgoing session's catalog while loading");
+await act(async () => {
+  delayedCatalog.resolve([{ ref: "connection/org/new-model", provider: "connection", model: "org/new-model", current: true }]);
+  await delayedCatalog.promise;
+});
+await act(async () => root.render(renderSwitcher("connection/org/new-model", "new-tab", false, "new-session")));
+if (modelText() !== "org/new-model") throw new Error("a model without a friendly name exposed its connection ref");
+await act(async () => root.render(renderSwitcher("org/new-model", "new-tab", true, "new-session")));
+if (modelText() !== "org/new-model") throw new Error("runtime readiness changed the displayed model name");
+await act(async () => root.render(renderSwitcher("org/new-model + planner custom", "new-tab", true, "new-session")));
+if (modelText() !== "org/new-model + planner custom") throw new Error("catalog fallback hid the composite planner label");
+
+const replacedCatalog = deferred<ModelInfo[]>();
+catalogLoader = () => replacedCatalog.promise;
+await act(async () => root.render(renderSwitcher("org/rebound-model", "new-tab", false, "rebound-session")));
+if (modelText() !== "org/rebound-model") throw new Error("rebinding a tab displayed another session's catalog");
+const latestCatalog = deferred<ModelInfo[]>();
+catalogLoader = () => latestCatalog.promise;
+await act(async () => root.render(renderSwitcher("org/latest-model", "new-tab", false, "latest-session")));
+await act(async () => {
+  replacedCatalog.resolve([{ ref: "old/org/rebound-model", provider: "old", model: "org/rebound-model", current: true }]);
+  await replacedCatalog.promise;
+});
+if (modelText() !== "org/latest-model") throw new Error("late catalog replaced a rebound session's model label");
+await act(async () => {
+  latestCatalog.resolve([{ ref: "latest/org/latest-model", provider: "latest", model: "org/latest-model", current: true }]);
+  await latestCatalog.promise;
+});
+
 await act(async () => root.unmount());
 console.log(`model switcher refresh: PASS (${Object.keys(providerCatalog.catalogs).length} presets, ${presetBrands.length} brand cases in rail and list)`);

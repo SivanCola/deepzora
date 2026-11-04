@@ -2,12 +2,32 @@ package main
 
 import (
 	"log/slog"
+	"strings"
 	"time"
 
 	"deepzora/internal/config"
 	"deepzora/internal/control"
 	"deepzora/internal/provider"
 )
+
+// Use the same configured name before and after boot, including while the
+// renderer's catalog request is pending. Resolve the connection rather than
+// splitting refs: routing model IDs can themselves contain slashes. Extension
+// and composite controller labels remain owned by their runtime.
+func desktopModelLabel(cfg *config.Config, ref, controllerLabel string) string {
+	entry, ok := cfg.ResolveModel(ref)
+	if !ok {
+		return controllerLabel
+	}
+	if controllerLabel != "" && controllerLabel != entry.Model {
+		return controllerLabel
+	}
+	info := configuredModelInfo(cfg, entry.Name, entry.Model, true)
+	if name := strings.TrimSpace(info.ModelDisplayName); name != "" {
+		return name
+	}
+	return entry.Model
+}
 
 func (a *App) recordModelSwitchTiming(tabID string, timing *modelSwitchTiming, started time.Time, result *error) {
 	timing.Total = time.Since(started)
