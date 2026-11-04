@@ -75,6 +75,7 @@ import { ANCHORED_POPOVER_CLOSE_MS, AnchoredPopover } from "./AnchoredPopover";
 import { ComposerChoice } from "./ComposerChoice";
 import { PermissionPresetChoice } from "./PermissionPresetChoice";
 import { AgentPresetChoice } from "./AgentPresetChoice";
+import { TeamPrivateHeader, type TeamPrivateIdentity } from "./TeamPrivateIdentity";
 const ModelSwitcher = lazy(() => import("./ModelSwitcher").then((module) => ({ default: module.ModelSwitcher })));
 const ComposerWorkspaceContextBar = lazy(() => import("./ComposerWorkspaceContextBar"));
 import { Tooltip } from "./Tooltip";
@@ -456,6 +457,7 @@ export function Composer({
   tabId, turnId,
   agentPreset,
   agentPresetLocked,
+  teamMember,
   effort,
   onSend,
   onCancel,
@@ -639,6 +641,7 @@ export function Composer({
   balance?: BalanceInfo;
   pinnedFiles?: import("../lib/pinnedContextBridge").PinnedFileInfo[];
   workspaceContext?: ComposerWorkspaceContext;
+  teamMember?: TeamPrivateIdentity;
   persistentDraft?: PersistentComposerTarget;
   formalSessionRef?: SessionRef;
   sessionIdentity?: SessionIdentity;
@@ -3843,7 +3846,7 @@ export function Composer({
           ? t("composer.goalInputPlaceholder")
           : planModeOn
             ? t("composer.planInputPlaceholder")
-            : t("composer.placeholder");
+            : teamMember ? t("team.messageMember", { name: teamMember.name }) : t("composer.placeholder");
   const composerMetaClass = [
     "composer-meta composer-meta--unified",
     hasEffort ? "composer-meta--has-effort" : "composer-meta--no-effort",
@@ -4345,7 +4348,7 @@ export function Composer({
       {workspaceContext && running && !waitingPrompt && !retry?.recovery?.waiting && !finishing && !runtimeState.unknown ? (
         <span className="composer-glowring" aria-hidden="true"><i /></span>
       ) : null}
-      {workspaceContext ? (
+      {teamMember ? <TeamPrivateHeader member={teamMember} /> : workspaceContext ? (
         <Suspense fallback={<div className="composer-workspace-bar-fallback" aria-hidden="true" />}>
           <ComposerWorkspaceContextBar context={workspaceContext} />
         </Suspense>
@@ -4465,7 +4468,7 @@ export function Composer({
                     id="composer-input"
                     ref={taRef}
                     className="composer__input"
-                    aria-label={t("composer.placeholder")} spellCheck={false} autoCorrect="off" autoCapitalize="off"
+                    aria-label={teamMember ? t("team.messageMember", { name: teamMember.name }) : t("composer.placeholder")} spellCheck={false} autoCorrect="off" autoCapitalize="off"
                     value={composingRef.current ? undefined : text}
                     onInputCapture={(e) => {
                       pendingNativeInputTypeRef.current = (e.nativeEvent as InputEvent).inputType;
@@ -4525,7 +4528,7 @@ export function Composer({
         />
         <div className={composerMetaClass}>
           <div className="composer-meta__params">
-            {tabId && <div className="composer-meta__control composer-meta__control--agent-preset">
+            {tabId && !teamMember && <div className="composer-meta__control composer-meta__control--agent-preset">
               <AgentPresetChoice key={`agent-preset-${tabId}:${sessionKey ?? ""}`} tabId={tabId} sessionKey={sessionKey}
                 current={agentPreset} locked={agentPresetLocked} running={running} disabled={disabled || readOnly || decisionPending}
                 dismissSignal={transientDismissSignal} onPendingChange={setAgentPresetPending} />
@@ -4552,7 +4555,7 @@ export function Composer({
               <PermissionPresetChoice
                 key={`approval-${tabId}`}
                 value={permissionPreset}
-                disabled={approvalBarDisabled} dismissSignal={transientDismissSignal}
+                disabled={approvalBarDisabled || Boolean(teamMember)} dismissSignal={transientDismissSignal}
                 scopeKey={`${tabId ?? ""}:${sessionKey ?? ""}:${workspaceScopeKey ?? ""}`}
                 projectConfirmationKey={fullAccessConfirmationKey}
                 onPick={chooseApprovalMode}

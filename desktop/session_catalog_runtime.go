@@ -56,6 +56,9 @@ func (a *App) runtimeProjectTopicNodes(scope, workspaceRoot string, snapshots []
 			snapshot.sessionPath = snapshot.ctrl.SessionRoute()
 		}
 		path := strings.TrimSpace(snapshot.sessionPath)
+		if id, ok := parseSessionRoute(path); ok && strings.HasPrefix(id, "desktop-team-") {
+			continue
+		}
 		label := defaultTopicTitle
 		if strings.TrimSpace(snapshot.topicTitle) != "" {
 			label = snapshot.topicTitle

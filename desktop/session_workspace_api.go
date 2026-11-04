@@ -632,6 +632,11 @@ func (a *App) openSessionWithNavigation(ref session.SessionRef, navigationSequen
 	if err != nil {
 		return HistoryPage{}, err
 	}
+	// Team identity and its writer lease belong to the target session, even
+	// when the caller enters through ordinary canonical-history navigation.
+	if _, err := a.teamSeatForCanonicalSession(ref.SessionID); err != nil {
+		return HistoryPage{}, err
+	}
 	if opened, err := a.openManualCreationSurface(ref, navigationSequence); opened || err != nil {
 		return HistoryPage{Messages: []HistoryMessage{}}, err
 	}

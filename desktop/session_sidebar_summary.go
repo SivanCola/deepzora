@@ -2,6 +2,7 @@ package main
 
 import (
 	"slices"
+	"strings"
 
 	"deepzora/desktop/internal/workspacestate"
 	"deepzora/internal/session"
@@ -13,6 +14,9 @@ func (a *App) GetSessionSummary(ref session.SessionRef) (ProjectNode, error) {
 	empty := ProjectNode{Children: []ProjectNode{}}
 	if err := validateLocalSessionRef(ref); err != nil {
 		return empty, err
+	}
+	if strings.HasPrefix(ref.SessionID, "desktop-team-") {
+		return empty, session.ErrSessionNotFound
 	}
 	state, err := a.workspaceRegistry().LoadProjection(a.bootContext())
 	if err != nil {

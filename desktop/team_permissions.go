@@ -6,6 +6,11 @@ import (
 	"errors"
 )
 
+func controllerHasTeamSeat(ctrl control.SessionAPI) bool {
+	bound, ok := ctrl.(interface{ BoundTeamSeat() control.TeamSeat })
+	return ok && bound.BoundTeamSeat() != nil
+}
+
 // Team membership owns the persistent preset for every seat. A saved sidecar
 // or a different seat must never restore a broader, obsolete permission.
 func teamPermissionForController(ctrl control.SessionAPI, fallback string) (string, error) {

@@ -108,6 +108,11 @@ conversations; existing sessions retain their chosen model. Names and avatars
 update immediately. Static prompt/tool changes wait for an idle rebuild and
 show pending status until applied.
 
+Private chat shows the member's name and avatar above the composer and in the
+conversation title. **Member settings** edits the independent member copy;
+permission is displayed read-only in chat. Model selection can still change
+the current conversation. Internal member workspaces do not appear as projects.
+
 Member permissions own every private and group seat. Restoration and chat
 controls cannot widen that persistent choice. Full access uses the standard
 Desktop acknowledgement, including the existing Windows Shell description.

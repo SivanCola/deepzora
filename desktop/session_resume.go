@@ -146,13 +146,13 @@ func (a *App) replaceControllerForSessionOpenLocked(ctx context.Context, tab *Wo
 	}
 	defer func() { a.finishSessionOpenEnvironment(prepared, committed) }()
 	snap, cfg, root, sharedHost := prepared.snapshot, prepared.config, workspace.Root, prepared.host
-	if targetModel == "" {
-		targetModel, _, _ = cfg.ResolveDesktopNewSessionModel()
-	}
 	extensionGeneration := a.currentExtensionGeneration()
 	buildOptions := a.sessionOpenBootOptions(tab, snap, cfg, service, sharedHost, root, targetModel)
-	buildOptions.AgentPresetSource = &ref
-	requestedModel := targetModel
+	buildOptions, err = a.bindSessionOpenTarget(buildOptions, ref, cfg)
+	if err != nil {
+		return nil, err
+	}
+	requestedModel := buildOptions.Model
 	candidate, targetModel, fallbackUsed, err := a.buildSessionOpenControllerCandidate(controllerCtx, extensionGeneration, cfg, buildOptions)
 	if err != nil {
 		return nil, err
@@ -208,6 +208,7 @@ func (a *App) replaceControllerForSessionOpenLocked(ctx context.Context, tab *Wo
 	applyCanonicalWorkspaceLocked(tab, workspace, prepared.workspaceChanged)
 	tab.SharedHostKey = snap.sharedHostKey
 	tab.Ctrl = candidate
+	tab.teamSeat = buildOptions.TeamSeat
 	tab.sink = snap.sink
 	tab.ActivityStatus = ""
 	tab.replaceTelemetry(loadTelemetryFor(sessionRoute(ref.SessionID)), sessionRuntimeKey(sessionRoute(ref.SessionID)))

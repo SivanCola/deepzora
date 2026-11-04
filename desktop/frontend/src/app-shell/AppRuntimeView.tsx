@@ -1,5 +1,6 @@
 import { lazy, Suspense, useMemo, useState, useLayoutEffect, type CSSProperties } from "react";
 import { DockNavigation } from "./dockNavigation";
+import { useTeamSpeaker } from "../lib/useTeamSpeaker";
 import { useFileNavigationRuntime } from "../app-runtime/useFileNavigationRuntime";
 import { fileNavigationKey } from "../lib/fileNavigationOwner";
 import { useActivityBarStore } from "../store/activityBar";
@@ -114,6 +115,11 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
   } = session;
   const { chromeCommands, navigationCommands } = navigation;
   const activeTeamGroup=shell.page.kind==="workspace"?shell.page.teamGroupID:undefined;
+  const memberSpeaker = useTeamSpeaker(activeTab?.teamAgentId);
+  const teamMember = activeTab?.teamAgentId ? {
+    ...(memberSpeaker ?? { id: activeTab.teamAgentId, name: t("team.member") }),
+    onManage: () => chromeCommands.openSidebarSettings("team"),
+  } : undefined;
   const runtimeTransitioning = core.surface.transitioning;
   const showFirstLaunchWelcome = session.transcript.emptyHero && (shell.providerSetupNeeded || !activeTabId);
   const browserPreviewChrome = navigation.browserPreviewChrome;
@@ -250,7 +256,7 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
         })} />
 
         {!activeTeamGroup&&<TopicbarRegion view={buildTopicbarView({
-            t, locale, activeTab: activeTab, cwd: state.meta?.cwd,
+            t, locale, activeTab: activeTab, cwd: state.meta?.cwd, teamMemberName: teamMember?.name,
             chromeHidden: workbenchChromeHidden, windowsBrand: windowsFramelessChrome,
             automationReturn: shell.automationReturn,
             sidebar: { title: navigation.sidebarToggleTitle, blocked: navigation.sidebarExpandBlocked, pressed: shell.sidebarTogglePressed, collapsed: shell.sidebarCollapsed },
@@ -373,6 +379,7 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
             undo={footerUndo}
             decision={decisionFooterSurface}
             composer={buildComposerSurface({
+              teamMember,
               empty: { onCreate: () => void navigationCommands.handleNewTab(), onChooseProject: () => void navigation.projectTopicCommands.onAddProject(), addingProject: navigation.projectTopicCommands.addingProject },
               view: {
                 hidden: composerSurfaceHidden,
