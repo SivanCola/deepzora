@@ -281,11 +281,10 @@ export class QuitSequencer {
     let timeout: ReturnType<typeof setTimeout> | undefined;
     try {
       const flush = this.deps.flushRenderer?.();
-      if (this.recoveryRestart) {
-        await Promise.race([flush, new Promise<never>((_, reject) => {
-          timeout = setTimeout(() => reject(new Error("Draft save timed out during recovery")), this.deps.recoveryDraftTimeoutMs ?? 5000);
-        })]);
-      } else await flush;
+      await Promise.race([flush, new Promise<never>((_, reject) => {
+        const waitMs = this.recoveryRestart ? this.deps.recoveryDraftTimeoutMs ?? 5000 : 15_000;
+        timeout = setTimeout(() => reject(new Error("Draft save timed out; the window remains open and unsaved input has not been discarded")), waitMs);
+      })]);
       this.draftSaveMs = this.now() - startedAt;
       this.rendererFlushed = true;
       this.deps.log.info(`exit ${this.attempt}: draft saved draft_ms=${this.draftSaveMs}`);
@@ -311,11 +310,10 @@ export class QuitSequencer {
       this.approved = false;
       this.quitRequested = false;
       this.rendererFlushed = false;
-      if (recoveryCancelled) {
-        // Queue barrier release even if the page is still hung; do not make
-        // cancellation wait for that same unresponsive page a second time.
-        void this.resumeRenderer();
-      } else {
+      // Queue barrier release even if the page is still hung; do not make
+      // cancellation wait for that same unresponsive page a second time.
+      void this.resumeRenderer();
+      if (!recoveryCancelled) {
         try {
           await this.deps.onPrepareFailed?.(message);
         } catch (promptError) {

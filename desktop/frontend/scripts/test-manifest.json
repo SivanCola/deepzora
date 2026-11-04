@@ -440,6 +440,7 @@
       ]
     ],
     "app-lifecycle": [
+      ["tsx", "src/__tests__/session-composer-exit.test.ts"],
       ["tsx", "src/__tests__/transcript-follower-admission.test.tsx"],
       [
         "tsx",

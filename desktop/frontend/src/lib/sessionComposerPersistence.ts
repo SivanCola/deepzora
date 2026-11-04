@@ -38,7 +38,7 @@ export function sendPersistedComposer<T>(tabId: string, display: string, submit:
  return task;
 }
 const listeners = new Set<() => void>();
-let serial = 0, revision = 0, exiting = false;
+let serial = 0, revision = 0, exiting = false, exitGeneration = 0;
 const keyFor = (ref: SessionRef) => `${ref.hostId}:${ref.sessionId}`;
 const notify = () => { revision++; listeners.forEach(fn => fn()); };
 const subscribe = (fn: () => void) => { listeners.add(fn); return () => { listeners.delete(fn); }; };
@@ -139,16 +139,18 @@ function edit(entry: Entry, content: PersistentComposerDraft) {
 }
 
 export async function flushAllSessionComposers() {
+  const owner = ++exitGeneration;
   exiting = true;
   notify();
   try {
     for (const entry of entries.values()) {
       while (entry.tasks.size) await Promise.allSettled([...entry.tasks]);
+      if (owner !== exitGeneration) throw new Error("Draft save was superseded");
       if (entry.version > entry.saved || entry.error) await flush(entry);
     }
-  } catch (error) { exiting = false; throw error; }
+  } catch (error) { if (owner === exitGeneration) exiting = false; throw error; }
 }
-export function resumeSessionComposerEditing() { exiting = false; notify(); }
+export function resumeSessionComposerEditing() { exitGeneration++; exiting = false; notify(); }
 
 export async function beginPersistedComposerSubmission(tabId: string, submissionId: string, requestJSON: string, expectedEdit?: number, key = tabs.get(tabId), owner = tabOwners.get(tabId)) {
   const entry = key ? entries.get(key) : undefined;

@@ -7,7 +7,7 @@ export type TeamComposerDraft=TeamGroupDraft;
 export const emptyTeamDraft:TeamComposerDraft={requestId:"",text:"",mentions:[],everyone:false};
 type Entry={revision?:number;version:number;saved:number;tasks:Set<Promise<unknown>>;loading?:Promise<void>;saving?:Promise<void>;timer?:ReturnType<typeof setTimeout>;error?:string};
 const entries=new Map<string,Entry>();
-let exiting=false;
+let exiting=false,exitGeneration=0;
 export const useTeamComposerStore=create<{drafts:Record<string,TeamComposerDraft>;serial:number;set:(group:string,draft:TeamComposerDraft)=>void}>((set)=>({drafts:{},serial:0,set:(group,draft)=>{
   const entry=entryFor(group);if(exiting||entry.revision===undefined||entry.error)return;
   entry.version++;
@@ -57,11 +57,12 @@ export async function flushTeamDraft(group:string):Promise<void>{
   try{await entry.saving;}catch(cause){entry.error=String(cause);throw cause;}finally{entry.saving=undefined;publish();}
 }
 export async function flushAllTeamDrafts(){
+  const owner=++exitGeneration;
   exiting=true;
-  try{for(const [group,entry] of entries){while(entry.tasks.size)await Promise.allSettled([...entry.tasks]);await flushTeamDraft(group);}}
-  catch(cause){exiting=false;throw cause;}
+  try{for(const [group,entry] of entries){while(entry.tasks.size)await Promise.allSettled([...entry.tasks]);if(owner!==exitGeneration)throw new Error("Draft save was superseded");await flushTeamDraft(group);}}
+  catch(cause){if(owner===exitGeneration)exiting=false;throw cause;}
 }
-export function resumeTeamDraftEditing(){exiting=false;publish();}
+export function resumeTeamDraftEditing(){exitGeneration++;exiting=false;publish();}
 export function useTeamDraft(group:string){
   useTeamComposerStore(state=>state.serial);
   const draft=useTeamComposerStore(state=>state.drafts[group]??emptyTeamDraft),entry=entryFor(group);
