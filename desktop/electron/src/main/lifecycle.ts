@@ -30,7 +30,7 @@ export interface QuitSequencerDeps {
   recoveryDraftTimeoutMs?: number;
   onShutdownFailed?: (message: string) => Promise<boolean>;
   onCloseAllowed(): void;
-  cleanup?: Array<{ name: string; run(): void }>;
+  cleanup?: Array<{ name: string; run(): void | Promise<void> }>;
   schedule?: (run: () => void, milliseconds: number) => void;
   now?: () => number;
   log: Logger;
@@ -53,6 +53,8 @@ export class QuitSequencer {
   private recoveryRestart = false;
   private attemptStartedAt = 0;
   private draftSaveMs = 0;
+  private serviceStopped = false;
+  private cleanupCompleted = 0;
 
   constructor(private readonly deps: QuitSequencerDeps) {}
 
@@ -185,41 +187,41 @@ export class QuitSequencer {
 
   private async finish(): Promise<void> {
     if (!(await this.flushRenderer("shutdown cancelled"))) return;
-    const serviceStartedAt = this.now();
-    try {
-      await this.deps.service.shutdown(this.reason, (phase) => {
-        if (phase === "preparing" || phase === "saving" || phase === "closing") this.phase = phase;
-      });
-    } catch (error) {
-      const message = errorText(error);
-      this.deps.log.warn(
-        `exit ${this.attempt}: shutdown failed request=${this.shutdownRequestIdentity()} reason=${this.reason} draft_ms=${this.draftSaveMs} service_ms=${this.now() - serviceStartedAt} total_ms=${this.totalMs()}: ${message}`,
-      );
-      this.phase = "failed";
-      this.approved = true;
-      let retry = false;
+    if (!this.serviceStopped) {
+      const serviceStartedAt = this.now();
       try {
-        retry = await this.deps.onShutdownFailed?.(message) === true;
-      } catch (promptError) {
-        this.deps.log.warn(`exit ${this.attempt}: shutdown failure prompt failed: ${errorText(promptError)}`);
-      }
-      if (retry) {
-        this.phase = "saving";
-        await this.finish();
-      }
-      return;
-    }
-    this.deps.log.info(
-      `exit ${this.attempt}: shutdown complete request=${this.shutdownRequestIdentity()} reason=${this.reason} draft_ms=${this.draftSaveMs} service_ms=${this.now() - serviceStartedAt} total_ms=${this.totalMs()}`,
-    );
-    this.phase = "closing";
-    for (const step of [{ name: "close permission", run: () => this.deps.onCloseAllowed() }, ...(this.deps.cleanup ?? [])]) {
-      try {
-        step.run();
-        this.deps.log.info(`exit ${this.attempt}: cleanup ${step.name} complete`);
+        await this.deps.service.shutdown(this.reason, (phase) => {
+          if (phase === "preparing" || phase === "saving" || phase === "closing") this.phase = phase;
+        });
       } catch (error) {
-        this.deps.log.warn(`exit ${this.attempt}: cleanup ${step.name} failed: ${errorText(error)}`);
+        const message = errorText(error);
+        this.deps.log.warn(
+          `exit ${this.attempt}: shutdown failed request=${this.shutdownRequestIdentity()} reason=${this.reason} draft_ms=${this.draftSaveMs} service_ms=${this.now() - serviceStartedAt} total_ms=${this.totalMs()}: ${message}`,
+        );
+        await this.handleFinishFailure(message);
+        return;
       }
+      this.serviceStopped = true;
+      this.deps.log.info(
+        `exit ${this.attempt}: shutdown complete request=${this.shutdownRequestIdentity()} reason=${this.reason} draft_ms=${this.draftSaveMs} service_ms=${this.now() - serviceStartedAt} total_ms=${this.totalMs()}`,
+      );
+    }
+    this.phase = "closing";
+    // Native close events must remain vetoed while any asynchronous owner is
+    // saving. Only the final synchronous step may allow and close the window.
+    const steps = [...(this.deps.cleanup ?? []), { name: "main window", run: () => this.deps.onCloseAllowed() }];
+    while (this.cleanupCompleted < steps.length) {
+      const step = steps[this.cleanupCompleted]!;
+      try {
+        await step.run();
+      } catch (error) {
+        const message = `cleanup ${step.name} failed: ${errorText(error)}`;
+        this.deps.log.warn(`exit ${this.attempt}: ${message}`);
+        await this.handleFinishFailure(message);
+        return;
+      }
+      this.cleanupCompleted++;
+      this.deps.log.info(`exit ${this.attempt}: cleanup ${step.name} complete`);
     }
     this.phase = "completed";
     this.deps.log.info(`exit ${this.attempt}: resources cleaned; requesting final shell exit`);
@@ -238,6 +240,21 @@ export class QuitSequencer {
       this.deps.log.error(`relaunch failed: ${errorText(error)}`);
     } finally {
       this.deps.app.quit();
+    }
+  }
+
+  private async handleFinishFailure(message: string): Promise<void> {
+    this.phase = "failed";
+    this.approved = true;
+    let retry = false;
+    try {
+      retry = await this.deps.onShutdownFailed?.(message) === true;
+    } catch (promptError) {
+      this.deps.log.warn(`exit ${this.attempt}: shutdown failure prompt failed: ${errorText(promptError)}`);
+    }
+    if (retry) {
+      this.phase = this.serviceStopped ? "closing" : "saving";
+      await this.finish();
     }
   }
 

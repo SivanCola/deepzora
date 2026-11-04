@@ -23,7 +23,7 @@ type sessionOpenEnvironment struct {
 func (a *App) prepareSessionOpenEnvironment(tab *WorkspaceTab, workspace workspacestate.Workspace) (*sessionOpenEnvironment, error) {
 	snap := a.tabRuntimeSnapshot(tab)
 	prepared := &sessionOpenEnvironment{snapshot: snap, oldHost: snap.sharedHostKey, workspaceChanged: canonicalWorkspaceChanged(snap, workspace)}
-	prepared.preserveSource = controllerHasActiveRuntimeWork(snap.ctrl)
+	prepared.preserveSource = controllerHasActiveRuntimeWork(snap.ctrl) || controllerHasTeamSeat(snap.ctrl)
 	prepared.snapshot.sink = &tabEventSink{tabID: tab.ID, app: a}
 	prepared.snapshot.scope, prepared.snapshot.workspaceRoot = canonicalWorkspaceScope(workspace), workspace.Root
 	release, err := a.beginProjectRuntimeAdmission(prepared.snapshot.scope, workspace.Root)

@@ -424,20 +424,90 @@ test("the first exit trigger keeps ownership of the shutdown reason", async () =
   assert.deepEqual(reasons, ["update_restart"]);
 });
 
-test("cleanup failure cannot skip later cleanup or the final quit deadline", async () => {
+test("async cleanup finishes before destroying its window and requesting exit", async () => {
   const events: string[] = [];
-  let deadline: (() => void) | undefined;
+  const log: string[] = [];
+  const recorder = deferred();
+  const deadlines: Array<() => void> = [];
   let q!: QuitSequencer;
   q = new QuitSequencer({
     service: { beforeClose: async () => false, shutdown: async () => { events.push("stopped"); }, },
     app: { quit: () => { if (q.onBeforeQuit()) events.push("quit"); }, exit: () => events.push("forced"), relaunch() {}, },
-    onCloseAllowed: () => { throw new Error("window cleanup"); },
-    cleanup: [{ name: "tray", run: () => { events.push("tray"); }, },],
-    schedule: (run, ms) => { assert.equal(ms, 5000); deadline = run; }, log: silent,
+    onCloseAllowed: () => { events.push("allowed"); events.push("window destroyed"); },
+    cleanup: [
+      { name: "browser views", run: async () => { events.push("recorder started"); await recorder.promise; events.push("recorder saved"); events.push("views destroyed"); } },
+    ],
+    schedule: (run, ms) => { assert.equal(ms, 5000); deadlines.push(run); },
+    log: { info: message => log.push(message), warn: message => log.push(message), error: message => log.push(message) },
   });
   q.approve(); await tick();
-  assert.deepEqual(events, ["stopped", "tray", "quit"]);
-  deadline?.(); assert.equal(events.at(-1), "forced");
+  q.requestQuit(); void q.requestWindowClose(); await tick();
+  assert.equal(q.currentPhase,"closing");
+  assert.deepEqual(events, ["stopped", "recorder started"], "native window close must still be vetoed during cleanup");
+  assert.equal(deadlines.length,0,"pending persistence must not arm a forced exit");
+  assert.ok(!log.some(message=>message.includes("cleanup browser views complete")||message.includes("resources cleaned")));
+  recorder.resolve(); await tick();
+  assert.deepEqual(events, ["stopped", "recorder started", "recorder saved", "views destroyed", "allowed", "window destroyed", "quit"]);
+  assert.equal(q.currentPhase,"completed");
+  assert.equal(deadlines.length,1);deadlines[0]!(); assert.equal(events.at(-1), "forced");
+});
+
+for (const failure of ["sync", "async"] as const) {
+  test(`${failure} cleanup failure preserves pending steps and retries without replaying completed owners`, async () => {
+    const events: string[] = [], log: string[] = [];
+    const gate=deferred();
+    let q!: QuitSequencer, fail=true, scheduled=0, prompts=0;
+    const {app,calls}=fakeApp(()=>q);
+    q=new QuitSequencer({
+      app:{...app,exit:()=>assert.fail("must not force exit with unsaved cleanup")},
+      service:{beforeClose:async()=>false,shutdown:async()=>{events.push("service");}},
+      flushRenderer:async()=>{events.push("draft");},
+      resumeRenderer:async()=>assert.fail("a stopped service cannot resume draft editing"),
+      onCloseAllowed:()=>{events.push("allowed");},
+      cleanup:[
+        {name:"recorder",run:()=>{
+          events.push("recorder");
+          if(fail){if(failure==="sync")throw new Error("disk full");return gate.promise;}
+          events.push("saved");
+        }},
+        {name:"window",run:()=>{events.push("window");}},
+      ],
+      onShutdownFailed:async message=>{prompts++;assert.match(message,/cleanup recorder failed: disk full/);return false;},
+      schedule:()=>{scheduled++;},
+      log:{info:message=>log.push(message),warn:message=>log.push(message),error:message=>log.push(message)},
+    });
+    q.relaunch(["--after-update"]);await tick();
+    if(failure==="async"){gate.reject(new Error("disk full"));await tick();}
+    assert.equal(q.currentPhase,"failed");
+    assert.equal(prompts,1);
+    assert.equal(scheduled,0);
+    assert.deepEqual(events,["draft","service","recorder"]);
+    assert.ok(!calls.includes("exit")&&!calls.some(call=>call.startsWith("relaunch:")));
+    assert.ok(!log.some(message=>message.includes("resources cleaned")||message.includes("cleanup recorder complete")));
+    fail=false;q.requestQuit();await tick();
+    assert.deepEqual(events,["draft","service","recorder","recorder","saved","window","allowed"]);
+    assert.equal(q.currentPhase,"completed");
+    assert.equal(scheduled,1);
+    assert.equal(calls.filter(call=>call==="exit").length,1);
+    assert.equal(calls.filter(call=>call==="relaunch:--after-update").length,1);
+  });
+}
+
+test("cleanup failure prompt shares one retry across repeated native close requests",async()=>{
+  const prompt=deferred<boolean>();
+  let q!:QuitSequencer, attempts=0,prompts=0,services=0;
+  const {app,calls}=fakeApp(()=>q);
+  q=new QuitSequencer({
+    app,log:silent,service:{beforeClose:async()=>false,shutdown:async()=>{services++;}},onCloseAllowed(){},
+    cleanup:[{name:"recorder",run:async()=>{if(++attempts===1)throw new Error("save failed");}}],
+    onShutdownFailed:async()=>{prompts++;return prompt.promise;},
+  });
+  q.approve();await tick();
+  q.requestQuit();void q.requestWindowClose();q.approve();await tick();
+  assert.equal(attempts,1);assert.equal(prompts,1);assert.equal(services,1);assert.ok(!calls.includes("exit"));
+  prompt.resolve(true);await tick();
+  assert.equal(attempts,2);assert.equal(prompts,1);assert.equal(services,1);
+  assert.equal(q.currentPhase,"completed");assert.equal(calls.filter(call=>call==="exit").length,1);
 });
 
 test("service termination failure withholds shell exit and permits an exit retry", async () => {

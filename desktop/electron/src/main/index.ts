@@ -353,10 +353,9 @@ function bootstrap(dataHome: string): void {
     },
     // Website views go first: a WebContents closing after its window is
     // gone is the ordering that left orphaned renderers in the prototype.
-    onCloseAllowed: () => mainWindow.allowClose(),
+    onCloseAllowed: () => { mainWindow.allowClose(); mainWindow.close(); },
     cleanup: [
       { name: "browser views", run: async () => { await browserRecorder.close(); stopBrowserRecovery(); browserRecovery.save(browser.recoveryTabs()); browser.destroyAll(); browserDiagnosticExport.dispose(); } },
-      { name: "main window", run: () => mainWindow.close() },
       { name: "tray", run: () => tray.destroy() },
       { name: "startup deadline", run: () => clearTimeout(startupTimer) },
       { name: "startup presentation", run: () => startupDelay.cancel() },

@@ -22,6 +22,17 @@ type tabControllerBootResult struct {
 	err          error
 }
 
+func (a *App) bindSessionOpenTarget(options boot.Options, ref session.SessionRef, cfg *config.Config) (boot.Options, error) {
+	// Options initially describe the source surface. Resolve both identities
+	// from the target, so leaving a Team seat cannot copy its member persona.
+	seat, err := a.teamBindingForCanonicalSession(ref.SessionID)
+	options.TeamSeat, options.AgentPresetSource = seat, &ref
+	if options.Model == "" {
+		options.Model, _, _ = cfg.ResolveDesktopNewSessionModel()
+	}
+	return options, err
+}
+
 func (a *App) sessionOpenBootOptions(
 	tab *WorkspaceTab,
 	snap tabRuntimeSnapshot,

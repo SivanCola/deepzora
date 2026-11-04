@@ -269,6 +269,7 @@ export type ComposerSurfaceInput = {
   sessionKey: ComposerProps["sessionKey"];
   workspaceScopeKey: ComposerProps["workspaceScopeKey"];
   workspaceContext: ComposerProps["workspaceContext"];
+  teamMember?: ComposerProps["teamMember"];
   fileRefRefreshKey: ComposerProps["fileRefRefreshKey"];
   guidance: { key: string; itemId?: string; text: string } | null;
 };
@@ -291,6 +292,7 @@ export function buildComposerSurface(input: ComposerSurfaceInput): DecisionFoote
       goal: profile.goal,
       tabId: input.tabId,
       agentPreset: input.tab?.agentPreset,
+      teamMember: input.teamMember,
       agentPresetLocked: input.tab?.agentPresetLocked,
       formalSessionRef: input.tab?.session ?? undefined,
       sessionIdentity: input.tab ? sessionIdentityFields(input.tab) : undefined,

@@ -23,22 +23,23 @@ export function buildTopicbarView(input: {
   sidebar: { title: string; blocked: boolean; pressed: boolean; collapsed: boolean };
   rename: { editing: boolean; draft: string };
   draft?: { title: string; workspaceLabel: string };
+  teamMemberName?: string;
 }): TopicbarView {
   const { t, locale, activeTab } = input;
-  const topicbarTitle = input.draft?.title ?? topicDisplayTitle(activeTab);
-  const topicbarWorkspaceLabel = input.draft?.workspaceLabel ?? (activeTab ? tabWorkspaceTitle(activeTab) : "");
+  const topicbarTitle = input.teamMemberName ?? input.draft?.title ?? topicDisplayTitle(activeTab);
+  const topicbarWorkspaceLabel = input.teamMemberName ? t("team.privateChat") : input.draft?.workspaceLabel ?? (activeTab ? tabWorkspaceTitle(activeTab) : "");
   const topicbarWorkspacePath = activeTab?.scope === "project" ? activeTab.workspaceRoot || input.cwd : "";
   const topicbarSubtitleVisible = Boolean(activeTab?.isolatedWorktree);
   const topicbarSubtitleTitle = topicbarWorkspacePath || topicbarWorkspaceLabel;
-  const topicbarCanRename = !input.draft && Boolean(activeTab?.topicId);
+  const topicbarCanRename = !input.teamMemberName && !input.draft && Boolean(activeTab?.topicId);
   return {
     automationReturn: input.automationReturn,
     automationReturnLabel: locale === "en" ? "Back to automation" : "返回自动化",
     chromeHidden: input.chromeHidden,
     brand: input.windowsBrand,
     sidebar: input.sidebar,
-    title: { text: topicbarTitle, hover: topicTitle(activeTab),
-      renameLabel: t("topicBar.renameSession"), editing: input.rename.editing, draft: input.rename.draft,
+    title: { text: topicbarTitle, hover: input.teamMemberName ?? topicTitle(activeTab),
+      renameLabel: t("topicBar.renameSession"), editing: !input.teamMemberName && input.rename.editing, draft: input.rename.draft,
       canRename: topicbarCanRename, workspaceLabel: topicbarWorkspaceLabel },
     subtitle: { visible: topicbarSubtitleVisible, title: topicbarSubtitleTitle, worktreeTabId: activeTab?.isolatedWorktree ? activeTab.id : undefined,
       mergeLabel: t("worktree.mergeAction"), mergeTooltip: t("worktree.mergeButtonTooltip"),

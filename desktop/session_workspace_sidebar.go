@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -264,6 +265,9 @@ func (a *App) mergeCanonicalWorkspaceShellsFromProjection(projects []ProjectNode
 	present := map[string]bool{}
 	visible := make([]ProjectNode, 0, len(projects))
 	for _, project := range projects {
+		if teamManagedWorkspaceRoot(project.Root) {
+			continue
+		}
 		scope := "project"
 		if project.Kind == "global_folder" {
 			scope = "global"
@@ -280,7 +284,7 @@ func (a *App) mergeCanonicalWorkspaceShellsFromProjection(projects []ProjectNode
 	projects = visible
 	for _, id := range state.WorkspaceIDs {
 		workspace := state.Workspaces[id]
-		if !workspace.Visible || present[id] {
+		if !workspace.Visible || present[id] || teamManagedWorkspaceRoot(workspace.Root) {
 			continue
 		}
 		if id == workspacestate.GlobalWorkspaceID && !globalWorkspaceHasSessions(state) {
@@ -332,6 +336,18 @@ func (a *App) mergeCanonicalWorkspaceShellsFromProjection(projects []ProjectNode
 		a.ReleaseReadSnapshot(snapshotID)
 	}
 	return projects
+}
+
+// Member sandboxes are implementation-owned workspaces, shown through Team
+// navigation. User-selected project directories remain ordinary projects even
+// when they also contain Team sessions.
+func teamManagedWorkspaceRoot(root string) bool {
+	if strings.TrimSpace(root) == "" {
+		return false
+	}
+	base := filepath.Join(desktopTeamStore().Dir, "workspaces")
+	rel, err := filepath.Rel(base, root)
+	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && !filepath.IsAbs(rel)
 }
 
 // globalWorkspaceHasSessions decides whether the registry alone keeps Global
