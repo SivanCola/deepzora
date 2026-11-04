@@ -2,6 +2,185 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "0.0.5",
+      "releaseId": "0.0.5",
+      "baseVersion": "0.0.5",
+      "previousRelease": "0.0.4",
+      "date": "2026-11-04",
+      "channel": "stable",
+      "status": "reviewed",
+      "targetingVersion": 1,
+      "builds": { "cli": "v0.0.5", "desktop": "v0.0.5", "npm": "0.0.5" },
+      "title": {
+        "en": "Persistent Teams, connected Bots and safer shutdown",
+        "zh": "持久化团队、机器人连接与更可靠的退出"
+      },
+      "summary": {
+        "en": "Deepzora 0.0.5 adds local Desktop Teams with persistent members, private and group conversations, shared memory, schedules, member-authorized secrets and usage tracking. Messaging Bots can connect to Team members with replies routed back to their originating conversation. Subagent delegation is simplified, DeepSeek endpoint handling is corrected, and shutdown, credential protection and settings conflict recovery are strengthened.",
+        "zh": "Deepzora 0.0.5 新增本地桌面团队：持久化成员、私聊与群聊、共享记忆、定时任务、成员授权密钥及用量统计。消息机器人可连接团队成员，回复返回原始消息会话。同时简化子代理委派，修复 DeepSeek 接口地址处理，并加强退出清理、凭据保护和设置冲突恢复。"
+      },
+      "surfaces": ["desktop", "cli"],
+      "guides": [
+        {
+          "targets": ["desktop"],
+          "title": { "en": "Using Desktop Teams", "zh": "使用桌面团队" },
+          "body": { "en": "Set up members, groups, memory, schedules and secret authorizations.", "zh": "配置成员、群组、记忆、定时任务及密钥授权。" },
+          "href": "https://github.com/SivanCola/deepzora/blob/v0.0.5/docs/TEAM.md"
+        },
+        {
+          "targets": ["desktop"],
+          "title": { "en": "Connecting messaging Bots", "zh": "连接消息机器人" },
+          "body": { "en": "Connect a messaging provider and choose its Team member and routing mode.", "zh": "连接消息平台，选择对应团队成员及路由方式。" },
+          "href": "https://github.com/SivanCola/deepzora/blob/v0.0.5/docs/BOT_CHANNELS.md"
+        }
+      ],
+      "highlights": [
+        {
+          "kind": "new", "targets": ["desktop"],
+          "title": { "en": "A persistent local Team", "zh": "持久化本地团队" },
+          "body": {
+            "en": "Create members from agent presets, manage groups, open private chats and coordinate bounded handoffs or group rounds. Member identity, conversation history and browser login partitions survive navigation and restart. Background Team work keeps its runtime when a chat is closed.",
+            "zh": "从智能体预设创建成员、管理群组、打开私聊，并进行有边界的任务交接与群组轮次协作。成员身份、会话历史和浏览器登录分区在切页及重启后保留；关闭聊天显示不会直接终止后台团队运行时。"
+          },
+          "refs": [146, 147, 148, 149, 156]
+        },
+        {
+          "kind": "new", "targets": ["desktop"],
+          "title": { "en": "Bots connect messaging conversations to members", "zh": "机器人连接消息会话与团队成员" },
+          "body": {
+            "en": "Configure messaging channels, including Weixin and Feishu, in Settings. Choose a Team member and receive replies in the originating channel conversation. Saved configuration, connection state and member conversation identity are kept distinct; reconnect and restart restore enabled connections.",
+            "zh": "在设置中配置微信、飞书等消息渠道，选择团队成员，并在发起消息的渠道会话中接收回复。已保存配置、连接状态和成员会话身份分别管理；重新连接及重启会恢复已启用的连接。"
+          },
+          "refs": [159]
+        }
+      ],
+      "changes": {
+        "new": [
+          {
+            "targets": ["desktop"],
+            "title": { "en": "Team memory and independent schedules", "zh": "团队记忆与独立定时任务" },
+            "body": {
+              "en": "Manage member-private, Team and group memory separately. Shared writes require explicit human approval. Optional memory review uses new human messages and preserves fixed guidance. Team schedules save their time zone and occurrence identity, with settings for editing, enabling and reviewing conflicts.",
+              "zh": "分别管理成员私有、团队及群组记忆，共享写入需要明确人工批准。可选的自动记忆整理只使用新的人类消息并保留固定指导。团队定时任务保存时区和执行身份，可在设置中编辑、启停及处理冲突。"
+            },
+            "refs": [151]
+          },
+          {
+            "targets": ["desktop"],
+            "title": { "en": "Member-authorized secrets and attributed usage", "zh": "成员授权密钥与用量归属" },
+            "body": {
+              "en": "Store Team secrets in dedicated local slots, authorize individual members, and rotate or revoke them. Approved commands receive values only for that invocation. Exact-value masking covers model, tool, stream, history and extension boundaries; usage is attributed to members, groups and seats.",
+              "zh": "团队密钥使用专用本地存储，可逐成员授权、轮换及撤销；获批命令只在本次调用中接收密钥值。模型、工具、流式输出、历史及扩展边界执行精确值脱敏，用量可按成员、群组和席位归属。"
+            },
+            "refs": [152, 153]
+          }
+        ],
+        "improved": [
+          {
+            "targets": ["desktop", "cli"],
+            "title": { "en": "Simpler synchronous subagent delegation", "zh": "更简单的同步子代理委派" },
+            "body": {
+              "en": "Use spawn_agents for synchronous batches of one to eight independent tasks and read_subagent_result for archived results. Read-only children can run concurrently; writable work shares one writer slot. Profiles, model and effort choices, cancellation, tool restrictions and partial failure archives remain available.",
+              "zh": "使用 spawn_agents 同步委派 1 至 8 个独立任务，通过 read_subagent_result 读取已归档结果。只读子任务可并行，写入任务共用一个写入席位。继续保留专业配置、模型与推理强度、取消、工具限制及部分失败归档。"
+            },
+            "refs": [154]
+          },
+          {
+            "targets": ["desktop"],
+            "title": { "en": "Stable welcome layouts and clearer session controls", "zh": "稳定的新会话欢迎页与更清晰的会话操作" },
+            "body": {
+              "en": "New empty sessions retain their centered welcome layout while starting, and model labels remain readable across startup and tab changes. Session status refresh and collapse actions are grouped on the right. Team private chats show the member identity and retain the saved session model.",
+              "zh": "新建空白会话在启动期间保持居中欢迎布局，启动及切换标签时模型名称保持清晰稳定。会话状态的刷新与折叠操作统一位于右侧。团队私聊明确显示成员身份，并保留已保存的会话模型。"
+            },
+            "refs": [155, 156, 157]
+          }
+        ],
+        "fixed": [
+          {
+            "targets": ["desktop", "cli"],
+            "title": { "en": "Preserve complete DeepSeek Messages endpoints", "zh": "正确保留 DeepSeek Messages 完整接口地址" },
+            "body": {
+              "en": "Complete /anthropic/messages and /anthropic/v1/messages addresses no longer gain a duplicated Messages suffix. Model settings and selection show friendly names together with routing IDs while discovery, favorites and saved references retain the original IDs.",
+              "zh": "完整的 /anthropic/messages 和 /anthropic/v1/messages 地址不再重复追加 Messages 路径。模型设置和选择器同时展示友好名称及路由 ID，发现、收藏及已保存引用继续保留原始 ID。"
+            },
+            "refs": [150]
+          },
+          {
+            "targets": ["desktop"],
+            "title": { "en": "Bound shutdown waits and recover unfinished cleanup", "zh": "限制退出等待并恢复未完成清理" },
+            "body": {
+              "en": "Draft saving is bounded to 15 seconds and controller/Team cleanup waits to 20 seconds. Failures retain unsaved input and allow retry. Cleanup runs outside runtime gates, waits for finalization before releasing storage, and resumes completed failed Team attempts without repeating successful cleanup. Browser cleanup finishes before the window is destroyed.",
+              "zh": "退出保存草稿最多等待 15 秒，Controller 和团队清理等待最多 20 秒；失败时保留未保存输入并允许重试。清理在运行时锁外执行，最终化后再释放存储；已结束但失败的团队清理可继续恢复，不重复成功清理。浏览器清理完成后才销毁窗口。"
+            },
+            "refs": [156, 158, 160]
+          },
+          {
+            "targets": ["desktop", "cli"],
+            "title": { "en": "Protect Bot credentials across runtime entry points", "zh": "跨运行入口保护机器人凭据" },
+            "body": {
+              "en": "Desktop, CLI/ACP sessions and standalone review protect the Bot credential directory and mask active and migration-backup values before model requests. Runtime owners share a live credential source; unreadable committed snapshots block new outbound requests until repaired. Rotation and deletion keep already observed values masked.",
+              "zh": "桌面端、CLI/ACP 会话及独立 review 均保护机器人凭据目录，并在模型请求前脱敏当前凭据及迁移备份中的值。多个运行时共享实时凭据源；已提交凭据快照不可读时阻止新模型请求，直到存储修复。轮换和删除后继续脱敏已观察到的旧值。"
+            },
+            "refs": [160]
+          },
+          {
+            "targets": ["desktop"],
+            "title": { "en": "Keep settings drafts through conflicts and saves", "zh": "设置冲突和保存期间保留草稿" },
+            "body": {
+              "en": "Schedule conflicts show the latest saved settings while retaining the editor draft. Reviewing an overwrite and saving remain separate actions with revision checks. Secret values, descriptions and member grants are disabled together during save; a failed save restores editing without losing input.",
+              "zh": "定时任务发生冲突时展示最新已保存设置并保留编辑草稿；审核覆盖和保存保持为两个独立操作，并继续校验版本。密钥值、说明和成员授权在保存时同时禁用，保存失败后恢复编辑且不丢失输入。"
+            },
+            "refs": [160]
+          }
+        ]
+      },
+      "upgrade": [
+        {
+          "level": "warning", "targets": ["desktop", "cli"],
+          "title": { "en": "Update custom delegation instructions", "zh": "更新自定义委派指令" },
+          "body": {
+            "en": "Replace references to task, read_only_task, parallel_tasks, fleet and complete_subtask with the new synchronous delegation tools. Background, continuation, dependency-graph and nested delegation are removed. Update Desktop, CLI and integrations together when they share the generated command contract.",
+            "zh": "将自定义指令中的 task、read_only_task、parallel_tasks、fleet 和 complete_subtask 引用改为新的同步委派工具。后台委派、续跑、依赖图及嵌套委派已移除。共享生成命令契约时，请同时更新桌面端、CLI 和集成。"
+          },
+          "refs": [154]
+        },
+        {
+          "level": "info", "targets": ["desktop"],
+          "title": { "en": "Review migrated Bot connections", "zh": "检查迁移后的机器人连接" },
+          "body": {
+            "en": "Existing Bot preview configurations migrate to stable Team member identities and retain a user-only connections.pre-members.json backup. Check the selected member, permissions, model and connection status after updating. A saved connection is not proof that it connected or delivered a reply.",
+            "zh": "已有机器人预览配置迁移为稳定的团队成员身份，并保留仅当前用户可读的 connections.pre-members.json 备份。升级后检查所选成员、权限、模型及连接状态；保存连接成功不等于连接或回复投递成功。"
+          },
+          "refs": [159]
+        }
+      ],
+      "risks": [
+        {
+          "targets": ["desktop", "cli"],
+          "title": { "en": "Windows remains unsigned for this release", "zh": "本版 Windows 仍未代码签名" },
+          "body": {
+            "en": "The maintainer explicitly approved an unsigned Windows 0.0.5 Stable exception. These files have no Deepzora Authenticode publisher signature, so Windows may show unknown-publisher or SmartScreen warnings. Minisign integrity signatures, provenance and final-package native acceptance remain mandatory. This approval does not cover prereleases or later versions.",
+            "zh": "维护者已明确批准 Windows 0.0.5 Stable 未签名发布例外。相关文件没有 Deepzora 的 Authenticode 发布者签名，Windows 可能显示未知发布者或 SmartScreen 提示。Minisign 完整性签名、来源验证及最终安装包原生验收仍必须完成。此批准不适用于预发布版或后续版本。"
+          }
+        },
+        {
+          "targets": ["desktop"],
+          "title": { "en": "Local secret and messaging boundaries", "zh": "本地密钥与消息投递边界" },
+          "body": {
+            "en": "Team secret slots are local unencrypted files accessible to programs running as the same user. Exact-value masking does not prevent encoded or transformed leaks. Messaging delivery can fail or be retried; provider acknowledgement is not a recipient read receipt, and public remote control is not included.",
+            "zh": "团队密钥槽为本地未加密文件，同一用户运行的程序仍可读取；精确值脱敏不能防止编码或变形泄漏。消息投递可能失败或重试，平台确认不等于接收方已读，本版不包含公共远程控制。"
+          },
+          "refs": [153, 159]
+        }
+      ],
+      "contributors": [],
+      "links": {
+        "github": "https://github.com/SivanCola/deepzora/releases/tag/v0.0.5",
+        "compare": "https://github.com/SivanCola/deepzora/compare/v0.0.4...v0.0.5",
+        "download": "https://deepzora.app/#download"
+      }
+    },
+    {
       "version": "0.0.4",
       "releaseId": "0.0.4",
       "baseVersion": "0.0.4",

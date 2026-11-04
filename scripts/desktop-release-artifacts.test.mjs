@@ -60,8 +60,8 @@ printf installer > ../../bin/fixture-installer.exe
     });
     assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
   };
-  const unsigned = version => ["v0.0.1", "v0.0.2", "v0.0.3", "v0.0.4"].includes(version);
-  const cases = ["v1.2.3", "v0.0.1", "v0.0.2", "v0.0.3", "v0.0.4"].flatMap(version => ["amd64", "arm64"].map(arch => ({ version, arch })));
+  const unsigned = version => ["v0.0.1", "v0.0.2", "v0.0.3", "v0.0.4", "v0.0.5"].includes(version);
+  const cases = ["v1.2.3", "v0.0.1", "v0.0.2", "v0.0.3", "v0.0.4", "v0.0.5"].flatMap(version => ["amd64", "arm64"].map(arch => ({ version, arch })));
   for (const { version, arch } of cases) {
     put("pwsh-calls.txt", "");
     // A signing runner never built locally, and a second architecture must not
@@ -106,8 +106,8 @@ printf installer > ../../bin/fixture-installer.exe
       assert.match(calls, /-RequireTrusted/);
     }
   }
-  const refused = spawnSync('bash', ['scripts/finalize-windows-signed-candidate.sh', 'amd64', 'work', 'payload', 'dist', 'bundle', 'v0.0.5'], {
-    cwd: root, encoding: 'utf8', env: { ...process.env, ...env, CERTUM_KEY_ID: '', RELEASE_VERSION: 'v0.0.5', MINISIGN_PRIVATE_KEY: 'fixture', MINISIGN_PASSWORD: 'fixture' },
+  const refused = spawnSync('bash', ['scripts/finalize-windows-signed-candidate.sh', 'amd64', 'work', 'payload', 'dist', 'bundle', 'v0.0.6'], {
+    cwd: root, encoding: 'utf8', env: { ...process.env, ...env, CERTUM_KEY_ID: '', RELEASE_VERSION: 'v0.0.6', MINISIGN_PRIVATE_KEY: 'fixture', MINISIGN_PASSWORD: 'fixture' },
   });
   assert.notEqual(refused.status, 0);
   assert.match(refused.stderr, /missing Certum key/);
