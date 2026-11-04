@@ -118,8 +118,8 @@
             "targets": ["desktop", "cli"],
             "title": { "en": "Protect Bot credentials across runtime entry points", "zh": "跨运行入口保护机器人凭据" },
             "body": {
-              "en": "Desktop, CLI/ACP sessions and standalone review protect the Bot credential directory and mask active and migration-backup values before model requests. Runtime owners share a live credential source; unreadable committed snapshots block new outbound requests until repaired. Rotation and deletion keep already observed values masked.",
-              "zh": "桌面端、CLI/ACP 会话及独立 review 均保护机器人凭据目录，并在模型请求前脱敏当前凭据及迁移备份中的值。多个运行时共享实时凭据源；已提交凭据快照不可读时阻止新模型请求，直到存储修复。轮换和删除后继续脱敏已观察到的旧值。"
+              "en": "Desktop, CLI/ACP sessions and standalone review protect the Bot credential directory and mask active and migration-backup values before model requests. Runtime owners share a live credential source; unreadable committed snapshots block new outbound requests until repaired. Rotation and deletion keep already observed values masked. Team secret parsing allows bounded cold PowerShell startup while preserving caller cancellation and shorter deadlines.",
+              "zh": "桌面端、CLI/ACP 会话及独立 review 均保护机器人凭据目录，并在模型请求前脱敏当前凭据及迁移备份中的值。多个运行时共享实时凭据源；已提交凭据快照不可读时阻止新模型请求，直到存储修复。轮换和删除后继续脱敏已观察到的旧值。团队密钥解析为 PowerShell 冷启动保留有限等待，同时遵守调用方取消及更短的截止时间。"
             },
             "refs": [160]
           },
