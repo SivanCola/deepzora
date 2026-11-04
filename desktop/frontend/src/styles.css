@@ -3261,6 +3261,7 @@ a[href] {
 }
 .conversation-status-panel { display: flex; flex-direction: column; max-height: inherit; font-size: 12px; }
 .conversation-status-panel > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--border-soft); }
+.conversation-status-panel__header-actions { display: flex; align-items: center; flex-shrink: 0; gap: 6px; }
 .conversation-status-panel__sections { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 4px 8px 10px; }
 .conversation-status-section { border-bottom: 1px solid var(--border-soft); padding: 5px 0; }
 .conversation-status-section:last-child { border-bottom: 0; }

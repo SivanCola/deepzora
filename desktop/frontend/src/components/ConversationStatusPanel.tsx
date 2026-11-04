@@ -53,8 +53,10 @@ export function ConversationStatusPanel(props: ConversationStatusPanelProps) {
     <AnchoredPopover open={open} anchorRef={anchorRef} onClose={close} className="conversation-status-popover" align="end" placement="bottom">
       <section className="conversation-status-panel" role="dialog" aria-label={t("conversationStatus.title")}>
         <header><strong>{t("conversationStatus.title")}</strong>
-          <button type="button" className="conversation-status-icon" disabled={data.loading} aria-label={t("conversationStatus.refresh")} onClick={() => { void data.reload(); }}><RefreshCw size={14} /></button>
-          <button type="button" className="conversation-status-icon" aria-label={t("conversationStatus.collapse")} onClick={close}><Minimize2 size={15} /></button>
+          <div className="conversation-status-panel__header-actions">
+            <button type="button" className="conversation-status-icon" disabled={data.loading} aria-label={t("conversationStatus.refresh")} onClick={() => { void data.reload(); }}><RefreshCw size={14} /></button>
+            <button type="button" className="conversation-status-icon" aria-label={t("conversationStatus.collapse")} onClick={close}><Minimize2 size={15} /></button>
+          </div>
         </header>
         <div className="conversation-status-panel__sections">
           <ConversationGitSection tabId={props.tabId} scopeKey={props.scopeKey} workspaceRoot={props.workspaceRoot}
