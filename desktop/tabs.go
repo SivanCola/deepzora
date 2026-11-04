@@ -2649,13 +2649,14 @@ func (a *App) buildTabControllerWithContextCore(tab *WorkspaceTab, loadedSession
 	if rootKey == "" {
 		rootKey = "__global__" // stable key for global workspace tabs
 	}
+	modelLabel := desktopModelLabel(cfg, model, "")
 	a.mu.Lock()
 	if a.tabBuildSupersededLocked(tab, buildGeneration) {
 		a.mu.Unlock()
 		return
 	}
 	tab.rebindEffortModel(cfg, model)
-	tab.Label = model
+	tab.Label = modelLabel
 	tab.SharedHostKey = rootKey
 	buildEffort := cloneStringPtr(tab.effort)
 	buildMode := tab.mode
@@ -2754,6 +2755,7 @@ func (a *App) buildTabControllerWithContextCore(tab *WorkspaceTab, loadedSession
 	// Lifecycle admission protects only the compare-and-publish boundary. Slow
 	// config, history, lease, and extension work above remains cancellable and
 	// cannot prevent shutdown from acquiring the write side.
+	controllerLabel := desktopModelLabel(cfg, model, ctrl.Label())
 	a.reportManualBuildStage(tab, buildGeneration, "publishing_controller")
 	releasePublication, extensionsCurrent := a.lockTabControllerPublication(extensionGen, tabScope, tabWorkspaceRoot)
 	if !extensionsCurrent {
@@ -2784,7 +2786,7 @@ func (a *App) buildTabControllerWithContextCore(tab *WorkspaceTab, loadedSession
 		return
 	}
 	tab.Ctrl = ctrl
-	tab.Label = ctrl.Label()
+	tab.Label = controllerLabel
 	applyNormalizedRuntimeToTabLocked(tab, restoredRuntime)
 	tab.Ready = true
 	clearTabStartupError(tab)

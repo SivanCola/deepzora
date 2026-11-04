@@ -84,9 +84,10 @@ func (a *App) bootTabControllerWithModelFallback(
 	}
 	result.model, result.fallback = fallbackModel, true
 	a.noticeForTab(tab.ID, fmt.Sprintf("model %q is no longer available; switched to %s", requestedModel, fallbackModel))
+	fallbackLabel := desktopModelLabel(cfg, fallbackModel, "")
 	a.mu.Lock()
 	if !a.tabBuildSupersededLocked(tab, buildGeneration) {
-		tab.model, tab.Label = fallbackModel, fallbackModel
+		tab.model, tab.Label = fallbackModel, fallbackLabel
 	}
 	a.mu.Unlock()
 	return result

@@ -41,11 +41,14 @@ export type TranscriptSurfaceProjectionInput = {
 export function useTranscriptSurfaceProjection(input: TranscriptSurfaceProjectionInput) {
   const { activeTabId, ports } = input;
   const transcriptHydrating = input.hydrating && !input.hydrateHistoryLoaded;
-  // Show the hero only after history hydration settles on a truly empty session.
-  // Avoid flash while switching tabs: items may be empty while placeholders show.
-  // Exclude IM/Bot detail: hero CSS collapses .main, which also hosts that panel.
+  // Empty history owns the welcome layout; runtime readiness only gates sending.
+  // A new/restored blank session can be readable while its controller starts.
+  // History loading/errors and retained placeholders must still keep the main
+  // surface visible so switching to an existing session never flashes a hero.
+  const welcomeAvailable = input.availability.kind === "ready"
+    || (input.availability.kind === "loading" && input.availability.source === "runtime");
   const emptyHero =
-    input.availability.kind === "ready" &&
+    welcomeAvailable &&
     !input.sessionActivity &&
     !input.sessionHasContent &&
     !transcriptHydrating &&

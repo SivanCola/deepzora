@@ -25,6 +25,7 @@ func (a *App) alignReusableBlankTabModel(tab *WorkspaceTab, model string) error 
 		return fmt.Errorf("blank session changed while applying the default model; retry")
 	}
 	currentModel := strings.TrimSpace(tab.model)
+	workspaceRoot := tab.WorkspaceRoot
 	ctrl := tab.Ctrl
 	buildDone := tab.buildDone
 	a.mu.RUnlock()
@@ -62,6 +63,11 @@ func (a *App) alignReusableBlankTabModel(tab *WorkspaceTab, model string) error 
 	// Fence the old build before publishing its replacement model. Legacy
 	// sources stay read-only; the replacement commits the selected model as a
 	// session/config event when it publishes its canonical identity.
+	cfg, err := config.LoadForRoot(workspaceRoot)
+	if err != nil {
+		return err
+	}
+	modelLabel := desktopModelLabel(cfg, model, "")
 	a.mu.Lock()
 	if tab.removed || a.tabs[tab.ID] != tab {
 		a.mu.Unlock()
@@ -74,7 +80,7 @@ func (a *App) alignReusableBlankTabModel(tab *WorkspaceTab, model string) error 
 	a.supersedeTabBuildLocked(tab)
 	tab.effort = config.RebindSessionEffort(nil, tab.model, model, tab.effort)
 	tab.model = model
-	tab.Label = model
+	tab.Label = modelLabel
 	tab.Ready = false
 	clearTabStartupError(tab)
 	a.saveTabsLocked()

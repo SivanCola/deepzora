@@ -41,6 +41,16 @@ const paintProjection = (input: TranscriptSurfaceProjectionInput) => act(async (
 try {
   await paintProjection(common);
   assert.equal(projection.emptyHero, true, "successful empty history shows the welcome");
+  const startingAvailability = projectSessionAvailability({ local: { ...readyLocal, meta: { ...readyLocal.meta, ready: false } } });
+  assert.equal(startingAvailability.kind, "loading", "the runtime still fences submission while starting");
+  await paintProjection({ ...common, controllerReady: false, availability: startingAvailability });
+  assert.equal(projection.emptyHero, true, "readable empty sessions keep the welcome while the controller starts");
+  await paintProjection({ ...common, controllerReady: false, availability: { kind: "loading", source: "history" } });
+  assert.equal(projection.emptyHero, false, "unknown history is never presented as an empty session");
+  await paintProjection({ ...common, availability: startingAvailability, hydrating: true, hydrateHistoryLoaded: false });
+  assert.equal(projection.emptyHero, false, "history hydration keeps the main surface visible even during runtime startup");
+  await paintProjection({ ...common, availability: { kind: "error", source: "runtime" } });
+  assert.equal(projection.emptyHero, false, "startup failure retains recovery presentation");
   const guidance = { key: "inbox-second", itemId: "inbox-second", text: "same guidance" };
   await paintProjection({ ...common, items: [{ kind: "notice", id: "he:m:first", level: "info", text: "↪ same guidance" }] });
   assert.equal(projection.latestGuidanceConsumed, null, "history rows never consume a matching pending draft");
@@ -49,8 +59,10 @@ try {
   await paintProjection({ ...common, availability: projectSessionAvailability({ local: failedLocal }) });
   assert.equal(projection.emptyHero, false, "failed history is not a successful empty session");
   for (const partial of [{ sessionActivity: true }, { hydratePlaceholderActive: true, hydratePlaceholderItems: [] }, { sessionHasContent: true }]) {
-    await paintProjection({ ...common, ...partial });
-    assert.equal(projection.emptyHero, false, "decisions, running turns and content keep the main surface visible");
+    for (const availability of [common.availability, startingAvailability]) {
+      await paintProjection({ ...common, availability, ...partial });
+      assert.equal(projection.emptyHero, false, "decisions, running turns and content keep the main surface visible");
+    }
   }
 
   let retries = 0;
