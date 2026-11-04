@@ -5,6 +5,7 @@
 
 export const en = {
   "settings.tab.agentPresets": "Agent presets",
+  "settings.tab.botChannels": "Bot Channels",
   "agentPresets.navHint": "Session persona and available tools",
   "agentPresets.hint": "Choose a persona and tool set for a new session. Permission presets and subagent profiles are configured separately.",
   "agentPresets.default": "Default",

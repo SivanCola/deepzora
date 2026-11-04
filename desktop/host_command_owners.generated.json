@@ -533,6 +533,20 @@
       ]
     }
   },
+  "BeginFeishuBotLogin": {
+    "domain": "desktop/bot_channels_feishu_login.go",
+    "owner": "App.BeginFeishuBotLogin",
+    "sources": [
+      "desktop/bot_channels_feishu_login.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.BeginFeishuBotLogin",
+      "inputs": [
+        "provider"
+      ]
+    }
+  },
   "BeginManualSessionCreation": {
     "domain": "desktop/manual_session_creation.go",
     "owner": "App.BeginManualSessionCreation",
@@ -594,6 +608,18 @@
       "inputs": [
         "tabID"
       ]
+    }
+  },
+  "BeginWeixinBotLogin": {
+    "domain": "desktop/bot_channels_login.go",
+    "owner": "App.BeginWeixinBotLogin",
+    "sources": [
+      "desktop/bot_channels_login.go"
+    ],
+    "scope": {
+      "kind": "owner-state",
+      "resolver": "App.BeginWeixinBotLogin",
+      "inputs": []
     }
   },
   "Cancel": {
@@ -1064,6 +1090,20 @@
       ]
     }
   },
+  "ConnectBotChannel": {
+    "domain": "desktop/bot_channels.go",
+    "owner": "App.ConnectBotChannel",
+    "sources": [
+      "desktop/bot_channels.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.ConnectBotChannel",
+      "inputs": [
+        "id"
+      ]
+    }
+  },
   "ConnectKey": {
     "domain": "desktop/app.go",
     "owner": "App.ConnectKey",
@@ -1302,6 +1342,20 @@
       ]
     }
   },
+  "DeleteBotConnection": {
+    "domain": "desktop/bot_channels.go",
+    "owner": "App.DeleteBotConnection",
+    "sources": [
+      "desktop/bot_channels.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.DeleteBotConnection",
+      "inputs": [
+        "id"
+      ]
+    }
+  },
   "DeleteInboxItem": {
     "domain": "desktop/inbox_app.go",
     "owner": "App.DeleteInboxItem",
@@ -1396,6 +1450,20 @@
       "kind": "owner-state",
       "resolver": "App.DisableThemePack",
       "inputs": []
+    }
+  },
+  "DisconnectBotChannel": {
+    "domain": "desktop/bot_channels.go",
+    "owner": "App.DisconnectBotChannel",
+    "sources": [
+      "desktop/bot_channels.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.DisconnectBotChannel",
+      "inputs": [
+        "id"
+      ]
     }
   },
   "EditGoalForTab": {
@@ -2477,6 +2545,18 @@
       ]
     }
   },
+  "ListBotChannels": {
+    "domain": "desktop/bot_channels.go",
+    "owner": "App.ListBotChannels",
+    "sources": [
+      "desktop/bot_channels.go"
+    ],
+    "scope": {
+      "kind": "owner-state",
+      "resolver": "App.ListBotChannels",
+      "inputs": []
+    }
+  },
   "ListDir": {
     "domain": "desktop/app.go",
     "owner": "App.ListDir",
@@ -3543,6 +3623,34 @@
       "kind": "owner-state",
       "resolver": "App.Plugins",
       "inputs": []
+    }
+  },
+  "PollFeishuBotLogin": {
+    "domain": "desktop/bot_channels_feishu_login.go",
+    "owner": "App.PollFeishuBotLogin",
+    "sources": [
+      "desktop/bot_channels_feishu_login.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.PollFeishuBotLogin",
+      "inputs": [
+        "id"
+      ]
+    }
+  },
+  "PollWeixinBotLogin": {
+    "domain": "desktop/bot_channels_login.go",
+    "owner": "App.PollWeixinBotLogin",
+    "sources": [
+      "desktop/bot_channels_login.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.PollWeixinBotLogin",
+      "inputs": [
+        "id"
+      ]
     }
   },
   "PrepareWorktreeMerge": {
@@ -5033,6 +5141,20 @@
         "scope",
         "id",
         "content"
+      ]
+    }
+  },
+  "SaveBotConnection": {
+    "domain": "desktop/bot_channels.go",
+    "owner": "App.SaveBotConnection",
+    "sources": [
+      "desktop/bot_channels.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.SaveBotConnection",
+      "inputs": [
+        "input"
       ]
     }
   },
@@ -7041,6 +7163,20 @@
       "resolver": "App.TerminalWorkspaceForTab",
       "inputs": [
         "tabID"
+      ]
+    }
+  },
+  "TestBotModel": {
+    "domain": "desktop/bot_models.go",
+    "owner": "App.TestBotModel",
+    "sources": [
+      "desktop/bot_models.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.TestBotModel",
+      "inputs": [
+        "ref"
       ]
     }
   },

@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ComponentProps, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
-import { AlarmClock, MessageSquare, Search, Settings, Trash2 } from "lucide-react";
+import { AlarmClock, MessageSquare, Search, Settings, Smartphone, Trash2 } from "lucide-react";
 import { Tooltip } from "../components/Tooltip";
 import type { Translator } from "../lib/i18n";
 import type { SettingsTab } from "../lib/types";
@@ -59,6 +59,7 @@ export function SidebarRegion(props: SidebarRegionProps) {
             />
             <UtilityButton label={t("sidebar.trash")} icon={<Trash2 size={16} />} onClick={props.onOpenTrash} />
             <UtilityButton label={t("heartbeat.scheduler")} icon={<AlarmClock size={16} />} onClick={props.onOpenAutomation} />
+            <UtilityButton label={t("settings.tab.botChannels")} icon={<Smartphone size={16} />} onClick={() => props.onOpenSettings("bot-channels")} />
             <UtilityButton label={t("topbar.settings")} icon={<Settings size={16} />} onClick={() => props.onOpenSettings("general")} />
           </div>
         </nav>

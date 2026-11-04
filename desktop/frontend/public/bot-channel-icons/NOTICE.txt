@@ -1,0 +1,5 @@
+Channel icons copied from ZCode packages/ui/src/assets/channel-icons.
+Source: https://github.com/zai-org/ZCode
+Source revision: a60ba6a7e5a06742270ca605f5d2cc2766afa7e1
+Source repository license: Apache-2.0 (see LICENSE-ZCode.txt).
+Provider names and logos identify their respective services.

@@ -39,7 +39,8 @@ for (const automation of [false, true]) {
   const searchButtons = [...doc.querySelectorAll("button")].filter(button => button.querySelector(".lucide-search"));
   assert.equal(searchButtons.length, 1, "the command-palette search entry moves from the topic bar to the sidebar footer");
   assert.ok(searchButtons[0]?.classList.contains("sidebar__utility-button"), "the search entry occupies a sidebar utility slot");
-  assert.equal(doc.querySelectorAll(".sidebar__utility-button").length, 4, "the sidebar footer allocates one slot to search");
+  assert.equal(doc.querySelectorAll(".sidebar__utility-button").length, 5, "the sidebar footer includes search and Bot Channels");
+  assert.equal(doc.querySelectorAll('button[aria-label="settings.tab.botChannels"] .lucide-smartphone').length, 1, "mobile Bot access has an accessible sidebar entry");
   dom.window.close();
 }
 console.log("automation regions: shared layout page projection passed");

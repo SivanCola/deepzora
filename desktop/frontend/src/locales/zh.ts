@@ -6,6 +6,7 @@ import type { DictKey } from "./en";
 
 export const zh: Record<DictKey, string> = {
   "settings.tab.agentPresets": "智能体预设",
+  "settings.tab.botChannels": "机器人渠道",
   "agentPresets.navHint": "会话角色与可用工具",
   "agentPresets.hint": "为新会话选择角色和工具集。权限预设与子智能体配置在各自页面单独设置。",
   "agentPresets.default": "默认",

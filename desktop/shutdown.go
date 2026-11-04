@@ -230,6 +230,11 @@ func (a *App) runShutdown(c *desktopShutdownCoordinator) (err error) {
 		c.mu.Unlock()
 	}
 
+	// Bot workers can be waiting to enter runtime admission. Stop and join them
+	// before taking its write lock, otherwise shutdown waits on a blocked reader.
+	if err := c.runErrorStep("bot-channels", a.stopBotChannels); err != nil {
+		return &shutdownStepError{code: "bot_channels_close_failed", err: err}
+	}
 	// Use the normal runtime lock order and never hold App.mu while invoking a
 	// controller. This prevents callback re-entry deadlocks during snapshots.
 	c.setPhase("waiting_runtime_rebuild")

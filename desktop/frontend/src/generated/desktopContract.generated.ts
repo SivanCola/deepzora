@@ -3,7 +3,7 @@
 
 export const DESKTOP_PROTOCOL_VERSION = 11;
 
-export const DESKTOP_CONTRACT_DIGEST = "sha256:571e746f14b6b0e20864aa68475895e406e9dcf7785403988d4b2bea2826a101";
+export const DESKTOP_CONTRACT_DIGEST = "sha256:1b255c1c4641aeeaca88c7994db9a0b3c351b66267ed9a5b22174c20ce0fb755";
 
 export const DESKTOP_COMMANDS = [
   "AIRenameSessionTarget",
@@ -43,10 +43,12 @@ export const DESKTOP_COMMANDS = [
   "BackgroundRuntimes",
   "Balance",
   "BalanceForTab",
+  "BeginFeishuBotLogin",
   "BeginManualSessionCreation",
   "BeginSessionComposerSubmission",
   "BeginSessionExportForTarget",
   "BeginSessionHistoryReadForTab",
+  "BeginWeixinBotLogin",
   "Cancel",
   "CancelJob",
   "CancelJobForTab",
@@ -80,6 +82,7 @@ export const DESKTOP_COMMANDS = [
   "CompactForTab",
   "CompleteSessionComposerSubmission",
   "ConfirmAction",
+  "ConnectBotChannel",
   "ConnectKey",
   "ContextPanel",
   "ContextUsageForTab",
@@ -96,6 +99,7 @@ export const DESKTOP_COMMANDS = [
   "CreateWorkspaceBrowserPreviewForTab",
   "CredentialDiagnostics",
   "DeleteAgentPreset",
+  "DeleteBotConnection",
   "DeleteInboxItem",
   "DeleteProvider",
   "DeleteSessionTarget",
@@ -103,6 +107,7 @@ export const DESKTOP_COMMANDS = [
   "DeleteThemePack",
   "DesktopStartupSettings",
   "DisableThemePack",
+  "DisconnectBotChannel",
   "EditGoalForTab",
   "Effort",
   "EffortForTab",
@@ -181,6 +186,7 @@ export const DESKTOP_COMMANDS = [
   "Jobs",
   "JobsForTab",
   "ListAgentPresets",
+  "ListBotChannels",
   "ListDir",
   "ListDirForTab",
   "ListDirForTarget",
@@ -257,6 +263,8 @@ export const DESKTOP_COMMANDS = [
   "Platform",
   "PluginDoctor",
   "Plugins",
+  "PollFeishuBotLogin",
+  "PollWeixinBotLogin",
   "PrepareWorktreeMerge",
   "PreviewRewindForTab",
   "PreviewSession",
@@ -359,6 +367,7 @@ export const DESKTOP_COMMANDS = [
   "RuntimeDoctor",
   "SanitizeMarkdownSVG",
   "SaveAgentPreset",
+  "SaveBotConnection",
   "SaveClipboardImage",
   "SaveClipboardImageForComposerTarget",
   "SaveClipboardImageForTab",
@@ -493,6 +502,7 @@ export const DESKTOP_COMMANDS = [
   "SwitchWorkspace",
   "TerminalOutputForTab",
   "TerminalWorkspaceForTab",
+  "TestBotModel",
   "TestProviderModel",
   "ToolResultForTab",
   "TranscriptContentForTab",
@@ -620,6 +630,29 @@ export interface Valuation {
   asOf: string;
   rateSnapshot?: RateSnapshot | null;
   stale?: boolean;
+}
+
+export interface botchannels_View {
+  id: string;
+  name: string;
+  provider: string;
+  appId: string;
+  sessionId: string;
+  chatId: string;
+  senderId: string;
+  mode?: string;
+  modelRef?: string;
+  workspaceId?: string;
+  hasSecret: boolean;
+  status: string;
+  error: string;
+  actualModel?: string;
+  modelError?: string;
+  enabled: boolean;
+  received: number;
+  sent: number;
+  lastReceivedAt?: string;
+  lastSentAt?: string;
 }
 
 export interface AssetEntry {
@@ -1619,6 +1652,60 @@ export interface BalanceInfo {
   costDisplayCurrency?: string;
   multiCurrency?: boolean;
   err?: string;
+}
+
+export interface BotChannelsView {
+  connections: botchannels_View[];
+  sessions: BotSessionView[];
+  models: BotModelView[];
+  workspaces: BotWorkspaceView[];
+}
+
+export interface BotConnectionInput {
+  id: string;
+  name: string;
+  provider: string;
+  appId: string;
+  sessionId: string;
+  chatId: string;
+  senderId: string;
+  mode?: string;
+  modelRef?: string;
+  workspaceId?: string;
+  secret: string;
+  loginId: string;
+  connect?: boolean;
+}
+
+export interface BotLoginView {
+  id: string;
+  image: string;
+  status: string;
+  userId?: string;
+  chatId?: string;
+  appId?: string;
+  provider?: string;
+  interval?: number;
+}
+
+export interface BotModelView {
+  ref: string;
+  provider: string;
+  providerLabel: string;
+  model: string;
+  configured: boolean;
+}
+
+export interface BotSessionView {
+  id: string;
+  title: string;
+  workspace: string;
+}
+
+export interface BotWorkspaceView {
+  id: string;
+  title: string;
+  root: string;
 }
 
 export interface CapabilitiesView {
@@ -4740,10 +4827,12 @@ export interface GeneratedDesktopCommands {
   BackgroundRuntimes(): Promise<BackgroundRuntimeView[]>;
   Balance(): Promise<BalanceInfo>;
   BalanceForTab(arg0: string): Promise<BalanceInfo>;
+  BeginFeishuBotLogin(arg0: string): Promise<BotLoginView>;
   BeginManualSessionCreation(arg0: ManualSessionCreationRequest): Promise<ManualSessionCreationView>;
   BeginSessionComposerSubmission(arg0: SessionRef, arg1: string, arg2: string, arg3: string): Promise<SessionComposerState>;
   BeginSessionExportForTarget(arg0: SessionSelector, arg1: string, arg2: string, arg3: string, arg4: string): Promise<SessionExportHandle>;
   BeginSessionHistoryReadForTab(arg0: string): Promise<SessionHistoryReadHandle>;
+  BeginWeixinBotLogin(): Promise<BotLoginView>;
   Cancel(): Promise<void>;
   CancelJob(arg0: string): Promise<boolean>;
   CancelJobForTab(arg0: string, arg1: string): Promise<boolean>;
@@ -4777,6 +4866,7 @@ export interface GeneratedDesktopCommands {
   CompactForTab(arg0: string): Promise<void>;
   CompleteSessionComposerSubmission(arg0: SessionRef, arg1: string, arg2: string): Promise<SessionComposerState>;
   ConfirmAction(arg0: NativeConfirmRequest): Promise<boolean>;
+  ConnectBotChannel(arg0: string): Promise<void>;
   ConnectKey(arg0: string): Promise<string>;
   ContextPanel(arg0: string): Promise<ContextPanelInfo>;
   ContextUsageForTab(arg0: string): Promise<ContextInfo>;
@@ -4793,6 +4883,7 @@ export interface GeneratedDesktopCommands {
   CreateWorkspaceBrowserPreviewForTab(arg0: string, arg1: string): Promise<string>;
   CredentialDiagnostics(arg0: boolean): Promise<CredentialDiagnosticReport>;
   DeleteAgentPreset(arg0: string, arg1: string, arg2: string): Promise<void>;
+  DeleteBotConnection(arg0: string): Promise<void>;
   DeleteInboxItem(arg0: string, arg1: string): Promise<void>;
   DeleteProvider(arg0: string): Promise<void>;
   DeleteSessionTarget(arg0: SessionSelector): Promise<SessionMutationResult>;
@@ -4800,6 +4891,7 @@ export interface GeneratedDesktopCommands {
   DeleteThemePack(arg0: string): Promise<void>;
   DesktopStartupSettings(): Promise<DesktopStartupSettingsView>;
   DisableThemePack(): Promise<void>;
+  DisconnectBotChannel(arg0: string): Promise<void>;
   EditGoalForTab(arg0: string, arg1: string, arg2: number | null): Promise<void>;
   Effort(): Promise<EffortInfo>;
   EffortForTab(arg0: string): Promise<EffortInfo>;
@@ -4878,6 +4970,7 @@ export interface GeneratedDesktopCommands {
   Jobs(): Promise<JobView[]>;
   JobsForTab(arg0: string): Promise<JobView[]>;
   ListAgentPresets(arg0: string): Promise<AgentPresetList>;
+  ListBotChannels(): Promise<BotChannelsView>;
   ListDir(arg0: string): Promise<DirEntry[]>;
   ListDirForTab(arg0: string, arg1: string): Promise<DirEntry[]>;
   ListDirForTarget(arg0: ComposerTarget, arg1: string): Promise<DirEntry[]>;
@@ -4954,6 +5047,8 @@ export interface GeneratedDesktopCommands {
   Platform(): Promise<string>;
   PluginDoctor(arg0: string): Promise<PluginView>;
   Plugins(): Promise<PluginView[]>;
+  PollFeishuBotLogin(arg0: string): Promise<BotLoginView>;
+  PollWeixinBotLogin(arg0: string): Promise<BotLoginView>;
   PrepareWorktreeMerge(arg0: string): Promise<MergeInspection>;
   PreviewRewindForTab(arg0: string, arg1: number, arg2: string): Promise<RewindPlanView>;
   PreviewSession(arg0: string): Promise<Message[]>;
@@ -5056,6 +5151,7 @@ export interface GeneratedDesktopCommands {
   RuntimeDoctor(): Promise<RuntimeDoctorReport>;
   SanitizeMarkdownSVG(arg0: string): Promise<MarkdownSVGView>;
   SaveAgentPreset(arg0: string, arg1: string, arg2: string, arg3: string): Promise<Preset>;
+  SaveBotConnection(arg0: BotConnectionInput): Promise<void>;
   SaveClipboardImage(): Promise<string>;
   SaveClipboardImageForComposerTarget(arg0: ComposerTarget): Promise<string>;
   SaveClipboardImageForTab(arg0: string): Promise<string>;
@@ -5190,6 +5286,7 @@ export interface GeneratedDesktopCommands {
   SwitchWorkspace(arg0: string): Promise<string>;
   TerminalOutputForTab(arg0: string, arg1: string): Promise<string>;
   TerminalWorkspaceForTab(arg0: string): Promise<TerminalWorkspaceView>;
+  TestBotModel(arg0: string): Promise<void>;
   TestProviderModel(arg0: ProviderView, arg1: string, arg2: string): Promise<void>;
   ToolResultForTab(arg0: string, arg1: string): Promise<ToolResultData | null>;
   TranscriptContentForTab(arg0: string, arg1: ContentRequest): Promise<ContentChunk>;

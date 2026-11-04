@@ -1,0 +1,153 @@
+.bot-channels {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+.bot-access-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+}
+.bot-access-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  min-width: 0;
+}
+.bot-access-card h2 {
+  margin: 10px 0;
+  font-size: 16px;
+}
+.bot-access-card p,
+.bot-channel-help {
+  color: var(--text-2);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.bot-access-card--mobile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.bot-access-placeholder {
+  flex: 1;
+  width: 100%;
+  min-height: 140px;
+  display: grid;
+  place-items: center;
+  color: var(--text-2);
+  opacity: 0.45;
+}
+.bot-provider-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+.bot-provider-card {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  padding: 16px;
+  text-align: left;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.bot-provider-card:hover {
+  background: var(--surface-2);
+}
+.bot-provider-card > span {
+  flex: 1;
+  min-width: 0;
+}
+.bot-provider-card strong {
+  display: block;
+  margin-bottom: 5px;
+}
+.bot-provider-card small {
+  font-weight: normal;
+  border: 1px solid var(--border);
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+.bot-provider-card > span > span {
+  color: var(--text-2);
+  font-size: 12px;
+}
+.bot-channel-icon {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.bot-connection {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 12px;
+  min-width: 0;
+}
+.bot-connection-copy {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.bot-connection h3 {
+  margin: 0 0 5px;
+  font-size: 14px;
+}
+.bot-connection p {
+  margin: 0 0 5px;
+  color: var(--text-2);
+}
+.bot-connection-copy small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.bot-connection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.bot-channel-editor {
+  min-width: 0;
+}
+.bot-login {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+.bot-login img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+.bot-channel-editor .settings-save-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (max-width: 800px) {
+  .bot-access-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .bot-access-card,
+  .bot-connection {
+    padding: 16px;
+  }
+  .bot-access-placeholder {
+    min-height: 70px;
+  }
+  .bot-connection {
+    flex-wrap: wrap;
+  }
+  .bot-connection-actions {
+    width: 100%;
+  }
+}

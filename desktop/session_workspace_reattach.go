@@ -9,7 +9,7 @@ import (
 // runtimeRebuildMu and the destination turnStartMu are held. Reuse the exact
 // live owner before asking the writer registry for a competing controller.
 func (a *App) reattachCanonicalSessionRuntime(tab *WorkspaceTab, current control.SessionAPI, ref session.SessionRef, workspace workspacestate.Workspace, navigation uint64) (control.SessionAPI, error) {
-	preserveSource := controllerHasActiveRuntimeWork(current)
+	preserveSource := a.preserveRuntimeForNavigation(current)
 	a.mu.Lock()
 	if navigation != 0 && a.desktopSessions.navigationSeq.Load() != navigation {
 		a.mu.Unlock()

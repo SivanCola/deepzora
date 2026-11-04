@@ -9,6 +9,7 @@ import (
 	"math/rand/v2"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"deepzora/desktop/internal/sessionui"
@@ -23,8 +24,12 @@ func decodeManualCreation(r sessionui.Record) (ManualSessionCreationView, error)
 		return v, err
 	}
 	sum := sha256.Sum256([]byte(r.Key))
+	expectedSession := fmt.Sprintf("desktop-manual-%x", sum[:16])
+	if strings.HasPrefix(r.Key, "bot-session-") && v.Settings.Model != "" && v.Settings.ModelSource == "explicit" {
+		expectedSession = fmt.Sprintf("desktop-bot-%x", sum[:16])
+	}
 	if v.OperationID != r.Key || v.WorkspaceID == "" || v.Ref.HostID != localDesktopHostID ||
-		v.Ref.SessionID != fmt.Sprintf("desktop-manual-%x", sum[:16]) || v.TopicID != fmt.Sprintf("manual-%x", sum[:16]) {
+		v.Ref.SessionID != expectedSession || v.TopicID != fmt.Sprintf("manual-%x", sum[:16]) {
 		return v, errManualCreationIdentity
 	}
 	switch v.Phase {
