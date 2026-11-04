@@ -47,10 +47,13 @@ try {
   await page.locator('[data-chat-kind="user"]').filter({hasText:"Private UI identity regression"}).waitFor();
   await assertPrivate("Ada With Spaces");
   const permissions=page.locator(".composer-meta__control--approval button");
-  for(let i=0;i<await permissions.count();i++)assert.equal(await permissions.nth(i).isDisabled(),true);
+  await permissions.click();
+  await page.locator('[role="menuitemradio"][data-value="workspace-write"]').click();
+  await permissions.filter({hasText:"Workspace access"}).waitFor();
   await page.getByRole("button",{name:"Member settings",exact:true}).click();
   const member=settings.locator(".agent-preset-row").filter({has:page.getByRole("heading",{name:"Ada With Spaces",exact:true})});
   await member.getByRole("button",{name:"Edit",exact:true}).click();
+  await settings.getByRole("button",{name:"Workspace access",exact:true}).waitFor();
   await settings.getByRole("textbox",{name:"Name",exact:true}).fill("Ada Renamed");
   await settings.locator("button[type=submit]").click();
   await settings.getByRole("heading",{name:"Ada Renamed",exact:true}).waitFor();

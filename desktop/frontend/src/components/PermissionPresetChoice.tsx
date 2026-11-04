@@ -13,6 +13,8 @@ export function PermissionPresetChoice({
   dismissSignal,
   scopeKey,
   projectConfirmationKey,
+  confirmationDescription,
+  confirmationAcknowledge,
   onPick,
 }: {
   value: ToolApprovalMode;
@@ -20,6 +22,8 @@ export function PermissionPresetChoice({
   dismissSignal?: number;
   scopeKey: string;
   projectConfirmationKey: string;
+  confirmationDescription?: string;
+  confirmationAcknowledge?: string;
   onPick: (value: ToolApprovalMode) => void;
 }) {
   const t = useT();
@@ -80,8 +84,8 @@ export function PermissionPresetChoice({
     <RiskConfirmation
       open={confirmingFullAccess}
       title={t("permission.fullAccessConfirm.title")}
-      description={t("permission.fullAccessConfirm.currentDescription")}
-      acknowledgeLabel={t("permission.fullAccessConfirm.currentAcknowledge")}
+      description={confirmationDescription ?? t("permission.fullAccessConfirm.currentDescription")}
+      acknowledgeLabel={confirmationAcknowledge ?? t("permission.fullAccessConfirm.currentAcknowledge")}
       cancelLabel={t("common.cancel")}
       closeLabel={t("common.close")}
       confirmLabel={t("permission.fullAccessConfirm.enable")}

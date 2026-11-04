@@ -76,6 +76,7 @@ import { ComposerChoice } from "./ComposerChoice";
 import { PermissionPresetChoice } from "./PermissionPresetChoice";
 import { AgentPresetChoice } from "./AgentPresetChoice";
 import { TeamPrivateHeader, type TeamPrivateIdentity } from "./TeamPrivateIdentity";
+const TeamPermissionChoice = lazy(() => import("./TeamPermissionChoice"));
 const ModelSwitcher = lazy(() => import("./ModelSwitcher").then((module) => ({ default: module.ModelSwitcher })));
 const ComposerWorkspaceContextBar = lazy(() => import("./ComposerWorkspaceContextBar"));
 import { Tooltip } from "./Tooltip";
@@ -4552,14 +4553,15 @@ export function Composer({
               </div>
             )}
             {!heroMode && <div className="composer-meta__control composer-meta__control--approval">
-              <PermissionPresetChoice
+              {teamMember ? <Suspense fallback={null}><TeamPermissionChoice key={teamMember.id}
+                agentId={teamMember.id} disabled={approvalBarDisabled} dismissSignal={transientDismissSignal} /></Suspense> : <PermissionPresetChoice
                 key={`approval-${tabId}`}
                 value={permissionPreset}
-                disabled={approvalBarDisabled || Boolean(teamMember)} dismissSignal={transientDismissSignal}
+                disabled={approvalBarDisabled} dismissSignal={transientDismissSignal}
                 scopeKey={`${tabId ?? ""}:${sessionKey ?? ""}:${workspaceScopeKey ?? ""}`}
                 projectConfirmationKey={fullAccessConfirmationKey}
                 onPick={chooseApprovalMode}
-              />
+              />}
             </div>}
             {!heroMode && collaborationMode !== "normal" && (
               <div className="composer-meta__control composer-meta__control--intent">

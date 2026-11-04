@@ -2,13 +2,21 @@ import assert from "node:assert/strict";
 import { act } from "react";
 import { installDom, installBridgeApp, renderComposer } from "./composerInboxHarness";
 import { makeSessionUIMock } from "../lib/sessionUIMock";
+import { makeMockTeamBindings } from "../lib/teamMock";
+import { memberSettings } from "../lib/teamAgentSettings";
 
 const dom = installDom();
 globalThis.HTMLInputElement = dom.window.HTMLInputElement;
 const models: string[] = [], managed: string[] = [], permissionChanges: string[] = [], sends: string[] = [];
 const catalogCalls: string[] = [];
+const team = makeMockTeamBindings({ presets: async () => ({ current:"default",locked:false,presets:[],problems:[] }), createSession: async id => ({hostId:"local",sessionId:id}) });
+for (const name of ["Ada With Spaces", "Ben"]) {
+  const view = await team.GetTeam();
+  await team.SaveTeamAgent({id:"",requestId:`create-${name}`,expectedRevision:view.roster.revision,settings:{...memberSettings(),name}});
+}
 installBridgeApp({
   ...makeSessionUIMock(async () => {}),
+  ...team,
   ModelsForTab: async (tab: string) => {
     catalogCalls.push(tab);
     return [{ref:"fixture/fast",provider:"fixture",model:"fast",current:true},{ref:"fixture/careful",provider:"fixture",model:"careful",current:false}];
@@ -50,11 +58,12 @@ try {
     await act(async()=>document.querySelector<HTMLButtonElement>('[role="option"][aria-selected="false"]')!.click());
     assert.equal(models.at(-1),"fixture/careful");
     if(!heroMode) {
-      const permissionButtons=[...document.querySelectorAll<HTMLButtonElement>(".composer-meta__control--approval button")];
-      assert.ok(permissionButtons.length>0);
-      assert.ok(permissionButtons.every(button=>button.disabled),"persistent member permission cannot be changed in its chat");
-      await act(async()=>permissionButtons.forEach(button=>button.click()));
-      assert.deepEqual(permissionChanges,[]);
+      await waitFor(()=>!!document.querySelector(".composer-meta__control--approval button:not(:disabled)"),"member permission is editable");
+      await act(async()=>document.querySelector<HTMLButtonElement>(".composer-meta__control--approval button")!.click());
+      await act(async()=>document.querySelector<HTMLButtonElement>('[data-value="workspace-write"]')!.click());
+      await waitFor(()=>document.querySelector(".composer-meta__control--approval")?.textContent?.includes("Workspace access")===true,"saved member permission is displayed");
+      assert.equal((await team.GetTeam()).roster.agents[0].permission,"workspace-write");
+      assert.deepEqual(permissionChanges,[],"member edits never use the ordinary session permission endpoint");
     }
   }
   assert.ok(catalogCalls.every(tab=>tab==="ada-tab"),"model queries use the displayed host tab");
