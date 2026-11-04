@@ -94,55 +94,16 @@ try {
         .fill("test-only-secret");
       if (index === 1 || index === 2)
         await page.getByLabel("App ID", { exact: true }).fill("app-test");
-      if (index === 0) {
+      assert.equal(
         await page
-          .getByRole("button", {
-            name:
-              locale === "zh"
-                ? "指定模型与专属会话"
-                : "Dedicated conversation and model",
-            exact: true,
-          })
-          .click();
-        const service = page
           .locator(".bot-channel-editor")
           .getByRole("button", {
-            name: locale === "zh" ? "模型服务" : "Model service",
-            exact: true,
-          });
-        await service.click();
-        await page
-          .getByRole("option", { name: "Missing key", exact: true })
-          .click();
-        assert.equal(
-          await page
-            .getByRole("button", {
-              name: locale === "zh" ? "仅保存" : "Save only",
-              exact: true,
-            })
-            .isDisabled(),
-          true,
-          "missing model credential must block save",
-        );
-        await service.click();
-        await page
-          .getByRole("option", { name: "Preview service", exact: true })
-          .click();
-        await page
-          .getByRole("button", {
-            name: locale === "zh" ? "模型" : "Model",
+            name: locale === "zh" ? "团队成员" : "Team member",
             exact: true,
           })
-          .click();
-        await page.getByRole("option", { name: "pro", exact: true }).click();
-        await page
-          .getByRole("button", {
-            name: locale === "zh" ? "测试模型" : "Test model",
-            exact: true,
-          })
-          .click();
-        await page.locator(".bot-channel-editor [role=alert]").last().waitFor();
-      }
+          .innerText(),
+        "Preview member",
+      );
       await page.setViewportSize({ width: 400, height: 1000 });
       assert.ok(
         (await page
@@ -196,57 +157,17 @@ try {
         "",
         "saved credential must not return",
       );
-      if (index === 0) {
-        assert.equal(
-          await page
-            .getByRole("button", {
-              name:
-                locale === "zh"
-                  ? "指定模型与专属会话"
-                  : "Dedicated conversation and model",
-              exact: true,
-            })
-            .getAttribute("aria-pressed"),
-          "true",
-        );
-        assert.equal(
-          await page
-            .getByRole("button", {
-              name: locale === "zh" ? "模型" : "Model",
-              exact: true,
-            })
-            .innerText(),
-          "pro",
-        );
+      assert.equal(
         await page
+          .locator(".bot-channel-editor")
           .getByRole("button", {
-            name:
-              locale === "zh" ? "跟随绑定会话" : "Follow shared conversation",
+            name: locale === "zh" ? "团队成员" : "Team member",
             exact: true,
           })
-          .click();
-        await page
-          .getByRole("button", {
-            name: locale === "zh" ? "共享会话" : "Shared conversation",
-            exact: true,
-          })
-          .waitFor();
-        // Mode changes also participate in the normal unsaved-draft guard.
-        await page
-          .getByRole("button", {
-            name: locale === "zh" ? "取消" : "Cancel",
-            exact: true,
-          })
-          .click();
-        await page.locator(".settings-leave-dialog").waitFor();
-        await page
-          .getByRole("button", {
-            name: locale === "zh" ? "放弃更改并离开" : "Discard and leave",
-            exact: true,
-          })
-          .click();
-        continue;
-      }
+          .isDisabled(),
+        true,
+        "saved member binding is fixed",
+      );
       await page
         .getByRole("button", {
           name: locale === "zh" ? "取消" : "Cancel",

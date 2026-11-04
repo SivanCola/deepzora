@@ -35,6 +35,7 @@ type BotChannelsView struct {
 	Sessions    []BotSessionView   `json:"sessions"`
 	Models      []BotModelView     `json:"models"`
 	Workspaces  []BotWorkspaceView `json:"workspaces"`
+	Members     []BotMemberView    `json:"members"`
 }
 type botChannelState struct {
 	logins         map[string]*botLoginAttempt
@@ -43,6 +44,7 @@ type botChannelState struct {
 	runs           map[string]*botChannelRun
 	closed         bool
 	adapterFactory func(botchannels.Saved, *http.Client) botchannels.Adapter
+	migrationError string
 }
 type botChannelRun struct {
 	inboundMu                  sync.Mutex
@@ -61,6 +63,10 @@ type botChannelRun struct {
 	prompts                    map[string]control.PromptIdentity
 	received, sent             int
 	lastReceivedAt, lastSentAt string
+	routes                     map[string]string // accepted submission -> canonical session
+	turnRoutes                 map[string]string // turn -> canonical session
+	promptOwners               map[string]*control.Controller
+	sourceOwners               map[string]*control.Controller
 }
 
 func (a *App) botStore() botchannels.Store {
@@ -72,6 +78,10 @@ func (a *App) ListBotChannels() (BotChannelsView, error) {
 		return BotChannelsView{}, err
 	}
 	result := BotChannelsView{Connections: []botchannels.View{}, Sessions: []BotSessionView{}}
+	result.Members, err = a.botMembers()
+	if err != nil {
+		return result, err
+	}
 	result.Models, err = a.botModelCatalog()
 	if err != nil {
 		return result, err
@@ -90,6 +100,20 @@ func (a *App) ListBotChannels() (BotChannelsView, error) {
 	a.botChannels.mu.Lock()
 	for _, e := range entries {
 		v := botchannels.View{Config: e.Config, HasSecret: e.Secret != "", Status: "stopped", Enabled: e.Enabled}
+		if e.MemberID != "" {
+			if m, err := botTeamMember(e.MemberID); err == nil {
+				v.MemberName = m.Name
+				v.ModelRef = m.InitialModel
+				if id, ok := parseSessionRoute(m.SessionPath); ok {
+					v.SessionID = id
+				}
+			} else {
+				v.ModelError = err.Error()
+			}
+		} else if a.botChannels.migrationError != "" {
+			v.Error = a.botChannels.migrationError
+			v.Status = "error"
+		}
 		if v.Mode == "" {
 			v.Mode = "follow"
 		}
@@ -129,6 +153,16 @@ func (a *App) ListBotChannels() (BotChannelsView, error) {
 	return result, nil
 }
 func (a *App) SaveBotConnection(input BotConnectionInput) error {
+	if input.MemberID != "" {
+		m, err := botTeamMember(input.MemberID)
+		if err != nil {
+			return err
+		}
+		input.Mode = "member"
+		input.ModelRef = ""
+		input.WorkspaceID = ""
+		input.SessionID, _ = parseSessionRoute(m.SessionPath)
+	}
 	if input.Mode == "" {
 		input.Mode = "follow"
 	}
@@ -138,7 +172,7 @@ func (a *App) SaveBotConnection(input BotConnectionInput) error {
 		}
 		// Never accept a caller-supplied shared or other bot session as owned.
 		input.SessionID = botDedicatedSession(input.Config)
-	} else {
+	} else if input.Mode != "member" {
 		input.ModelRef, input.WorkspaceID = "", ""
 	}
 	if input.LoginID != "" {
@@ -184,6 +218,12 @@ func (a *App) SaveBotConnection(input BotConnectionInput) error {
 		return err
 	}
 	prior := slices.IndexFunc(previous, func(c botchannels.Saved) bool { return c.ID == input.ID })
+	if prior >= 0 && previous[prior].MemberID != "" && previous[prior].MemberID != input.MemberID {
+		return errors.New("channel belongs to a fixed member; create another channel to use a different member")
+	}
+	if prior < 0 {
+		input.LegacySessionID = ""
+	}
 	if strings.TrimSpace(input.Secret) == "" && (prior < 0 || previous[prior].Provider != input.Provider || previous[prior].AppID != input.AppID) {
 		return errors.New("bot credential is required")
 	}
@@ -217,6 +257,10 @@ func (a *App) SaveBotConnection(input BotConnectionInput) error {
 			return nil, errors.New("bot credential is required")
 		}
 		if idx >= 0 {
+			if entries[idx].MemberID != "" && entries[idx].MemberID != input.MemberID {
+				return nil, errors.New("channel belongs to a fixed member; create another channel to use a different member")
+			}
+			input.LegacySessionID = entries[idx].LegacySessionID
 			enabled = enabled || entries[idx].Enabled
 		}
 		next := botchannels.Saved{Config: input.Config, Secret: secret, Enabled: enabled}
@@ -320,7 +364,11 @@ func (a *App) connectBotChannelLocked(id string, restoring bool) error {
 		return err
 	}
 	r := &botChannelRun{config: entry, status: "connecting", done: make(chan struct{}), events: make(chan event.Event, 128), output: make(chan string, 64), prompts: map[string]control.PromptIdentity{}}
-	if entry.Mode == "dedicated" {
+	if entry.MemberID != "" {
+		if _, err := botTeamMember(entry.MemberID); err != nil {
+			return err
+		}
+	} else if entry.Mode == "dedicated" {
 		if err := a.validateBotModel(entry.Config); err != nil {
 			return err
 		}
@@ -353,7 +401,7 @@ func (a *App) connectBotChannelLocked(id string, restoring bool) error {
 		defer close(r.done)
 		defer unlock()
 		defer cancel()
-		if restoring && entry.Mode != "dedicated" {
+		if restoring && entry.Mode != "dedicated" && entry.MemberID == "" {
 			prepareCtx, prepareCancel := context.WithTimeout(ctx, 90*time.Second)
 			err := a.waitForBotSession(prepareCtx, r)
 			prepareCancel()
@@ -380,7 +428,18 @@ func (a *App) connectBotChannelLocked(id string, restoring bool) error {
 				return
 			}
 		}
-		client, err := botchannels.HTTPClient(a.networkProxySpecForRoot(r.ctrl.WorkspaceRoot()))
+		root := ""
+		if entry.MemberID != "" {
+			prepared, err := a.prepareBotMember(ctx, entry.MemberID)
+			if err != nil {
+				r.setStatus("error", err.Error())
+				return
+			}
+			root = prepared.ctrl.WorkspaceRoot()
+		} else {
+			root = r.ctrl.WorkspaceRoot()
+		}
+		client, err := botchannels.HTTPClient(a.networkProxySpecForRoot(root))
 		if err != nil {
 			r.setStatus("error", err.Error())
 			return
@@ -422,6 +481,10 @@ func (r *botChannelRun) setStatus(status, message string) {
 	r.mu.Unlock()
 }
 func (a *App) botBindingValid(r *botChannelRun) bool {
+	if r.config.MemberID != "" {
+		_, err := botTeamMember(r.config.MemberID)
+		return err == nil
+	}
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	return a.botRuntimeTabLocked(r) != nil
@@ -584,13 +647,33 @@ func (a *App) receiveBotMessage(ctx context.Context, r *botChannelRun, m botchan
 	r.lastReceivedAt = time.Now().UTC().Format(time.RFC3339)
 	r.mu.Unlock()
 	fields := strings.Fields(text)
+	bound := r
+	if r.config.MemberID != "" {
+		bound, err = a.prepareBotMember(ctx, r.config.MemberID)
+		if err != nil {
+			r.enqueue("Member could not start. Check its model, permissions and workspace in Team settings.")
+			return nil
+		}
+	}
 	switch fields[0] {
 	case "/help", "/start":
 		r.enqueue("Deepzora · shared session\nSend text to run a task. /stop cancels the active task. /approve ID and /deny ID answer an approval. Structured questions and attachments are handled in Desktop.")
-		r.ctrl.ReplayPendingPromptsTo(event.FuncSink(func(e event.Event) { a.forwardBotEvent(r, e) }))
+		if r.config.MemberID == "" {
+			r.ctrl.ReplayPendingPromptsTo(event.FuncSink(func(e event.Event) { a.forwardBotEvent(r, e) }))
+		}
 		return nil
 	case "/stop":
-		r.ctrl.CancelSessionFrom("bot_stop")
+		if r.config.MemberID != "" {
+			state := bound.ctrl.RuntimeStateSnapshot()
+			r.mu.Lock()
+			owned := r.turnRoutes[state.TurnID] == bound.config.SessionID
+			r.mu.Unlock()
+			if !owned {
+				r.enqueue("No task from this channel is running.")
+				return nil
+			}
+		}
+		bound.ctrl.CancelSessionFrom("bot_stop")
 		r.enqueue("Cancellation requested.")
 		return nil
 	case "/approve", "/deny":
@@ -600,12 +683,16 @@ func (a *App) receiveBotMessage(ctx context.Context, r *botChannelRun, m botchan
 		}
 		r.mu.Lock()
 		identity, ok := r.prompts[fields[1]]
+		owner := r.ctrl
+		if r.config.MemberID != "" {
+			owner = r.promptOwners[fields[1]]
+		}
 		r.mu.Unlock()
-		if !ok {
+		if !ok || owner == nil {
 			r.enqueue("Approval expired or unavailable. Open Desktop.")
 			return nil
 		}
-		if err := r.ctrl.ResolvePromptExact(identity, control.PromptAnswer{Allow: fields[0] == "/approve"}); err != nil {
+		if err := owner.ResolvePromptExact(identity, control.PromptAnswer{Allow: fields[0] == "/approve"}); err != nil {
 			r.enqueue("Approval is no longer available. Open Desktop.")
 		} else {
 			r.mu.Lock()
@@ -620,8 +707,27 @@ func (a *App) receiveBotMessage(ctx context.Context, r *botChannelRun, m botchan
 		return nil
 	}
 	digest := sha256.Sum256([]byte(r.config.Provider + "\x00" + r.config.ID + "\x00" + m.ChatID + "\x00" + m.ID))
-	err = a.submitBotTurn(ctx, r, text, "bot-"+hex.EncodeToString(digest[:]))
+	requestID := "bot-" + hex.EncodeToString(digest[:])
+	if r.config.MemberID != "" {
+		r.mu.Lock()
+		if r.routes == nil {
+			r.routes = map[string]string{}
+			r.turnRoutes = map[string]string{}
+			r.sourceOwners = map[string]*control.Controller{}
+			r.promptOwners = map[string]*control.Controller{}
+		}
+		r.routes[requestID] = bound.config.SessionID
+		r.sourceOwners[requestID] = bound.ctrl
+		r.mu.Unlock()
+	}
+	err = a.submitBotTurn(ctx, bound, text, requestID)
 	if err != nil {
+		if r.config.MemberID != "" {
+			r.mu.Lock()
+			delete(r.routes, requestID)
+			delete(r.sourceOwners, requestID)
+			r.mu.Unlock()
+		}
 		r.enqueue("The session did not accept this message. Check Desktop for a running task, model configuration or recovery prompt.")
 	}
 	return nil
@@ -646,6 +752,16 @@ func (a *App) submitBotTurn(ctx context.Context, r *botChannelRun, text, id stri
 			}
 			if owner != r.ctrl || !a.botBindingValid(r) {
 				return errors.New("bot session binding changed")
+			}
+			if seat := r.ctrl.BoundTeamSeat(); seat != nil {
+				_, ref := seat.Team()
+				m, err := botTeamMember(ref.Agent)
+				if err != nil {
+					return err
+				}
+				if ref.Group != "" || m.SessionPath != sessionRoute(r.config.SessionID) {
+					return errors.New("team member binding changed")
+				}
 			}
 			return nil
 		}, id)
@@ -672,6 +788,9 @@ func (a *App) submitBotTurn(ctx context.Context, r *botChannelRun, text, id stri
 	return errors.New("session is moving between tabs; send the message again")
 }
 func (a *App) forwardBotEvent(r *botChannelRun, e event.Event) {
+	if r.config.MemberID != "" && !r.ownsBotEvent(e) {
+		return
+	}
 	switch e.Kind {
 	case event.Message:
 		r.enqueue(e.Text)
@@ -695,6 +814,9 @@ func (a *App) forwardBotEvent(r *botChannelRun, e event.Event) {
 		}
 		r.mu.Lock()
 		r.prompts[id] = control.PromptIdentity{PromptID: id, TurnID: e.TurnID, RuntimeEpoch: e.RuntimeEpoch, Kind: kind}
+		if r.config.MemberID != "" {
+			r.promptOwners[id] = r.sourceOwners[e.SubmissionID]
+		}
 		r.mu.Unlock()
 		r.enqueue("Approval required: " + e.Approval.Tool + "\n" + e.Approval.Subject + "\n" + e.Approval.Reason + "\n/approve " + id + "\n/deny " + id)
 	case event.AskRequest, event.MCPInteractionRequest:
@@ -702,10 +824,21 @@ func (a *App) forwardBotEvent(r *botChannelRun, e event.Event) {
 	case event.PromptAnswered:
 		r.mu.Lock()
 		delete(r.prompts, e.ItemID)
+		delete(r.promptOwners, e.ItemID)
 		r.mu.Unlock()
 	case event.TurnDone:
 		r.mu.Lock()
-		clear(r.prompts)
+		for id, p := range r.prompts {
+			if r.config.MemberID == "" || p.TurnID == e.TurnID {
+				delete(r.prompts, id)
+				delete(r.promptOwners, id)
+			}
+		}
+		if r.config.MemberID != "" {
+			delete(r.routes, e.SubmissionID)
+			delete(r.sourceOwners, e.SubmissionID)
+			delete(r.turnRoutes, e.TurnID)
+		}
 		r.mu.Unlock()
 		if e.Err != nil {
 			if failure := botModelFailure(r.ctrl); failure != "" {
@@ -722,7 +855,7 @@ func (a *App) forwardBotEvent(r *botChannelRun, e event.Event) {
 // Nonblocking projection of canonical events: network IO never blocks a session.
 func (a *App) publishBotEvent(sink *tabEventSink, e event.Event) {
 	switch e.Kind {
-	case event.Message, event.ApprovalRequest, event.AskRequest, event.MCPInteractionRequest, event.PromptAnswered, event.TurnDone:
+	case event.TurnStarted, event.Message, event.ApprovalRequest, event.AskRequest, event.MCPInteractionRequest, event.PromptAnswered, event.TurnDone:
 	default:
 		return
 	}
@@ -732,6 +865,9 @@ func (a *App) publishBotEvent(sink *tabEventSink, e event.Event) {
 		r.mu.Lock()
 		matches := r.sink == sink && e.SessionID == r.config.SessionID
 		r.mu.Unlock()
+		if r.config.MemberID != "" {
+			matches = r.ownsBotEvent(e)
+		}
 		if !matches {
 			continue
 		}

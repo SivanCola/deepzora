@@ -2408,7 +2408,7 @@ function makeMockApp(): MockAppBindings {
     if (!submissionID?.trim()) throw new Error("submissionId is required");
   };
   const mockTeamSessionAgents=new Map<string,string>();
-  const mockApi: MockAppBindings = { ...({} as AttachmentBindings), ...makeMockBotChannels(),
+  const mockApi: MockAppBindings = { ...({} as AttachmentBindings), ...makeMockBotChannels(async()=>{const team=await mockApi.GetTeam();return team.roster.agents.map(m=>({id:m.id,name:m.name,model:m.initialModel||"",permission:m.permission||"read-only",folder:m.folder||""}));}),
     ...makeLazySessionUIMock(async (scope, root, id) => {
       const tab = { ...mockTabs[0], id: `tab-${id}`, topicId: id, scope, workspaceRoot: root,
         sessionId: id, session: { hostId: "local", sessionId: id }, ready: true, active: false, running: false,

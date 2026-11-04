@@ -3386,6 +3386,20 @@
       ]
     }
   },
+  "OpenBotMemberHistory": {
+    "domain": "desktop/bot_team.go",
+    "owner": "App.OpenBotMemberHistory",
+    "sources": [
+      "desktop/bot_team.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.OpenBotMemberHistory",
+      "inputs": [
+        "id"
+      ]
+    }
+  },
   "OpenChannelTranscriptSessionForTab": {
     "domain": "desktop/transcript_api.go",
     "owner": "App.OpenChannelTranscriptSessionForTab",

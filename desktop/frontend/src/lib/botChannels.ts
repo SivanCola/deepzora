@@ -9,7 +9,9 @@ export type BotConfig = {
   sessionId: string;
   chatId: string;
   senderId: string;
-  mode?: "follow" | "dedicated";
+  mode?: "follow" | "dedicated" | "member";
+  memberId?: string;
+  legacySessionId?: string;
   modelRef?: string;
   workspaceId?: string;
 };
@@ -24,6 +26,7 @@ export type BotConnection = BotConfig & {
   sent?: number;
   lastReceivedAt?: string;
   lastSentAt?: string;
+  memberName?: string;
 };
 export type BotModel = {
   ref: string;
@@ -39,6 +42,14 @@ export type BotChannelsView = {
   sessions: BotSession[];
   models?: BotModel[];
   workspaces?: BotWorkspace[];
+  members?: BotMember[];
+};
+export type BotMember = {
+  id: string;
+  name: string;
+  model: string;
+  permission: string;
+  folder: string;
 };
 export type BotLoginView = {
   id: string;
@@ -51,6 +62,7 @@ export type BotLoginView = {
   interval?: number;
 };
 export interface BotChannelBindings {
+  OpenBotMemberHistory(id: string): Promise<void>;
   TestBotModel(ref: string): Promise<void>;
   BeginFeishuBotLogin(provider: string): Promise<BotLoginView>;
   PollFeishuBotLogin(id: string): Promise<BotLoginView>;
@@ -72,6 +84,17 @@ export const botProviders: BotProvider[] = [
 ];
 const en = {
   title: "Bot Channels",
+  member: "Team member",
+  memberHint:
+    "This channel uses its member’s conversation, model, memory and permissions. Replies go only to the channel that started the task; Desktop and team messages are not broadcast.",
+  noMembers:
+    "Create and save a member in Team settings before adding a channel.",
+  memberMissing: "Member unavailable — restore it in Team settings.",
+  memberFixed:
+    "The member binding is fixed once saved. Add another channel to use another member.",
+  channelsSection: "Messaging channels",
+  memberSavedFirst: "Save this member first, then add Weixin or Feishu here.",
+  originalHistory: "Open original conversation",
   intro: "Continue your work from a messaging app.",
   mobile: "Connect from your phone",
   later:
@@ -185,6 +208,15 @@ const en = {
 };
 const zh: Record<keyof typeof en, string> = {
   title: "机器人渠道",
+  member: "团队成员",
+  memberHint:
+    "渠道统一使用成员的会话、模型、记忆和权限。只回复发起任务的渠道；桌面消息及团队内部交办不会广播到微信或飞书。",
+  noMembers: "请先在团队设置中创建并保存成员，再为其添加渠道。",
+  memberMissing: "成员不可用，请在团队设置中恢复成员。",
+  memberFixed: "保存后固定绑定此成员。需要其他成员时，请为其新增渠道。",
+  channelsSection: "消息渠道",
+  memberSavedFirst: "请先保存成员，再在此处添加微信或飞书。",
+  originalHistory: "打开原会话历史",
   intro: "从聊天应用继续处理你的工作。",
   mobile: "手机连接",
   later: "手机 Web 访问将在后续阶段提供。目前可通过右侧 Bot 渠道在手机上使用。",
@@ -296,9 +328,10 @@ export function useBotText() {
 }
 
 // Browser preview never claims a real provider connection.
-export function makeMockBotChannels(): BotChannelBindings {
+export function makeMockBotChannels(memberSource?:()=>Promise<BotMember[]>): BotChannelBindings {
   let connections: BotConnection[] = [];
   return {
+    async OpenBotMemberHistory() {},
     async TestBotModel() {
       throw new Error("Model testing requires the Desktop app.");
     },
@@ -317,6 +350,15 @@ export function makeMockBotChannels(): BotChannelBindings {
     async ListBotChannels() {
       return {
         connections: structuredClone(connections),
+        members: [...(memberSource?await memberSource():[]),
+          {
+            id: "a-0000000000000001",
+            name: "Preview member",
+            model: "preview/flash",
+            permission: "read-only",
+            folder: "/workspace",
+          },
+        ],
         sessions: [
           {
             id: "preview-session",

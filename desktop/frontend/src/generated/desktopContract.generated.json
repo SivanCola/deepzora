@@ -6356,6 +6356,28 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/bot_team.go",
+      "name": "OpenBotMemberHistory",
+      "owner": "App.OpenBotMemberHistory",
+      "params": [
+        {
+          "kind": "string"
+        }
+      ],
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "id"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.OpenBotMemberHistory"
+      },
+      "sources": [
+        "desktop/bot_team.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/transcript_api.go",
       "name": "OpenChannelTranscriptSessionForTab",
       "owner": "App.OpenChannelTranscriptSessionForTab",
@@ -15449,6 +15471,20 @@
           }
         },
         {
+          "name": "memberId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "legacySessionId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
           "name": "hasSecret",
           "type": {
             "kind": "boolean"
@@ -15507,6 +15543,13 @@
         },
         {
           "name": "lastSentAt",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "memberName",
           "optional": true,
           "type": {
             "kind": "string"
@@ -21035,6 +21078,16 @@
             },
             "kind": "array"
           }
+        },
+        {
+          "name": "members",
+          "type": {
+            "elem": {
+              "kind": "object",
+              "ref": "main.BotMemberView"
+            },
+            "kind": "array"
+          }
         }
       ]
     },
@@ -21098,6 +21151,20 @@
         },
         {
           "name": "workspaceId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "memberId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "legacySessionId",
           "optional": true,
           "type": {
             "kind": "string"
@@ -21177,6 +21244,40 @@
           "optional": true,
           "type": {
             "kind": "integer"
+          }
+        }
+      ]
+    },
+    "main.BotMemberView": {
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "name",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "model",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "permission",
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "folder",
+          "type": {
+            "kind": "string"
           }
         }
       ]

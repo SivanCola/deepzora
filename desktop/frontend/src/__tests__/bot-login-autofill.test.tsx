@@ -55,6 +55,15 @@ const testedModels: string[] = [];
 installDesktopHostStub({
   ListBotChannels: async () => ({
     connections: existing,
+    members: [
+      {
+        id: "a-0000000000000001",
+        name: "Fixture member",
+        model: "fixture/model",
+        permission: "read-only",
+        folder: "/workspace",
+      },
+    ],
     sessions: [
       { id: "session", title: "Local session", workspace: "/workspace" },
     ],
@@ -235,21 +244,12 @@ try {
   await fill("Allowed chat ID", "chat");
   await fill("Allowed sender ID", "sender");
   await fill("Bot token / app secret", "bot-fixture");
-  await click(button("Dedicated conversation and model"));
-  assert.equal(
-    rootEl.textContent?.includes("Creates a private conversation"),
-    true,
-  );
-  const beforeSave = saved.length;
-  await click(button("Test model"));
-  assert.deepEqual(testedModels, ["fixture/model"]);
-  assert.equal(saved.length, beforeSave, "model probe saved bot configuration");
-  assert.equal(rootEl.textContent?.includes("Model test passed"), true);
+  assert.equal(rootEl.textContent?.includes("Fixture member"), true);
+  assert.equal(rootEl.textContent?.includes("Replies go only"), true);
   await click(button("Save and connect"));
-  assert.equal(saved.at(-1)?.mode, "dedicated");
+  assert.equal(saved.at(-1)?.mode, "member");
+  assert.equal(saved.at(-1)?.memberId, "a-0000000000000001");
   assert.equal(saved.at(-1)?.connect, true);
-  assert.equal(saved.at(-1)?.modelRef, "fixture/model");
-  assert.equal(saved.at(-1)?.workspaceId, "global");
   existing = [
     {
       ...saved.at(-1)!,

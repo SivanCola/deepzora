@@ -85,6 +85,7 @@ func TestBotSaveEnableReconnectAndRestartIntent(t *testing.T) {
 	botModelFixture(t, a)
 	created := installBotAdapterFixture(a)
 	t.Cleanup(func() { _ = a.stopBotChannels() })
+	t.Cleanup(func() { _ = a.stopBotChannels(); _ = a.stopTeamHost() })
 	input := BotConnectionInput{Config: botchannels.Config{ID: "enabled", Name: "Bot", Provider: "weixin", Mode: "dedicated", ModelRef: "bot-models/second", WorkspaceID: "global", ChatID: "peer", SenderID: "peer"}, Secret: "fixture"}
 	if err := a.SaveBotConnection(input); err != nil {
 		t.Fatal(err)
@@ -146,6 +147,7 @@ func TestBotSaveEnableReconnectAndRestartIntent(t *testing.T) {
 		}
 	}
 	_ = a.stopManualCreations()
+	_ = a.stopTeamHost()
 	a.closeSessionServices()
 	_ = a.sessionUI.Close()
 	b := NewApp()
@@ -154,6 +156,7 @@ func TestBotSaveEnableReconnectAndRestartIntent(t *testing.T) {
 	restored := installBotAdapterFixture(b)
 	t.Cleanup(func() {
 		_ = b.stopBotChannels()
+		_ = b.stopTeamHost()
 		_ = b.stopManualCreations()
 		for _, tab := range b.tabs {
 			if tab.Ctrl != nil {
@@ -180,7 +183,14 @@ func TestBotSaveEnableReconnectAndRestartIntent(t *testing.T) {
 	<-done
 	nextBotAdapter(t, restored)
 	r := onlyBotRun(t, b, input.ID)
-	if r.config.SessionID != entries[0].SessionID || r.ctrl.ModelRef() != input.ModelRef {
+	if r.config.MemberID == "" {
+		t.Fatal("legacy bot was not migrated to a member")
+	}
+	prepared, err := b.prepareBotMember(t.Context(), r.config.MemberID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.config.LegacySessionID != entries[0].LegacySessionID || prepared.ctrl.ModelRef() != input.ModelRef {
 		t.Fatal("restart retargeted the bot")
 	}
 	b.restoreEnabledBotChannels()

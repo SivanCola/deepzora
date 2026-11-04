@@ -12,6 +12,7 @@ import {
   type BotLoginView,
   type BotModel,
   type BotWorkspace,
+  type BotMember,
 } from "../lib/botChannels";
 import {
   SettingsFeedback,
@@ -33,7 +34,9 @@ function ChannelIcon({ provider }: { provider: BotProvider }) {
     />
   );
 }
-export function BotChannelsSettingsPage() {
+export function BotChannelsSettingsPage({
+  memberId,
+}: { memberId?: string } = {}) {
   const t = useBotText();
   const [view, setView] = useState<BotChannelsView | null>(null);
   const [error, setError] = useState("");
@@ -106,14 +109,15 @@ export function BotChannelsSettingsPage() {
       chatId: "",
       senderId: "",
       hasSecret: false,
-      mode: "follow",
+      mode: "member",
+      memberId: memberId || view?.members?.[0]?.id || "",
     });
   const close = () => {
     setEditor(null);
     requestAnimationFrame(() => listRef.current?.focus());
   };
   return (
-    <div className="bot-channels" aria-busy={busy || loading}>
+    <div className={`bot-channels${memberId ? " bot-channels--member" : ""}`} aria-busy={busy || loading}>
       {loadError && (
         <SettingsFeedback kind="error" onRetry={() => void reload()}>
           {loadError}
@@ -134,6 +138,8 @@ export function BotChannelsSettingsPage() {
           sessions={view?.sessions ?? []}
           models={view?.models ?? []}
           workspaces={view?.workspaces ?? []}
+          members={view?.members ?? []}
+          fixedMemberId={memberId}
           busy={busy}
           onClose={close}
           onSave={async (input) => {
@@ -148,32 +154,39 @@ export function BotChannelsSettingsPage() {
       ) : (
         <>
           <div className="bot-access-grid">
-            <section className="bot-access-card bot-access-card--mobile">
-              <Smartphone size={26} aria-hidden="true" />
-              <h2>{t.mobile}</h2>
-              <p>{t.later}</p>
-              <div className="bot-access-placeholder" aria-hidden="true">
-                <Smartphone size={64} strokeWidth={1} />
-              </div>
-              <button
-                className="btn"
-                type="button"
-                onClick={() => listRef.current?.focus()}
-              >
-                <Bot size={16} />
-                {t.manage}
-              </button>
-            </section>
+            {!memberId && (
+              <>
+                <section className="bot-access-card bot-access-card--mobile">
+                  <Smartphone size={26} aria-hidden="true" />
+                  <h2>{t.mobile}</h2>
+                  <p>{t.later}</p>
+                  <div className="bot-access-placeholder" aria-hidden="true">
+                    <Smartphone size={64} strokeWidth={1} />
+                  </div>
+                  <button
+                    className="btn"
+                    type="button"
+                    onClick={() => listRef.current?.focus()}
+                  >
+                    <Bot size={16} />
+                    {t.manage}
+                  </button>
+                </section>
+              </>
+            )}
             <section className="bot-access-card">
-              <h2>{t.channels}</h2>
-              <p>{t.channelsHint}</p>
+              <h2>{memberId ? t.channelsSection : t.channels}</h2>
+              <p>{t.memberHint}</p>
+              {!view?.members?.length && (
+                <SettingsFeedback kind="info">{t.noMembers}</SettingsFeedback>
+              )}
               <div className="bot-provider-list">
                 {botProviders.map((provider) => (
                   <button
                     type="button"
                     className="bot-provider-card"
                     key={provider}
-                    disabled={busy || !view}
+                    disabled={busy || !view || !view.members?.length}
                     onClick={() => add(provider)}
                   >
                     <ChannelIcon provider={provider} />
@@ -217,35 +230,37 @@ export function BotChannelsSettingsPage() {
               {view && view.connections.length === 0 && (
                 <SettingsFeedback kind="empty">{t.empty}</SettingsFeedback>
               )}
-              {view?.connections.map((connection) => (
-                <ConnectionRow
-                  key={connection.id}
-                  connection={connection}
-                  models={view?.models ?? []}
-                  onRetry={() =>
-                    mutate(() => app.ConnectBotChannel(connection.id))
-                  }
-                  busy={busy}
-                  onEdit={() => {
-                    setNotice("");
-                    setError("");
-                    setEditor(connection);
-                  }}
-                  onDelete={() =>
-                    mutate(() => app.DeleteBotConnection(connection.id))
-                  }
-                  onToggle={() =>
-                    mutate(() =>
-                      connection.enabled ||
-                      ["connected", "connecting", "reconnecting"].includes(
-                        connection.status,
+              {view?.connections
+                .filter((c) => !memberId || c.memberId === memberId)
+                .map((connection) => (
+                  <ConnectionRow
+                    key={connection.id}
+                    connection={connection}
+                    models={view?.models ?? []}
+                    onRetry={() =>
+                      mutate(() => app.ConnectBotChannel(connection.id))
+                    }
+                    busy={busy}
+                    onEdit={() => {
+                      setNotice("");
+                      setError("");
+                      setEditor(connection);
+                    }}
+                    onDelete={() =>
+                      mutate(() => app.DeleteBotConnection(connection.id))
+                    }
+                    onToggle={() =>
+                      mutate(() =>
+                        connection.enabled ||
+                        ["connected", "connecting", "reconnecting"].includes(
+                          connection.status,
+                        )
+                          ? app.DisconnectBotChannel(connection.id)
+                          : app.ConnectBotChannel(connection.id),
                       )
-                        ? app.DisconnectBotChannel(connection.id)
-                        : app.ConnectBotChannel(connection.id),
-                    )
-                  }
-                />
-              ))}
+                    }
+                  />
+                ))}
             </SettingsSection>
           </div>
           <p className="bot-channel-help">{t.commands}</p>
@@ -291,7 +306,22 @@ function ConnectionRow({
           {t[c.provider]} · {status}
         </p>
         <small>{c.chatId}</small>
-        <p>{c.mode === "dedicated" ? t.dedicated : t.follow}</p>
+        <p>
+          {c.memberId
+            ? `${t.member}: ${c.memberName || c.memberId}`
+            : c.mode === "dedicated"
+              ? t.dedicated
+              : t.follow}
+        </p>
+        {c.legacySessionId && (
+          <button
+            className="btn btn--small"
+            type="button"
+            onClick={() => void app.OpenBotMemberHistory(c.id)}
+          >
+            {t.originalHistory}
+          </button>
+        )}
         {c.enabled && <small>{t.enabledHint}</small>}
         {!!((c.received || 0) + (c.sent || 0)) && (
           <small
@@ -357,6 +387,8 @@ function BotEditor({
   sessions,
   models,
   workspaces,
+  members,
+  fixedMemberId,
   busy,
   onClose,
   onSave,
@@ -365,6 +397,8 @@ function BotEditor({
   sessions: BotSession[];
   models: BotModel[];
   workspaces: BotWorkspace[];
+  members: BotMember[];
+  fixedMemberId?: string;
   busy: boolean;
   onClose: () => void;
   onSave: (
@@ -374,6 +408,8 @@ function BotEditor({
   const t = useBotText();
   const [draft, setDraft] = useState({ ...initial, secret: "", loginId: "" });
   const dedicated = draft.mode === "dedicated";
+  const memberMode = draft.mode === "member";
+  const selectedMember = members.find((m) => m.id === draft.memberId);
   const selectedModel = models.find((m) => m.ref === draft.modelRef);
   const selectedProvider =
     selectedModel?.provider ?? draft.modelRef?.split("/")[0] ?? "";
@@ -504,10 +540,12 @@ function BotEditor({
     JSON.stringify({ ...initial, secret: "", loginId: "" });
   const valid =
     !!draft.name.trim() &&
-    (dedicated
-      ? !!selectedModel?.configured &&
-        workspaces.some((w) => w.id === draft.workspaceId)
-      : !!draft.sessionId) &&
+    (memberMode
+      ? !!selectedMember
+      : dedicated
+        ? !!selectedModel?.configured &&
+          workspaces.some((w) => w.id === draft.workspaceId)
+        : !!draft.sessionId) &&
     !!draft.chatId.trim() &&
     !!draft.senderId.trim() &&
     (initial.hasSecret || !!draft.secret.trim() || !!draft.loginId) &&
@@ -641,153 +679,187 @@ function BotEditor({
           </div>
         )}
         {field("name", t.name)}
-        <SettingsField label={t.modelMode}>
-          <SettingsOptions layout="fill" aria-label={t.modelMode}>
-            <button
-              disabled={busy || modelTesting}
-              aria-pressed={!dedicated}
-              onClick={() =>
-                setDraft((old) => ({
-                  ...old,
-                  mode: "follow",
-                  sessionId: sessions.some((s) => s.id === old.sessionId)
-                    ? old.sessionId
-                    : sessions[0]?.id || "",
-                }))
-              }
-            >
-              {t.follow}
-            </button>
-            <button
-              disabled={busy || modelTesting}
-              aria-pressed={dedicated}
-              onClick={() =>
-                setDraft((old) => ({
-                  ...old,
-                  mode: "dedicated",
-                  modelRef:
-                    old.modelRef || models.find((m) => m.configured)?.ref || "",
-                  workspaceId:
-                    old.workspaceId ||
-                    workspaces.find(
-                      (w) =>
-                        w.root &&
-                        w.root ===
-                          sessions.find((s) => s.id === old.sessionId)
-                            ?.workspace,
-                    )?.id ||
-                    "global",
-                }))
-              }
-            >
-              {t.dedicated}
-            </button>
-          </SettingsOptions>
-        </SettingsField>
-        {dedicated ? (
+        {memberMode ? (
           <>
-            <SettingsFeedback kind="info">{t.dedicatedHint}</SettingsFeedback>
-            <SettingsField label={t.workspace}>
+            <SettingsField label={t.member} hint={t.memberFixed}>
               <SettingsSelect
-                value={draft.workspaceId || ""}
-                disabled={busy || modelTesting}
-                options={workspaces.map((w) => ({
-                  value: w.id,
-                  label:
-                    w.id === "global" ? t.globalWorkspace : w.title || w.root,
-                  hint: w.root,
-                }))}
-                onValueChange={(workspaceId) =>
-                  setDraft((old) => ({ ...old, workspaceId }))
+                value={draft.memberId || ""}
+                disabled={busy || !!fixedMemberId || initial.hasSecret}
+                options={members.map((m) => ({ value: m.id, label: m.name }))}
+                onValueChange={(memberId) =>
+                  setDraft((old) => ({ ...old, memberId }))
                 }
               />
             </SettingsField>
-            <SettingsField label={t.modelService}>
-              <SettingsSelect
-                value={selectedProvider}
-                disabled={busy || modelTesting}
-                options={services.map((m) => ({
-                  value: m.provider,
-                  label: m.providerLabel,
-                }))}
-                onValueChange={(provider) =>
-                  changeModel(
-                    models.find((m) => m.provider === provider)?.ref || "",
-                  )
-                }
-              />
-            </SettingsField>
-            <SettingsField label={t.model} hint={t.modelHint}>
-              <SettingsSelect
-                value={draft.modelRef || ""}
-                disabled={busy || modelTesting}
-                selectedLabel={
-                  !selectedModel && draft.modelRef
-                    ? t.modelUnavailable
-                    : undefined
-                }
-                options={models
-                  .filter((m) => m.provider === selectedProvider)
-                  .map((m) => ({
-                    value: m.ref,
-                    label: m.model,
-                    hint: m.configured ? undefined : t.missingKey,
-                  }))}
-                onValueChange={changeModel}
-              />
-            </SettingsField>
-            {!models.length && (
-              <SettingsFeedback kind="info">{t.noModels}</SettingsFeedback>
-            )}
-            {selectedModel && !selectedModel.configured && (
-              <SettingsFeedback kind="error">{t.missingKey}</SettingsFeedback>
-            )}
-            <button
-              className="btn"
-              type="button"
-              disabled={busy || modelTesting || !selectedModel?.configured}
-              onClick={() => void testModel()}
-            >
-              {modelTesting ? t.testingModel : t.testModel}
-            </button>
-            {modelTestResult && (
-              <SettingsFeedback
-                kind={modelTestResult.error ? "error" : "success"}
-              >
-                {modelTestResult.text}
-              </SettingsFeedback>
+            <SettingsFeedback kind={selectedMember ? "info" : "error"}>
+              {selectedMember ? t.memberHint : t.memberMissing}
+            </SettingsFeedback>
+            {selectedMember && (
+              <p>
+                {t.model}: {selectedMember.model || "—"} ·{" "}
+                {selectedMember.permission}
+              </p>
             )}
           </>
         ) : (
           <>
-            <SettingsField label={t.session} hint={t.sessionHint}>
-              <SettingsSelect
-                value={draft.sessionId}
-                disabled={busy}
-                options={[
-                  ...sessions.map((s) => ({
-                    value: s.id,
-                    label: s.title || s.id,
-                    hint: s.workspace,
-                  })),
-                  ...(!sessions.some((s) => s.id === draft.sessionId) &&
-                  draft.sessionId
-                    ? [
-                        {
-                          value: draft.sessionId,
-                          label: draft.sessionId,
-                          hint: t.noSession,
-                        },
-                      ]
-                    : []),
-                ]}
-                onValueChange={(sessionId) =>
-                  setDraft((old) => ({ ...old, sessionId }))
-                }
-              />
+            <SettingsField label={t.modelMode}>
+              <SettingsOptions layout="fill" aria-label={t.modelMode}>
+                <button
+                  disabled={busy || modelTesting}
+                  aria-pressed={!dedicated}
+                  onClick={() =>
+                    setDraft((old) => ({
+                      ...old,
+                      mode: "follow",
+                      sessionId: sessions.some((s) => s.id === old.sessionId)
+                        ? old.sessionId
+                        : sessions[0]?.id || "",
+                    }))
+                  }
+                >
+                  {t.follow}
+                </button>
+                <button
+                  disabled={busy || modelTesting}
+                  aria-pressed={dedicated}
+                  onClick={() =>
+                    setDraft((old) => ({
+                      ...old,
+                      mode: "dedicated",
+                      modelRef:
+                        old.modelRef ||
+                        models.find((m) => m.configured)?.ref ||
+                        "",
+                      workspaceId:
+                        old.workspaceId ||
+                        workspaces.find(
+                          (w) =>
+                            w.root &&
+                            w.root ===
+                              sessions.find((s) => s.id === old.sessionId)
+                                ?.workspace,
+                        )?.id ||
+                        "global",
+                    }))
+                  }
+                >
+                  {t.dedicated}
+                </button>
+              </SettingsOptions>
             </SettingsField>
-            {!sessions.length && (
-              <SettingsFeedback kind="info">{t.noSession}</SettingsFeedback>
+            {dedicated ? (
+              <>
+                <SettingsFeedback kind="info">
+                  {t.dedicatedHint}
+                </SettingsFeedback>
+                <SettingsField label={t.workspace}>
+                  <SettingsSelect
+                    value={draft.workspaceId || ""}
+                    disabled={busy || modelTesting}
+                    options={workspaces.map((w) => ({
+                      value: w.id,
+                      label:
+                        w.id === "global"
+                          ? t.globalWorkspace
+                          : w.title || w.root,
+                      hint: w.root,
+                    }))}
+                    onValueChange={(workspaceId) =>
+                      setDraft((old) => ({ ...old, workspaceId }))
+                    }
+                  />
+                </SettingsField>
+                <SettingsField label={t.modelService}>
+                  <SettingsSelect
+                    value={selectedProvider}
+                    disabled={busy || modelTesting}
+                    options={services.map((m) => ({
+                      value: m.provider,
+                      label: m.providerLabel,
+                    }))}
+                    onValueChange={(provider) =>
+                      changeModel(
+                        models.find((m) => m.provider === provider)?.ref || "",
+                      )
+                    }
+                  />
+                </SettingsField>
+                <SettingsField label={t.model} hint={t.modelHint}>
+                  <SettingsSelect
+                    value={draft.modelRef || ""}
+                    disabled={busy || modelTesting}
+                    selectedLabel={
+                      !selectedModel && draft.modelRef
+                        ? t.modelUnavailable
+                        : undefined
+                    }
+                    options={models
+                      .filter((m) => m.provider === selectedProvider)
+                      .map((m) => ({
+                        value: m.ref,
+                        label: m.model,
+                        hint: m.configured ? undefined : t.missingKey,
+                      }))}
+                    onValueChange={changeModel}
+                  />
+                </SettingsField>
+                {!models.length && (
+                  <SettingsFeedback kind="info">{t.noModels}</SettingsFeedback>
+                )}
+                {selectedModel && !selectedModel.configured && (
+                  <SettingsFeedback kind="error">
+                    {t.missingKey}
+                  </SettingsFeedback>
+                )}
+                <button
+                  className="btn"
+                  type="button"
+                  disabled={busy || modelTesting || !selectedModel?.configured}
+                  onClick={() => void testModel()}
+                >
+                  {modelTesting ? t.testingModel : t.testModel}
+                </button>
+                {modelTestResult && (
+                  <SettingsFeedback
+                    kind={modelTestResult.error ? "error" : "success"}
+                  >
+                    {modelTestResult.text}
+                  </SettingsFeedback>
+                )}
+              </>
+            ) : (
+              <>
+                <SettingsField label={t.session} hint={t.sessionHint}>
+                  <SettingsSelect
+                    value={draft.sessionId}
+                    disabled={busy}
+                    options={[
+                      ...sessions.map((s) => ({
+                        value: s.id,
+                        label: s.title || s.id,
+                        hint: s.workspace,
+                      })),
+                      ...(!sessions.some((s) => s.id === draft.sessionId) &&
+                      draft.sessionId
+                        ? [
+                            {
+                              value: draft.sessionId,
+                              label: draft.sessionId,
+                              hint: t.noSession,
+                            },
+                          ]
+                        : []),
+                    ]}
+                    onValueChange={(sessionId) =>
+                      setDraft((old) => ({ ...old, sessionId }))
+                    }
+                  />
+                </SettingsField>
+                {!sessions.length && (
+                  <SettingsFeedback kind="info">{t.noSession}</SettingsFeedback>
+                )}
+              </>
             )}
           </>
         )}

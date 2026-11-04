@@ -3,7 +3,7 @@
 
 export const DESKTOP_PROTOCOL_VERSION = 11;
 
-export const DESKTOP_CONTRACT_DIGEST = "sha256:120313cffc88c6eae46ef9e086540e6fc9665c05559160f998a531a8d4552027";
+export const DESKTOP_CONTRACT_DIGEST = "sha256:5c19802a0faddea0dcda5da031c3cc28a5f42a45cb8b5120edb3bdd25dfad0f8";
 
 export const DESKTOP_COMMANDS = [
   "AIRenameSessionTarget",
@@ -246,6 +246,7 @@ export const DESKTOP_COMMANDS = [
   "NeedsOnboarding",
   "NewSession",
   "NewSessionForTab",
+  "OpenBotMemberHistory",
   "OpenChannelTranscriptSessionForTab",
   "OpenDownloadPage",
   "OpenFileBrowserPreviewForTab",
@@ -673,6 +674,8 @@ export interface botchannels_View {
   mode?: string;
   modelRef?: string;
   workspaceId?: string;
+  memberId?: string;
+  legacySessionId?: string;
   hasSecret: boolean;
   status: string;
   error: string;
@@ -683,6 +686,7 @@ export interface botchannels_View {
   sent: number;
   lastReceivedAt?: string;
   lastSentAt?: string;
+  memberName?: string;
 }
 
 export interface AssetEntry {
@@ -1689,6 +1693,7 @@ export interface BotChannelsView {
   sessions: BotSessionView[];
   models: BotModelView[];
   workspaces: BotWorkspaceView[];
+  members: BotMemberView[];
 }
 
 export interface BotConnectionInput {
@@ -1702,6 +1707,8 @@ export interface BotConnectionInput {
   mode?: string;
   modelRef?: string;
   workspaceId?: string;
+  memberId?: string;
+  legacySessionId?: string;
   secret: string;
   loginId: string;
   connect?: boolean;
@@ -1716,6 +1723,14 @@ export interface BotLoginView {
   appId?: string;
   provider?: string;
   interval?: number;
+}
+
+export interface BotMemberView {
+  id: string;
+  name: string;
+  model: string;
+  permission: string;
+  folder: string;
 }
 
 export interface BotModelView {
@@ -5455,6 +5470,7 @@ export interface GeneratedDesktopCommands {
   NeedsOnboarding(): Promise<boolean>;
   NewSession(): Promise<void>;
   NewSessionForTab(arg0: string): Promise<void>;
+  OpenBotMemberHistory(arg0: string): Promise<void>;
   OpenChannelTranscriptSessionForTab(arg0: string, arg1: string): Promise<HistorySwitchPhases>;
   OpenDownloadPage(): Promise<void>;
   OpenFileBrowserPreviewForTab(arg0: string, arg1: FileBrowserPreviewRequest): Promise<FileBrowserPreviewResult>;

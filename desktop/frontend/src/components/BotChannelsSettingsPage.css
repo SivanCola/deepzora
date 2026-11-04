@@ -8,6 +8,12 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 20px;
 }
+.bot-channels--member .bot-access-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.bot-channels--member .bot-provider-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+}
 .bot-access-card {
   border: 1px solid var(--border);
   border-radius: 14px;

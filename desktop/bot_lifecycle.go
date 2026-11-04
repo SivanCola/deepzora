@@ -116,11 +116,21 @@ func (a *App) restoreEnabledBotChannels() {
 	if a.shuttingDown.Load() {
 		return
 	}
+	errMigration := a.migrateBotMembersLocked()
+	a.botChannels.mu.Lock()
+	a.botChannels.migrationError = ""
+	if errMigration != nil {
+		a.botChannels.migrationError = "Bot member migration failed; original configuration and history retained: " + errMigration.Error()
+	}
+	a.botChannels.mu.Unlock()
 	entries, err := a.botStore().Read()
 	if err != nil {
 		return
 	} // List surfaces configuration read failures to the user.
 	for _, entry := range entries {
+		if entry.MemberID == "" && errMigration != nil {
+			continue
+		}
 		if !entry.Enabled {
 			continue
 		}

@@ -11,7 +11,11 @@ shared memory, opt-in review, schedules, credential infrastructure and member
 usage. The seven-layer stack enables credentials after boundary/native acceptance;
 the standalone credential-infrastructure layer keeps them gated.
 Each data directory has one roster with up to 32 members and 16 groups. There
-are no CLI, Serve, ACP, bot or SSH Team entry points.
+are no CLI, Serve, ACP or SSH Team entry points. Saved members can expose
+Weixin/Feishu messaging channels through their Messaging channels detail page.
+Channels inherit the member's model, memory and permissions and route results
+only to the task's originating channel. See [Bot Channels](BOT_CHANNELS.md) for
+legacy configuration/history migration and delivery guarantees.
 
 ## Ownership
 

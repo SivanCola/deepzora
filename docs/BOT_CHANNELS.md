@@ -1,4 +1,63 @@
-# Bot channels — first delivery
+# Bot channels and Team members
+
+## Current member binding
+
+Channels now belong to a fixed Team member. In Settings → Team, edit a saved
+member and open Messaging channels to configure Weixin/Feishu/Lark/Telegram.
+The global Bot Channels page is the connection dashboard and can add a channel
+to an existing member. A saved channel cannot be reassigned to another member.
+Member model/session selection, preset, workspace, private/shared memory, tool
+limits and permissions use the main branch's Team host and ordinary admission.
+No second member identity or model credential store is created. The member's
+initial model seeds new sessions; existing sessions keep their current model,
+as in ordinary Team chats.
+
+Before restoring old connections, migration creates a deterministic member for
+each legacy bot, preserves credentials, allowlists and enabled state, and saves a
+0600 `connections.pre-members.json` backup. Original sessions are never changed
+or deleted. Verified completed history is forked into a canonical Team session;
+the original remains linked through Open original conversation. Missing/empty
+sessions start a new member chat. Unverifiable history blocks migration with a
+visible error instead of silently losing context. Retrying between roster and
+channel commits reuses the same member and fork. Existing Team data is retained.
+
+Replies are correlated by canonical submission and turn identities registered
+before admission. Only the requesting channel receives that task's replies and
+approvals. Desktop tasks, team exchanges, schedules and unrelated channels are
+not broadcast. `/stop` can cancel only a task owned by that channel; approval
+answers retain their exact controller/turn/epoch identity. Local member chats
+and channels share the member's conversation, so concurrent tasks use normal
+busy/admission behavior. A busy request gets an explicit retry message.
+
+Member runtime creation/recovery uses Team's background Ensure path without
+changing Desktop focus. Idle eviction and model/preset rebuilds do not sever the
+channel: each incoming message resolves its current member seat. Archived or
+deleted members stop delivery; they are never silently recreated. Bot workers
+stop before Team releases its runtime/lease during shutdown. Restart does not
+replay old channel messages or automatically resend previously completed output.
+
+The sections below retain the earlier local preview behavior and acceptance
+history. Follow/dedicated configuration fields are retained for migration and
+older configurations; new UI configuration selects Team members.
+
+### Member integration verification (2026-11-04)
+
+Integrated main `c8c50cc1b1e940a0d7a36c9735a02c8965f0160b`. Focused Desktop,
+channel, team-host and root Team/control tests passed under the race detector.
+Tests exercised real member controllers, two channels sharing a member without
+cross-channel/Desktop output, exact approval ownership, migration retry,
+completed-history preservation and restart restoration. Settings component and
+TypeScript tests, Team/Bot browser flows, 252 settings-page and 180 layout cases
+passed. Production frontend/shell builds and ad-hoc signature checks passed.
+
+Native preview `v0.0.1-bot-team.20261104.7` migrated the existing Weixin and Feishu
+connections to two fixed members, preserving their models, permissions, secrets,
+access restrictions and enabled intent. Each original one-turn conversation
+remained accessible; each new member conversation inherited that completed turn.
+Both channels connected successfully and reconnected after a real quit/relaunch
+without duplicate members. Native member → Messaging channels navigation showed
+only the selected member's channel. No external chat message was sent by the
+verification tools; live end-to-end replies remain the user's acceptance step.
 
 Desktop provides a mobile-access entry and a Bot Channels settings manager for
 Weixin, Feishu, Lark and Telegram. Public mobile Web access and QR remote control

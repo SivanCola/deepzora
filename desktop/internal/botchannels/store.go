@@ -15,16 +15,18 @@ import (
 )
 
 type Config struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Provider    string `json:"provider"`
-	AppID       string `json:"appId"`
-	SessionID   string `json:"sessionId"`
-	ChatID      string `json:"chatId"`
-	SenderID    string `json:"senderId"`
-	Mode        string `json:"mode,omitempty"` // empty legacy values follow the shared session
-	ModelRef    string `json:"modelRef,omitempty"`
-	WorkspaceID string `json:"workspaceId,omitempty"`
+	ID              string `json:"id"`
+	Name            string `json:"name"`
+	Provider        string `json:"provider"`
+	AppID           string `json:"appId"`
+	SessionID       string `json:"sessionId"`
+	ChatID          string `json:"chatId"`
+	SenderID        string `json:"senderId"`
+	Mode            string `json:"mode,omitempty"` // empty legacy values follow the shared session
+	ModelRef        string `json:"modelRef,omitempty"`
+	WorkspaceID     string `json:"workspaceId,omitempty"`
+	MemberID        string `json:"memberId,omitempty"`
+	LegacySessionID string `json:"legacySessionId,omitempty"`
 }
 type Saved struct {
 	Config
@@ -43,6 +45,7 @@ type View struct {
 	Sent           int    `json:"sent"`
 	LastReceivedAt string `json:"lastReceivedAt,omitempty"`
 	LastSentAt     string `json:"lastSentAt,omitempty"`
+	MemberName     string `json:"memberName,omitempty"`
 }
 
 var validID = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,64}$`)
@@ -67,6 +70,10 @@ func Validate(c Config) error {
 		return errors.New("unsupported bot provider")
 	}
 	switch c.Mode {
+	case "member":
+		if !regexp.MustCompile(`^a-[0-9a-f]{16}$`).MatchString(c.MemberID) {
+			return errors.New("choose a team member")
+		}
 	case "", "follow":
 		if strings.TrimSpace(c.SessionID) == "" || strings.HasPrefix(c.SessionID, "desktop-bot-") {
 			return errors.New("choose a shared local session, not another bot's dedicated session")
