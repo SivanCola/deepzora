@@ -2475,6 +2475,9 @@ func (a *App) ListWorkspaces() []WorkspaceMeta {
 	projects := loadProjectsFile().Projects
 	out := make([]WorkspaceMeta, 0, len(projects))
 	for _, project := range projects {
+		if teamManagedWorkspaceRoot(project.Root) {
+			continue
+		}
 		out = append(out, WorkspaceMeta{
 			Path:    project.Root,
 			Name:    projectDisplayName(project),

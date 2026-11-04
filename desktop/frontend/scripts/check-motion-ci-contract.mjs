@@ -156,7 +156,7 @@ if (!ciUnitScripts.includes("test:motion") || !ciUnitScripts.includes("test:tran
 }
 const desktopLinuxJob = jobBody("desktop-browser");
 assert.equal(desktopLinuxJob.match(/pnpm --dir frontend test:team-browser(?:\s|$)/g)?.length, 1);
-assert.equal(packageJSON.scripts["test:team-browser"], "node bench/team-desktop.mjs");
+assert.equal(packageJSON.scripts["test:team-browser"], "node bench/team-desktop.mjs && node bench/team-private-chat.mjs");
 const teamBrowserSource=readFileSync(resolve(repoRoot,"desktop/frontend/bench/team-desktop.mjs"),"utf8");
 assert.match(teamBrowserSource,/path\.join\(root, "\.pw-browsers"\)/);
 assert.ok(teamBrowserSource.indexOf('process.env.PLAYWRIGHT_BROWSERS_PATH =')<teamBrowserSource.indexOf('await import("playwright")'),"resolve the frontend cache before Playwright reads its environment");

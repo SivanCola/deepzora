@@ -37,7 +37,7 @@ func (a *App) botOwnsController(ctrl control.SessionAPI) bool {
 }
 
 func (a *App) preserveRuntimeForNavigation(ctrl control.SessionAPI) bool {
-	return controllerHasActiveRuntimeWork(ctrl) || a.botOwnsController(ctrl)
+	return controllerHasActiveRuntimeWork(ctrl) || controllerHasTeamSeat(ctrl) || a.botOwnsController(ctrl)
 }
 
 // op is held. Shutdown stops workers without changing this durable intent;

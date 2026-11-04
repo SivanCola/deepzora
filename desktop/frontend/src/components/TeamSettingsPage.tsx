@@ -7,6 +7,7 @@ import { fullAccessProjectConfirmationKey } from "../lib/fullAccessConfirmation"
 import { app } from "../lib/bridge";
 import { useT } from "../lib/i18n";
 import { notifyTeamChanged, useTeam } from "../lib/useTeam";
+import { memberSettings } from "../lib/teamAgentSettings";
 import { useAgentPresets } from "../lib/useAgentPresets";
 import { AgentPresetIcon } from "./AgentPresetIcon";
 import { AgentPresetIconPicker } from "./AgentPresetIconPicker";
@@ -24,7 +25,6 @@ import { useBotText } from "../lib/botChannels";
 import { SettingsFeedback, SettingsSubpageHeader, useSettingsDraft, useSettingsExperience } from "./SettingsExperience";
 
 type Editor = { kind:"agent"; member?:Agent; revision:number } | { kind:"group"; group?:Group; revision:number };
-const memberSettings=(a?:Agent):TeamAgentSettings=>({name:a?.name??"",role:a?.role??"",instructions:a?.instructions??"",avatar:a?.avatar??{},initialModel:a?.initialModel??"",folder:a?.folder??"",permission:a?.permission||"read-only",main:a?.main??false,pinned:a?.pinned??false,hidden:a?.hidden??false,preset:a?.preset});
 const groupSettings=(g?:Group):TeamGroupSettings=>({name:g?.name??"",notice:g?.notice??"",members:g?.members??[],admin:g?.admin??"",mode:g?.mode??"everyone",relayLimit:g?.relayLimit??20,folder:g?.folder??"",pinned:g?.pinned??false,hidden:g?.hidden??false,archived:g?.archived??false});
 const presetCopy=(p:Omit<AgentPresetDraft,"scope">):TeamPresetDefinition=>({id:p.id,name:p.name,description:p.description,body:p.body,icon:p.icon??"",iconImage:p.iconImage??"",iconColor:p.iconColor??"",keepCoding:p.keepCoding,complete:p.complete,includeRuntimeContext:p.includeRuntimeContext,restrictTools:p.tools!==null,tools:p.tools??[]});
 

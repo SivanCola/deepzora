@@ -46,6 +46,27 @@ func desktopTeamStore() teamroster.Store {
 // Reserved Team identities cannot be reopened as ordinary sessions after an
 // idle eviction, deletion, lease loss or a stale project-history navigation.
 func (a *App) teamSeatForCanonicalSession(id string) (control.TeamSeat, error) {
+	seat, err := a.teamBindingForCanonicalSession(id)
+	if err != nil || seat == nil {
+		return seat, err
+	}
+	h, err := a.localTeamHost()
+	if err != nil {
+		return nil, err
+	}
+	if err := h.Claim(a.bootContext()); err != nil {
+		return nil, err
+	}
+	_, ref := seat.Team()
+	if _, err := h.Ensure(a.bootContext(), ref); err != nil {
+		return nil, err
+	}
+	return team.Seat{Service: h.BindingService(), Ref: ref}, nil
+}
+
+// Resolve the target's identity without opening a runtime. Controller builders
+// already hold navigation locks and must never recursively Ensure a seat.
+func (a *App) teamBindingForCanonicalSession(id string) (control.TeamSeat, error) {
 	if !strings.HasPrefix(id, "desktop-team-") {
 		return nil, nil
 	}
@@ -75,12 +96,6 @@ func (a *App) teamSeatForCanonicalSession(id string) (control.TeamSeat, error) {
 	}
 	h, err := a.localTeamHost()
 	if err != nil {
-		return nil, err
-	}
-	if err := h.Claim(a.bootContext()); err != nil {
-		return nil, err
-	}
-	if _, err := h.Ensure(a.bootContext(), ref); err != nil {
 		return nil, err
 	}
 	return team.Seat{Service: h.BindingService(), Ref: ref}, nil
@@ -310,6 +325,10 @@ func (a *App) openTeamRuntime(ctx context.Context, ref team.SeatRef, service *te
 	if member.InitialModel != "" {
 		settings.Model = member.InitialModel
 	}
+	settings.Model, err = a.teamSessionModel(ctx, id, settings.Model)
+	if err != nil {
+		return nil, err
+	}
 	settings.ToolApprovalMode = member.Permission
 	if settings.ToolApprovalMode == "" {
 		settings.ToolApprovalMode = "read-only"
@@ -365,6 +384,19 @@ func (a *App) openTeamRuntime(ctx context.Context, ref team.SeatRef, service *te
 	unlock()
 	retained = true
 	return &desktopTeamRuntime{app: a, ref: ref, sessionID: id}, nil
+}
+
+// Reopening a seat is not a new-session creation. Its saved model choice
+// takes precedence over the member seed, including after process restart.
+func (a *App) teamSessionModel(ctx context.Context, id, seed string) (string, error) {
+	saved, err := a.desktopSessionService("").Query().Stat(ctx, session.SessionRef{HostID: localDesktopHostID, SessionID: id})
+	if err != nil && !errors.Is(err, session.ErrSessionNotFound) {
+		return "", err
+	}
+	if err == nil && strings.TrimSpace(saved.ModelRef) != "" {
+		return saved.ModelRef, nil
+	}
+	return seed, nil
 }
 
 func teamRuntimeRoot(store teamroster.Store, r *teamroster.Roster, ref team.SeatRef) (string, error) {

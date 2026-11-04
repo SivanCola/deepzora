@@ -77,7 +77,13 @@ const server = createServer(async (req, res) => {
         browserPageId = await application.evaluate(({ webContents }, url) => webContents.getAllWebContents().find(page => page.getURL() === url)?.id,
           `http://127.0.0.1:${server.address().port}/fixture`);
         assert.ok(browserPageId);
-        await page.locator(".workbench-dock__collapse").click();
+        // Tool-owned browser pages do not open the user's dock. Exercise an
+        // explicit user reveal before testing capture with the panel closed.
+        await page.locator('.topicbar__chrome-btn--workspace[aria-pressed="false"]').click();
+        await page.locator(".workbench-dock__tab-add").click();
+        await page.getByRole("menuitem", { name: /^(Browser|浏览器)$/ }).click();
+        await page.locator(".browser-panel").waitFor();
+        await page.locator('.topicbar__chrome-btn--workspace[aria-pressed="true"]').click();
         await page.locator(".browser-panel").waitFor({ state: "detached" });
         capability = "browser_screenshot"; args = { tabId };
       }
@@ -105,7 +111,7 @@ const server = createServer(async (req, res) => {
   } catch (error) { failure = error; res.writeHead(500); res.end("fixture assertion failed"); }
 });
 await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
-writeFileSync(join(home, "config.toml"), `default_model = "fixture/vision"\n[desktop]\nprovider_access = ["fixture"]\n[[providers]]\nname = "fixture"\nkind = "openai"\nbase_url = "http://127.0.0.1:${server.address().port}/v1"\nmodels = ["vision"]\nvision_models = ["vision"]\ndefault = "vision"\napi_key_env = "BROWSER_FIXTURE_KEY"\n`);
+writeFileSync(join(home, "config.toml"), `default_model = "fixture/vision"\n[desktop]\nprovider_access = ["fixture"]\n[[providers]]\nname = "fixture"\nkind = "openai"\nbase_url = "http://127.0.0.1:${server.address().port}/v1"\nmodels = ["vision"]\ndefault = "vision"\napi_key_env = "BROWSER_FIXTURE_KEY"\n[providers.model_overrides.vision]\nvision = true\n`);
 try {
   application = await _electron.launch({ executablePath: join(bundle, "Contents/MacOS/Deepzora"), env: { ...packagedSmokeEnv(process.env, home), BROWSER_FIXTURE_KEY: "loopback-only" }, timeout: 60_000 });
   const manifest = JSON.parse(readFileSync(join(bundle, "Contents/Resources/build.json"), "utf8"));
@@ -119,7 +125,7 @@ try {
   const invoke = (method, args = []) => page.evaluate(({ method, args }) => window.deepzoraDesktop.invoke(method, args), { method, args });
   const tab = await invoke("EnsureBlankSurface", ["project", project]);
   await invoke("SetActiveTab", [tab.id]);
-  await invoke("SetToolApprovalModeForTab", [tab.id, "yolo"]);
+  await invoke("SetToolApprovalModeForTab", [tab.id, "danger-full-access"]);
   await invoke("StartTurnForTab", [tab.id, "BROWSER_FIXTURE: inspect the deterministic local page", "browser-native-fixture"]);
   await waitForSmokeCondition(() => { if (failure) throw failure; return receivedImage; }, { timeout: 60_000 });
   await waitForSmokeCondition(async () => (await invoke("ListTabs")).every(tab => !tab.running));
@@ -139,6 +145,7 @@ try {
   writeFileSync(join(evidence, "result.json"), JSON.stringify({ completed: true, version: manifest.version, steps, providerReceivedPNG: true, backgroundCapturePreservesPage: true, closedPanelStaysClosed: true, decoded, provider: "loopback fixture; no model perception claim", normalExit: true }, null, 2));
   console.log("PASS packaged browser: open, cross-origin snapshot/click/verification, PNG delivered to provider, normal exit");
 } catch (error) {
+  await page?.screenshot({ path: join(evidence, "failure.png") }).catch(() => {});
   writeFileSync(join(evidence, "result.json"), JSON.stringify({ completed: false, status: "failed", steps }, null, 2));
   throw error;
 } finally {

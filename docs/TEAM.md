@@ -112,8 +112,15 @@ conversations; existing sessions retain their chosen model. Names and avatars
 update immediately. Static prompt/tool changes wait for an idle rebuild and
 show pending status until applied.
 
+Private chat shows the member's name and avatar above the composer and in the
+conversation title. **Member settings** edits the independent member copy;
+the permission selector also edits that member's saved permission for every
+private and group seat. Full access requires confirmation, and concurrent edits
+are rejected for review rather than retried. Model selection can still change
+the current conversation. Internal member workspaces do not appear as projects.
+
 Member permissions own every private and group seat. Restoration and chat
-controls cannot widen that persistent choice. Full access uses the standard
+controls cannot override that choice with a session-only preset. Full access uses the standard
 Desktop acknowledgement, including the existing Windows Shell description.
 Directory changes require idle affected seats and fork at a verified completed
 turn into the new canonical workspace, preserving history. Reopen the member

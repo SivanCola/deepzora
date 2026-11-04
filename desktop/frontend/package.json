@@ -23,7 +23,7 @@
     "test:mcp-app": "node scripts/run-ci-tests.mjs --group mcp-app",
     "test:workspace": "node scripts/run-ci-tests.mjs --group workspace",
     "test:settings-browser": "node bench/settings-layout.mjs",
-    "test:team-browser": "node bench/team-desktop.mjs",
+    "test:team-browser": "node bench/team-desktop.mjs && node bench/team-private-chat.mjs",
     "test:settings-pages": "node bench/settings-pages.mjs",
     "test:bot-channels": "node bench/bot-channels.mjs",
     "test:sidebar-browser": "node bench/project-tree-sidebar.mjs",
