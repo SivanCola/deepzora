@@ -476,6 +476,15 @@ ok(
   "the Windows caption inset sits on the shell bar, not on the dock's tools row",
 );
 
+// The caption buttons sit on that bar at every dock state, so they take its
+// surface. A dock-state or layout rule that paints them shows as a box (#135).
+ok(
+  finalDeclaration(".windows-window-controls", "background") === "transparent" &&
+    !/\.layout[^{]*~ \.windows-window-controls\s*\{[^}]*background/.test(stylesSource) &&
+    !/\.app--creation \.windows-window-controls[^{]*\{[^}]*background/.test(stylesSource),
+  "the Windows caption buttons have no surface of their own on the shell bar",
+);
+
 ok(
   /@container \(max-width: 420px\) \{[\s\S]*?\.app--workbench \.workbench-dock__tab,[\s\S]*?:root\[data-theme-style\] \.app--workbench \.workbench-dock__tab \{[\s\S]*?padding-left:\s*10px;[\s\S]*?padding-right:\s*10px;[\s\S]*?gap:\s*4px;/.test(stylesSource),
   "workbench keeps compact four-tab spacing at narrow dock widths",
