@@ -2,6 +2,96 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "0.0.6",
+      "releaseId": "0.0.6",
+      "baseVersion": "0.0.6",
+      "previousRelease": "0.0.5",
+      "date": "2026-11-10",
+      "channel": "stable",
+      "status": "reviewed",
+      "targetingVersion": 1,
+      "builds": { "cli": "v0.0.6", "desktop": "v0.0.6", "npm": "0.0.6" },
+      "title": {
+        "en": "Model display names, Windows title bar and shutdown diagnostics",
+        "zh": "模型别名、Windows 标题栏与退出诊断"
+      },
+      "summary": {
+        "en": "Deepzora 0.0.6 lets you give a configured model a display name, fixes the Windows window controls showing a mismatched box when the workspace panel is open, and names base theme styles consistently. Shutdown now records each step and reports a stalled one with diagnostics. Desktop moves to Electron 45.",
+        "zh": "Deepzora 0.0.6 支持为已配置的模型设置别名，修复 Windows 上打开工作区面板时窗口按钮区域颜色不一致的问题，并统一基础主题的名称。退出过程现在会记录每一步，某一步卡住时会输出诊断信息。桌面端升级到 Electron 45。"
+      },
+      "surfaces": ["desktop"],
+      "guides": [],
+      "highlights": [
+        {
+          "kind": "new", "targets": ["desktop"],
+          "title": { "en": "Give a model a display name", "zh": "为模型设置别名" },
+          "body": {
+            "en": "In Settings → Model services, open a model and enter a display name, for example deepseek-flash for deepseek-flash-1017. The model switcher, the session's model label and the model list show it, with the model ID alongside. Requests, session records and model references keep the model ID, and renaming a model does not restart open sessions.",
+            "zh": "在“设置 → 模型服务”中打开某个模型并填写别名，例如为 deepseek-flash-1017 填写 deepseek-flash。模型切换器、会话的模型标签和模型列表会显示别名，并在旁边保留模型 ID。请求、会话记录和模型引用仍使用模型 ID，修改别名不会重启已打开的会话。"
+          },
+          "refs": [172, 137]
+        }
+      ],
+      "changes": {
+        "new": [],
+        "improved": [
+          {
+            "targets": ["desktop"],
+            "title": { "en": "Shutdown records its steps and reports a stall", "zh": "退出过程记录步骤并报告卡住的位置" },
+            "body": {
+              "en": "Each shutdown step is now written to service.log. A step still running after 10 seconds logs a warning with every goroutine's stack, and the shutdown error names the step, for example stopped in cancelling_background (step …). This makes a stalled exit diagnosable; it does not by itself fix the stall reported in #126.",
+              "zh": "退出的每一步现在都会写入 service.log。某一步运行超过 10 秒时会记录警告并输出全部协程堆栈，退出失败的提示也会带上具体步骤名，例如 stopped in cancelling_background (step …)。这使卡住的退出可以被定位，但本身并不修复 #126 中报告的卡住问题。"
+            },
+            "refs": [169, 126]
+          },
+          {
+            "targets": ["desktop"],
+            "title": { "en": "Electron 45", "zh": "升级到 Electron 45" },
+            "body": { "en": "Desktop now runs on Electron 45.2.2 (Chromium 156, Node.js 24.22).", "zh": "桌面端运行时升级到 Electron 45.2.2（Chromium 156、Node.js 24.22）。" },
+            "refs": [168]
+          }
+        ],
+        "fixed": [
+          {
+            "targets": ["desktop"],
+            "title": { "en": "Windows window controls match the title bar", "zh": "Windows 窗口按钮与标题栏颜色一致" },
+            "body": {
+              "en": "With the workspace panel open, the minimize, maximize and close buttons no longer sit in a white box beside the grey title bar.",
+              "zh": "打开右侧工作区面板时，最小化、最大化和关闭按钮不再显示为灰色标题栏旁的白色方块。"
+            },
+            "refs": [170, 135]
+          },
+          {
+            "targets": ["desktop"],
+            "title": { "en": "Base theme styles are named consistently", "zh": "基础主题名称统一" },
+            "body": {
+              "en": "The theme gallery, theme library and appearance overview now name base styles the same way as the style picker. In Chinese they no longer appear in English; in English the gallery now reads Soft Aurora, Refined, Deep and Soft instead of Aurora, Slate, Carbon and Nocturne.",
+              "zh": "主题画廊、主题库和外观概览中的基础主题名称现在与样式选择器一致：中文界面不再显示英文名；英文界面的画廊名称由 Aurora、Slate、Carbon、Nocturne 改为 Soft Aurora、Refined、Deep、Soft。"
+            },
+            "refs": [171, 162]
+          }
+        ]
+      },
+      "upgrade": [],
+      "risks": [
+        {
+          "targets": ["desktop"],
+          "title": { "en": "Exit can still stall on some Windows systems", "zh": "部分 Windows 系统上退出仍可能卡住" },
+          "body": {
+            "en": "The report of shutdown stopping in cancelling_background (#126) is not resolved. If it happens, attach service.log and service.log.1 from %APPDATA%\\Deepzora\\logs to #126; this release's logs name the stalled step.",
+            "zh": "退出停在 cancelling_background 的问题（#126）尚未解决。如遇到，请把 %APPDATA%\\Deepzora\\logs 下的 service.log 和 service.log.1 附到 #126；本版日志会写明卡住的步骤。"
+          },
+          "refs": [126]
+        }
+      ],
+      "contributors": [],
+      "links": {
+        "github": "https://github.com/SivanCola/deepzora/releases/tag/v0.0.6",
+        "compare": "https://github.com/SivanCola/deepzora/compare/v0.0.5...v0.0.6",
+        "download": "https://deepzora.app/#download"
+      }
+    },
+    {
       "version": "0.0.5",
       "releaseId": "0.0.5",
       "baseVersion": "0.0.5",
