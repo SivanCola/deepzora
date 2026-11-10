@@ -101,6 +101,8 @@
 .provider-model-dialog h2 { flex: 1; margin: 0; font-size: 21px; }
 .provider-model-dialog h3 { margin: 0 0 16px; font-size: 16px; }
 .provider-model-dialog__id { display: grid; gap: 12px; margin: 24px 0; }
+.provider-model-dialog__name { display: grid; gap: 8px; margin: -8px 0 24px; }
+.provider-model-dialog__name > small { justify-self: start; text-align: left; }
 .provider-model-dialog__id > span { display: flex; align-items: center; gap: 10px; overflow-wrap: anywhere; }
 .provider-model-dialog__columns { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(280px, .95fr); gap: 32px; padding: 22px 0 24px; border-block: 1px solid var(--border); }
 .provider-model-dialog__columns aside { border-left: 0; border-radius: 12px; background: color-mix(in srgb, var(--bg) 62%, transparent); padding: 18px 20px; }

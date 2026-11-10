@@ -71,3 +71,26 @@ func TestConfiguredModelInfoBrandsAllPresets(t *testing.T) {
 		})
 	}
 }
+
+func TestConfiguredModelInfoUsesTheModelDisplayName(t *testing.T) {
+	cfg := &config.Config{Providers: []config.ProviderEntry{{Name: "p", Kind: "openai", Models: []string{"deepseek-flash-1017", "other"},
+		ModelOverrides: map[string]config.ProviderModelOverride{"deepseek-flash-1017": {DisplayName: "deepseek-flash"}}}}}
+	info := configuredModelInfo(cfg, "p", "deepseek-flash-1017", true)
+	if info.ModelDisplayName != "deepseek-flash" || info.Model != "deepseek-flash-1017" || info.Ref != "p/deepseek-flash-1017" {
+		t.Fatalf("labelled model = %+v", info)
+	}
+	if got := desktopModelLabel(cfg, "p/deepseek-flash-1017", "deepseek-flash-1017"); got != "deepseek-flash" {
+		t.Fatalf("session label = %q", got)
+	}
+	if other := configuredModelInfo(cfg, "p", "other", false); other.ModelDisplayName != "" {
+		t.Fatalf("label leaked to another model: %+v", other)
+	}
+	view := providerModelOverridesForView(cfg.Providers[0].ModelOverrides, cfg.Providers[0].Models)
+	if len(view) != 1 || view[0].DisplayName != "deepseek-flash" {
+		t.Fatalf("override view = %+v", view)
+	}
+	saved := providerModelOverridesForSave([]ProviderModelOverrideView{{Model: "deepseek-flash-1017", DisplayName: " deepseek-flash "}, {Model: "other", DisplayName: "  "}}, cfg.Providers[0].Models)
+	if len(saved) != 1 || saved["deepseek-flash-1017"].DisplayName != "deepseek-flash" {
+		t.Fatalf("saved overrides = %+v", saved)
+	}
+}

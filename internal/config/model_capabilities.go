@@ -159,6 +159,10 @@ func (r *ModelCapabilityResolver) resolveWithCredentialRevision(entry *ProviderE
 			resolved.ModelInfo.Name = cached.DisplayName
 		}
 	}
+	// A label the user set outranks the name the provider's catalog reports.
+	if ov, ok := entry.modelOverrideForModel(resolved.Model); ok && ov.DisplayName != "" {
+		resolved.ModelInfo.Name = ov.DisplayName
+	}
 	resolved.ModelInfo.InputModalities = append([]provider.ModelModality(nil), resolved.InputModalities...)
 	return resolved
 }

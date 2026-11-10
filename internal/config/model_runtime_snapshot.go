@@ -66,6 +66,7 @@ func (c *Config) ModelRuntimeFingerprint(model string) string {
 		entry.DisplayName, entry.PresetID, entry.BalanceURL, entry.ModelsURL = "", "", "", ""
 		entry.APIKeyEnv = "" // a changed reference with the same resolved key is not a runtime change
 		entry.PresetVersion = 0
+		entry.ModelOverrides = modelOverridesWithoutLabels(entry.ModelOverrides)
 		providers = append(providers, providerSnapshot{entry, key})
 	}
 	data, err := json.Marshal(struct {

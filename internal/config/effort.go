@@ -350,6 +350,7 @@ func normalizedModelOverrides(overrides map[string]ProviderModelOverride) map[st
 		if model == "" {
 			continue
 		}
+		ov.DisplayName = strings.TrimSpace(ov.DisplayName)
 		ov.ReasoningProtocol = normalizeReasoningProtocol(ov.ReasoningProtocol)
 		ov.SupportedEfforts = normalizedEffortLevels(ov.SupportedEfforts)
 		ov.DefaultEffort = normalizeEffortLevel(ov.DefaultEffort)

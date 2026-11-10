@@ -30,6 +30,9 @@ func renderModelOverrides(m map[string]ProviderModelOverride) string {
 func renderModelOverride(ov ProviderModelOverride) string {
 	var parts []string
 
+	if ov.DisplayName != "" {
+		parts = append(parts, fmt.Sprintf("display_name = %q", ov.DisplayName))
+	}
 	if ov.ReasoningProtocol != "" {
 		parts = append(parts, fmt.Sprintf("reasoning_protocol = %q", ov.ReasoningProtocol))
 	}
@@ -55,5 +58,5 @@ func renderModelOverride(ov ProviderModelOverride) string {
 }
 
 func modelOverrideEmpty(ov ProviderModelOverride) bool {
-	return ov.ReasoningProtocol == "" && len(ov.SupportedEfforts) == 0 && ov.DefaultEffort == "" && ov.Vision == nil && ov.WebSearch == nil && ov.ContextWindow <= 0 && ov.MaxOutputTokens == 0
+	return ov.DisplayName == "" && ov.ReasoningProtocol == "" && len(ov.SupportedEfforts) == 0 && ov.DefaultEffort == "" && ov.Vision == nil && ov.WebSearch == nil && ov.ContextWindow <= 0 && ov.MaxOutputTokens == 0
 }

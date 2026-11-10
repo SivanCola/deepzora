@@ -9,7 +9,7 @@ import type { ProviderModelCapabilityView } from "../lib/types";
 import { modelDraftError } from "../lib/providerModelDraft";
 import { useSettingsDraft } from "./SettingsExperience";
 
-export interface ModelDetailsDraft { model: string; contextWindow: string; maxOutputTokens: number; vision: boolean | null; webSearch: boolean | null; supportedEfforts: string[]; defaultEffort: string; }
+export interface ModelDetailsDraft { model: string; displayName: string; contextWindow: string; maxOutputTokens: number; vision: boolean | null; webSearch: boolean | null; supportedEfforts: string[]; defaultEffort: string; }
 export default function ProviderModelDialog({ initial, candidates, contextDefault, capability, baseURL, busy, effortOptions, webSearchSupported = false, webSearchDefault = false, onClose, onApply, onDelete }: {
   initial?: ModelDetailsDraft; candidates: string[]; contextDefault?: number;
   webSearchSupported?: boolean; webSearchDefault?: boolean;
@@ -20,6 +20,7 @@ export default function ProviderModelDialog({ initial, candidates, contextDefaul
   const t = useT(), titleId = useId();
   const dialog = useRef<HTMLDialogElement>(null);
   const [model, setModel] = useState(initial?.model ?? "");
+  const [displayName, setDisplayName] = useState(initial?.displayName ?? "");
   const [context, setContext] = useState(initial?.contextWindow ?? "");
   const [output, setOutput] = useState(initial?.maxOutputTokens ? String(Math.max(-1, initial.maxOutputTokens)) : "");
   const [vision, setVision] = useState(initial?.vision == null ? "auto" : String(initial.vision));
@@ -39,12 +40,12 @@ export default function ProviderModelDialog({ initial, candidates, contextDefaul
   const imageState = imageBlocked ? "unsupported" : imageInputState(vision === "auto" ? "auto" : vision === "true" ? "on" : "off", capability);
   const webSearchOn = webSearchSupported && (webSearch === "auto" ? webSearchDefault : webSearch === "true");
   const webSearchManual = webSearchSupported && webSearch !== "auto";
-  const snapshot = JSON.stringify([model, context, output, vision, webSearch, effort, explicitEfforts, selectedEfforts]);
+  const snapshot = JSON.stringify([model, displayName, context, output, vision, webSearch, effort, explicitEfforts, selectedEfforts]);
   const baseline = useRef(snapshot);
   const apply = async () => {
     if (validation) { setError(true); return false; }
     const defaultEffort = effort && selectedEfforts.includes(effort) ? effort : "";
-    onApply({ model: model.trim(), contextWindow: context.trim(), maxOutputTokens: Number(output) || 0, vision: vision === "auto" ? null : !imageBlocked && vision === "true", webSearch: webSearchManual ? webSearch === "true" : null, supportedEfforts: explicitEfforts ? selectedEfforts : [], defaultEffort });
+    onApply({ model: model.trim(), displayName: displayName.trim(), contextWindow: context.trim(), maxOutputTokens: Number(output) || 0, vision: vision === "auto" ? null : !imageBlocked && vision === "true", webSearch: webSearchManual ? webSearch === "true" : null, supportedEfforts: explicitEfforts ? selectedEfforts : [], defaultEffort });
     return true;
   };
   const guard = useSettingsDraft({ label: t(initial ? "settings.modelDialog.edit" : "settings.models.add"), order: 100, dirty: snapshot !== baseline.current, busy, canSave: !validation,
@@ -63,6 +64,10 @@ export default function ProviderModelDialog({ initial, candidates, contextDefaul
       <header><h2 id={titleId}>{t(initial ? "settings.modelDialog.edit" : "settings.models.add")}</h2><ModalCloseButton label={t("common.close")} disabled={busy} onClick={() => guard.leave(onClose)}/></header>
       <label className="provider-model-dialog__id">{t("settings.modelDialog.id")}
         {initial ? <span><LockKeyhole size={16}/>{model}</span> : <input autoFocus className="mem-input" value={model} disabled={busy} onChange={e=>setModel(e.target.value)} placeholder="deepseek-v4-flash"/>}
+      </label>
+      <label className="provider-model-dialog__name">{t("settings.modelDialog.displayName")}
+        <input className="mem-input" value={displayName} maxLength={80} disabled={busy} onChange={e=>setDisplayName(e.target.value)} placeholder={model.trim() || "deepseek-flash"}/>
+        <small className="set-hint">{t("settings.modelDialog.displayNameHint")}</small>
       </label>
       <div className="provider-model-dialog__columns">
         <section><h3>{t("settings.modelDialog.parameters")}</h3>

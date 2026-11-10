@@ -3,7 +3,7 @@
 
 export const DESKTOP_PROTOCOL_VERSION = 11;
 
-export const DESKTOP_CONTRACT_DIGEST = "sha256:80a055ec9e51ce8c7b86b42338b8aaa682d5196f5129fd60791f1ca7e66c9378";
+export const DESKTOP_CONTRACT_DIGEST = "sha256:7eccf12fe33ad5456f2c9f55f1867291a2c46935d4a484273c806df83b3a3e68";
 
 export const DESKTOP_COMMANDS = [
   "AIRenameSessionTarget",
@@ -2990,6 +2990,7 @@ export interface ProviderModelCatalogUpdate {
 
 export interface ProviderModelOverrideView {
   model: string;
+  displayName?: string;
   reasoningProtocol: string;
   thinking: string;
   supportedEfforts: string[];

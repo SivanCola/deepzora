@@ -77,6 +77,7 @@ export function mergeProviderModelContextWindows(
     const parsedContextWindow = normalizedContextWindow(drafts[model]);
     const override: ProviderModelOverrideView = {
       model,
+      ...(previous?.displayName?.trim() ? { displayName: previous.displayName.trim() } : {}),
       reasoningProtocol: previous?.reasoningProtocol ?? "",
       supportedEfforts: previous?.supportedEfforts ?? [],
       defaultEffort: previous?.defaultEffort ?? "",
@@ -88,7 +89,8 @@ export function mergeProviderModelContextWindows(
         : {}),
     };
     if (
-      override.reasoningProtocol.trim()
+      override.displayName
+      || override.reasoningProtocol.trim()
       || override.supportedEfforts.length > 0
       || override.defaultEffort.trim()
       || override.vision != null

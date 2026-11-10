@@ -19,6 +19,9 @@ func TestModelRuntimeContinuationRevocation(t *testing.T) {
 		{"retired depth ignored", func(c *Config) { c.Agent.MaxSubagentDepth = 1 }, true},
 		{"limit tightened", func(c *Config) { c.Agent.MaxSubagentConcurrency = 1 }, false},
 		{"task budget tightened", func(c *Config) { c.Agent.TaskCostBudget = 1 }, false},
+		{"model renamed", func(c *Config) {
+			c.Providers[0].ModelOverrides = map[string]ProviderModelOverride{"other": {DisplayName: "Other"}}
+		}, true},
 		{"model output capped", func(c *Config) { c.Providers[0].MaxOutputTokens = 100 }, false},
 		{"request URL credential", func(c *Config) { c.Providers[0].RequestURL = "https://new.invalid?token=secret" }, false},
 		{"legacy URL credential", func(c *Config) { c.Providers[0].RequestURL = "https://user:secret@new.invalid" }, false},

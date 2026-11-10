@@ -66,7 +66,7 @@ func validateContinuationRoute(before, after ProviderEntry) error {
 	// Overrides may include per-model cost caps and capability restrictions.
 	// Require a rebuild when their interpretation changed rather than assuming
 	// that only the foreground model's defaults constrain an old resolver.
-	if before.MaxOutputTokens != after.MaxOutputTokens || before.ContextWindow != after.ContextWindow || !reflect.DeepEqual(before.ModelOverrides, after.ModelOverrides) || !reflect.DeepEqual(before.SupportedEfforts, after.SupportedEfforts) {
+	if before.MaxOutputTokens != after.MaxOutputTokens || before.ContextWindow != after.ContextWindow || !reflect.DeepEqual(modelOverridesWithoutLabels(before.ModelOverrides), modelOverridesWithoutLabels(after.ModelOverrides)) || !reflect.DeepEqual(before.SupportedEfforts, after.SupportedEfforts) {
 		return fmt.Errorf("model limits or capability restrictions changed")
 	}
 	return nil
