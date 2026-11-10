@@ -19557,10 +19557,10 @@ body > .mermaid-diagram--fullscreen {
   align-items: stretch;
   justify-content: flex-end;
   color: var(--fg-dim);
-  background: var(--bg-elev);
-  border-left: 1px solid var(--border-soft);
-  border-bottom: 1px solid var(--border-soft);
-  box-shadow: -12px 0 18px -18px color-mix(in srgb, var(--fg) 46%, transparent);
+  /* The shell bar is a full-width row, so the caption buttons always sit on it,
+     whether or not the workspace panel is open. A surface of their own shows as
+     a box in a different colour from the bar (#135). */
+  background: transparent;
   pointer-events: auto;
   user-select: none;
   --deepzora-draggable: no-drag;
@@ -19573,21 +19573,6 @@ body > .mermaid-diagram--fullscreen {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-}
-
-/* When the workspace panel is closed (no layout--workspace-open or
-/* When the workspace panel is closed (no layout--workspace-open or
-   layout--workspace-maximized), make the window controls box transparent so it
-   blends into the title bar / background instead of showing a distinct box. */
-.app--windows-frameless .layout:not(.layout--workspace-open):not(.layout--workspace-maximized) ~ .windows-window-controls {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-}
-:root[data-theme-style] .app--windows-frameless .layout:not(.layout--workspace-open):not(.layout--workspace-maximized) ~ .windows-window-controls {
-  background: transparent;
-  border: none;
-  box-shadow: none;
 }
 
 /* When a drawer/palette overlay is open, dim the window controls so they
@@ -30407,16 +30392,6 @@ body > .mermaid-diagram--fullscreen {
 /* Preserve press scale while keeping the Windows center-line nudge */
 .app--windows.app--creation .topicbar__chrome-btn.topicbar__chrome-btn--pressed {
   transform: translateY(0.5px) scale(0.94) !important;
-}
-
-/* Windows 控制框在 Creation 下默认用 --bg-elev（近纯白），与右侧 workbench-dock
-/* Windows 控制框在 Creation 下默认用 --bg-elev（近纯白），与右侧 workbench-dock
-   的统一底色（sidebar-bg 88%）有明显色差。改用相同底色，让控制框与右侧面板连成一片。 */
-.app--windows.app--creation .windows-window-controls,
-:root[data-theme-style] .app--windows.app--creation .windows-window-controls {
-  background: color-mix(in srgb, var(--sidebar-bg) 88%, transparent);
-  border-left-color: transparent;
-  box-shadow: none;
 }
 
 /* Capability diagnostics settings page */
