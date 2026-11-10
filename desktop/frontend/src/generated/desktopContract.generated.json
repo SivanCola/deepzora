@@ -27903,6 +27903,13 @@
           }
         },
         {
+          "name": "displayName",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
           "name": "reasoningProtocol",
           "type": {
             "kind": "string"

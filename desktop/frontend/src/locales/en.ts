@@ -2725,6 +2725,8 @@ export const en = {
   "settings.modelDialog.restore": "Restore automatic detection",
   "settings.modelDialog.edit": "Edit model",
   "settings.modelDialog.id": "Model ID",
+  "settings.modelDialog.displayName": "Display name (optional)",
+  "settings.modelDialog.displayNameHint": "Shown in place of the model ID in Deepzora. Requests still use the model ID.",
   "settings.modelDialog.parameters": "Parameters",
   "settings.modelDialog.reset": "Reset to default",
   "settings.modelDialog.resetContext": "Reset context window",

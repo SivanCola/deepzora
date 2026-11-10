@@ -2728,6 +2728,8 @@ export const zh: Record<DictKey, string> = {
   "settings.modelDialog.restore": "恢复自动识别",
   "settings.modelDialog.edit": "编辑模型",
   "settings.modelDialog.id": "模型 ID",
+  "settings.modelDialog.displayName": "别名（可选）",
+  "settings.modelDialog.displayNameHint": "在 Deepzora 中代替模型 ID 显示；发送请求时仍使用模型 ID。",
   "settings.modelDialog.parameters": "参数",
   "settings.modelDialog.reset": "重置为默认",
   "settings.modelDialog.resetContext": "重置上下文窗口",

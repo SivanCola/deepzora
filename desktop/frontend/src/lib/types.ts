@@ -1582,6 +1582,8 @@ export interface ProviderModelCapabilityUpdate {
 
 export interface ProviderModelOverrideView {
   model: string;
+  /** User-chosen label shown in place of the model ID; never the routing identity. */
+  displayName?: string;
   reasoningProtocol: string;
   supportedEfforts: string[];
   defaultEffort: string;

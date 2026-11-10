@@ -98,7 +98,10 @@ type Config struct {
   the provider-wide fallback; `model_overrides.<model>.context_window` can replace
   it for one model. `model_overrides.<model>.web_search` replaces the provider
   `web_search` value for one model; it cannot add native search to a protocol
-  without a wire format for it, such as Chat Completions. Per-model `prices` use
+  without a wire format for it, such as Chat Completions.
+  `model_overrides.<model>.display_name` is a label shown in place of the model
+  ID in the Desktop app; requests, session records and model references keep
+  the model ID. Per-model `prices` use
   model IDs as keys.
 - Streaming tool-call deltas are accumulated by index inside the provider; only
   complete `ToolCall`s are emitted.

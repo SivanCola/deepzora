@@ -144,6 +144,7 @@ const (
 
 type ProviderModelOverrideView struct {
 	Model             string   `json:"model"`
+	DisplayName       string   `json:"displayName,omitempty"`
 	ReasoningProtocol string   `json:"reasoningProtocol"`
 	Thinking          string   `json:"thinking"`
 	SupportedEfforts  []string `json:"supportedEfforts"`
@@ -386,6 +387,7 @@ func providerModelOverridesForView(overrides map[string]config.ProviderModelOver
 		ov := overrides[model]
 		out = append(out, ProviderModelOverrideView{
 			Model:             model,
+			DisplayName:       ov.DisplayName,
 			ReasoningProtocol: ov.ReasoningProtocol,
 			SupportedEfforts:  nonNil(ov.SupportedEfforts),
 			DefaultEffort:     ov.DefaultEffort,
@@ -413,6 +415,7 @@ func providerModelOverridesForSave(overrides []ProviderModelOverrideView, models
 			continue
 		}
 		ov := config.ProviderModelOverride{
+			DisplayName:       strings.TrimSpace(item.DisplayName),
 			ReasoningProtocol: strings.TrimSpace(item.ReasoningProtocol),
 			SupportedEfforts:  nonNil(item.SupportedEfforts),
 			DefaultEffort:     strings.TrimSpace(item.DefaultEffort),
@@ -421,7 +424,7 @@ func providerModelOverridesForSave(overrides []ProviderModelOverrideView, models
 			ContextWindow:     max(item.ContextWindow, 0),
 			MaxOutputTokens:   item.MaxOutputTokens,
 		}
-		if strings.TrimSpace(ov.ReasoningProtocol) == "" && len(ov.SupportedEfforts) == 0 && strings.TrimSpace(ov.DefaultEffort) == "" && ov.Vision == nil && ov.WebSearch == nil && ov.ContextWindow == 0 && ov.MaxOutputTokens == 0 {
+		if ov.DisplayName == "" && strings.TrimSpace(ov.ReasoningProtocol) == "" && len(ov.SupportedEfforts) == 0 && strings.TrimSpace(ov.DefaultEffort) == "" && ov.Vision == nil && ov.WebSearch == nil && ov.ContextWindow == 0 && ov.MaxOutputTokens == 0 {
 			continue
 		}
 		out[model] = ov

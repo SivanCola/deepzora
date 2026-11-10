@@ -189,6 +189,15 @@ eq(
 );
 
 eq(
+  mergeProviderModelContextWindows(
+    [{ model: "deepseek-flash-1017", displayName: " deepseek-flash ", reasoningProtocol: "", supportedEfforts: [], defaultEffort: "" }],
+    ["deepseek-flash-1017"], {},
+  ),
+  [{ model: "deepseek-flash-1017", displayName: "deepseek-flash", reasoningProtocol: "", supportedEfforts: [], defaultEffort: "", vision: null, contextWindow: 0 }],
+  "keeps a model whose only override is its display name",
+);
+
+eq(
   mergeProviderModelContextWindows([], ["invalid-model"], { "invalid-model": "Infinity" }),
   [],
   "drops non-finite model context values before crossing the desktop bridge",
