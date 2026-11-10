@@ -71,12 +71,12 @@ R2 凭据仅允许读写 `deepzora-releases`。不要用历史变量 `ENABLE_R2_
 
 **Windows 按目标版本核对签名策略：**当前
 [签名策略](../scripts/release-windows-policy.mjs)明确允许稳定版 `0.0.1`、`0.0.2`、
-`0.0.3`、`0.0.4` 和 `0.0.5` 使用维护者批准的未签名例外。Windows `0.0.5` 不以配置 Certum 为前提，
+`0.0.3`、`0.0.4`、`0.0.5` 和 `0.0.6` 使用维护者批准的未签名例外。Windows `0.0.6` 不以配置 Certum 为前提，
 但仍必须通过 Minisign 完整性签名、来源验证和最终安装包的原生验收；发布说明须保留
-未知发布者与 SmartScreen 风险。该例外不适用于预发布版或 `0.0.6` 等未列出的版本。
+未知发布者与 SmartScreen 风险。该例外不适用于预发布版或 `0.0.7` 等未列出的版本。
 
 每次准备候选前，以已审核源码中的策略和实时配置为准，可运行
-`node scripts/release-windows-policy.mjs 0.0.5 stable` 核对目标模式。返回 `certum`
+`node scripts/release-windows-policy.mjs 0.0.6 stable` 核对目标模式。返回 `certum`
 时必须配置全部三个 `CERTUM_*` Secret 及有效签名服务，否则任务会报
 `Certum signing configuration is incomplete for this Windows version`。
 凭据缺失不会自动降级；新增例外或更换签名方案需要独立修改并审核发布策略。

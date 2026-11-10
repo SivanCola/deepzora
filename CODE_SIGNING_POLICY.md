@@ -21,7 +21,7 @@ date. Signed Windows releases use Certum and require their own valid
 credentials. Reasonix's SignPath project, token and authorization must not be
 used for Deepzora.
 
-The maintainer explicitly approved Windows v0.0.1, v0.0.2, v0.0.3, v0.0.4 and v0.0.5 Stable as temporary
+The maintainer explicitly approved Windows v0.0.1, v0.0.2, v0.0.3, v0.0.4, v0.0.5 and v0.0.6 Stable as temporary
 unsigned releases. They carry no Deepzora Authenticode publisher signature and must be
 labeled as such on download/release pages. Payload/download integrity signatures,
 provenance and native acceptance remain required. This exception does not apply

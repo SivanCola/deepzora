@@ -83,14 +83,14 @@ See [website configuration](../website/README.md) and [R2 configuration](R2_DOWN
 
 **Check Windows signing policy for the target version:** the current
 [signing policy](../scripts/release-windows-policy.mjs) explicitly permits the
-maintainer-approved unsigned exceptions for stable `0.0.1`, `0.0.2`, `0.0.3`, `0.0.4` and `0.0.5`.
-Windows `0.0.5` does not require Certum configuration, but Minisign integrity
+maintainer-approved unsigned exceptions for stable `0.0.1`, `0.0.2`, `0.0.3`, `0.0.4`, `0.0.5` and `0.0.6`.
+Windows `0.0.6` does not require Certum configuration, but Minisign integrity
 signatures, provenance verification and native acceptance of the final installers
 remain mandatory. Keep the unknown-publisher and SmartScreen risks in the release
-notes. This exception does not cover prereleases or unlisted versions such as `0.0.6`.
+notes. This exception does not cover prereleases or unlisted versions such as `0.0.7`.
 
 Before preparing each candidate, check the reviewed source policy and live
-configuration. Run `node scripts/release-windows-policy.mjs 0.0.5 stable` to inspect
+configuration. Run `node scripts/release-windows-policy.mjs 0.0.6 stable` to inspect
 the target mode. A `certum` result requires all three `CERTUM_*` Secrets and a valid
 signing service; otherwise the job fails with
 `Certum signing configuration is incomplete for this Windows version`.
