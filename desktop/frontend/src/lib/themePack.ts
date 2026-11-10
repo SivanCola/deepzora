@@ -83,6 +83,17 @@ export function themePackKind(pack: Pick<ThemePackView, "kind" | "builtin">): Th
   return pack.builtin ? "base" : "user";
 }
 
+const BASE_STYLE_IDS = new Set(["graphite", "aurora", "slate", "carbon", "nocturne", "amber"]);
+
+// Base packs carry only an English manifest name, so they take their style's
+// label: every surface then names a base style as the appearance picker does,
+// in either language (#162).
+export function themePackDisplayName(pack: Pick<ThemePackView, "id" | "name" | "nameKey" | "kind" | "builtin">, t: (key: never) => string): string {
+  if (pack.nameKey) return t(pack.nameKey as never);
+  if (themePackKind(pack) === "base" && BASE_STYLE_IDS.has(pack.id)) return t(`settings.style.${pack.id}.zh` as never);
+  return pack.name;
+}
+
 export type ThemeActiveView = {
   activeThemeId?: string;
   pack?: ThemePackView | null;

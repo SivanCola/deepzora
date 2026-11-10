@@ -20,6 +20,7 @@ import {
   draftPackView,
   emptyThemeTokens,
   isSafeHex,
+  themePackDisplayName,
   themePackKind,
   themeTokenKeys,
 } from "../lib/themePack";
@@ -79,9 +80,7 @@ function slugifyId(name: string): string {
   return `t-${s}`.slice(0, 48);
 }
 
-function packDisplayName(pack: ThemePackView, t: (key: never, vars?: Record<string, string | number>) => string): string {
-  return pack.nameKey ? t(pack.nameKey as never) : pack.name;
-}
+const packDisplayName = themePackDisplayName;
 
 function packDescription(pack: ThemePackView, t: (key: never, vars?: Record<string, string | number>) => string): string {
   if (pack.descriptionKey) return t(pack.descriptionKey as never);

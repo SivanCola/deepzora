@@ -19,6 +19,7 @@ import {
   draftPackView,
   emptyThemeTokens,
   isSafeHex,
+  themePackDisplayName,
   themePackKind,
   themeTokenKeys,
 } from "../lib/themePack";
@@ -483,9 +484,7 @@ export function ThemeLibrarySection() {
   );
 }
 
-function packDisplayName(pack: ThemePackView, t: (key: never, vars?: Record<string, string | number>) => string): string {
-  return pack.nameKey ? t(pack.nameKey as never) : pack.name;
-}
+const packDisplayName = themePackDisplayName;
 
 function packDescription(pack: ThemePackView, t: (key: never, vars?: Record<string, string | number>) => string): string {
   if (pack.descriptionKey) return t(pack.descriptionKey as never);

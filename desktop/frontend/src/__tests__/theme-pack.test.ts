@@ -18,6 +18,7 @@ import {
   isThemeTokenKey,
   registerTrustedThemeBackgroundURLs,
   setBaseAppearance,
+  themePackDisplayName,
   themePackKind,
 } from "../lib/themePack";
 import { applyTheme, getThemeStyle, THEME_STYLES } from "../lib/theme";
@@ -729,6 +730,16 @@ ok(localeZh.includes('"settings.themeEditor.safeArea": "界面内容区域"') &&
 // selectors must keep winning in their subtree (theme never overrides them).
 ok(!packSource.includes(".app--"), "pack overlay never targets layout-scoped selectors");
 ok(packSource.includes("prefers-color-scheme: light"), "auto mode follows system light/dark");
+
+// Base packs are named by their style label, not the English manifest name, so
+// the gallery and the appearance picker agree in both languages (#162).
+{
+  const label = (key: never) => `t(${String(key)})`;
+  ok(themePackDisplayName({ id: "slate", name: "Slate", kind: "base", builtin: true }, label) === "t(settings.style.slate.zh)", "a base pack takes its style label");
+  ok(themePackDisplayName({ id: "official-x", name: "X", nameKey: "settings.themes.official.official-x.name", kind: "official", builtin: true }, label) === "t(settings.themes.official.official-x.name)", "an official pack keeps its own name key");
+  ok(themePackDisplayName({ id: "slate", name: "My Slate", kind: "user", builtin: false }, label) === "My Slate", "a user pack sharing a style id keeps the name its author gave it");
+  ok(THEME_STYLES.every((style) => localeZh.includes(`"settings.style.${style}.zh"`)), "every base style has a label to take");
+}
 
 // Keep ThemeLibrary available for any residual editor helpers.
 ok(librarySource.includes("ThemeLibrary") || librarySource.includes("ThemeEditor"), "ThemeLibrary module retained for editor/helpers");
