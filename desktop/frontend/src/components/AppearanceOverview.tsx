@@ -26,6 +26,7 @@ import { useSettingsNotice as useToast } from "./SettingsExperience";
 import { ThemeGallery } from "./ThemeGallery";
 import { TypographySettings } from "./TypographySettings";
 import { SettingsFeedback } from "./SettingsExperience";
+import { themePackDisplayName } from "../lib/themePack";
 
 const STYLE_NAME_KEY: Record<ThemeStyle, DictKey> = {
   graphite: "settings.style.graphite.zh",
@@ -188,11 +189,7 @@ export function AppearanceOverview({
   const baseStyle = (isThemeStyle(experience?.baseStyle) ? experience!.baseStyle : themeStyle) as ThemeStyle;
   const styleNameKey = STYLE_NAME_KEY[baseStyle] || STYLE_NAME_KEY.graphite;
 
-  const currentTitle = pack
-    ? pack.nameKey
-      ? t(pack.nameKey as never)
-      : pack.name
-    : t(styleNameKey);
+  const currentTitle = pack ? themePackDisplayName(pack, t) : t(styleNameKey);
   const kindLabel = pack
     ? pack.kind === "user" || (!pack.builtin && pack.kind !== "official")
       ? t("settings.themeGallery.kindUser")
