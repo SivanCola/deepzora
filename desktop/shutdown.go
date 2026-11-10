@@ -33,6 +33,7 @@ type shutdownStatus struct {
 	RequestID string `json:"requestId"`
 	Reason    string `json:"reason"`
 	Phase     string `json:"phase"`
+	Step      string `json:"step,omitempty"` // step in flight, or the one that failed
 	Outcome   string `json:"outcome"`
 	Completed bool   `json:"completed"`
 	Retryable bool   `json:"retryable"`
@@ -210,13 +211,16 @@ func (a *App) runShutdown(c *desktopShutdownCoordinator) (err error) {
 	if !frozen {
 		c.setPhase("cancelling_background")
 		a.lifecycle.tracker.markShutdown(reason, "cancelling_background", "in_progress")
-		a.manualCreationMu.Lock()
-		a.shuttingDown.Store(true)
-		m := a.manualCreations
-		a.manualCreationMu.Unlock()
-		if m != nil {
-			m.StopAdmission()
-		}
+		// A step, so a wait on either lock is named in the log and the status.
+		c.runStep("creation-admission", func() {
+			a.manualCreationMu.Lock()
+			a.shuttingDown.Store(true)
+			m := a.manualCreations
+			a.manualCreationMu.Unlock()
+			if m != nil {
+				m.StopAdmission()
+			}
+		})
 		c.runStep("cancel-session-navigation", a.cancelSessionNavigation)
 		c.runStep("cancel-tab-builds", a.cancelAllTabBuilds)
 		if err := c.runErrorStep("manual-session-creation", a.stopManualCreations); err != nil {

@@ -74,6 +74,7 @@ type ShutdownResult = {
   requestId: string;
   reason: string;
   phase: "idle" | "preparing" | "saving" | "closing" | "completed";
+  step?: string;
   outcome: "not_started" | "in_progress" | "success" | "failed";
   completed: boolean;
   retryable: boolean;
@@ -284,7 +285,7 @@ export class ServiceSupervisor {
     }
     for (;;) {
       if (result && (result.completed || result.outcome !== "in_progress")) return result;
-      const phase = result?.phase ?? "unknown";
+      const phase = (result?.phase ?? "unknown") + (result?.step ? ` (step ${result.step})` : "");
       if (this.now() - startedAt >= timing.ceilingMs) {
         throw new ShutdownError("shutdown_incomplete", `desktop shutdown did not complete within ${timing.ceilingMs} ms; last phase ${phase}`);
       }

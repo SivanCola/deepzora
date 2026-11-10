@@ -363,6 +363,18 @@ test("a shutdown that stops advancing is reported incomplete and the service is 
   assert.equal(child.alive, true, "an incomplete shutdown leaves the service for a retry");
 });
 
+test("a stalled shutdown names the step the service reported in flight", async () => {
+  const child = new FakeChild("g-1", { holdShutdown: true });
+  child.status = { ...inProgress("cancelling_background"), step: "runtime-projections" };
+  const h = harness({ children: [child], shutdownTiming: fastShutdown });
+  await h.supervisor.start();
+  await assert.rejects(h.supervisor.shutdown(), (error: unknown) => {
+    assert.ok(error instanceof ShutdownError);
+    assert.match(error.message, /stopped in cancelling_background \(step runtime-projections\)$/);
+    return true;
+  });
+});
+
 test("a service that exits without reporting success fails the shutdown", async () => {
   const child = new FakeChild("g-1", { holdShutdown: true });
   child.status = inProgress("saving");
