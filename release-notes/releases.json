@@ -19,7 +19,7 @@
         "en": "Deepzora 0.0.6 lets you give a configured model a display name, fixes the Windows window controls showing a mismatched box when the workspace panel is open, and names base theme styles consistently. Shutdown now records each step and reports a stalled one with diagnostics. Desktop moves to Electron 45.",
         "zh": "Deepzora 0.0.6 支持为已配置的模型设置别名，修复 Windows 上打开工作区面板时窗口按钮区域颜色不一致的问题，并统一基础主题的名称。退出过程现在会记录每一步，某一步卡住时会输出诊断信息。桌面端升级到 Electron 45。"
       },
-      "surfaces": ["desktop"],
+      "surfaces": ["desktop", "cli"],
       "guides": [],
       "highlights": [
         {
@@ -74,6 +74,14 @@
       },
       "upgrade": [],
       "risks": [
+        {
+          "targets": ["desktop", "cli"],
+          "title": { "en": "Windows remains unsigned for this release", "zh": "本版 Windows 仍未代码签名" },
+          "body": {
+            "en": "The maintainer explicitly approved an unsigned Windows 0.0.6 Stable exception. These files have no Deepzora Authenticode publisher signature, so Windows may show unknown-publisher or SmartScreen warnings. Minisign integrity signatures, provenance and final-package native acceptance remain mandatory. This approval does not cover prereleases or later versions.",
+            "zh": "维护者已明确批准 Windows 0.0.6 Stable 未签名发布例外。相关文件没有 Deepzora 的 Authenticode 发布者签名，Windows 可能显示未知发布者或 SmartScreen 提示。Minisign 完整性签名、来源验证及最终安装包原生验收仍必须完成。此批准不适用于预发布版或后续版本。"
+          }
+        },
         {
           "targets": ["desktop"],
           "title": { "en": "Exit can still stall on some Windows systems", "zh": "部分 Windows 系统上退出仍可能卡住" },

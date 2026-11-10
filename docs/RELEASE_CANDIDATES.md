@@ -8,7 +8,7 @@ and [Privacy policy](../PRIVACY.md); `scripts/release-notes.mjs` includes both l
 Keep their approval status and data-flow disclosures current. Independent
 SignPath approval is pending; see [review materials](SIGNPATH_REVIEW.md).
 
-Windows v0.0.1, v0.0.2, v0.0.3, v0.0.4 and v0.0.5 Stable have explicit temporary Authenticode exceptions in
+Windows v0.0.1, v0.0.2, v0.0.3, v0.0.4, v0.0.5 and v0.0.6 Stable have explicit temporary Authenticode exceptions in
 `scripts/release-windows-policy.mjs`. Missing credentials never enable this mode
 for another version. Sealed Windows identities and candidate records declare
 `windowsAuthenticode=unsigned`; Minisign integrity, provenance and final installer

@@ -20,7 +20,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 # Same exempt versions as scripts/release-windows-policy.mjs.
-$unsignedRelease = $ReleaseVersion -in @('v0.0.1', 'v0.0.2', 'v0.0.3', 'v0.0.4', 'v0.0.5')
+$unsignedRelease = $ReleaseVersion -in @('v0.0.1', 'v0.0.2', 'v0.0.3', 'v0.0.4', 'v0.0.5', 'v0.0.6')
 if ($unsignedRelease -and ($RequireTrusted -or $ExpectedThumbprint)) {
     throw "Unsigned $ReleaseVersion cannot assert a trusted Authenticode signer"
 }
