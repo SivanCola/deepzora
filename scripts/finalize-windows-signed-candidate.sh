@@ -78,11 +78,11 @@ if [ "$signing_mode" = certum ]; then
 	pwsh -NoProfile -File "$control_root/scripts/verify-windows-authenticode.ps1" \
 		-PayloadDirectory "$signed_payload" -InstallerPath "$installer" \
 		-PortableArchivePath "$portable" -ExpectedThumbprint "$CERTUM_KEY_ID" \
-		-RequireTrusted -PortableLayout canonical
+		-RequireTrusted -PortableLayout canonical -ReleaseVersion "$version" -Architecture "$arch"
 else
 	pwsh -NoProfile -File "$control_root/scripts/verify-windows-authenticode.ps1" \
 		-PayloadDirectory "$signed_payload" -InstallerPath "$installer" \
-		-PortableArchivePath "$portable" -ReleaseVersion "$version" -PortableLayout canonical
+		-PortableArchivePath "$portable" -ReleaseVersion "$version" -PortableLayout canonical -Architecture "$arch"
 fi
 
 node "$product_root/desktop/packaging/size-report.mjs" \

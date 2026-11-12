@@ -3,8 +3,11 @@ import { spawnSync } from "node:child_process";
 import { cpSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { desktopAssets, desktopName } from "./desktop-downloads.mjs";
+import { windowsInstallerOnly, verifyWindowsCompatibilityArchive } from "./windows-distribution.mjs";
+import { listZipEntries } from "../desktop/packaging/lib.mjs";
 import { collect, pack, platforms, releaseIdentity, verifyBundle } from "./desktop-release-artifacts.mjs";
 
 const env = {
@@ -26,7 +29,7 @@ test("Windows signing finalization works in a fresh checkout for both architectu
   };
   for (const name of ["scripts/finalize-windows-signed-candidate.sh", "scripts/package-windows-desktop.sh",
     "scripts/verify-windows-portable.sh", "scripts/desktop-release-artifacts.mjs", "scripts/release-windows-policy.mjs",
-    "scripts/desktop-downloads.mjs", "internal/releaseassets/desktop.json",
+    "scripts/desktop-downloads.mjs", "scripts/windows-distribution.mjs", "internal/releaseassets/desktop.json",
     "desktop/packaging/lib.mjs", "desktop/packaging/signing-files.mjs",
     "desktop/build/windows/installer/project.nsi", "desktop/build/windows/icon.ico"]) {
     put(name, readFileSync(new URL(`../${name}`, import.meta.url)), 0o755);
@@ -61,7 +64,7 @@ printf installer > ../../bin/fixture-installer.exe
     assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
   };
   const unsigned = version => ["v0.0.1", "v0.0.2", "v0.0.3", "v0.0.4", "v0.0.5", "v0.0.6"].includes(version);
-  const cases = ["v1.2.3", "v0.0.1", "v0.0.2", "v0.0.3", "v0.0.4", "v0.0.5", "v0.0.6"].flatMap(version => ["amd64", "arm64"].map(arch => ({ version, arch })));
+  const cases = ["v1.2.3", "v0.0.8", "v0.0.7", "v0.0.1", "v0.0.2", "v0.0.3", "v0.0.4", "v0.0.5", "v0.0.6"].flatMap(version => ["amd64", "arm64"].map(arch => ({ version, arch })));
   for (const { version, arch } of cases) {
     put("pwsh-calls.txt", "");
     // A signing runner never built locally, and a second architecture must not
@@ -87,6 +90,16 @@ printf installer > ../../bin/fixture-installer.exe
     const cpu = arch === "amd64" ? "x64" : "arm64";
     const prefix = `Deepzora-${version.slice(1)}-Windows-${cpu}`;
     assert.ok(readFileSync(path.join(root, `dist-${arch}/${prefix}-Portable.zip`)).length > 0);
+    const archive = path.join(root, `dist-${arch}/${prefix}-Portable.zip`);
+    if (windowsInstallerOnly(version)) {
+      verifyWindowsCompatibilityArchive(readFileSync(archive), version, arch);
+      assert.deepEqual(listZipEntries(archive), ["WINDOWS-INSTALLER-ONLY.txt"]);
+      const verified = spawnSync(process.execPath, [fileURLToPath(new URL("../desktop/packaging/verify.mjs", import.meta.url)), archive], { encoding: "utf8" });
+      assert.equal(verified.status, 0, verified.stderr);
+      assert.match(verified.stdout, /windows-installer-compatibility-zip ok/);
+    } else {
+      assert.ok(listZipEntries(archive).includes("current.json"), "historical portable payload must remain intact");
+    }
     assert.ok(readFileSync(path.join(root, `dist-${arch}/${prefix}-Setup.exe.minisig`)).length > 0);
     assert.ok(readdirSync(path.join(root, `dist-${arch}`)).every(name => name.startsWith(prefix)));
     run("bash", ["scripts/finalize-windows-signed-candidate.sh", arch, `signing-work-${arch}`,

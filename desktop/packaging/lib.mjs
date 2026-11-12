@@ -2,6 +2,7 @@ import { closeSync, fstatSync, openSync, readdirSync, readFileSync, readSync, st
 import { basename, join, relative } from "node:path";
 import { spawnSync } from "node:child_process";
 import { inflateRawSync } from "node:zlib";
+import { windowsInstallerOnly } from "../../scripts/windows-distribution.mjs";
 
 // These package scripts are Node entry points. Starting Node directly keeps
 // paths and arguments out of cmd.exe quoting, including trailing backslashes,
@@ -222,6 +223,10 @@ const VERSION_DIR = "versions/v[^/]+";
 const PACKAGING_JUNK = /(^|\/)(?:[^/]+\.map|__tests__|testdata|\.cache|coverage|npm-debug\.log|pnpm-debug\.log|yarn-error\.log)(?:$|\/)/;
 
 const MEMBERS = {
+  "windows-installer-compatibility-zip": {
+    required: ["WINDOWS-INSTALLER-ONLY.txt"],
+    forbidden: [],
+  },
   "darwin-app-dir": { required: darwinBundleMembers(), forbidden: DARWIN_FORBIDDEN },
   "darwin-zip": {
     required: darwinBundleMembers().map((name) => `${PRODUCT.name}.app/${name}`),
@@ -292,6 +297,9 @@ export function checkMembers(entries, kind, portableLayout = "canonical") {
   const names = new Set(entries.map(normalizeEntry).filter((name) => name !== "" && !name.endsWith("/")));
   const matches = (rule) => (rule instanceof RegExp ? [...names].some((name) => rule.test(name)) : names.has(rule));
   const forbidden = [...spec.forbidden, PACKAGING_JUNK].filter((rule) => matches(rule)).map(String);
+  if (kind === "windows-installer-compatibility-zip") {
+    forbidden.push(...[...names].filter(name => name !== "WINDOWS-INSTALLER-ONLY.txt"));
+  }
   if (kind === "windows-portable-zip") {
     const rootEntries = new Set(["Deepzora.exe", "deepzora-cli.exe"]);
     for (const name of names) {
@@ -389,7 +397,8 @@ export function inferArtifactKind(pathname, isDirectory, entries = []) {
     throw new Error(`cannot infer the artifact kind of directory ${pathname}`);
   }
   if (/^Deepzora-\d+\.\d+\.\d+-macOS-(arm64|x64)\.zip$/.test(name)) return "darwin-zip";
-  if (/^Deepzora-\d+\.\d+\.\d+-Windows-(arm64|x64)-Portable\.zip$/.test(name)) return "windows-portable-zip";
+  const windows = name.match(/^Deepzora-(\d+\.\d+\.\d+)-Windows-(arm64|x64)-Portable\.zip$/);
+  if (windows) return windowsInstallerOnly(windows[1]) ? "windows-installer-compatibility-zip" : "windows-portable-zip";
   if (name.endsWith(".tar.gz")) return "linux-tar";
   if (name.endsWith(".deb")) return "linux-deb";
   throw new Error(`cannot infer the artifact kind of ${pathname}`);

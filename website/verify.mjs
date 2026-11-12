@@ -28,6 +28,7 @@ for (const [page, lang] of [['index.html', 'zh-CN'], ['en/index.html', 'en']]) {
     if (repoFile) assert((await stat(resolve(root, '..', repoFile[1]))).isFile(), `Broken documentation link ${value}`);
   }
   assert.equal([...html.matchAll(/class="button package-button"/g)].length, 7);
+  assert(!/href="[^"]*Windows-[^"]*-Portable\.zip/.test(html), 'Windows downloads must offer installers only');
   assert(html.includes('aria-live="polite"'));
-  console.log(`Verified ${page}: localized content, navigation, assets, docs, seven R2 installers + portable alternatives`);
+  console.log(`Verified ${page}: localized content, navigation, assets, docs, seven R2 downloads, Windows installers only`);
 }

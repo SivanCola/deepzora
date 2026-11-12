@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Rebuild the Windows portable archive and NSIS installer from one canonical
+# Build the Windows installer and legacy updater compatibility file from one canonical
 # payload directory: the flat Go executables plus the Electron app/ tree. The
 # release workflow calls this once with unsigned files after compilation, then
 # again with Authenticode-signed files returned by SignPath. Re-running makensis
@@ -123,19 +123,6 @@ dist_installer="$DIST/${APPNAME}-windows-${arch}-installer.exe"
 dist_portable="$DIST/${APPNAME}-windows-${arch}.zip"
 cp "$installer" "$dist_installer"
 
-portable_staging=$(mktemp -d)
-cleanup() {
-	tmp_root="${TMPDIR:-/tmp}"
-	tmp_root="${tmp_root%/}"
-	case "$portable_staging" in
-	"$tmp_root"/* | /tmp/*) rm -rf -- "$portable_staging" ;;
-	*) echo "refusing to clean unexpected portable staging directory: $portable_staging" >&2 ;;
-	esac
-}
-trap cleanup EXIT
-
-# versioned-v1 portable layout (no Guard, no flat desktop at InstallRoot); the
-# Electron bundle is the app/ tree member of the active version directory.
 version_label="${VERSION:-}"
 if [ -z "$version_label" ] && [ -f "$INSTALLER_DIR/deepzora_project.nsh" ]; then
 	version_label=$(sed -n 's/^!define DEEPZORA_VERSION_TAG "\(.*\)"$/\1/p' "$INSTALLER_DIR/deepzora_project.nsh" | tr -d '\r' | head -n 1)
@@ -145,47 +132,66 @@ case "$version_label" in
 v*) ;;
 *) version_label="v${version_label}" ;;
 esac
-mkdir -p "$portable_staging/versions/$version_label"
-cp "$PAYLOAD/$BINNAME.exe" "$portable_staging/versions/$version_label/$BINNAME.exe"
-cp "$PAYLOAD/$UPDATE_HELPER" "$portable_staging/versions/$version_label/$UPDATE_HELPER"
-cp "$PAYLOAD/$WINDOWS_CLINAME.exe" "$portable_staging/versions/$version_label/$WINDOWS_CLINAME.exe"
-cp -R "$PAYLOAD/app" "$portable_staging/versions/$version_label/app"
-cp "$PAYLOAD/$LAUNCHERNAME.exe" "$portable_staging/$APPNAME.exe"
-cli_entry="$PAYLOAD/app/resources/bin/$WINDOWS_CLI_ENTRY"
-[ -s "$cli_entry" ] || { echo "Windows CLI entry is missing: $cli_entry" >&2; exit 1; }
-cp "$cli_entry" "$portable_staging/$WINDOWS_CLINAME.exe"
-cat >"$portable_staging/current.json" <<EOF
-{
-  "schemaVersion": 1,
-  "activeVersion": "$version_label",
-  "activeDir": "versions/$version_label"
-}
-EOF
-"$ROOT/scripts/verify-windows-portable.sh" "$portable_staging" canonical "$PAYLOAD/$LAUNCHERNAME.exe"
-
-if command -v powershell.exe >/dev/null 2>&1; then
-	portable_staging_win="$portable_staging"
-	dist_portable_win="$dist_portable"
-	if command -v cygpath >/dev/null 2>&1; then
-		portable_staging_win="$(cygpath -w "$portable_staging")"
-		dist_portable_win="$(cygpath -w "$dist_portable")"
-	fi
-	powershell.exe -NoProfile -Command \
-		"Compress-Archive -CompressionLevel Optimal -Force -Path '$portable_staging_win\\*' -DestinationPath '$dist_portable_win'"
-elif command -v zip >/dev/null 2>&1; then
-	# macOS/Linux cross-builds do not ship powershell.exe; the portable layout
-	# is ordinary ZIP data, so use the host zip utility in that case.
-	# zip updates an existing archive and otherwise retains previous version
-	# directories. Always assemble a fresh distributable from this payload.
-	rm -f -- "$dist_portable"
-	(
-		cd "$portable_staging"
-		zip -q -9 -r "$dist_portable" .
-	)
+distribution="$(node "$ROOT/scripts/windows-distribution.mjs" mode "$version_label")"
+if [ "$distribution" = installer-only ]; then
+	node "$ROOT/scripts/windows-distribution.mjs" create "$version_label" "$arch" "$dist_portable"
 else
-	echo "neither powershell.exe nor zip is available to create the Windows portable archive" >&2
-	exit 1
-fi
+	portable_staging=$(mktemp -d)
+	cleanup() {
+		tmp_root="${TMPDIR:-/tmp}"
+		tmp_root="${tmp_root%/}"
+		case "$portable_staging" in
+		"$tmp_root"/* | /tmp/*) rm -rf -- "$portable_staging" ;;
+		*) echo "refusing to clean unexpected portable staging directory: $portable_staging" >&2 ;;
+		esac
+	}
+	trap cleanup EXIT
+
+	# versioned-v1 portable layout (no Guard, no flat desktop at InstallRoot); the
+	# Electron bundle is the app/ tree member of the active version directory.
+	mkdir -p "$portable_staging/versions/$version_label"
+	cp "$PAYLOAD/$BINNAME.exe" "$portable_staging/versions/$version_label/$BINNAME.exe"
+	cp "$PAYLOAD/$UPDATE_HELPER" "$portable_staging/versions/$version_label/$UPDATE_HELPER"
+	cp "$PAYLOAD/$WINDOWS_CLINAME.exe" "$portable_staging/versions/$version_label/$WINDOWS_CLINAME.exe"
+	cp -R "$PAYLOAD/app" "$portable_staging/versions/$version_label/app"
+	cp "$PAYLOAD/$LAUNCHERNAME.exe" "$portable_staging/$APPNAME.exe"
+	cli_entry="$PAYLOAD/app/resources/bin/$WINDOWS_CLI_ENTRY"
+	[ -s "$cli_entry" ] || { echo "Windows CLI entry is missing: $cli_entry" >&2; exit 1; }
+	cp "$cli_entry" "$portable_staging/$WINDOWS_CLINAME.exe"
+	cat >"$portable_staging/current.json" <<-EOF
+	{
+	  "schemaVersion": 1,
+	  "activeVersion": "$version_label",
+	  "activeDir": "versions/$version_label"
+	}
+	EOF
+	"$ROOT/scripts/verify-windows-portable.sh" "$portable_staging" canonical "$PAYLOAD/$LAUNCHERNAME.exe"
+
+	if command -v powershell.exe >/dev/null 2>&1; then
+		portable_staging_win="$portable_staging"
+		dist_portable_win="$dist_portable"
+		if command -v cygpath >/dev/null 2>&1; then
+			portable_staging_win="$(cygpath -w "$portable_staging")"
+			dist_portable_win="$(cygpath -w "$dist_portable")"
+		fi
+		powershell.exe -NoProfile -Command \
+			"Compress-Archive -CompressionLevel Optimal -Force -Path '$portable_staging_win\\*' -DestinationPath '$dist_portable_win'"
+	elif command -v zip >/dev/null 2>&1; then
+		# macOS/Linux cross-builds do not ship powershell.exe; the portable layout
+		# is ordinary ZIP data, so use the host zip utility in that case.
+		# zip updates an existing archive and otherwise retains previous version
+		# directories. Always assemble a fresh distributable from this payload.
+		rm -f -- "$dist_portable"
+		(
+			cd "$portable_staging"
+			zip -q -9 -r "$dist_portable" .
+		)
+	else
+		echo "neither powershell.exe nor zip is available to create the Windows portable archive" >&2
+		exit 1
+	fi
+
+fi # historical portable application (through v0.0.7)
 
 # The second SignPath request signs the outer installer only after verifying
 # these already-signed payload files (flat executables plus the app/ tree).
@@ -201,4 +207,4 @@ done
 cp -R "$PAYLOAD/app" "$installer_bundle/app"
 cp "$PAYLOAD/$SIGNING_LIST" "$installer_bundle/$SIGNING_LIST"
 
-echo "==> rebuilt Windows $arch installer and portable archive from $PAYLOAD"
+echo "==> rebuilt Windows $arch installer and version-appropriate compatibility archive from $PAYLOAD"

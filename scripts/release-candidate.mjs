@@ -10,6 +10,7 @@ import {
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { windowsSigningMode } from "./release-windows-policy.mjs";
+import { windowsInstallerOnly, verifyWindowsCompatibilityArchive } from "./windows-distribution.mjs";
 
 const SHA_RE = /^[0-9a-f]{40}$/;
 const VERSION_RE = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/;
@@ -143,7 +144,7 @@ function requireAcceptanceReceipt(payloadRoot, files, metadata, item) {
     throw new Error(`candidate acceptance evidence is missing: ${item.kind}`);
   }
   const receipt = JSON.parse(readFileSync(path.join(payloadRoot, item.evidencePath), "utf8"));
-  if (![1, 2].includes(receipt.schema) || receipt.kind !== item.kind || receipt.status !== "passed"
+  if (![1, 2, 3].includes(receipt.schema) || receipt.kind !== item.kind || receipt.status !== "passed"
       || receipt.version !== `v${metadata.version}` || !/^[0-9a-f]{64}$/.test(receipt.sha256 ?? "")) {
     throw new Error(`candidate acceptance receipt is invalid: ${item.kind}`);
   }
@@ -152,6 +153,18 @@ function requireAcceptanceReceipt(payloadRoot, files, metadata, item) {
   const artifact = identity.files.find(file => file.sha256 === receipt.sha256);
   if (!artifact) throw new Error(`candidate acceptance receipt does not name a sealed file: ${item.kind}`);
   const windows = platform.startsWith("windows-");
+  if (windows && windowsInstallerOnly(metadata.version)) {
+    if (receipt.schema !== 3 || !artifact.name.endsWith("-Setup.exe")
+        || receipt.compatibilityStatus !== "passed" || !/^[0-9a-f]{64}$/.test(receipt.compatibilitySha256 ?? "")) {
+      throw new Error(`installer-only Windows acceptance requires a verified compatibility notice: ${item.kind}`);
+    }
+    const compatibility = identity.files.find(file => file.sha256 === receipt.compatibilitySha256 && file.name.endsWith("-Portable.zip"));
+    if (!compatibility) throw new Error(`candidate compatibility acceptance does not name a sealed archive: ${item.kind}`);
+    verifyWindowsCompatibilityArchive(readFileSync(path.join(payloadRoot, "desktop", platform, "files", compatibility.name)),
+      metadata.version, platform.slice("windows-".length));
+    return { ...item, evidenceSha256: evidence.sha256, artifactSha256: receipt.sha256, compatibilityArtifactSha256: receipt.compatibilitySha256 };
+  }
+  if (receipt.schema === 3) throw new Error("installer-only acceptance is invalid for this release");
   if (windows && windowsSigningMode(metadata.version, "stable") === "certum" && receipt.schema !== 2) {
     throw new Error(`signed Windows acceptance must cover installer and portable archive: ${item.kind}`);
   }
@@ -279,6 +292,9 @@ export function verifyCandidate(payloadRoot, record, now = new Date(), purpose =
     }, item);
     if (validated.artifactSha256 !== item.artifactSha256) {
       throw new Error(`candidate acceptance artifact mismatch: ${item.kind}`);
+    }
+    if (validated.compatibilityArtifactSha256 !== item.compatibilityArtifactSha256) {
+      throw new Error(`candidate compatibility acceptance artifact mismatch: ${item.kind}`);
     }
     if (validated.portableArtifactSha256 !== item.portableArtifactSha256) {
       throw new Error(`candidate portable acceptance artifact mismatch: ${item.kind}`);
