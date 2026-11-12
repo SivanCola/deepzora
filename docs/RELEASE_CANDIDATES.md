@@ -22,6 +22,14 @@ record, checks its provenance and bytes, and requires one `release` approval
 before creating the three tags and publishing. `recover` reuses the same sealed
 files; it must not rebuild or sign them.
 
+Final Windows installers and portable ZIPs each undergo startup, second-launch
+and normal-exit acceptance on native x64 and ARM64 runners. Installer acceptance
+also checks uninstall and user-data retention. Windows schema 2 receipts bind
+the SHA-256 of both the installer and portable ZIP; new Authenticode-signed
+candidates require passing evidence for both files. An installer pass cannot
+stand in for a portable pass. Schema 1 receipts for historical unsigned
+exceptions remain verifiable.
+
 Rendering the notes credits people: each `refs` number that is a pull request
 gains `by @author`; an issue gains `fixed in #M by @author` for each merged pull
 request GitHub links as closing it. A closing Contributors list names those

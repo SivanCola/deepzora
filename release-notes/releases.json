@@ -2,6 +2,69 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "0.0.7",
+      "releaseId": "0.0.7",
+      "baseVersion": "0.0.7",
+      "previousRelease": "0.0.6",
+      "date": "2026-11-12",
+      "channel": "stable",
+      "status": "reviewed",
+      "targetingVersion": 1,
+      "builds": { "cli": "v0.0.7", "desktop": "v0.0.7", "npm": "0.0.7" },
+      "title": {
+        "en": "Signed Windows packages with installer and portable acceptance",
+        "zh": "Windows 签名发行与安装包、便携版验收"
+      },
+      "summary": {
+        "en": "Deepzora 0.0.7 introduces Certum Authenticode signing for Windows x64 and ARM64 desktop installers and the programs inside portable archives. Both final package formats must pass native startup, repeated-launch and normal-exit acceptance before publication.",
+        "zh": "Deepzora 0.0.7 为 Windows x64、ARM64 桌面安装包和便携版内的程序提供 Certum Authenticode 签名。两种最终发行包均须通过原生启动、重复启动和正常退出验收后才能发布。"
+      },
+      "surfaces": ["desktop"],
+      "guides": [],
+      "highlights": [
+        {
+          "kind": "improved", "targets": ["desktop"],
+          "title": { "en": "Windows desktop packages identify their publisher", "zh": "Windows 桌面发行包具备发布者签名" },
+          "body": {
+            "en": "Windows x64 and ARM64 installers and the executable payloads inside their portable ZIPs carry timestamped Certum Authenticode signatures. The portable archives also retain Minisign integrity signatures. Signing is required for this release; unavailable credentials or a failed signature block publication.",
+            "zh": "Windows x64、ARM64 安装包及其便携 ZIP 内的可执行载荷采用带时间戳的 Certum Authenticode 签名，便携归档同时保留 Minisign 完整性签名。本版本要求实际签名，凭据不可用或签名失败均会阻止发布。"
+          },
+          "refs": [175]
+        }
+      ],
+      "changes": {
+        "new": [],
+        "improved": [
+          {
+            "targets": ["desktop"],
+            "title": { "en": "Both Windows download formats receive native acceptance", "zh": "两种 Windows 下载格式分别进行原生验收" },
+            "body": {
+              "en": "The exact final installer and portable ZIP each undergo startup, repeated-launch and normal-exit checks on native x64 and ARM64 runners. Installer checks also cover uninstall and user-data retention. Sealed acceptance receipts bind the SHA-256 of both downloads so publication reuses the tested files.",
+              "zh": "最终安装包和便携 ZIP 分别在原生 x64、ARM64 环境验证启动、重复启动和正常退出；安装包还检查卸载与用户数据保留。封存验收回执同时绑定两种下载文件的 SHA-256，正式发布复用已验收的文件。"
+            }
+          }
+        ],
+        "fixed": []
+      },
+      "upgrade": [],
+      "risks": [
+        {
+          "targets": ["desktop"],
+          "title": { "en": "Exit can still stall on some Windows systems", "zh": "部分 Windows 系统上退出仍可能卡住" },
+          "body": {
+            "en": "The report of shutdown stopping in cancelling_background ([#126](https://github.com/SivanCola/deepzora/issues/126)) remains unresolved. If it happens, attach service.log and service.log.1 from %APPDATA%\\Deepzora\\logs to that issue; the logs name the stalled step.",
+            "zh": "退出停在 cancelling_background 的问题（[#126](https://github.com/SivanCola/deepzora/issues/126)）仍未解决。如遇到，请把 %APPDATA%\\Deepzora\\logs 下的 service.log 和 service.log.1 附到该问题；日志会写明卡住的步骤。"
+          }
+        }
+      ],
+      "contributors": [],
+      "links": {
+        "github": "https://github.com/SivanCola/deepzora/releases/tag/v0.0.7",
+        "compare": "https://github.com/SivanCola/deepzora/compare/v0.0.6...v0.0.7",
+        "download": "https://deepzora.app/#download"
+      }
+    },
+    {
       "version": "0.0.6",
       "releaseId": "0.0.6",
       "baseVersion": "0.0.6",

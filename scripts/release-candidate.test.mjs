@@ -23,9 +23,13 @@ function fixture(t, version = "1.2.3") {
   for (const platform of desktopPlatforms) {
     const dir = path.join(root, "desktop", platform, "files");
     mkdirSync(dir, { recursive: true });
-    const artifact = `${platform}.zip`;
-    writeFileSync(path.join(dir, artifact), platform);
-    const sha256 = createHash("sha256").update(platform).digest("hex");
+    const windows = platform.startsWith("windows-");
+    const files = windows
+      ? [
+        { name: `${platform}-Setup.exe`, content: `${platform}:installer` },
+        { name: `${platform}-Portable.zip`, content: `${platform}:portable` },
+      ] : [{ name: `${platform}.zip`, content: platform }];
+    for (const file of files) writeFileSync(path.join(dir, file.name), file.content);
     writeFileSync(path.join(root, "desktop", platform, "identity.json"), JSON.stringify({
       schema: 1,
       platform,
@@ -37,7 +41,7 @@ function fixture(t, version = "1.2.3") {
       channel: "stable",
       signingFingerprint: "v1:fingerprint",
       prefix: "desktop-123-1-preflight",
-      files: [{ name: artifact, size: Buffer.byteLength(platform), sha256 }],
+      files: files.map(file => ({ name: file.name, size: Buffer.byteLength(file.content), sha256: createHash("sha256").update(file.content).digest("hex") })),
     }));
   }
   const cli = path.join(root, "cli");
@@ -52,12 +56,15 @@ function fixture(t, version = "1.2.3") {
   mkdirSync(evidence);
   for (const kind of ["windows-amd64", "windows-arm64", "macos-universal-intel"]) {
     const platform = kind === "macos-universal-intel" ? "darwin-universal" : kind;
+    const windows = platform.startsWith("windows-");
+    const signed = windows && windowsSigningMode(version, 'stable') === 'certum';
     writeFileSync(path.join(evidence, `${kind}.json`), JSON.stringify({
-      schema: 1,
+      schema: signed ? 2 : 1,
       kind,
       status: "passed",
       version: `v${version}`,
-      sha256: createHash("sha256").update(platform).digest("hex"),
+      sha256: createHash("sha256").update(windows ? `${platform}:installer` : platform).digest("hex"),
+      ...(signed ? { portableStatus: 'passed', portableSha256: createHash("sha256").update(`${platform}:portable`).digest("hex") } : {}),
     }));
   }
   writeFileSync(path.join(evidence, "release-notes.md"), sealedNotes);
@@ -173,6 +180,31 @@ test("rejects acceptance evidence that names bytes outside the sealed platform b
   value.sha256 = "f".repeat(64);
   writeFileSync(receipt, JSON.stringify(value));
   assert.throws(() => sealCandidate(root, metadata), /does not name a sealed file/);
+});
+
+for (const mutation of ['missing', 'failed', 'foreign', 'installer-as-portable', 'legacy-schema']) {
+  test(`signed Windows candidates reject ${mutation} portable acceptance`, t => {
+    const root = fixture(t);
+    const receipt = path.join(root, 'evidence', 'windows-amd64.json');
+    const value = JSON.parse(readFileSync(receipt, 'utf8'));
+    if (mutation === 'missing') delete value.portableSha256;
+    if (mutation === 'failed') value.portableStatus = 'failed';
+    if (mutation === 'foreign') value.portableSha256 = createHash('sha256').update('windows-arm64:portable').digest('hex');
+    if (mutation === 'installer-as-portable') value.portableSha256 = value.sha256;
+    if (mutation === 'legacy-schema') value.schema = 1;
+    writeFileSync(receipt, JSON.stringify(value));
+    assert.throws(() => sealCandidate(root, metadata), /portable|Windows package acceptance/);
+  });
+}
+
+test('sealed Windows acceptance binds both installer and portable archive hashes', t => {
+  const root = fixture(t);
+  const record = sealCandidate(root, metadata);
+  const item = record.acceptance.find(item => item.kind === 'windows-amd64');
+  assert.equal(item.artifactSha256, createHash('sha256').update('windows-amd64:installer').digest('hex'));
+  assert.equal(item.portableArtifactSha256, createHash('sha256').update('windows-amd64:portable').digest('hex'));
+  item.portableArtifactSha256 = 'f'.repeat(64);
+  assert.throws(() => verifyCandidate(root, record, new Date('2026-01-02T00:00:00Z')), /portable acceptance artifact mismatch/);
 });
 
 test("candidate id command accepts the catalog digest as its third argument", () => {

@@ -143,7 +143,7 @@ function requireAcceptanceReceipt(payloadRoot, files, metadata, item) {
     throw new Error(`candidate acceptance evidence is missing: ${item.kind}`);
   }
   const receipt = JSON.parse(readFileSync(path.join(payloadRoot, item.evidencePath), "utf8"));
-  if (receipt.schema !== 1 || receipt.kind !== item.kind || receipt.status !== "passed"
+  if (![1, 2].includes(receipt.schema) || receipt.kind !== item.kind || receipt.status !== "passed"
       || receipt.version !== `v${metadata.version}` || !/^[0-9a-f]{64}$/.test(receipt.sha256 ?? "")) {
     throw new Error(`candidate acceptance receipt is invalid: ${item.kind}`);
   }
@@ -151,6 +151,19 @@ function requireAcceptanceReceipt(payloadRoot, files, metadata, item) {
   const identity = desktopIdentity(payloadRoot, platform);
   const artifact = identity.files.find(file => file.sha256 === receipt.sha256);
   if (!artifact) throw new Error(`candidate acceptance receipt does not name a sealed file: ${item.kind}`);
+  const windows = platform.startsWith("windows-");
+  if (windows && windowsSigningMode(metadata.version, "stable") === "certum" && receipt.schema !== 2) {
+    throw new Error(`signed Windows acceptance must cover installer and portable archive: ${item.kind}`);
+  }
+  if (receipt.schema === 2) {
+    if (!windows || !artifact.name.endsWith("-Setup.exe") || receipt.portableStatus !== "passed"
+        || !/^[0-9a-f]{64}$/.test(receipt.portableSha256 ?? "")) {
+      throw new Error(`candidate Windows package acceptance receipt is invalid: ${item.kind}`);
+    }
+    const portable = identity.files.find(file => file.sha256 === receipt.portableSha256 && file.name.endsWith("-Portable.zip"));
+    if (!portable) throw new Error(`candidate portable acceptance receipt does not name a sealed portable archive: ${item.kind}`);
+    return { ...item, evidenceSha256: evidence.sha256, artifactSha256: receipt.sha256, portableArtifactSha256: receipt.portableSha256 };
+  }
   return { ...item, evidenceSha256: evidence.sha256, artifactSha256: receipt.sha256 };
 }
 
@@ -266,6 +279,9 @@ export function verifyCandidate(payloadRoot, record, now = new Date(), purpose =
     }, item);
     if (validated.artifactSha256 !== item.artifactSha256) {
       throw new Error(`candidate acceptance artifact mismatch: ${item.kind}`);
+    }
+    if (validated.portableArtifactSha256 !== item.portableArtifactSha256) {
+      throw new Error(`candidate portable acceptance artifact mismatch: ${item.kind}`);
     }
   }
   return record;
