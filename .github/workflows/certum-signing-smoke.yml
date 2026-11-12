@@ -30,7 +30,7 @@ jobs:
         run: ./scripts/certum-client-probe.ps1
       - name: Save empty client UI on probe failure
         if: failure()
-        uses: actions/upload-artifact@b68c938de3ae8f359eb5e1ff7c4649c9a8abac50 # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: certum-credential-free-probe
           path: simplysign-diag-*-credential-free-probe.png
