@@ -488,7 +488,15 @@ function Resolve-Popup {
 
 . (Join-Path $PSScriptRoot "../certum-login-ui.ps1")
 Write-Host "Waiting for the SimplySign credential form, not its splash window..."
-$loginHandle = Wait-CertumLoginWindow
+try {
+    $loginHandle = Wait-CertumLoginWindow
+} catch {
+    if ($ProbeOnly) {
+        Write-WindowTitles -Context 'credential-free probe failure'
+        Save-Screenshot -Stage 'credential-free-probe'
+    }
+    throw
+}
 Write-WindowTitles -Context "credential form ready"
 Write-Host "Login window: handle=$loginHandle title='$(Get-WindowTitle -Handle $loginHandle)'"
 if ($ProbeOnly) {

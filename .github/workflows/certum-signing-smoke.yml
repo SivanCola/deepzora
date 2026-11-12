@@ -28,6 +28,13 @@ jobs:
       - name: Probe official client control roles without credentials
         shell: pwsh
         run: ./scripts/certum-client-probe.ps1
+      - name: Save empty client UI on probe failure
+        if: failure()
+        uses: actions/upload-artifact@b68c938de3ae8f359eb5e1ff7c4649c9a8abac50 # v7
+        with:
+          name: certum-credential-free-probe
+          path: simplysign-diag-*-credential-free-probe.png
+          retention-days: 1
   sign:
     if: github.repository == 'SivanCola/deepzora' && github.ref == 'refs/heads/main' && github.ref_protected && !inputs.client_probe_only
     runs-on: windows-2022
