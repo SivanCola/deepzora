@@ -16,6 +16,7 @@ fingerprint_files:
   - .github/workflows/certum-signing-smoke.yml
   - .github/actions/setup-certum/action.yml
   - scripts/sign-certum.ps1
+  - scripts/validate-certum-configuration.mjs
   - scripts/install-nsis.ps1
   - .github/workflows/release-candidate.yml
   - .github/workflows/release-promote.yml

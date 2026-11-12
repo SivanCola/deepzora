@@ -1,5 +1,5 @@
 name: Connect to Certum cloud signing
-description: Verify the SimplySign installer and connect to the configured certificate.
+description: Validate unattended credentials, verify the pinned installer and connect to the configured certificate.
 inputs:
   username:
     required: true
@@ -13,11 +13,22 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Validate unattended signing credentials
+      shell: pwsh
+      env:
+        CERTUM_USERNAME: ${{ inputs.username }}
+        CERTUM_OTP_URI: ${{ inputs.otp-uri }}
+        CERTUM_KEY_ID: ${{ inputs.thumbprint }}
+      run: node "${{ github.action_path }}/../../../scripts/validate-certum-configuration.mjs"
     - name: Verify SimplySign installer
       shell: pwsh
       run: |
         $ErrorActionPreference = 'Stop'
         Invoke-WebRequest 'https://files.certum.eu/software/SimplySignDesktop/Windows/9.4.3.90/SimplySignDesktop-9.4.3.90-64-bit-en.msi' -OutFile SimplySignDesktop.msi
+        $hash = (Get-FileHash -Algorithm SHA256 SimplySignDesktop.msi).Hash
+        if ($hash -ne 'CE2B38EF0124A574BC08E5558726099CAAC79A7C58B8D3D712F629371FE1BCB7') {
+          throw 'SimplySign installer SHA-256 does not match the pinned 9.4.3.90 build'
+        }
         $signature = Get-AuthenticodeSignature SimplySignDesktop.msi
         if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'Asseco Data Systems') {
           throw 'SimplySign installer signature or publisher verification failed'

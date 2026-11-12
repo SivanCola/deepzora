@@ -9,6 +9,54 @@ needed to authenticate signing, so access to these secrets is signing authority.
 Windows 发布使用 Certum SimplySign。配置以上三个 Secret；不要提交二维码或 TOTP
 配置。证书私钥保留在云端，但 CI 凭据能授权签名，应按签名权限保护。
 
+## Unattended GitHub Actions signing / GitHub Actions 无人值守签名
+
+The existing release workflow performs login, payload signing, installer signing
+and verification on GitHub-hosted Windows runners. No local Windows computer or
+per-release phone code is needed once all three credentials are configured.
+Keep the `release` environment approval gate: approving a release does not
+require manually authenticating each signing operation.
+
+现有发布工作流在 GitHub 托管的 Windows runner 上完成登录、程序签名、安装包签名和
+验证。配置齐三个凭据后，不需要本地 Windows 电脑或逐次输入手机验证码。保留
+`release` 环境的发布审批；发布审批与签名过程中的人工登录是两回事。
+
+Store the complete original provisioning URI as `CERTUM_OTP_URI` in Actions
+secrets, never in a workflow input, repository file or chat. A six-digit phone
+code is not a replacement. If the original URI/QR backup is unavailable, the
+current automation cannot generate login tokens. Obtain an authorized new
+provisioning configuration from Certum before enabling live signing; do not
+reset an existing phone enrollment without its owner's approval. Switching to
+GitHub Actions cannot recover a missing TOTP secret.
+
+将原始完整配置 URI 保存为 Actions Secret `CERTUM_OTP_URI`，不要放入工作流输入、
+仓库文件或聊天。手机六位验证码不能替代它。如果没有原始 URI／二维码备份，当前
+自动化无法生成登录验证码，必须先通过 Certum 获取获授权的新配置，才能启用实际
+签名。未经所有者批准，不得重置已有手机绑定；改用 GitHub Actions 无法恢复缺失的
+TOTP 密钥。
+
+The smoke workflow checks credential format before compiling probes. The shared
+login action checks it again, pins the SimplySign installer SHA-256 as well as
+its publisher signature, and keeps authentication screenshots disabled. Both
+signing workflows disconnect the cloud session even when signing fails. Format
+validation does not prove that the account, certificate or TOTP seed is valid;
+only a successful live signing test does.
+
+签名测试在编译探针前检查凭据格式；共享登录 Action 再次检查，并同时验证 SimplySign
+安装器的固定 SHA-256 和发布者签名，保持登录截图关闭。两个签名工作流在签名失败时
+也会断开云签名会话。格式检查不能证明账号、证书或 TOTP 密钥有效，仍须实际签名成功。
+
+Historical Stable versions `0.0.1`–`0.0.6` retain their explicit unsigned policy.
+Unlisted versions such as `0.0.7` require Certum automatically and cannot fall
+back to unsigned output when credentials or signing fail. Prepare and approve
+a new signed candidate rather than silently replacing an existing release.
+
+历史稳定版 `0.0.1`～`0.0.6` 保留明确批准的未签名策略。`0.0.7` 等未列入例外的版本
+自动要求 Certum 签名，凭据缺失或签名失败均不得降级为未签名发布。应准备并审批新的
+已签名候选，不应直接替换既有发布包。
+
+## Live qualification / 实际签名验收
+
 Run **Certum signing smoke test** on protected `main`, approve the `release`
 environment, and require successful login, signing, trust, signer and timestamp
 verification. This test publishes nothing. The third-party login action is

@@ -21,22 +21,20 @@ jobs:
         with:
           ref: ${{ github.workflow_sha }}
           persist-credentials: false
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
-          go-version-file: go.mod
-          cache: false
+          node-version-file: .node-version
       - name: Check signing configuration
         shell: pwsh
         env:
           CERTUM_USERNAME: ${{ secrets.CERTUM_USERNAME }}
           CERTUM_OTP_URI: ${{ secrets.CERTUM_OTP_URI }}
           CERTUM_KEY_ID: ${{ secrets.CERTUM_KEY_ID }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          if ([string]::IsNullOrWhiteSpace($env:CERTUM_USERNAME)) { throw 'Missing CERTUM_USERNAME' }
-          if ($env:CERTUM_OTP_URI -notmatch '^otpauth://totp/') { throw 'CERTUM_OTP_URI must be a complete TOTP URI' }
-          if ($env:CERTUM_KEY_ID -notmatch '^[0-9a-fA-F]{40}$') { throw 'CERTUM_KEY_ID must be the 40-character SHA-1 certificate thumbprint' }
-
+        run: node scripts/validate-certum-configuration.mjs
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
       - name: Build open-source signing probes
         shell: pwsh
         run: |
@@ -69,3 +67,8 @@ jobs:
           ./scripts/sign-certum.ps1 -PayloadDirectory payload
           ./scripts/sign-certum.ps1 -FilePath installer-probe.exe
           'Certum x64/ARM64 payload and installer signing, expected signer, trust, and timestamps passed.' >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Disconnect from Certum
+        if: always()
+        shell: pwsh
+        run: Get-Process -Name '*SimplySign*' -ErrorAction SilentlyContinue | Stop-Process -Force
