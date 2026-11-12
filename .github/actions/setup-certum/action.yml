@@ -20,23 +20,24 @@ runs:
         CERTUM_OTP_URI: ${{ inputs.otp-uri }}
         CERTUM_KEY_ID: ${{ inputs.thumbprint }}
       run: node "${{ github.action_path }}/../../../scripts/validate-certum-configuration.mjs"
-    - name: Verify SimplySign installer
+    - name: Install verified SimplySign client
       shell: pwsh
-      run: |
-        $ErrorActionPreference = 'Stop'
-        Invoke-WebRequest 'https://files.certum.eu/software/SimplySignDesktop/Windows/9.4.3.90/SimplySignDesktop-9.4.3.90-64-bit-en.msi' -OutFile SimplySignDesktop.msi
-        $hash = (Get-FileHash -Algorithm SHA256 SimplySignDesktop.msi).Hash
-        if ($hash -ne 'CE2B38EF0124A574BC08E5558726099CAAC79A7C58B8D3D712F629371FE1BCB7') {
-          throw 'SimplySign installer SHA-256 does not match the pinned 9.4.3.90 build'
-        }
-        $signature = Get-AuthenticodeSignature SimplySignDesktop.msi
-        if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'Asseco Data Systems') {
-          throw 'SimplySign installer signature or publisher verification failed'
-        }
+      run: '& "${{ github.action_path }}/../../../scripts/certum/Install-SimplySign.ps1"'
     - name: Authenticate cloud certificate
-      uses: dismine/windows-app-signing-setup-action@89ae3b032d4bc7a5b98d1a42a34e61ecb6faad64
-      with:
-        certum-username: ${{ inputs.username }}
-        certum-otp-uri: ${{ inputs.otp-uri }}
-        certum-key-id: ${{ inputs.thumbprint }}
-        capture-diagnostics: 'false'
+      shell: pwsh
+      env:
+        CERTUM_USERNAME: ${{ inputs.username }}
+        CERTUM_OTP_URI: ${{ inputs.otp-uri }}
+        CERTUM_KEY_ID: ${{ inputs.thumbprint }}
+        CAPTURE_DIAGNOSTICS: 'false'
+      run: '& "${{ github.action_path }}/../../../scripts/certum/Connect-SimplySign.ps1"'
+    - name: Verify expected signing certificate
+      shell: pwsh
+      env:
+        CERTUM_KEY_ID: ${{ inputs.thumbprint }}
+      run: |
+        $certificate = @(Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.Thumbprint -eq $env:CERTUM_KEY_ID -and $_.EnhancedKeyUsageList -like '*Code Signing*' })
+        if ($certificate.Count -ne 1 -or $certificate[0].NotAfter -le (Get-Date) -or $certificate[0].NotBefore -gt (Get-Date)) {
+          throw 'Expected current Certum code-signing certificate is unavailable.'
+        }
+        Write-Host 'Expected Certum code-signing certificate is available; actual signatures must still pass trust and timestamp verification.'

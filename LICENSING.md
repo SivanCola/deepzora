@@ -42,11 +42,18 @@ Explicit component licenses remain in effect, including:
   merely because it renders or generates themes.
 - Dependencies and bundled runtimes under their respective licenses; their
   notices must be retained when required.
+- The SimplySign authentication script derived from
+  `dismine/windows-app-signing-setup-action` at commit
+  `89ae3b032d4bc7a5b98d1a42a34e61ecb6faad64`; its MIT notice is preserved in
+  [scripts/certum/UPSTREAM-LICENSE](scripts/certum/UPSTREAM-LICENSE).
 
 各组件明确声明的许可继续有效，包括 Harness 上游 MIT 声明、供应商和 Seti 图标
 许可、明确标注 MIT 的官方主题素材与主题包数据，以及依赖和运行时各自的协议。
 主题素材例外不延伸到仅因渲染或生成主题而相关的应用代码。分发时须保留适用的
 第三方声明；本清单不替代逐次发布的依赖与许可核查。
+
+SimplySign 认证脚本源自 `dismine/windows-app-signing-setup-action` 的上述固定提交，
+其 MIT 版权与许可原文保留在 [UPSTREAM-LICENSE](scripts/certum/UPSTREAM-LICENSE)。
 
 ## Distribution and network use / 分发与网络使用
 

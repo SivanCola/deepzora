@@ -2,6 +2,11 @@ name: Certum signing smoke test
 
 on:
   workflow_dispatch:
+    inputs:
+      client_probe_only:
+        description: Inspect the pinned client's login controls without credentials or signing
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -11,8 +16,20 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  client-probe:
+    if: github.repository == 'SivanCola/deepzora' && inputs.client_probe_only
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - name: Probe official client control roles without credentials
+        shell: pwsh
+        run: ./scripts/certum-client-probe.ps1
   sign:
-    if: github.repository == 'SivanCola/deepzora' && github.ref == 'refs/heads/main' && github.ref_protected
+    if: github.repository == 'SivanCola/deepzora' && github.ref == 'refs/heads/main' && github.ref_protected && !inputs.client_probe_only
     runs-on: windows-2022
     environment: release
     timeout-minutes: 20
