@@ -169,7 +169,7 @@ export function useAppNavigationComposition(input: AppNavigationCompositionInput
   const sidebarToggleTitle = sidebarCollapsed
       ? t("sidebar.expand")
       : t("sidebar.collapse");
-  const browserPreviewChrome = typeof window !== "undefined" && desktopHost().kind === "none";
+  const browserPreviewChrome = typeof window !== "undefined" && desktopHost().kind !== "electron";
   // Command palette shortcut label (⌘K / Ctrl+K), platform-aware.
   const commandPaletteShortcut = formatShortcutCombo(
     resolvedShortcutCombo("commandPalette.open", desktopPlatform),

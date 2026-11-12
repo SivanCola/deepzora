@@ -4,11 +4,9 @@ go 1.26.0
 
 toolchain go1.26.9
 
-// The desktop service is a nested module so its CGO build never touches the
-// CLI's CGO_ENABLED=0 single-static-binary guarantee. The replace lets it import
-// the same deepzora/internal/* kernel (the import path stays under deepzora/, so
-// the internal rule still permits it). `go mod tidy` here resolves its
-// transitive deps; the parent module's go build/test ./... skips this directory.
+// This importable application-service module backs both Web and Desktop.
+// The CLI imports it with CGO_ENABLED=0; cmd/desktop is the native entry.
+// Nested-module tests still run separately from the root suite.
 require deepzora v0.0.0
 
 require (

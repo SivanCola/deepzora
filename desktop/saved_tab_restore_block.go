@@ -1,4 +1,4 @@
-package main
+package service
 
 // A failed reconciliation write keeps the presentation available while
 // preventing any persisted session from opening with an uncommitted identity.

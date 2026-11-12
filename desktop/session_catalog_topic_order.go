@@ -1,4 +1,4 @@
-package main
+package service
 
 func projectTopicLess(left, right ProjectNode, sortMode string, manualOrder bool) bool {
 	if left.Pinned != right.Pinned {

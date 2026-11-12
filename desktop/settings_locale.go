@@ -1,4 +1,4 @@
-package main
+package service
 
 import "deepzora/internal/i18n"
 

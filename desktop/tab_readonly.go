@@ -1,4 +1,4 @@
-package main
+package service
 
 func (a *App) setTabReadOnly(tabID string, readOnly bool) {
 	var terminalSessions []*terminalSession

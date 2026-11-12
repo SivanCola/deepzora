@@ -12,6 +12,7 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { buildWebUI } from "./build-web-ui.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(HERE, "..");
@@ -148,6 +149,7 @@ export function buildCandidate(version, output, env = process.env) {
   mkdirSync(cliDirectory); mkdirSync(npmDirectory); mkdirSync(binaries);
   const work = mkdtempSync(path.join(tmpdir(), "deepzora-cli-candidate-"));
   try {
+    buildWebUI();
     for (const target of targets) {
       const filename = target.goos === "windows" ? "deepzora.exe" : "deepzora";
       const directory = path.join(binaries, target.key);

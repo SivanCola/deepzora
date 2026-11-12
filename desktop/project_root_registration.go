@@ -1,4 +1,4 @@
-package main
+package service
 
 // registerProjectRoot records workspaceRoot, realigns open tabs to its
 // canonical spelling, and refreshes current history/task query roots.

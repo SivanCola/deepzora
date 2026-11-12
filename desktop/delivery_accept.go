@@ -1,4 +1,4 @@
-package main
+package service
 
 // Bound to the persisted tab state, not the end-of-turn notice card: that card
 // renders once per finished turn, so a session reopened while still awaiting

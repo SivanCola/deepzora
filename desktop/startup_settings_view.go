@@ -1,4 +1,4 @@
-package main
+package service
 
 // DesktopStartupSettingsView is the lightweight Settings subset needed during
 // frontend startup. It deliberately excludes providers and credential state so

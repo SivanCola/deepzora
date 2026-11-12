@@ -81,7 +81,7 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
 try {
   await mkdir(dirname(servicePath), { recursive: true });
   console.log("==> Building Deepzora desktop service");
-  await waitForExit(start("go", ["build", "-o", servicePath, "."]), "Go build");
+  await waitForExit(start("go", ["build", "-o", servicePath, "./cmd/desktop"]), "Go build");
 
   if (await servesDeepzora(devUrl)) {
     console.log(`==> Reusing Deepzora Vite server at ${devUrl}`);

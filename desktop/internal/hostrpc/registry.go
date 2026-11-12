@@ -186,6 +186,8 @@ func describeResult(c *typeCollector, owner, method string, t reflect.Type, cmd 
 // Commands lists the accepted methods sorted by name; never nil.
 func (r *Registry) Commands() []Command { return slices.Clone(r.commands) }
 
+func (r *Registry) HasCommand(name string) bool { _, ok := r.methods[name]; return ok }
+
 // Invoke decodes args into the method's parameters, calls it, and returns
 // its result (nil for void) or its error. Missing trailing arguments decode
 // as zero values, matching the retired shell's tolerance; extra ones are rejected.

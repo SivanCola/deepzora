@@ -145,7 +145,7 @@ assert.match(desktopReadme, /go build -o build\/bin\/deepzora-desktop-service \.
 // the shell/service contract and fail on drift before compiling anything.
 assert.match(
   desktopBuildScript,
-  /go run \. -emit-contract frontend\/src\/generated/,
+  /go run \.\/cmd\/desktop -emit-contract frontend\/src\/generated/,
   "desktop builds must regenerate the host contract",
 );
 // Verify the build guard's behavior, not its choice of git or diff syntax.

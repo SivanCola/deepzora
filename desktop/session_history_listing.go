@@ -1,4 +1,4 @@
-package main
+package service
 
 // ListSessions returns the saved sessions newest-first for the history panel,
 // marking the one the current conversation is writing to and attaching any

@@ -1,4 +1,4 @@
-package main
+package service
 
 // WriteTerminalForTab holds the project runtime admission through the process
 // write so a merge reservation cannot begin between target resolution and the

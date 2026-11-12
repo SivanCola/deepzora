@@ -617,6 +617,7 @@ var Chinese = Messages{
 	UsageBody: `deepzora — 由配置和插件驱动的 coding agent（多模型）
 
 用法：
+  deepzora web [--port PORT] [--no-open] [--dir PATH]    打开本机 Web 工作台
   deepzora [--model NAME] [--preset ID] [-c|--continue] [-r|--resume [QUERY]] [--permission-mode MODE] [--effort LEVEL] [--add-dir PATH]   交互式会话
   deepzora -p|--print [--model NAME] [-c|-r QUERY] [--output-format text|json|stream-json] [--allowed-tools RULES] [--add-dir PATH] <task>
   deepzora run [--model NAME] [--preset ID] [--max-steps N] [-c|--continue] [-r|--resume QUERY] [--copy] [--output-format FORMAT] <task>

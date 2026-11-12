@@ -3,6 +3,7 @@ import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { publishPackages, stableDistTagFromEnv } from "./publish.mjs";
+import { buildWebUI } from "../scripts/build-web-ui.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..");
@@ -39,6 +40,7 @@ rmSync(STAGE, { recursive: true, force: true });
 mkdirSync(STAGE, { recursive: true });
 
 const subPackages = [];
+buildWebUI();
 for (const t of TARGETS) {
   const name = `@sivancola/deepzora-cli-${t.node}`;
   const dir = join(STAGE, `cli-${t.node}`);

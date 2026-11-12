@@ -126,8 +126,8 @@ Build the Go service and the UI, then the shell:
 
 ```sh
 cd desktop
-go build -o build/bin/deepzora-desktop-service .     # accepts --host-rpc
-go run . -emit-contract frontend/src/generated       # desktopContract.generated.{ts,json}
+go build -o build/bin/deepzora-desktop-service ./cmd/desktop     # accepts --host-rpc
+go run ./cmd/desktop -emit-contract frontend/src/generated       # desktopContract.generated.{ts,json}
 pnpm --filter deepzora-desktop-frontend build        # frontend/dist
 pnpm --filter deepzora-desktop-shell build           # electron/dist/{main,preload}.cjs + desktopContract.json
 ```

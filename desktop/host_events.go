@@ -1,4 +1,4 @@
-package main
+package service
 
 // hostEventNames lists every static event name this package emits through
 // the runtime event bridge; the host contract digest covers it.

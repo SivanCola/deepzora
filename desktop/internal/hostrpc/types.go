@@ -141,6 +141,11 @@ func (c *typeCollector) structRef(t reflect.Type, hint string) (TypeRef, error) 
 	name = hint
 	if t.Name() != "" {
 		name = t.String()
+		// Moving the application from package main to an importable service
+		// must not rename wire DTOs or change the shipped desktop contract.
+		if t.PkgPath() == "deepzora/desktop" {
+			name = "main." + t.Name()
+		}
 	}
 	if _, taken := c.types[name]; taken {
 		return TypeRef{}, fmt.Errorf("%s: type name %q is already used by another type", t, name)

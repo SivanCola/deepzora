@@ -34,6 +34,7 @@ type Hooks struct {
 // ServerConfig assembles one service process's identity around its registry.
 type ServerConfig struct {
 	Registry   *Registry
+	Invoke     func(context.Context, string, []json.RawMessage) (any, error)
 	Contract   Contract
 	Hooks      Hooks
 	Identity   Identity
@@ -281,11 +282,20 @@ func (s *Server) invoke(ctx context.Context, raw json.RawMessage) (any, error) {
 	if err := decodeParams(raw, &p); err != nil {
 		return nil, err
 	}
-	result, err := s.cfg.Registry.Invoke(ctx, p.Method, p.Args)
+	if s.cfg.Invoke != nil {
+		return s.cfg.Invoke(ctx, p.Method, p.Args)
+	}
+	return s.cfg.Registry.InvokeProjected(ctx, p.Method, p.Args)
+}
+
+// InvokeProjected applies the same secret projection and structured errors to
+// every host transport, including the local Web workspace.
+func (r *Registry) InvokeProjected(ctx context.Context, method string, args []json.RawMessage) (any, error) {
+	result, err := r.Invoke(ctx, method, args)
 	if err == nil {
 		return secrets.Project(result), nil
 	}
-	data := map[string]any{"method": p.Method}
+	data := map[string]any{"method": method}
 	var detailed interface{ RPCErrorData() map[string]any }
 	if errors.As(err, &detailed) {
 		maps.Copy(data, detailed.RPCErrorData())
@@ -299,7 +309,7 @@ func (s *Server) invoke(ctx context.Context, raw json.RawMessage) (any, error) {
 	case errors.As(err, &invalid):
 		return nil, &rpcwire.RPCError{Code: rpcwire.ErrInvalidParams, Message: secrets.RedactError(err), Data: secrets.Project(data)}
 	case errors.As(err, &panicked):
-		slog.Error("desktop host: bound method panicked", "method", p.Method, "panic", secrets.Masker().String(fmt.Sprint(panicked.Value)), "stack", secrets.Masker().String(string(panicked.Stack)))
+		slog.Error("desktop host: bound method panicked", "method", method, "panic", secrets.Masker().String(fmt.Sprint(panicked.Value)), "stack", secrets.Masker().String(string(panicked.Stack)))
 		return nil, &rpcwire.RPCError{Code: rpcwire.ErrInternal, Message: secrets.RedactError(err), Data: secrets.Project(data)}
 	}
 	return nil, &rpcwire.RPCError{Code: CodeBusiness, Message: secrets.RedactError(err), Data: secrets.Project(data)}

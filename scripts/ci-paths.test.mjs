@@ -4,8 +4,25 @@ import { copyFileSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSy
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+
+test("shared Web changes exercise CLI, service, frontend and real browser checks", () => {
+  for (const path of ["scripts/build-web-ui.mjs", "scripts/test-web-workspace.py", "desktop/service.go", "desktop/web_http.go", "internal/cli/web.go", "internal/weboptions/options.go"]) {
+    const result = classifyPaths([path]);
+    assert.deepEqual(result.unknown, [], path);
+    for (const flag of ["code", "desktop_go", "frontend", "browser"]) assert.equal(result.flags[flag], true, `${path}: ${flag}`);
+  }
+});
 import { pathToFileURL } from "node:url";
 import { changedFiles, classifyPaths } from "./ci-paths.mjs";
+
+test("shared application service inputs also validate root CLI consumers", () => {
+  for (const path of ["desktop/app.go", "desktop/go.mod", "desktop/go.sum", "desktop/internal/hostrpc/server.go"]) {
+    const { flags, unknown } = classifyPaths([path]);
+    assert.deepEqual(unknown, [], path);
+    assert.equal(flags.code, true, path);
+    assert.equal(flags.native, true, path);
+  }
+});
 
 test("explicit documentation skips build surfaces", () => {
   for (const path of ["README.md", "docs/guide.md", "desktop/AGENTS.md", "desktop/README.md", "desktop/electron/README.md"]) {

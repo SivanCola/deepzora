@@ -1,4 +1,4 @@
-package main
+package service
 
 // uiPerfSignalAllowlist is the closed set of frontend latency signals. Values
 // arrive pre-bucketed from lib/uiPerf.ts; dropping anything else keeps webview

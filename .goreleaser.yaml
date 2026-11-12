@@ -3,6 +3,7 @@ project_name: deepzora
 
 before:
   hooks:
+    - node scripts/build-web-ui.mjs
     - go mod download
 
 builds:

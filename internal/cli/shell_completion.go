@@ -116,6 +116,7 @@ func cliCompletionRootSpec() cliCompletionSpec {
 	}, help)}
 
 	root.subcommands = []cliCompletionSpec{
+		completionSpec("web", []cliCompletionFlag{completionFlag("--port", cliCompletionStaticValue), completionFlag("--no-open", cliCompletionNoValue), completionFlag("--dir", cliCompletionPathValue), help}),
 		completionSpec("run", runFlags),
 		completionSpecWithAliases("chat", []string{"code"}, interactiveFlags),
 		completionSpec("setup", []cliCompletionFlag{completionFlag("--local -l", cliCompletionNoValue), help}),

@@ -1,6 +1,6 @@
 //go:build !linux
 
-package main
+package service
 
 // detectLinuxInstallProfile is a stub on non-Linux platforms; detectInstallProfile
 // never calls it outside the linux build tag, but the shared file references the

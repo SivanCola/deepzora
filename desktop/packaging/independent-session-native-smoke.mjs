@@ -1,5 +1,5 @@
 // Real Electron shell + full App + current Go service, with a disposable home.
-// Build first: cd desktop && go build -o build/bin/deepzora-desktop-service .
+// Build first: cd desktop && go build -o build/bin/deepzora-desktop-service ./cmd/desktop
 // Then: cd electron && pnpm build
 // Also build the renderer: cd desktop/frontend && pnpm build
 // Run: node desktop/packaging/independent-session-native-smoke.mjs [service] [evidence]
