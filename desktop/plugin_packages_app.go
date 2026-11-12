@@ -11,10 +11,13 @@ import (
 	"deepzora/internal/config"
 	"deepzora/internal/hook"
 	"deepzora/internal/installsource"
+	"deepzora/internal/plugincatalog"
 	"deepzora/internal/pluginpkg"
 )
 
 type PluginView struct {
+	CatalogID           string                         `json:"catalogId,omitempty"`
+	Commit              string                         `json:"commit,omitempty"`
 	Name                string                         `json:"name"`
 	Version             string                         `json:"version,omitempty"`
 	Description         string                         `json:"description,omitempty"`
@@ -40,6 +43,7 @@ type PluginView struct {
 }
 
 type PluginInstallOptions struct {
+	PlanID  string `json:"planId,omitempty"`
 	DryRun  bool   `json:"dryRun,omitempty"`
 	Link    bool   `json:"link,omitempty"`
 	Replace bool   `json:"replace,omitempty"`
@@ -91,6 +95,15 @@ type PluginMCPServerView struct {
 	AutoStart   bool   `json:"autoStart,omitempty"`
 }
 
+func (a *App) SearchPluginCatalog(query string, topics bool) (string, error) {
+	result, err := plugincatalog.Search(context.Background(), config.DeepzoraHomeDir(), query, topics)
+	if err != nil {
+		return "", err
+	}
+	b, err := json.Marshal(result)
+	return string(b), err
+}
+
 func (a *App) Plugins() []PluginView {
 	st, err := pluginpkg.LoadState(config.DeepzoraHomeDir())
 	if err != nil {
@@ -106,6 +119,7 @@ func (a *App) Plugins() []PluginView {
 	out := make([]PluginView, 0, len(st.Plugins))
 	for _, p := range st.Plugins {
 		view := PluginView{
+			CatalogID: p.CatalogID, Commit: p.Commit,
 			Name:         p.Name,
 			Version:      p.Version,
 			Description:  p.Description,
@@ -213,13 +227,30 @@ func (a *App) InstallPlugin(source string, opts PluginInstallOptions) (string, e
 	if err != nil {
 		return "", err
 	}
+	var result struct {
+		OK    bool
+		Error string
+		Next  string
+	}
+	if err = json.Unmarshal([]byte(out), &result); err != nil {
+		return "", err
+	}
+	if !result.OK {
+		return "", fmt.Errorf("plugin installation failed: %s %s", result.Error, result.Next)
+	}
 	a.bumpExtensionGeneration()
 	a.invalidateSkillRootsCache()
 	if rebuildErr := a.rebuild(); rebuildErr != nil {
-		if _, ok := a.deferredRebuildWarning("plugins", rebuildErr); ok {
-			return out, nil
+		if warning, ok := a.deferredRebuildWarning("plugins", rebuildErr); ok {
+			var outcome map[string]any
+			if err := json.Unmarshal([]byte(out), &outcome); err != nil {
+				return out, err
+			}
+			outcome["activationWarning"] = warning
+			raw, err := json.Marshal(outcome)
+			return string(raw), err
 		}
-		return out, rebuildErr
+		return out, fmt.Errorf("plugin installed; activation failed (inspect plugin diagnostics): %w", rebuildErr)
 	}
 	return out, nil
 }
@@ -289,6 +320,9 @@ func (a *App) UpdatePlugin(name string) (string, error) {
 	name = strings.TrimSpace(name)
 	for _, p := range a.Plugins() {
 		if p.Name == name {
+			if p.CatalogID != "" {
+				return "", fmt.Errorf("preview the catalog update for %s before installing", p.CatalogID)
+			}
 			if strings.TrimSpace(p.Source) == "" {
 				return "", fmt.Errorf("plugin %q has no recorded source", name)
 			}
@@ -343,6 +377,7 @@ func (a *App) runPluginInstallSource(source string, opts PluginInstallOptions, a
 	}
 	body := map[string]any{
 		"source":  strings.TrimSpace(source),
+		"planId":  opts.PlanID,
 		"kind":    "plugin",
 		"mode":    mode,
 		"replace": opts.Replace,

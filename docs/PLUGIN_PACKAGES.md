@@ -1,5 +1,23 @@
 # Deepzora Plugin Packages
 
+## Discover community plugins
+
+Open **Settings → Plugins → Discover**. Search the reviewed catalog or include independent GitHub repositories tagged `deepzora-plugin`. The source link opens the exact revision. Submit a package or release via the [community repository](https://github.com/SivanCola/deepzora-plugins).
+
+```sh
+deepzora plugin search review --all
+deepzora plugin info catalog:community/review-checklist
+deepzora plugin install catalog:community/review-checklist --dry-run
+deepzora plugin install catalog:community/review-checklist --yes --plan-id <preview-id>
+deepzora plugin updates
+deepzora plugin update review-checklist --dry-run
+deepzora plugin update review-checklist --yes --plan-id <update-preview-id>
+```
+
+A listing becomes installable after its review and publication. Inspect the plan, especially hooks, MCP and full-trust runtimes. Copy the plan ID for the same home, source, version, name and flags. A moved tag cannot change the installed tree. A withdrawn release, mismatched plan or different-source name collision fails closed. Use `--name` to install under another local name. Updates are explicit and preserve disabled state. After interruption, `deepzora plugin recover` reconciles staged files with the installed record; it cannot undo plugin side effects.
+
+Search reuses recent catalog data and can fall back to its disk cache. Preview and apply read the current index. For testing or a private catalog, `DEEPZORA_PLUGIN_CATALOG` and `DEEPZORA_PLUGIN_TAGGED` accept an HTTPS URL or absolute JSON filename. Alternate catalogs are labelled custom, never community reviewed.
+
 Deepzora plugin packages bundle skills, hooks, MCP servers, prompts, themes,
 and code extensions behind one installable unit.
 

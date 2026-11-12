@@ -1,4 +1,5 @@
 import { ErrorMessage } from "./ErrorMessage";
+import { PluginMarket } from "./PluginMarket";
 import { SettingsSubpageHeader, SettingsFeedback, useSettingsDraft, useSettingsExperience } from "./SettingsExperience";
 import { SettingsOptions } from "./SettingsOptions";
 import { SettingsSelect } from "./SettingsSelect";
@@ -1622,6 +1623,7 @@ type PluginRuntimePlan = {
 };
 
 type PluginInstallPlanAction = {
+  changes?: string[];
   action?: string;
   kind?: string;
   name?: string;
@@ -1641,6 +1643,8 @@ type PluginInstallPlanAction = {
 };
 
 type PluginInstallPlanView = {
+  planId?: string;
+  activationWarning?: string;
   raw: string;
   ok?: boolean;
   status?: string;
@@ -1656,6 +1660,7 @@ type PluginInstallMode = "local" | "git";
 // Settings. It mirrors the MCP/Skills density: install planning on top, package
 // rows below, and diagnostics/details only when a row is expanded.
 export function PluginsSettingsPage() {
+	const [discover, setDiscover] = useState(false);
 	const t = useT();
 	const { requestLeave, announce } = useSettingsExperience();
 	const [installOpen, setInstallOpen] = useState(false);
@@ -1717,6 +1722,20 @@ export function PluginsSettingsPage() {
 	};
 
 	const sourceValue = (installMode === "local" ? localSource : gitSource).trim();
+	const isMarket = /^(catalog|topic):/.test(sourceValue);
+	const chooseMarket = (spec: string, installed?: PluginView) => {
+		setDiscover(false);
+		setInstallMode("git");
+		setGitSource(spec);
+		setName(installed?.name || "");
+		setReplace(Boolean(installed));
+		setPlan(null);
+		setInstallOpen(true);
+		void run(async () => {
+			const raw = await app.PlanPluginInstall(spec, { dryRun: true, replace: Boolean(installed), name: installed?.name });
+			setPlan(parsePluginInstallPlan(raw));
+		}, false);
+	};
 	const installOptions = (): PluginInstallOptions => ({
 		dryRun: false,
 		link: installMode === "local" ? link : false,
@@ -1743,7 +1762,7 @@ export function PluginsSettingsPage() {
 	const install = () => {
 		if (!sourceValue) return;
 		void run(async () => {
-			const raw = await app.InstallPlugin(sourceValue, installOptions());
+			const raw = await app.InstallPlugin(sourceValue, { ...installOptions(), planId: plan?.planId });
 			setPlan(parsePluginInstallPlan(raw));
 			setLocalSource(""); setGitSource(""); setName(""); setInstallOpen(false);
 			announce("success");
@@ -1787,10 +1806,12 @@ export function PluginsSettingsPage() {
 			{loadError && <SettingsFeedback kind="error" onRetry={() => { setLoadError(null); void reload(); }}><ErrorMessage error={loadError} /></SettingsFeedback>}
 			{notice && !err && <SettingsFeedback kind="success">{notice}</SettingsFeedback>}
 			<div className="settings-toolbar">
-              <div><strong>{t("caps.installedPlugins")}</strong>{plugins && plugins.length > 0 && <div className="drawer__summary">{summary}</div>}</div>
+<div className="cap-tabs"><button className={"cap-tab"+(!discover?" cap-tab--active":"")} aria-pressed={!discover} onClick={()=>setDiscover(false)}>{t("caps.installedPlugins")}</button>
+ <button className={"cap-tab"+(discover?" cap-tab--active":"")} aria-pressed={discover} onClick={()=>requestLeave(()=>{setInstallOpen(false);setDiscover(true)})}>{t("market.discover")}</button>{!discover && summary && <span className="drawer__summary">{summary}</span>}</div>
               <div className="settings-toolbar__actions"><button className="btn btn--small" disabled={actionBusy} onClick={() => void reload()}>{t("caps.pluginRefresh")}</button>
               <button className="btn btn--primary" aria-expanded={installOpen} aria-controls="settings-plugin-install" disabled={actionBusy} onClick={() => installOpen ? requestLeave(() => setInstallOpen(false)) : setInstallOpen(true)}>{installOpen ? t("common.cancel") : t("caps.pluginInstall")}</button></div>
             </div>
+{discover && <PluginMarket installed={plugins||[]} choose={chooseMarket}/>}
             <div id="settings-plugin-install" hidden={!installOpen}>
             <div className="cap-plugin-installer">
 				<div className="cap-plugin-installer__head">
@@ -1875,7 +1896,7 @@ export function PluginsSettingsPage() {
 						<button className="btn btn--small" type="button" disabled={!canPlan} onClick={previewInstall}>
 							{t("caps.pluginPreview")}
 						</button>
-						<button className="btn btn--primary btn--small" type="button" disabled={!canPlan} onClick={install}>
+<button className="btn btn--primary btn--small" type="button" disabled={!canPlan || (isMarket && (!plan?.planId || !plan.ok))} onClick={install}>
 							{t("caps.pluginInstall")}
 						</button>
 					</div>
@@ -1883,7 +1904,7 @@ export function PluginsSettingsPage() {
 			</div>
 			{plan && <PluginPlanPreview plan={plan} />}
             </div>
-			<div className="cap-server-section cap-plugin-section">
+<div className="cap-server-section cap-plugin-section" hidden={discover}>
 
 				{!plugins ? (
 					!loadError && <SettingsFeedback kind="loading" />
@@ -1903,7 +1924,7 @@ export function PluginsSettingsPage() {
 								expanded={expanded.has(plugin.name)}
 								onToggleDetails={() => togglePlugin(plugin.name)}
 								onToggleEnabled={(enabled) => void run(() => app.SetPluginEnabled(plugin.name, enabled))}
-								onUpdate={() => void run(() => app.UpdatePlugin(plugin.name))}
+								onUpdate={() => plugin.catalogId ? chooseMarket(plugin.catalogId, plugin) : void run(() => app.UpdatePlugin(plugin.name))}
 								onDoctor={() => runDoctor(plugin.name)}
 								onRemove={() => void run(() => app.RemovePlugin(plugin.name))}
 							/>
@@ -1940,7 +1961,8 @@ function PluginPlanPreview({ plan }: { plan: PluginInstallPlanView }) {
 							{asArray(action.skippedCapabilities).map((issue, issueIndex) => <span className="cap-plugin-plan__warning" key={`${issue.capability}-${issue.path || ""}-${issueIndex}`}>{issue.capability}: {issue.reason}</span>)}
 							{action.message && <span className="cap-plugin-action__source">{action.message}</span>}
 							{action.error && <span className="cap-plugin-plan__warning"><ErrorMessage error={action.error} /></span>}
-							{action.runtime ? <PluginRuntimeTrustBlock runtime={action.runtime} /> : null}
+{action.changes?.map((change,i)=><span key={i} className="cap-plugin-plan__warning">{change}</span>)}
+ {action.runtime ? <PluginRuntimeTrustBlock runtime={action.runtime} /> : null}
 						</div>
 					))}
 				</div>
@@ -2332,12 +2354,15 @@ function parsePluginInstallPlan(raw: string): PluginInstallPlanView {
 				mappedCapabilities: (Array.isArray(item.mappedCapabilities) ? item.mappedCapabilities : []).filter((value): value is string => typeof value === "string"),
 				skippedCapabilities: (Array.isArray(item.skippedCapabilities) ? item.skippedCapabilities : []) as PluginCompatibilityIssue[],
 				runtime: parsePluginRuntimePlan(item.runtime),
+				changes: marketPlanChanges(item),
 				agentCount: numericValue(item.agentCount), skillCount: numericValue(item.skillCount), commandCount: numericValue(item.commandCount), hookCount: numericValue(item.hookCount), toolCount: numericValue(item.toolCount),
 			}];
 		});
 		return {
 			raw,
 			ok: typeof value.ok === "boolean" ? value.ok : undefined,
+			planId: stringValue(value.planId),
+			activationWarning: stringValue(value.activationWarning),
 			status: stringValue(value.status),
 			name: stringValue(value.name),
 			actions,
@@ -2349,6 +2374,17 @@ function parsePluginInstallPlan(raw: string): PluginInstallPlanView {
 	}
 }
 
+function marketPlanChanges(item:Record<string,unknown>):string[] {
+ const c=item.catalog as {execution?:string[];previousExecution?:string[];requirements?:{namespace:string;kind:string;id:string}[];previous?:{version:string};previousCapabilities?:Record<string,number|boolean>;capabilities?:Record<string,number|boolean>}|undefined;
+ if(!c)return [];
+ const lines=(Array.isArray(item.riskReasons)?item.riskReasons:[]).filter((x):x is string=>typeof x==="string");
+ for(const s of c.execution||[])lines.push((c.previous && !c.previousExecution?.includes(s)?"+ ":"")+s);
+ for(const s of c.previousExecution||[])if(!c.execution?.includes(s))lines.push("− "+s);
+ for(const r of c.requirements||[])lines.push("requires: "+[r.namespace,r.kind,r.id].join("/"));
+ if(c.previous){lines.unshift(c.previous.version+" → "+item.version);
+ for(const [k,v] of Object.entries(c.capabilities||{}))if(c.previousCapabilities?.[k]!==v)lines.push(k+": "+(c.previousCapabilities?.[k]??0)+" → "+v)}
+ return lines;
+}
 function numericValue(value: unknown): number | undefined {
 	return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
@@ -2382,6 +2418,7 @@ function pluginPlanActionLabel(action: PluginInstallPlanAction, t: ReturnType<ty
 }
 
 function pluginPlanNotice(plan: PluginInstallPlanView, t: ReturnType<typeof useT>): string {
+ if(plan.activationWarning)return plan.activationWarning;
 	if (plan.error) return plan.error;
 	if (plan.status === "done" || plan.status === "applied" || plan.status === "complete") return t("caps.pluginPlanInstalled");
 	return plan.status ? t("caps.pluginPlanStatus", { status: plan.status }) : t("caps.pluginPlanComplete");

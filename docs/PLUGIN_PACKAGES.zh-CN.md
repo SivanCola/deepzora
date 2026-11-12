@@ -1,5 +1,23 @@
 # Deepzora 插件包
 
+## 发现和安装社区插件
+
+打开 **设置 → 插件 → 发现**。默认展示社区审核目录，也可以勾选带 `deepzora-plugin` topic 的第三方 GitHub 插件。「查看源码」打开准确提交，「提交插件」进入[社区仓库](https://github.com/SivanCola/deepzora-plugins)的投稿流程。插件 PR 审核、合并并发布后才会进入默认目录。
+
+```sh
+deepzora plugin search review --all
+deepzora plugin info catalog:community/review-checklist
+deepzora plugin install catalog:community/review-checklist --dry-run
+deepzora plugin install catalog:community/review-checklist --yes --plan-id <预览返回的ID>
+deepzora plugin updates
+deepzora plugin update review-checklist --dry-run
+deepzora plugin update review-checklist --yes --plan-id <更新预览返回的ID>
+```
+
+预览会指出真实能力，特别是 hook、MCP 和完整信任的 runtime。确认时使用相同来源、版本、安装名和参数；tag 移动不影响已审核的提交。版本撤回、确认 ID 不一致或不同来源占用同名目录时拒绝写入，可用 `--name` 选择其他名称。升级为显式操作，保留禁用状态。进程中断后可执行 `deepzora plugin recover` 核对安装登记并恢复目录；此操作不会撤销插件对外部系统的影响。
+
+搜索可回退到磁盘缓存；预览和确认会重新读取索引。测试及私有部署可用 `DEEPZORA_PLUGIN_CATALOG`、`DEEPZORA_PLUGIN_TAGGED` 分别指定 HTTPS 地址或 JSON 文件绝对路径。自定义目录不会获得社区审核标记。
+
 Deepzora 插件包把 skills、hooks、MCP servers、prompts、主题和代码型扩展组织成一个可安装单元。
 
 ## CLI 模式

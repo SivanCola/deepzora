@@ -9,6 +9,7 @@ import (
 	"deepzora/internal/config"
 	"deepzora/internal/crashreport"
 	"deepzora/internal/plugin"
+	"deepzora/internal/plugincatalog"
 	"deepzora/internal/skill/skillwatch"
 
 	// Blank imports wire compile-time built-ins into their registries.
@@ -38,6 +39,7 @@ var runCLI = func(args []string, buildVersion string) int {
 }
 
 func main() {
+	plugincatalog.HostVersion = version
 	// Internal watcher-helper entry: the host-shared skill watch service
 	// re-enters this executable so Windows directory watching never runs
 	// in-process. Dispatch before any application initialization.
