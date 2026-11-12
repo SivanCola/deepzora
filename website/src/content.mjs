@@ -37,6 +37,7 @@ export const content = {
       ["可以开源使用或参与贡献吗？", "Deepzora 按 AGPL-3.0-only 分发。你可以在遵守适用许可证的前提下使用、修改和分发；继承组件的原始许可仍然保留。源码、许可说明与贡献指南都可以在 GitHub 仓库查看。"],
     ],
     docsTitle: "让第一步，更轻松一点。", docsText: "从配置模型到完成第一个任务，文档陪你走过每一步。", docsLinks: ["使用指南", "模型设置", "权限与检查点", "更新日志"],
+    communityKicker: "开源与贡献", communityTitle: "开源，也欢迎你的参与。", communityText: "查看源码、反馈问题，或参与 Deepzora 的改进。", communityRepository: "浏览 GitHub 仓库", communityIssue: "报告问题", communityContribute: "贡献指南", footerRepository: "GitHub 仓库", footerContribute: "参与贡献",
     finalKicker: "你的工作区，新的可能", finalTitle: "下一次提交，从一个想法开始。", finalText: "打开项目。连接模型。开始创造。", finalAction: "开始使用 Deepzora", footerTagline: "自选模型，保持专注。", footerAbout: "源自 Reasonix 1.x，作为 Deepzora 独立维护。", footerLinks: ["使用文档", "更新日志", "问题反馈", "隐私政策", "许可证"], footerLicense: "开源软件 · AGPL-3.0-only", top: "回到顶部",
   },
   en: {
@@ -77,6 +78,7 @@ export const content = {
       ["Can I use the source or contribute?", "Deepzora is distributed under AGPL-3.0-only. You can use, modify, and distribute it subject to the applicable licenses. Original permissions for inherited components remain in effect. Find the source, licensing notes, and contribution guide on GitHub."],
     ],
     docsTitle: "A little guidance goes a long way.", docsText: "From connecting a model to finishing your first task, the docs help you find your footing.", docsLinks: ["User guide", "Model settings", "Permissions & checkpoints", "Release notes"],
+    communityKicker: "OPEN SOURCE & CONTRIBUTIONS", communityTitle: "Open source. Open to you.", communityText: "Explore the source, report an issue, or help improve Deepzora.", communityRepository: "Explore the GitHub repository", communityIssue: "Report an issue", communityContribute: "Contribution guide", footerRepository: "GitHub repository", footerContribute: "Contribute",
     finalKicker: "YOUR WORKSPACE. NEW POSSIBILITIES.", finalTitle: "Your next commit starts with an idea.", finalText: "Open a project. Connect a model. Make something.", finalAction: "Get started with Deepzora", footerTagline: "Your model. Your focus.", footerAbout: "Built on Reasonix 1.x. Independently maintained as Deepzora.", footerLinks: ["Documentation", "Releases", "Report an issue", "Privacy", "License"], footerLicense: "Open source · AGPL-3.0-only", top: "Back to top",
   },
 };
