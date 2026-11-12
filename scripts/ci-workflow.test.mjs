@@ -332,13 +332,18 @@ test("every ci job is reachable from a required aggregate", () => {
 
 
 
-test("installer evidence excludes running payloads and cache files on every publisher", () => {
+test("Windows package evidence excludes running payloads and cache files on every publisher", () => {
   for (const body of [job(release, "windows-runtime-acceptance")]) {
-    const upload = body.match(/name: Upload (?:signed )?Windows installer acceptance evidence\n([\s\S]*?)(?=\n      - |$)/)?.[1];
+    // The artifact identity is the contract; the step's display name may cover
+    // more than installer evidence as additional package formats are tested.
+    const upload = body.split(/\n(?= {4,6}- )/).find(step =>
+      /uses: actions\/upload-artifact@/.test(step) && /name: windows-installer-acceptance-/.test(step));
     assert.ok(upload);
-    for (const extension of ["json", "png", "log"])
-      assert.ok(upload.includes(`deepzora-installer-acceptance/**/*.${extension}`));
-    for (const excluded of ["installed/**", "**/cache/**"])
-      assert.ok(upload.includes(`!\${{ runner.temp }}/deepzora-installer-acceptance/${excluded}`));
+    for (const [directory, payload] of [["deepzora-installer-acceptance", "installed"], ["deepzora-portable-acceptance", "install"]]) {
+      for (const extension of ["json", "png", "log"])
+        assert.ok(upload.includes(`${directory}/**/*.${extension}`));
+      for (const excluded of [`${payload}/**`, "**/cache/**"])
+        assert.ok(upload.includes(`!\${{ runner.temp }}/${directory}/${excluded}`));
+    }
   }
 });

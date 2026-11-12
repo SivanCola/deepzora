@@ -25,4 +25,6 @@ fingerprint_files:
   - scripts/validate-release-control-plane.sh
   - scripts/package-windows-desktop.sh
   - scripts/verify-windows-authenticode.ps1
+  - scripts/test-windows-installer-startup.ps1
+  - scripts/test-windows-startup-recovery.ps1
   - cmd/release-signing-contract/main.go
