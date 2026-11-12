@@ -806,6 +806,10 @@ jobs:
         overwrite: true
         if-no-files-found: error
         retention-days: 7
+    - name: Disconnect from Certum
+      if: always()
+      shell: pwsh
+      run: Get-Process -Name '*SimplySign*' -ErrorAction SilentlyContinue | Stop-Process -Force
     - name: Upload signed package size reports
       if: steps.reuse.outputs.needs_signing == 'true'
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
