@@ -159,6 +159,11 @@ jobs:
       - name: Build and test root module
         if: env.RUN_STEPS == 'true'
         run: go test -timeout=15m ./...
+      - name: Accept plugin market installs against a moving Git reference
+        if: env.RUN_STEPS == 'true'
+        run: |
+          go build -o "$RUNNER_TEMP/deepzora-market" ./cmd/deepzora
+          python3 scripts/plugin-market-e2e.py "$RUNNER_TEMP/deepzora-market"
       - if: always() && env.RUN_STEPS == 'true'
         uses: ./.github/actions/go-build-cache
         with:
@@ -204,6 +209,13 @@ jobs:
       # The runner fails unless every discovered package reports pass or skip.
       - name: Build and test every root package
         run: node scripts/ci-windows-root.mjs "$RUNNER_TEMP/windows-root"
+      - name: Verify Windows plugin market installation and replacement
+        shell: pwsh
+        run: |
+          $market = Join-Path $env:RUNNER_TEMP 'deepzora-market.exe'
+          go build -o $market ./cmd/deepzora
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/plugin-market-e2e.py $market
       - name: Upload root package evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

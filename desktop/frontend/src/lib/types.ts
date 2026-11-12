@@ -1144,6 +1144,8 @@ export interface SubagentProfileInput {
   scope?: "project" | "global";
 }
 export interface PluginView {
+  catalogId?: string;
+  commit?: string;
   name: string;
   version?: string;
   description?: string;
@@ -1213,6 +1215,7 @@ export interface PluginMCPServerView {
   autoStart?: boolean;
 }
 export interface PluginInstallOptions {
+  planId?: string;
   dryRun?: boolean;
   link?: boolean;
   replace?: boolean;

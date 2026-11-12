@@ -11235,6 +11235,35 @@
     },
     {
       "cancellation": "before-dispatch",
+      "domain": "desktop/plugin_packages_app.go",
+      "name": "SearchPluginCatalog",
+      "owner": "App.SearchPluginCatalog",
+      "params": [
+        {
+          "kind": "string"
+        },
+        {
+          "kind": "boolean"
+        }
+      ],
+      "result": {
+        "kind": "string"
+      },
+      "returnsError": true,
+      "scope": {
+        "inputs": [
+          "query",
+          "topics"
+        ],
+        "kind": "owner-inputs",
+        "resolver": "App.SearchPluginCatalog"
+      },
+      "sources": [
+        "desktop/plugin_packages_app.go"
+      ]
+    },
+    {
+      "cancellation": "before-dispatch",
       "domain": "desktop/session_history_service.go",
       "name": "SearchSessionHistoryForTab",
       "owner": "App.SearchSessionHistoryForTab",
@@ -26791,6 +26820,13 @@
     "main.PluginInstallOptions": {
       "fields": [
         {
+          "name": "planId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
           "name": "dryRun",
           "optional": true,
           "type": {
@@ -26912,6 +26948,20 @@
     },
     "main.PluginView": {
       "fields": [
+        {
+          "name": "catalogId",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        {
+          "name": "commit",
+          "optional": true,
+          "type": {
+            "kind": "string"
+          }
+        },
         {
           "name": "name",
           "type": {

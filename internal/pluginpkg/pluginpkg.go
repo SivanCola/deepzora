@@ -248,6 +248,8 @@ type State struct {
 }
 
 type InstalledPlugin struct {
+	CatalogID    string `json:"catalogId,omitempty"`
+	Channel      string `json:"channel,omitempty"`
 	Name         string `json:"name"`
 	Source       string `json:"source,omitempty"`
 	Root         string `json:"root"`

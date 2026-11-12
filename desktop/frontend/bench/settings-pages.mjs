@@ -207,6 +207,13 @@ try {
       await verify(page, "subagent-edit", true);
 
       await go("Plugins");
+      await page.getByRole("button", { name: "Discover", exact: true }).click();
+      await page.getByText("Review Checklist", {exact:true}).waitFor();
+      await verify(page,"plugin-discover",true);
+      await page.locator("article").filter({hasText:"Review Checklist"}).getByRole("button",{name:/preview/i}).click();
+      await page.locator(".cap-plugin-plan").waitFor();
+      await page.locator(".cap-plugin-installer__actions button.btn--primary").click();
+      await page.locator("#settings-plugin-install").waitFor({state:"hidden"});
       await page.getByRole("button", { name: "Install plugin", exact: true }).click();
       await page.locator(".cap-plugin-installer").waitFor();
       await verify(page, "plugin-local", true);

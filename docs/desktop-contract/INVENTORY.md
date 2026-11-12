@@ -6,7 +6,7 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 
 | Kind | keep-business | host-managed | delete-shell | total |
 | --- | ---: | ---: | ---: | ---: |
-| command | 542 | 12 | 0 | 554 |
+| command | 543 | 12 | 0 | 555 |
 | native-call | 0 | 0 | 0 | 0 |
 | event | 10 | 0 | 0 | 10 |
 | frontend-native | 0 | 0 | 0 | 0 |
@@ -16,7 +16,7 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | shell-file | 1 | 24 | 0 | 25 |
 | artifact | 11 | 0 | 0 | 11 |
 | ci-job | 20 | 0 | 0 | 20 |
-| **all** | | | | **656** |
+| **all** | | | | **657** |
 
 ## Desktop commands (Go `App` methods bound to the UI)
 
@@ -34,11 +34,11 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `ActivateThemePack` | `(id string) error` | desktop/theme_app.go:234 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ActiveWorkForTab` | `(tabID string) ActiveWorkView` | desktop/background_runtime.go:77 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `AddOfficialProviderAccess` | `(kind string, key string) (string, error)` | desktop/official_provider_access_install.go:14 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `AddPermissionRule` | `(list string, rule string) error` | desktop/settings_app.go:2195 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `AddProviderConnection` | `(presetID string, sourceName string, key string) (string, error)` | desktop/settings_app.go:2380 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `AddProviderConnectionWithOptions` | `(presetID string, sourceName string, key string, baseURL string, kind string) (string, error)` | desktop/settings_app.go:2395 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `AddProviderConnectionWithURL` | `(presetID string, sourceName string, key string, baseURL string) (string, error)` | desktop/settings_app.go:2385 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `AddProviderPresetAccess` | `(id string, key string) (string, error)` | desktop/settings_app.go:1910 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `AddPermissionRule` | `(list string, rule string) error` | desktop/settings_app.go:2204 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `AddProviderConnection` | `(presetID string, sourceName string, key string) (string, error)` | desktop/settings_app.go:2389 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `AddProviderConnectionWithOptions` | `(presetID string, sourceName string, key string, baseURL string, kind string) (string, error)` | desktop/settings_app.go:2404 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `AddProviderConnectionWithURL` | `(presetID string, sourceName string, key string, baseURL string) (string, error)` | desktop/settings_app.go:2394 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `AddProviderPresetAccess` | `(id string, key string) (string, error)` | desktop/settings_app.go:1919 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `AddSkillPath` | `(path string) error` | desktop/app.go:4895 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `AppendSessionExportPage` | `(id string, page SessionExportPage) error` | desktop/session_export.go:207 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ApplyModelSettings` | `(change ModelSettingsChange) ModelSettingsResult` | desktop/model_settings_api.go:86 | keep-business (保留业务实现) | hostrpc desktop/invoke |
@@ -87,11 +87,11 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `CheckpointsForTab` | `(tabID string) []CheckpointMeta` | desktop/app.go:1685 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ClearGoalForTab` | `(tabID string) error` | desktop/goal_app.go:57 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ClearMCPServerAuthentication` | `(name string) error` | desktop/mcp_oauth.go:90 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `ClearProviderKey` | `(apiKeyEnv string) error` | desktop/settings_app.go:2184 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `ClearProviderKey` | `(apiKeyEnv string) error` | desktop/settings_app.go:2193 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ClearSession` | `() (SessionClearResult, error)` | desktop/session_clear.go:19 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ClearSessionForTab` | `(tabID string) (SessionClearResult, error)` | desktop/session_clear.go:27 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `CloseMergedWorktreeTab` | `(request CloseMergedWorktreeTabRequest) (CloseMergedWorktreeTabResult, error)` | desktop/delivery_worktree.go:253 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `CloseTab` | `(tabID string) error` | desktop/tabs.go:2179 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `CloseTab` | `(tabID string) error` | desktop/tabs.go:2184 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `CloseTabWithPolicy` | `(tabID string, policy string) error` | desktop/background_runtime.go:312 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `CloseTerminalForTab` | `(tabID string, sessionID string) error` | desktop/terminal.go:217 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `Commands` | `() []CommandInfo` | desktop/app.go:3582 | keep-business (保留业务实现) | hostrpc desktop/invoke |
@@ -102,7 +102,7 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `ConfirmAction` | `(req NativeConfirmRequest) (bool, error)` | desktop/app.go:8067 | host-managed (宿主管理实现) | `business in Go; native step through nativeHost host/*` |
 | `ConnectBotChannel` | `(id string) error` | desktop/bot_channels.go:201 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ConnectKey` | `(apiKey string) (string, error)` | desktop/app.go:8134 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `ContextPanel` | `(tabID string) ContextPanelInfo` | desktop/tabs.go:3858 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `ContextPanel` | `(tabID string) ContextPanelInfo` | desktop/tabs.go:3863 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ContextUsageForTab` | `(tabID string) ContextInfo` | desktop/app.go:3219 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ContinueTeamGroup` | `(groupID string) error` | desktop/team_group_api.go:73 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `CopySessionTarget` | `(selector SessionSelector, operationID string) (SessionCreationResult, error)` | desktop/session_workspace_api.go:500 | keep-business (保留业务实现) | hostrpc desktop/invoke |
@@ -114,7 +114,7 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `CreateSession` | `(workspaceID string) (session.SessionRef, error)` | desktop/session_workspace_api.go:464 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `CreateSubagentProfile` | `(input SubagentProfileInput) (string, error)` | desktop/subagents_app.go:75 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `CreateTerminalForTab` | `(tabID string, rel string, shellID string) (TerminalSessionView, error)` | desktop/terminal.go:175 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `CreateTopic` | `(scope string, workspaceRoot string, title string) (TopicMeta, error)` | desktop/tabs.go:3629 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `CreateTopic` | `(scope string, workspaceRoot string, title string) (TopicMeta, error)` | desktop/tabs.go:3634 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `CreateWorkspaceBrowserPreviewForTab` | `(tabID string, rel string) (string, error)` | desktop/app.go:6940 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `CredentialDiagnostics` | `(probe bool) (config.CredentialDiagnosticReport, error)` | desktop/credential_diagnostics_app.go:7 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `DeleteAgentPreset` | `(tabID string, scope string, id string) error` | desktop/agent_presets_app.go:78 | keep-business (保留业务实现) | hostrpc desktop/invoke |
@@ -125,7 +125,7 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `DeleteSubagentProfile` | `(name string, scope string) error` | desktop/subagents_app.go:222 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `DeleteTeamTarget` | `(req TeamTargetMutationRequest) (TeamMutationResult, error)` | desktop/team_organization.go:19 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `DeleteThemePack` | `(id string) error` | desktop/theme_app.go:511 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `DesktopStartupSettings` | `() DesktopStartupSettingsView` | desktop/settings_app.go:820 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `DesktopStartupSettings` | `() DesktopStartupSettingsView` | desktop/settings_app.go:823 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `DisableThemePack` | `() error` | desktop/theme_app.go:291 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `DisconnectBotChannel` | `(id string) error` | desktop/bot_channels.go:178 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `EditGoalForTab` | `(tabID string, objective string, maxGoalRounds *uint64) error` | desktop/goal_app.go:61 | keep-business (保留业务实现) | hostrpc desktop/invoke |
@@ -133,7 +133,7 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `EffortForTab` | `(tabID string) EffortInfo` | desktop/app.go:6138 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `EnqueueForAttachmentTarget` | `(token string, submissionID string, input string, display string, invocations []control.InvocationRequest, attachments []control.SubmissionAttachment) (InboxReceiptView, error)` | desktop/attachment_targets.go:303 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `EnqueueInboxFollowupForTarget` | `(target InboxTargetView, display string, submit string, invocations []InvocationRequest, key string) (InboxReceiptView, error)` | desktop/inbox_target.go:59 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `EnsureBlankSurface` | `(scope string, workspaceRoot string) (TabMeta, error)` | desktop/tabs.go:1838 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `EnsureBlankSurface` | `(scope string, workspaceRoot string) (TabMeta, error)` | desktop/tabs.go:1843 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ExportGoalDiagnostics` | `() (string, error)` | desktop/goal_diagnostics_export.go:16 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ExportManualCreationDiagnostics` | `() (string, error)` | desktop/manual_creation_export.go:32 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ExportScrollDiagnostics` | `(payload string) (string, error)` | desktop/scroll_diagnostics_export.go:357 | host-managed (宿主管理实现) | `business in Go; native step through nativeHost host/*` |
@@ -141,8 +141,8 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `ExtensionActions` | `(tabID string) ([]ExtensionActionView, error)` | desktop/extensions_app.go:72 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ExternalOpeners` | `() ExternalOpenersView` | desktop/external_opener.go:177 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ExternalOpenersForTab` | `(tabID string) ExternalOpenersView` | desktop/external_opener.go:190 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `FetchAllProviderModelCatalogs` | `(providers []ProviderView) map[string][]ProviderModelCapabilityView` | desktop/settings_app.go:2110 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `FetchProviderModelCatalog` | `(p ProviderView) ([]ProviderModelCapabilityView, error)` | desktop/settings_app.go:2071 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `FetchAllProviderModelCatalogs` | `(providers []ProviderView) map[string][]ProviderModelCapabilityView` | desktop/settings_app.go:2119 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `FetchProviderModelCatalog` | `(p ProviderView) ([]ProviderModelCapabilityView, error)` | desktop/settings_app.go:2080 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `FetchProviderModelCatalogDraft` | `(p ProviderView, key string) ([]ProviderModelCapabilityView, error)` | desktop/provider_settings_probe.go:38 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `FinalizeWorktreeMerge` | `(request worktree.CleanupRequest) (worktree.CleanupResult, error)` | desktop/delivery_worktree.go:205 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `FinishSessionExport` | `(id string) (SessionExportResult, error)` | desktop/session_export.go:278 | keep-business (保留业务实现) | hostrpc desktop/invoke |
@@ -203,7 +203,7 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `InspectTopicRemoval` | `(target TopicRemovalTarget) (TopicRemovalInspection, error)` | desktop/topic_removal.go:34 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `InspectWorktreeMerge` | `(tabID string) (worktree.MergeInspection, error)` | desktop/delivery_worktree.go:126 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `InstallMCPServer` | `(in MCPServerInput) (plugin.MCPInstallResult, error)` | desktop/app.go:5160 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `InstallPlugin` | `(source string, opts PluginInstallOptions) (string, error)` | desktop/plugin_packages_app.go:208 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `InstallPlugin` | `(source string, opts PluginInstallOptions) (string, error)` | desktop/plugin_packages_app.go:222 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `InstallShellSupport` | `(id string) (ShellInstallResult, error)` | desktop/shell_support.go:85 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `InterruptTurnForTab` | `(tabID string, turnID string) error` | desktop/turn_runtime_api.go:160 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `InterruptTurnWithInboxItemsForTab` | `(tabID string, turnID string, itemIDs []string) (InboxCancelResultView, error)` | desktop/turn_runtime_api.go:175 | keep-business (保留业务实现) | hostrpc desktop/invoke |
@@ -222,7 +222,7 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `ListSessions` | `() []SessionMeta` | desktop/session_history_listing.go:6 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ListSessionsForTab` | `(tabID string) []SessionMeta` | desktop/session_history_listing.go:18 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ListSubagentRunsForTab` | `(tabID string) ([]SubagentRunView, error)` | desktop/conversation_status.go:78 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `ListTabs` | `() []TabMeta` | desktop/tabs.go:1562 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `ListTabs` | `() []TabMeta` | desktop/tabs.go:1567 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ListTaskEventPage` | `(req TaskEventPageRequest) TaskEventPage` | desktop/task_catalog.go:221 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ListTaskPage` | `(req TaskPageRequest) TaskPage` | desktop/task_catalog.go:137 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ListThemePacks` | `() ([]ThemePackView, error)` | desktop/theme_app.go:61 | keep-business (保留业务实现) | hostrpc desktop/invoke |
@@ -269,13 +269,13 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `OpenLocalPath` | `(path string) error` | desktop/open_local_path.go:141 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `OpenLocalPathInExternalOpener` | `(path string, id string) error` | desktop/external_opener.go:262 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `OpenPresentedPathForTab` | `(tabID string, toolCallID string, path string) error` | desktop/app.go:7033 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `OpenProjectTab` | `(workspaceRoot string, topicID string) (TabMeta, error)` | desktop/tabs.go:1612 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `OpenProjectTab` | `(workspaceRoot string, topicID string) (TabMeta, error)` | desktop/tabs.go:1617 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `OpenReferencePathForTab` | `(tabID string, path string) error` | desktop/chat_file_reference.go:220 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `OpenSession` | `(ref session.SessionRef) (HistoryPage, error)` | desktop/session_workspace_api.go:614 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `OpenTaskSessionByKey` | `(req TaskOpenRequest) (taskmonitor.ControlResult, error)` | desktop/task_catalog.go:283 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `OpenTaskSessionForTab` | `(tabID string, taskID string) (taskmonitor.ControlResult, error)` | desktop/app.go:7984 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `OpenTeamAgent` | `(agentID string, groupID string) (TabMeta, error)` | desktop/team_api.go:308 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `OpenUserConfigPath` | `() error` | desktop/settings_app.go:845 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `OpenUserConfigPath` | `() error` | desktop/settings_app.go:848 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `OpenWorkspaceInExternalOpenerForTab` | `(tabID string, id string) error` | desktop/external_opener.go:213 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `OpenWorkspacePathForTab` | `(tabID string, rel string) error` | desktop/app.go:7064 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `PauseGoalForTab` | `(tabID string) bool` | desktop/goal_app.go:111 | keep-business (保留业务实现) | hostrpc desktop/invoke |
@@ -288,10 +288,10 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `PickThemeBackground` | `() (string, error)` | desktop/theme_app.go:735 | host-managed (宿主管理实现) | `business in Go; native step through nativeHost host/*` |
 | `PickWorkspace` | `() (string, error)` | desktop/app.go:2402 | host-managed (宿主管理实现) | `business in Go; native step through nativeHost host/*` |
 | `PinFileForTab` | `(tabID string, relPath string) (PinnedFileInfo, error)` | desktop/pinned_files.go:377 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `PlanPluginInstall` | `(source string, opts PluginInstallOptions) (string, error)` | desktop/plugin_packages_app.go:203 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `PlanPluginInstall` | `(source string, opts PluginInstallOptions) (string, error)` | desktop/plugin_packages_app.go:217 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `Platform` | `() string` | desktop/app.go:426 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `PluginDoctor` | `(name string) PluginView` | desktop/plugin_packages_app.go:301 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `Plugins` | `() []PluginView` | desktop/plugin_packages_app.go:94 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `PluginDoctor` | `(name string) PluginView` | desktop/plugin_packages_app.go:335 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `Plugins` | `() []PluginView` | desktop/plugin_packages_app.go:107 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `PollFeishuBotLogin` | `(id string) (BotLoginView, error)` | desktop/bot_channels_feishu_login.go:44 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `PollWeixinBotLogin` | `(id string) (BotLoginView, error)` | desktop/bot_channels_login.go:60 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `PrepareTeamAgentSession` | `(agentID string) (session.SessionRef, error)` | desktop/team_api.go:337 | keep-business (保留业务实现) | hostrpc desktop/invoke |
@@ -334,36 +334,36 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `ReleaseReadSnapshot` | `(id string)` | desktop/read_snapshot_store.go:520 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ReleaseSessionHistoryRead` | `(id string)` | desktop/session_history_binding.go:119 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ReloadCommands` | `() error` | desktop/app.go:4971 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `ReloadRuntime` | `(tabID string) error` | desktop/settings_app.go:1422 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `ReloadSettings` | `() error` | desktop/settings_app.go:2224 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `ReloadUserConfig` | `() (DesktopStartupSettingsView, error)` | desktop/settings_app.go:860 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `ReloadRuntime` | `(tabID string) error` | desktop/settings_app.go:1431 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `ReloadSettings` | `() error` | desktop/settings_app.go:2233 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `ReloadUserConfig` | `() (DesktopStartupSettingsView, error)` | desktop/settings_app.go:863 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `Remember` | `(scope string, note string) (string, error)` | desktop/app.go:7709 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `RememberForTab` | `(tabID string, scope string, note string) (string, error)` | desktop/app.go:7713 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `RemoveMCPServer` | `(name string) error` | desktop/app.go:5332 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `RemovePermissionRule` | `(list string, rule string) error` | desktop/settings_app.go:2215 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `RemovePlugin` | `(name string) error` | desktop/plugin_packages_app.go:227 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `RemovePermissionRule` | `(list string, rule string) error` | desktop/settings_app.go:2224 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `RemovePlugin` | `(name string) error` | desktop/plugin_packages_app.go:258 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `RemoveProviderAccess` | `(name string) error` | desktop/provider_access_removal.go:28 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `RemoveProviderAccesses` | `(rawNames []string) error` | desktop/provider_access_removal.go:32 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `RemoveSkillPath` | `(path string) error` | desktop/app.go:4916 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `RemoveTopic` | `(req TopicRemovalRequest) (TopicRemovalResult, error)` | desktop/topic_removal.go:63 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `RemoveWorkspace` | `(dir string) error` | desktop/app.go:2490 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `RenameCanonicalSession` | `(ref session.SessionRef, title string) error` | desktop/session_workspace_api.go:679 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `RenameProject` | `(workspaceRoot string, title string) error` | desktop/tabs.go:3652 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `RenameProviderConnections` | `(names []string, displayName string) error` | desktop/settings_app.go:1715 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `RenameProject` | `(workspaceRoot string, title string) error` | desktop/tabs.go:3657 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `RenameProviderConnections` | `(names []string, displayName string) error` | desktop/settings_app.go:1724 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `RenameSession` | `(path string, title string) error` | desktop/app.go:2095 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `RenameSessionTarget` | `(selector SessionSelector, title string) (SessionMutationResult, error)` | desktop/session_operations.go:123 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `RenameTerminalForTab` | `(tabID string, sessionID string, title string) error` | desktop/terminal.go:228 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `RenameTopic` | `(topicID string, title string) error` | desktop/tabs.go:3762 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `RenameTopic` | `(topicID string, title string) error` | desktop/tabs.go:3767 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `RenameWorkspace` | `(workspaceID string, title string) error` | desktop/session_workspace_api.go:434 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `ReorderProjects` | `(workspaceRoots []string) error` | desktop/tabs.go:3708 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `ReorderTabs` | `(tabIDs []string) error` | desktop/tabs.go:2149 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `ReorderProjects` | `(workspaceRoots []string) error` | desktop/tabs.go:3713 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `ReorderTabs` | `(tabIDs []string) error` | desktop/tabs.go:2154 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ReorderTeam` | `(req ReorderTeamRequest) (TeamMutationResult, error)` | desktop/team_organization.go:120 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `RepairCredentials` | `(dryRun bool) (config.CredentialDiagnosticReport, error)` | desktop/credential_diagnostics_app.go:13 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ReplayPendingPromptsForTab` | `(tabID string)` | desktop/app.go:1241 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ReportCrash` | `(kind string, detail string) error` | desktop/crash_app.go:312 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ReportDesktopWebViewReady` | `()` | desktop/app.go:825 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `RequeueTaskByKey` | `(req TaskActionRequest) (taskmonitor.ControlResult, error)` | desktop/task_catalog.go:275 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `ResetProviderPresetAccess` | `(id string) error` | desktop/settings_app.go:1981 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `ResetProviderPresetAccess` | `(id string) error` | desktop/settings_app.go:1990 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ResizeTerminalForTab` | `(tabID string, sessionID string, cols int, rows int) error` | desktop/terminal.go:206 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ResolveChatFileReferencesForTab` | `(tabID string, turnKey string, candidates []ChatFileReferenceRequest) ChatFileReferenceResult` | desktop/chat_file_reference.go:51 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `ResolveMarkdownImageForTab` | `(tabID string, source string) MarkdownImageView` | desktop/markdown_image_resolver.go:28 | keep-business (保留业务实现) | hostrpc desktop/invoke |
@@ -422,10 +422,10 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `SavePastedImageForComposerTarget` | `(target ComposerTarget, dataURL string) (string, error)` | desktop/composer_target.go:47 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SavePastedImageForTab` | `(tabID string, dataURL string) (string, error)` | desktop/attachments_app.go:156 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SavePresentedPathAsForTab` | `(tabID string, toolCallID string, path string) (string, error)` | desktop/app.go:7055 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SaveProvider` | `(p ProviderView) error` | desktop/settings_app.go:1735 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SaveProviderKey` | `(apiKeyEnv string, value string) (string, error)` | desktop/settings_app.go:2175 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SaveProviderModelCatalogs` | `(updates []ProviderModelCatalogUpdate) ([]string, error)` | desktop/settings_app.go:1837 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SaveProviderWithKey` | `(p ProviderView, key string) (string, error)` | desktop/settings_app.go:1888 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SaveProvider` | `(p ProviderView) error` | desktop/settings_app.go:1744 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SaveProviderKey` | `(apiKeyEnv string, value string) (string, error)` | desktop/settings_app.go:2184 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SaveProviderModelCatalogs` | `(updates []ProviderModelCatalogUpdate) ([]string, error)` | desktop/settings_app.go:1846 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SaveProviderWithKey` | `(p ProviderView, key string) (string, error)` | desktop/settings_app.go:1897 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SaveReferencePathAsForTab` | `(tabID string, path string) (string, error)` | desktop/chat_file_reference.go:236 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SaveSessionComposerState` | `(req SessionComposerSaveRequest) (SessionComposerState, error)` | desktop/session_composer_state.go:175 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SaveSessionMarkdownForTab` | `(tabID string, path string, title string) error` | desktop/session_markdown_export.go:17 | keep-business (保留业务实现) | hostrpc desktop/invoke |
@@ -444,6 +444,7 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `SearchFileRefsForTab` | `(tabID string, query string) []DirEntry` | desktop/app.go:6596 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SearchFileRefsForTarget` | `(target ComposerTarget, query string) []DirEntry` | desktop/composer_target.go:104 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SearchHistoryContent` | `(req HistorySearchRequest) HistorySearchPage` | desktop/history_read_snapshots.go:62 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SearchPluginCatalog` | `(query string, topics bool) (string, error)` | desktop/plugin_packages_app.go:98 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SearchSessionHistoryForTab` | `(tabID string, textQuery string, cursor string, limit int) (session.SearchHistoryPage, error)` | desktop/session_history_service.go:94 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SearchSessionHistoryForTarget` | `(selector SessionSelector, textQuery string, cursor string, limit int) (session.SearchHistoryPage, error)` | desktop/session_history_service.go:104 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SearchSessionHistoryRead` | `(id string, text string, cursor string, limit int) (session.SearchHistoryPage, error)` | desktop/session_history_binding.go:178 | keep-business (保留业务实现) | hostrpc desktop/invoke |
@@ -459,15 +460,15 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `SessionMessageFieldForTarget` | `(selector SessionSelector, messageID string, version int, field string, offset int64, length int64) (session.MessageFieldPage, error)` | desktop/session_history_service.go:212 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SessionOpenForTab` | `(tabID string) (session.SessionOpenView, error)` | desktop/session_history_service.go:61 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetActiveTab` | `(tabID string) error` | desktop/tab_selection.go:35 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetAgentParams` | `(temperature float64, systemPrompt string) error` | desktop/settings_app.go:2274 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetAgentParams` | `(temperature float64, systemPrompt string) error` | desktop/settings_app.go:2283 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetAgentPresetForTab` | `(tabID string, id string) error` | desktop/agent_presets_app.go:107 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetCloseBehavior` | `(mode string) error` | desktop/settings_preferences.go:10 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetCollaborationModeForTab` | `(tabID string, mode string) error` | desktop/app.go:1375 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetCompactRatio` | `(ratio float64) error` | desktop/settings_app.go:2282 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetCompactRatio` | `(ratio float64) error` | desktop/settings_app.go:2291 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetComposerProfileForTab` | `(tabID string, collaborationMode string, toolApprovalMode string, goal string) ([]string, error)` | desktop/app.go:1322 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetConnectionKey` | `(name string, value string) (string, error)` | desktop/settings_app.go:2375 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetDefaultModel` | `(ref string) error` | desktop/settings_app.go:1462 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetDefaultToolApprovalMode` | `(mode string) error` | desktop/settings_app.go:1581 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetConnectionKey` | `(name string, value string) (string, error)` | desktop/settings_app.go:2384 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetDefaultModel` | `(ref string) error` | desktop/settings_app.go:1471 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetDefaultToolApprovalMode` | `(mode string) error` | desktop/settings_app.go:1590 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetDesktopAppearance` | `(theme string, style string) error` | desktop/settings_preferences.go:93 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetDesktopCheckUpdates` | `(enabled bool) error` | desktop/settings_preferences.go:116 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetDesktopConversationWidth` | `(width string) error` | desktop/settings_preferences.go:145 | keep-business (保留业务实现) | hostrpc desktop/invoke |
@@ -482,24 +483,24 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `SetGoalForTab` | `(tabID string, goal string) error` | desktop/goal_app.go:10 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetInboxPaused` | `(tabID string, paused bool) error` | desktop/inbox_app.go:356 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetMCPServerEnabled` | `(name string, enabled bool) error` | desktop/app.go:5441 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetMaxParallelWriters` | `(n int) error` | desktop/settings_app.go:1575 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetMaxSubagentConcurrency` | `(n int) error` | desktop/settings_app.go:1570 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetMaxSubagentDepth` | `(depth int) error` | desktop/settings_app.go:1555 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetMaxParallelWriters` | `(n int) error` | desktop/settings_app.go:1584 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetMaxSubagentConcurrency` | `(n int) error` | desktop/settings_app.go:1579 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetMaxSubagentDepth` | `(depth int) error` | desktop/settings_app.go:1564 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetModeForTab` | `(tabID string, mode string) []string` | desktop/app.go:1252 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetModel` | `(name string) error` | desktop/app.go:5949 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetModelForTab` | `(tabID string, name string) error` | desktop/app.go:5965 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetNetwork` | `(n NetworkView) error` | desktop/settings_app.go:2256 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetPermissionMode` | `(mode string) error` | desktop/settings_app.go:2190 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetNetwork` | `(n NetworkView) error` | desktop/settings_app.go:2265 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetPermissionMode` | `(mode string) error` | desktop/settings_app.go:2199 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetPermissionPresetForTab` | `(tabID string, expectedSessionID string, preset string, expectedRevision uint64) (control.PermissionSnapshot, error)` | desktop/app.go:3513 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetPlannerModel` | `(ref string) error` | desktop/settings_app.go:1467 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetPluginEnabled` | `(name string, enabled bool) error` | desktop/plugin_packages_app.go:270 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetPlannerModel` | `(ref string) error` | desktop/settings_app.go:1476 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetPluginEnabled` | `(name string, enabled bool) error` | desktop/plugin_packages_app.go:301 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetPreferredExternalOpener` | `(id string) error` | desktop/external_opener.go:200 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetProjectColor` | `(workspaceRoot string, color string) error` | desktop/tabs.go:3663 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetProjectPinned` | `(workspaceRoot string, pinned bool) error` | desktop/tabs.go:3674 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetProviderKey` | `(apiKeyEnv string, value string) (string, error)` | desktop/settings_app.go:2143 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetProviderWebSearch` | `(names []string, enabled bool) error` | desktop/settings_app.go:1745 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetReasoningLanguage` | `(lang string) error` | desktop/settings_app.go:2289 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetSandbox` | `(bash string, network bool, workspaceRoot string, allowWrite []string, shell string) error` | desktop/settings_app.go:2244 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetProjectColor` | `(workspaceRoot string, color string) error` | desktop/tabs.go:3668 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetProjectPinned` | `(workspaceRoot string, pinned bool) error` | desktop/tabs.go:3679 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetProviderKey` | `(apiKeyEnv string, value string) (string, error)` | desktop/settings_app.go:2152 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetProviderWebSearch` | `(names []string, enabled bool) error` | desktop/settings_app.go:1754 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetReasoningLanguage` | `(lang string) error` | desktop/settings_app.go:2298 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetSandbox` | `(bash string, network bool, workspaceRoot string, allowWrite []string, shell string) error` | desktop/settings_app.go:2253 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetSessionExperience` | `(mode string) error` | desktop/reasoning_display_app.go:65 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetSessionPinned` | `(selector SessionSelector, pinned bool) error` | desktop/session_workspace_api.go:693 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetShellPreference` | `(prefer string) error` | desktop/shell_support.go:109 | keep-business (保留业务实现) | hostrpc desktop/invoke |
@@ -508,17 +509,17 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `SetSkillPathEnabled` | `(path string, enabled bool) error` | desktop/app.go:4938 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetStatusBarItems` | `(items []string) error` | desktop/settings_preferences.go:22 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetStatusBarStyle` | `(style string) error` | desktop/settings_preferences.go:16 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetSubagentEffort` | `(level string) error` | desktop/settings_app.go:1513 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetSubagentModel` | `(ref string) error` | desktop/settings_app.go:1477 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetSubagentProfileEffort` | `(name string, level string) error` | desktop/settings_app.go:1540 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetSubagentProfileModel` | `(name string, ref string) error` | desktop/settings_app.go:1534 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetSubagentEffort` | `(level string) error` | desktop/settings_app.go:1522 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetSubagentModel` | `(ref string) error` | desktop/settings_app.go:1486 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetSubagentProfileEffort` | `(name string, level string) error` | desktop/settings_app.go:1549 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetSubagentProfileModel` | `(name string, ref string) error` | desktop/settings_app.go:1543 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetToolApprovalModeForTab` | `(tabID string, mode string) []string` | desktop/app.go:3468 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetTopicPinned` | `(topicID string, pinned bool) error` | desktop/tabs.go:3797 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetTopicPinned` | `(topicID string, pinned bool) error` | desktop/tabs.go:3802 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetTrayLocale` | `(locale string) error` | desktop/settings_preferences.go:77 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `SetVisionModel` | `(ref string) error` | desktop/settings_app.go:1472 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `SetVisionModel` | `(ref string) error` | desktop/settings_app.go:1481 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetWebSearchModel` | `(ref string) error` | desktop/settings_web_search_model.go:12 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SetWorkspaceVisible` | `(workspaceID string, visible bool) error` | desktop/session_workspace_api.go:442 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `Settings` | `() SettingsView` | desktop/settings_app.go:865 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `Settings` | `() SettingsView` | desktop/settings_app.go:868 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SkillsSettings` | `() SkillsSettingsView` | desktop/app.go:4144 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `SlashArgs` | `(input string) SlashArgsResult` | desktop/slash_args.go:31 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `StageImageForTab` | `(tabID string, operationID string, displayName string, mime string, dataURL string) (DraftImageView, error)` | desktop/attachments_app.go:253 | keep-business (保留业务实现) | hostrpc desktop/invoke |
@@ -562,7 +563,7 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `UnpinFileForTab` | `(tabID string, relPath string) error` | desktop/pinned_files.go:388 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `UpdateInboxItem` | `(tabID string, id string, display string, submit string) error` | desktop/inbox_app.go:317 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `UpdateMCPServer` | `(name string, in MCPServerInput) error` | desktop/app.go:5246 | keep-business (保留业务实现) | hostrpc desktop/invoke |
-| `UpdatePlugin` | `(name string) (string, error)` | desktop/plugin_packages_app.go:288 | keep-business (保留业务实现) | hostrpc desktop/invoke |
+| `UpdatePlugin` | `(name string) (string, error)` | desktop/plugin_packages_app.go:319 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `UpdateSessionOrganization` | `(workspace SessionOrganizationWorkspace, expectedRevision uint64, mutation SessionOrganizationMutation) (SessionOrganizationSnapshot, error)` | desktop/session_organization.go:126 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `UpdateSubagentProfile` | `(name string, scope string, input SubagentProfileInput) error` | desktop/subagents_app.go:152 | keep-business (保留业务实现) | hostrpc desktop/invoke |
 | `UsageStats` | `(req UsageStatsRequest) (UsageStatsRange, error)` | desktop/stats_app.go:45 | keep-business (保留业务实现) | hostrpc desktop/invoke |
@@ -592,7 +593,7 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `project-tree:changed-v2` |  | desktop/session_catalog.go:257 | keep-business (保留业务实现) | `desktop/event frame (seq + generation), same payload` |
 | `project-tree:runtime-changed` |  | desktop/project_tree_runtime.go:221 | keep-business (保留业务实现) | `desktop/event frame (seq + generation), same payload` |
 | `runtime-state:changed` |  | desktop/project_tree_runtime.go:222 | keep-business (保留业务实现) | `desktop/event frame (seq + generation), same payload` |
-| `runtime:rebuilt` |  | desktop/tabs.go:1282 | keep-business (保留业务实现) | `desktop/event frame (seq + generation), same payload` |
+| `runtime:rebuilt` |  | desktop/tabs.go:1287 | keep-business (保留业务实现) | `desktop/event frame (seq + generation), same payload` |
 | `session_export_progress` |  | desktop/session_export.go:143 | keep-business (保留业务实现) | `desktop/event frame (seq + generation), same payload` |
 | `team:changed` |  | desktop/team_host.go:145 | keep-business (保留业务实现) | `desktop/event frame (seq + generation), same payload` |
 | `updater:progress` |  | desktop/updater_app.go:462 | keep-business (保留业务实现) | `desktop/event frame (seq + generation), same payload` |

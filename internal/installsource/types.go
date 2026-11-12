@@ -69,6 +69,7 @@ type kindTally struct {
 // dispatcher; RiskLevel/RiskReasons help the calling skill decide whether to
 // ask the user before apply=true.
 type action struct {
+	Catalog             *CatalogPlan                   `json:"catalog,omitempty"`
 	Kind                string                         `json:"kind"`      // "skill" | "mcp" | "plugin"
 	Action              string                         `json:"action"`    // copy_skill|link_skill|register_skill_root|install_mcp_server|remove_skill|remove_skill_root|remove_mcp_server
 	Status              string                         `json:"status"`    // planned|done|failed
@@ -183,7 +184,7 @@ func publicActions(in []action) []action {
 		// Construct the public DTO field-by-field so credentials held by the
 		// internal config entry, environment, or headers cannot reach JSON output.
 		out[i] = action{
-			Kind: a.Kind, Action: a.Action, Status: a.Status,
+			Catalog: a.Catalog, Kind: a.Kind, Action: a.Action, Status: a.Status,
 			RiskLevel: a.RiskLevel, RiskReasons: a.RiskReasons,
 			Name: a.Name, Source: a.Source, Target: a.Target, ConfigPath: a.ConfigPath,
 			Scope: a.Scope, Mode: a.Mode, Transport: a.Transport, URL: a.URL,

@@ -13,6 +13,7 @@ import (
 	"os"
 	"strings"
 
+	"deepzora/internal/plugincatalog"
 	"deepzora/internal/skill/skillwatch"
 
 	// Blank imports wire compile-time built-ins into their registries, exactly as
@@ -47,6 +48,7 @@ func macSelfUpdateAllowed() bool {
 }
 
 func main() {
+	plugincatalog.HostVersion = version
 	// Contract generation is a build-time operation. Dispatch it before crash
 	// capture so packaging cannot create files in the operator's Deepzora home.
 	if dir, ok := emitContractDir(os.Args[1:]); ok {
