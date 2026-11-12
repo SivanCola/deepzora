@@ -33,8 +33,9 @@ already selects `*-Setup.exe`, including for existing portable installations.
 Keep those unused ZIP entries and their real, Minisign-signed files: from
 v0.0.8 they contain only `WINDOWS-INSTALLER-ONLY.txt`, with the version/architecture
 matched installer URL, and no program. Do not remove entries, point ZIP URLs at
-EXEs, fabricate digests, or relax manifest validation. The website and download
-navigation show only Windows installers. Historical release files stay intact.
+EXEs, fabricate digests, or relax manifest validation. The website and v0.0.8+
+download navigation show only Windows installers. Historical release files and
+immutable mirror indexes stay byte-for-byte intact.
 v0.0.7 retains schema 2 native installer and portable acceptance; unsigned
 historical exceptions retain schema 1.
 
