@@ -60,6 +60,8 @@ var (
 type typeCollector struct {
 	types map[string]ObjectType
 	named map[reflect.Type]string
+	// DTOs declared in targetPackage are published as wirePackage.Name.
+	targetPackage, wirePackage string
 }
 
 func newTypeCollector() *typeCollector {
@@ -141,10 +143,8 @@ func (c *typeCollector) structRef(t reflect.Type, hint string) (TypeRef, error) 
 	name = hint
 	if t.Name() != "" {
 		name = t.String()
-		// Moving the application from package main to an importable service
-		// must not rename wire DTOs or change the shipped desktop contract.
-		if t.PkgPath() == "deepzora/desktop" {
-			name = "main." + t.Name()
+		if c.wirePackage != "" && t.PkgPath() == c.targetPackage {
+			name = c.wirePackage + "." + t.Name()
 		}
 	}
 	if _, taken := c.types[name]; taken {

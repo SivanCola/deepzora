@@ -40,6 +40,7 @@ func macSelfUpdateAllowed() bool {
 // RunDesktop is the Electron host entry. Web and Desktop share this package's
 // application service; only their transports and native capabilities differ.
 func RunDesktop() {
+	applyDesktopProcessIdentity()
 	// Contract generation is a build-time operation. Dispatch it before crash
 	// capture so packaging cannot create files in the operator's Deepzora home.
 	if dir, ok := emitContractDir(os.Args[1:]); ok {

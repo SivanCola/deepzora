@@ -448,7 +448,7 @@ func (a *App) startup(ctx context.Context) {
 	a.mu.Unlock()
 	a.startDesktopSessionRecovery(ctx)
 
-	if cfg, err := config.Load(); err == nil && cfg.DesktopMetrics() && version != "dev" {
+	if cfg, err := config.Load(); err == nil && cfg.DesktopMetrics() && version != "dev" && !a.localWeb {
 		a.metrics.Store(newMetricsAggregator(config.MemoryUserDir()))
 		a.recordSettingsMetricsSnapshot(cfg)
 	}
@@ -467,9 +467,11 @@ func (a *App) startup(ctx context.Context) {
 	a.startDesktopPersistenceReconciliation()
 	a.registerHistoryIndexEvents()
 	a.startSessionCatalog()
-	a.goSafe("sendStartupPing", a.sendStartupPing)
-	a.goSafe("flushMetrics", a.flushMetrics)
-	a.goSafe("flushPendingCrash", a.flushPendingCrash)
+	if !a.localWeb {
+		a.goSafe("sendStartupPing", a.sendStartupPing)
+		a.goSafe("flushMetrics", a.flushMetrics)
+		a.goSafe("flushPendingCrash", a.flushPendingCrash)
+	}
 }
 
 func (a *App) beforeClose(ctx context.Context) bool {

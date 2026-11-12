@@ -59,7 +59,11 @@ func RunWeb(ctx context.Context, o WebOptions) (runErr error) {
 	if err := service.SetEventSink(handler.emit); err != nil {
 		return err
 	}
-	if err := service.Start(ctx); err != nil {
+	// The signal only requests shutdown. The application context must outlive
+	// it so the coordinated shutdown saves sessions before anything is cancelled.
+	appCtx, cancelApp := context.WithCancel(context.Background())
+	defer cancelApp()
+	if err := service.Start(appCtx); err != nil {
 		return err
 	}
 	defer func() {

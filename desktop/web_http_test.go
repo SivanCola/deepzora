@@ -42,7 +42,20 @@ func localWebFixture(t *testing.T) (*localWeb, *httptest.Server) {
 	return handler, server
 }
 
-func webCookie(t *testing.T, s *localWeb, server *httptest.Server) *http.Cookie {
+type webLogin struct {
+	cookie *http.Cookie
+	key    string
+}
+
+func webSocketHeader(server *httptest.Server, origin string, login webLogin) http.Header {
+	header := http.Header{"Origin": {origin}, "Cookie": {login.cookie.String()}}
+	if login.key != "" {
+		header.Set("Sec-WebSocket-Protocol", webSocketProtocol+", "+webSocketKeyPrefix+login.key)
+	}
+	return header
+}
+
+func webCookie(t *testing.T, s *localWeb, server *httptest.Server) webLogin {
 	t.Helper()
 	req, _ := http.NewRequest(http.MethodPost, server.URL+"/web/auth", nil)
 	req.Header.Set("Origin", server.URL)
@@ -52,19 +65,30 @@ func webCookie(t *testing.T, s *localWeb, server *httptest.Server) *http.Cookie 
 		t.Fatal(err)
 	}
 	defer response.Body.Close()
-	if response.StatusCode != http.StatusNoContent {
+	if response.StatusCode != http.StatusOK {
 		t.Fatalf("auth: %s", response.Status)
+	}
+	var body struct {
+		SocketKey string `json:"socketKey"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil || body.SocketKey == "" {
+		t.Fatalf("auth body = %+v, %v", body, err)
 	}
 	cookies := response.Cookies()
 	if len(cookies) != 1 || !cookies[0].HttpOnly || cookies[0].SameSite != http.SameSiteStrictMode {
 		t.Fatalf("cookie = %+v", cookies)
 	}
-	return cookies[0]
+	// The cookie reaches every loopback port, so it must not be the access
+	// token or the socket key.
+	if cookies[0].Value == s.token || cookies[0].Value == body.SocketKey || body.SocketKey == s.token {
+		t.Fatal("cookie, socket key and access token must be distinct secrets")
+	}
+	return webLogin{cookie: cookies[0], key: body.SocketKey}
 }
 
-func webSocket(t *testing.T, server *httptest.Server, cookie *http.Cookie) *websocket.Conn {
+func webSocket(t *testing.T, server *httptest.Server, login webLogin) *websocket.Conn {
 	t.Helper()
-	conn, response, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(server.URL, "http")+"/web/socket", http.Header{"Origin": {server.URL}, "Cookie": {cookie.String()}})
+	conn, response, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(server.URL, "http")+"/web/socket", webSocketHeader(server, server.URL, login))
 	if err != nil {
 		t.Fatalf("socket: %v (%v)", err, response)
 	}
@@ -116,20 +140,60 @@ func TestLocalWebAuthenticationAndOrigin(t *testing.T) {
 			t.Fatal("access token leaked into response")
 		}
 	}
-	cookie := webCookie(t, s, server)
+	login := webCookie(t, s, server)
+	socketURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/web/socket"
 	for _, origin := range []string{"", "https://evil.test", "null"} {
-		_, res, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(server.URL, "http")+"/web/socket", http.Header{"Origin": {origin}, "Cookie": {cookie.String()}})
+		_, res, err := websocket.DefaultDialer.Dial(socketURL, webSocketHeader(server, origin, login))
 		if err == nil {
 			t.Fatal("accepted unauthenticated WebSocket origin")
 		}
 		_ = res.Body.Close()
 	}
+	// A cookie picked up by another loopback port cannot open the command
+	// socket, with or without a guessed key.
+	for _, stolen := range []webLogin{{cookie: login.cookie}, {cookie: login.cookie, key: s.token}, {cookie: login.cookie, key: login.cookie.Value}} {
+		_, res, err := websocket.DefaultDialer.Dial(socketURL, webSocketHeader(server, server.URL, stolen))
+		if err == nil {
+			t.Fatal("cookie alone opened the command socket")
+		}
+		_ = res.Body.Close()
+	}
+}
+
+func TestLocalWebCommandBurstKeepsConnection(t *testing.T) {
+	s, server := localWebFixture(t)
+	conn := webSocket(t, server, webCookie(t, s, server))
+	// An unaddressable request is ignored, and more commands than the
+	// concurrency limit are all answered on the same connection.
+	if err := conn.WriteJSON(map[string]any{"id": 0, "method": "Version"}); err != nil {
+		t.Fatal(err)
+	}
+	const burst = 200
+	for id := 1; id <= burst; id++ {
+		if err := conn.WriteJSON(map[string]any{"id": id, "method": "Version", "args": []any{}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	answered := map[int]bool{}
+	for len(answered) < burst {
+		var reply struct {
+			ID    int    `json:"id"`
+			Value string `json:"value"`
+		}
+		if err := conn.ReadJSON(&reply); err != nil {
+			t.Fatalf("connection dropped after %d of %d replies: %v", len(answered), burst, err)
+		}
+		if reply.Value != version {
+			t.Fatalf("reply = %+v", reply)
+		}
+		answered[reply.ID] = true
+	}
 }
 
 func TestLocalWebRealBindingsEventsAndReload(t *testing.T) {
 	s, server := localWebFixture(t)
-	cookie := webCookie(t, s, server)
-	conn := webSocket(t, server, cookie)
+	login := webCookie(t, s, server)
+	conn := webSocket(t, server, login)
 	if err := conn.WriteJSON(map[string]any{"id": 1, "method": "Version", "args": []any{}}); err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +225,7 @@ func TestLocalWebRealBindingsEventsAndReload(t *testing.T) {
 	}
 	// A refreshed page receives the same service, with the previous controller
 	// page explicitly disconnected instead of racing two active UIs.
-	next := webSocket(t, server, cookie)
+	next := webSocket(t, server, login)
 	if _, _, err := conn.ReadMessage(); err == nil {
 		t.Fatal("old controlling page remained connected")
 	}

@@ -3037,7 +3037,10 @@ const desktopGlobalOrderToken = "__global__"
 
 var desktopProjectsFileMu sync.Mutex
 
-// Web keeps window/tab state separate while sharing the canonical session store.
+// desktopStateSubdir is set once by RunWeb, before its service is created, and
+// is process-wide: one process hosts one transport. Web keeps its tabs, project
+// list, session presets, and global workspace apart from the desktop app's,
+// which may be running against the same home; sessions stay shared.
 var desktopStateSubdir string
 
 func desktopConfigDir() string {

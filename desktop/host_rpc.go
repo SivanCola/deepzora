@@ -83,7 +83,7 @@ func emitHostContract(dir, ownersDir string) error {
 	if err != nil {
 		return err
 	}
-	registry, err := hostrpc.NewRegistryWithOwners((*App)(nil), nil, owners)
+	registry, err := hostrpc.NewWireRegistry((*App)(nil), nil, owners, hostWirePackage)
 	if err != nil {
 		return err
 	}

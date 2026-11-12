@@ -44,7 +44,9 @@ export class WebConnection {
         else pending.resolve(reply.value);
       }
     };
-    socket.onclose = () => this.fail(new Error("Web connection closed. Tasks remain on the server. Reload this page to reconnect; only one page can control this workspace."));
+    socket.onclose = (event?: CloseEvent) => this.fail(new Error(event?.code === 1013
+      ? "This page fell behind the live event stream. Tasks remain on the server. Reload this page to catch up."
+      : "Web connection closed. Tasks remain on the server. Reload this page to reconnect; only one page can control this workspace."));
     socket.onerror = () => this.fail(new Error("Cannot connect to Deepzora Web. Keep deepzora web running and open the access URL printed in the terminal."));
   }
 
@@ -94,6 +96,16 @@ function showConnectionFailure(error: Error) {
   document.body.append(overlay);
 }
 
+// The command socket needs a key besides the session cookie: browsers send a
+// loopback cookie to every port on the host, while this storage is scoped to
+// this exact origin and tab, so a reload keeps it and another port never sees it.
+const SOCKET_KEY_STORAGE = "deepzora-web-socket-key";
+const ACCESS_URL_REQUIRED = "Open the access URL printed in the terminal.";
+
+function storedSocketKey(): string | null {
+  try { return window.sessionStorage.getItem(SOCKET_KEY_STORAGE); } catch { return null; }
+}
+
 let webHost: DesktopHost | undefined;
 export function localWebHost(fallback: DesktopHost): DesktopHost | undefined {
   if (typeof document === "undefined" || !document.querySelector('meta[name="deepzora-web"]')) return undefined;
@@ -106,8 +118,14 @@ export function localWebHost(fallback: DesktopHost): DesktopHost | undefined {
     if (token) {
       const auth = await fetch("/web/auth", { method: "POST", headers: { Authorization: `Bearer ${token}` }, credentials: "same-origin" });
       if (!auth.ok) throw new Error("Access URL rejected. Open the current URL from the terminal.");
+      const { socketKey } = await auth.json() as { socketKey?: string };
+      if (!socketKey) throw new Error("Access URL rejected. Open the current URL from the terminal.");
+      try { window.sessionStorage.setItem(SOCKET_KEY_STORAGE, socketKey); }
+      catch { throw new Error("Deepzora Web needs session storage. Allow it for this page and reopen the access URL."); }
     }
-    const socket = new WebSocket(`ws://${window.location.host}/web/socket`);
+    const socketKey = storedSocketKey();
+    if (!socketKey) throw new Error(ACCESS_URL_REQUIRED);
+    const socket = new WebSocket(`ws://${window.location.host}/web/socket`, ["deepzora-web", `deepzora-web-key.${socketKey}`]);
     const connection = new WebConnection(socket, showConnectionFailure);
     await connection.ready;
     return connection;

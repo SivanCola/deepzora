@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"deepzora/desktop/internal/hostrpc"
+	"deepzora/internal/plugin"
 	"deepzora/internal/weboptions"
 )
 
@@ -156,4 +157,6 @@ func (s *Service) Shutdown(ctx context.Context) error {
 // Executable entry points retain their existing main.* linker variables.
 func ConfigureBuildIdentity(buildVersion, buildChannel, selfUpdate string) {
 	version, channel, macSelfUpdate = buildVersion, buildChannel, selfUpdate
+	// Package init runs before an entry point can pass its linked version.
+	plugin.SetMCPClientVersion(version)
 }

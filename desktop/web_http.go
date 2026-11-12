@@ -28,9 +28,20 @@ type localWeb struct {
 	files       fs.FS
 	index       []byte
 	host, token string
-	mu          sync.Mutex
-	client      *webClient
+	// Browsers send a loopback cookie to every port on the host, so the cookie
+	// alone only reaches read-only media routes. The command socket also needs
+	// the key, which the page keeps in origin-scoped storage.
+	session, socketKey string
+	mu                 sync.Mutex
+	client             *webClient
 }
+
+const (
+	webSocketProtocol  = "deepzora-web"
+	webSocketKeyPrefix = "deepzora-web-key."
+	// Bursts of stream events must not disconnect a page that is briefly slow.
+	webClientQueueSize = 4096
+)
 
 type webClient struct {
 	conn  *websocket.Conn
@@ -40,6 +51,15 @@ type webClient struct {
 }
 
 func (c *webClient) close() { c.once.Do(func() { close(c.done); _ = c.conn.Close() }) }
+
+// closeBehind tells the page why it was dropped, so it can ask for a reload
+// that rebuilds the view from the service instead of reporting a lost server.
+func (c *webClient) closeBehind() {
+	message := websocket.FormatCloseMessage(websocket.CloseTryAgainLater, "event backlog")
+	_ = c.conn.WriteControl(websocket.CloseMessage, message, time.Now().Add(time.Second))
+	c.close()
+}
+
 func (c *webClient) send(value any) {
 	select {
 	case <-c.done:
@@ -50,7 +70,7 @@ func (c *webClient) send(value any) {
 	case c.queue <- value:
 	case <-c.done:
 	default:
-		c.close()
+		c.closeBehind()
 	}
 }
 
@@ -64,7 +84,15 @@ func newLocalWeb(service *Service, assets fs.FS, host, token string) (*localWeb,
 		return nil, err
 	}
 	index = bytes.Replace(index, []byte("<head>"), []byte("<head><meta name=\"deepzora-web\" content=\"1\">"), 1)
-	return &localWeb{app: service.app, service: service, contract: contract, assets: http.FileServerFS(assets), files: assets, index: index, host: host, token: token}, nil
+	session, err := randomHex(32)
+	if err != nil {
+		return nil, err
+	}
+	socketKey, err := randomHex(32)
+	if err != nil {
+		return nil, err
+	}
+	return &localWeb{app: service.app, service: service, contract: contract, assets: http.FileServerFS(assets), files: assets, index: index, host: host, token: token, session: session, socketKey: socketKey}, nil
 }
 
 func (s *localWeb) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -79,17 +107,17 @@ func (s *localWeb) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Frame-Options", "DENY")
 	w.Header().Set("Cache-Control", "no-store")
 	if r.URL.Path == "/web/auth" {
-		if r.Method != http.MethodPost || r.Header.Get("Origin") != "http://"+s.host || !s.validToken(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")) {
+		if r.Method != http.MethodPost || r.Header.Get("Origin") != "http://"+s.host || !secretEqual(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "), s.token) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
-		http.SetCookie(w, &http.Cookie{Name: "deepzora_web", Value: s.token, Path: "/", HttpOnly: true, SameSite: http.SameSiteStrictMode})
-		w.WriteHeader(http.StatusNoContent)
+		http.SetCookie(w, &http.Cookie{Name: "deepzora_web", Value: s.session, Path: "/", HttpOnly: true, SameSite: http.SameSiteStrictMode})
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"socketKey": s.socketKey})
 		return
 	}
 	if r.URL.Path == "/web/socket" {
-		cookie, err := r.Cookie("deepzora_web")
-		if err != nil || !s.validToken(cookie.Value) || r.Header.Get("Origin") != "http://"+s.host {
+		if !s.validSession(r) || !s.validSocketKey(r) || r.Header.Get("Origin") != "http://"+s.host {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -119,8 +147,7 @@ func (s *localWeb) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	{
-		cookie, err := r.Cookie("deepzora_web")
-		if err != nil || !s.validToken(cookie.Value) {
+		if !s.validSession(r) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -132,8 +159,24 @@ func (s *localWeb) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *localWeb) validToken(token string) bool {
-	return subtle.ConstantTimeCompare([]byte(token), []byte(s.token)) == 1
+func secretEqual(got, want string) bool {
+	return subtle.ConstantTimeCompare([]byte(got), []byte(want)) == 1
+}
+
+func (s *localWeb) validSession(r *http.Request) bool {
+	cookie, err := r.Cookie("deepzora_web")
+	return err == nil && secretEqual(cookie.Value, s.session)
+}
+
+// The key travels as an offered subprotocol: browsers cannot set headers on a
+// WebSocket, and a handshake field stays out of recorded message frames.
+func (s *localWeb) validSocketKey(r *http.Request) bool {
+	for _, protocol := range websocket.Subprotocols(r) {
+		if key, ok := strings.CutPrefix(protocol, webSocketKeyPrefix); ok && secretEqual(key, s.socketKey) {
+			return true
+		}
+	}
+	return false
 }
 func (s *localWeb) close() {
 	s.mu.Lock()
@@ -151,12 +194,12 @@ func (s *localWeb) emit(_ context.Context, name string, args ...any) {
 }
 
 func (s *localWeb) socket(w http.ResponseWriter, r *http.Request) {
-	upgrade := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return r.Header.Get("Origin") == "http://"+s.host }}
+	upgrade := websocket.Upgrader{Subprotocols: []string{webSocketProtocol}, CheckOrigin: func(r *http.Request) bool { return r.Header.Get("Origin") == "http://"+s.host }}
 	conn, err := upgrade.Upgrade(w, r, nil)
 	if err != nil {
 		return
 	}
-	client := &webClient{conn: conn, queue: make(chan any, 256), done: make(chan struct{})}
+	client := &webClient{conn: conn, queue: make(chan any, webClientQueueSize), done: make(chan struct{})}
 	defer client.close()
 	s.mu.Lock()
 	if s.client != nil {
@@ -199,11 +242,15 @@ func (s *localWeb) socket(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if request.ID == 0 {
-			return
+			// Unaddressable, so it cannot be answered; it must not cost the
+			// page its connection and every command still in flight.
+			continue
 		}
+		// Reading pauses at the concurrency limit, so a burst of commands
+		// waits its turn instead of dropping the connection.
 		select {
 		case admission <- struct{}{}:
-		default:
+		case <-client.done:
 			return
 		}
 		go func() {
