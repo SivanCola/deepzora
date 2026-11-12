@@ -8,6 +8,7 @@
 import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { verifyWindowsCompatibilityArchive } from "../../scripts/windows-distribution.mjs";
 import { readLinuxArchiveMember } from "./linux-members.mjs";
 import { ARTIFACT_KINDS, WINDOWS_PORTABLE_LAYOUTS, LINUX_GO_MEMBERS, checkEntryModes, checkMembers, staticGoMemberError, normalizeEntry, inferArtifactKind, isDirectory, listZipEntries, readZipMember, parseVerboseListing, walkFiles } from "./lib.mjs";
 
@@ -41,6 +42,11 @@ function listingOf(path) {
 
 const directory = isDirectory(artifact);
 const kind = kindArg ?? inferArtifactKind(artifact, directory, directory ? readdirSync(artifact) : []);
+if (kind === "windows-installer-compatibility-zip") {
+  const identity = artifact.match(/Deepzora-(\d+\.\d+\.\d+)-Windows-(x64|arm64)-Portable\.zip$/);
+  if (!identity || directory) throw new Error("Compatibility ZIP requires a versioned Windows artifact identity");
+  verifyWindowsCompatibilityArchive(readFileSync(artifact), identity[1], identity[2] === "x64" ? "amd64" : "arm64");
+}
 const { entries, rows } = listingOf(artifact);
 if (args.includes("--list")) for (const entry of entries) console.log(entry);
 const { missing, forbidden } = checkMembers(entries, kind, portableLayout);

@@ -80,12 +80,13 @@ are disabled. Review upstream changes before updating the vendored code.
 Release builds retain native x64 and ARM64 startup tests. Their exact payloads
 and generated NSIS identity files pass through same-run artifacts to serialized
 x64 signing jobs. Those jobs sign the PE manifest, bind the minisign payload
-manifest, rebuild packages, sign installers, verify portable hashes and expected
+manifest, rebuild packages, sign installers, verify the version-appropriate ZIP and expected
 signer/timestamps, and only then produce final minisign-signed release bundles.
 Any signing failure blocks publication and signing attestation.
 
 正式发布保留 x64/ARM64 原生构建与启动测试，再将同一运行中的产物交给 x64 签名任务。
-先签内部 PE 文件，再绑定清单、重打包、签安装器并验证便携包哈希，最后生成发布包。
+先签内部 PE 文件，再绑定清单、重打包、签安装器并验证对应版本的 ZIP，最后生成发布包。
+从 v0.0.8 起 ZIP 仅包含旧更新清单所需的迁移说明，不含程序；仍使用 Minisign 签名。
 任何签名失败都会阻止发布和签名证明。
 
 The current signing contract lives in `.github/release-signing.yml` and is verified by `cmd/release-signing-contract`. `RELEASE_SIGNING_ATTESTATION` records an explicitly verified current fingerprint for standalone recovery. Candidate publications use their sealed evidence. No SignPath request or historical receipt format is supported.

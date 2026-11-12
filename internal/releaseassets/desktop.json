@@ -62,6 +62,7 @@
     "labelEn": "Windows · Intel / AMD 64-bit",
     "purposeZh": "免安装压缩包",
     "purposeEn": "Portable archive",
+    "compatibilityOnly": true,
     "buildName": "Deepzora-windows-amd64.zip",
     "platform": "windows-amd64"
   },
@@ -71,6 +72,7 @@
     "labelEn": "Windows · ARM64",
     "purposeZh": "免安装压缩包",
     "purposeEn": "Portable archive",
+    "compatibilityOnly": true,
     "buildName": "Deepzora-windows-arm64.zip",
     "platform": "windows-arm64"
   },

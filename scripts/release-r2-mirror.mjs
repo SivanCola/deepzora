@@ -8,7 +8,7 @@ import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { desktopAssets, desktopName, verifyNamedDownloads } from "./desktop-downloads.mjs";
+import { desktopAssets, desktopName, verifyNamedDownloads, publicDesktopAssets } from "./desktop-downloads.mjs";
 import { validateRelease, validatePointer } from "../website/release.mjs";
 
 const repository = "SivanCola/deepzora";
@@ -84,7 +84,7 @@ export function checkExistingObject(head, file) {
 }
 
 export function renderIndex(plan) {
-  const rows = desktopAssets.filter(spec => !spec.updaterOnly).map(spec => {
+  const rows = publicDesktopAssets(plan.version).map(spec => {
     const name = desktopName(plan.version, spec);
     const file = plan.files.find(item => item.name === name);
     return `<tr><td>${spec.labelZh}<br><small>${spec.labelEn}</small></td><td>${spec.purposeZh}</td><td><a href="${file.url}">加速下载 / Download</a> · <a href="${file.source}">GitHub</a><br><small>${(file.size / 1024 ** 2).toFixed(1)} MiB</small></td></tr>`;

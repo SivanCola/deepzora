@@ -1,8 +1,12 @@
 import { renameSync, unlinkSync, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { windowsInstallerOnly } from "./windows-distribution.mjs";
 
 export const desktopAssets = JSON.parse(readFileSync(new URL("../internal/releaseassets/desktop.json", import.meta.url), "utf8"));
+export function publicDesktopAssets(version) {
+  return desktopAssets.filter(asset => !asset.updaterOnly && !(asset.compatibilityOnly && windowsInstallerOnly(version)));
+}
 export function desktopName(version, asset) {
   version = version.replace(/^v/, "");
   if (!/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/.test(version)) throw new Error("invalid Desktop download version");
@@ -43,7 +47,7 @@ export function verifyNamedDownloads(manifest) {
 export function renderDesktopDownloads(version, lang = "zh", repository = "SivanCola/deepzora") {
   const zh = lang === "zh";
   const base = `https://github.com/${repository}/releases/download/desktop-v${version.replace(/^v/, "")}/`;
-  const rows = desktopAssets.filter(asset => !asset.updaterOnly).map(asset => {
+  const rows = publicDesktopAssets(version).map(asset => {
     const name = desktopName(version, asset);
     return `| ${zh ? asset.labelZh : asset.labelEn} | ${zh ? asset.purposeZh : asset.purposeEn} | [${zh ? "下载" : "Download"}](${base}${name}) |`;
   });

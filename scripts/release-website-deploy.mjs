@@ -46,7 +46,8 @@ export async function deployWebsite(report, hook, { fetcher = fetch, wait = dela
         if (!page.ok) throw new Error('Localized website not ready');
         const html = await page.text();
         if (!html.includes(`v${release.version}`)) throw new Error('Localized website version mismatch');
-        for (const file of release.files.filter(file => /(?:\.(?:dmg|exe|deb)|-Portable\.zip|-Linux-x64\.tar\.gz)$/.test(file.name))) if (!html.includes(file.url)) throw new Error('Localized website download mismatch');
+        if (/href=["'][^"']*-Windows-(?:x64|arm64)-Portable\.zip(?:["'?#])/.test(html)) throw new Error('Windows website must offer installers only');
+        for (const file of release.files.filter(file => /(?:\.(?:dmg|exe|deb)|-Linux-x64\.tar\.gz)$/.test(file.name))) if (!html.includes(file.url)) throw new Error('Localized website download mismatch');
       }
       console.log(`Production verified: https://deepzora.app/ + /en/ · v${release.version} · ${deployed.commitSHA}`);
       return { version: release.version, sourceSHA: release.sourceSHA, commitSHA: deployed.commitSHA, builtAt: deployed.builtAt };
