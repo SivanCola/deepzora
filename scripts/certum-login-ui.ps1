@@ -20,7 +20,7 @@ public static class CertumControlRoles {
             GetClassName(handle, name, name.Capacity);
             var control = new Control { Handle = handle, ClassName = name.ToString() };
             // Never read edit text. Only acknowledgement button labels matter.
-            if (control.ClassName == "Button") {
+            if (control.ClassName == "Button" || control.ClassName.StartsWith("WindowsForms10.BUTTON.")) {
                 var label = new StringBuilder(128);
                 GetWindowText(handle, label, label.Capacity);
                 control.ButtonName = label.ToString();
@@ -35,10 +35,10 @@ public static class CertumControlRoles {
     }
     try {
         $controls = @([CertumControlRoles]::Read($Handle))
-        $edits = @($controls | Where-Object { $_.ClassName -eq 'Edit' })
-        $names = @($controls | Where-Object { $_.ClassName -eq 'Button' } | ForEach-Object { ($_.ButtonName -replace '&', '').Trim() } |
+        $edits = @($controls | Where-Object { $_.ClassName -eq 'Edit' -or $_.ClassName -like 'WindowsForms10.EDIT.*' })
+        $names = @($controls | Where-Object { $_.ClassName -eq 'Button' -or $_.ClassName -like 'WindowsForms10.BUTTON.*' } | ForEach-Object { ($_.ButtonName -replace '&', '').Trim() } |
             Where-Object { $_ -in @('OK', 'No', 'Cancel') })
-        return [pscustomobject]@{ Handle = $Handle; EditCount = $edits.Count; Buttons = $names }
+        return [pscustomobject]@{ Handle = $Handle; EditCount = $edits.Count; Buttons = $names; Classes = @($controls.ClassName | Sort-Object -Unique) }
     } catch {
         # A window may disappear while Qt constructs or replaces its controls.
         return $null
@@ -66,7 +66,7 @@ function Wait-CertumLoginWindow {
         if (-not (& $StillRunning)) { throw 'SimplySign exited before its credential form was ready.' }
         $observations = @(& $EnumerateWindows | ForEach-Object { & $ObserveWindow $_ })
         $shape = (@($observations | Where-Object { $null -ne $_ } | ForEach-Object {
-            "handle=$($_.Handle) edits=$($_.EditCount) acknowledgementButtons=$($_.Buttons.Count)"
+            "handle=$($_.Handle) edits=$($_.EditCount) acknowledgementButtons=$($_.Buttons.Count) classes=$($_.Classes -join ',')"
         }) -join '; ')
         if ($shape -ne $lastShape) {
             Write-Host "SimplySign control roles: $shape"
