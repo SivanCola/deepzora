@@ -13,7 +13,7 @@ test("v0.0.1 navigation uses versioned URLs and explains architectures and auxil
   assert.match(text, /ARM64/);
   assert.match(text, /\.minisig/);
   assert.match(text, /latest.json/);
-  assert.equal([...text.matchAll(/\]\(https:/g)].length, 9);
+  assert.equal([...text.matchAll(/\]\(https:/g)].length, 7);
   assert.match(text, /desktop-v0\.0\.1\/Deepzora-0\.0\.1-macOS-arm64\.dmg/);
   assert.doesNotMatch(text, /Deepzora-darwin-/);
 });

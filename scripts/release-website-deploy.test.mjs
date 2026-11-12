@@ -73,3 +73,13 @@ test('hook errors are fatal, retryable, and never expose the secret URL', async 
   const f = fixture();
   await assert.rejects(deployWebsite(f.report, 'https://example.com/hook', f.options), /Invalid Cloudflare/);
 });
+
+test('a deployed page retaining a Windows portable link fails acceptance', async () => {
+  const f = fixture();
+  f.options.fetcher = async (url, options) => {
+    const response = await f.fetcher(url, options);
+    if (!url.startsWith('https://deepzora.app/en/?')) return response;
+    return new Response(await response.text() + '<a href="https://downloads.deepzora.app/desktop/desktop-v0.0.2/Deepzora-0.0.2-Windows-x64-Portable.zip">Portable</a>');
+  };
+  await assert.rejects(deployWebsite(f.report, hook, f.options), /timed out/);
+});

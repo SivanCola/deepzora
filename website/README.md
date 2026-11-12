@@ -55,7 +55,7 @@ To roll back website code, select an earlier successful production deployment in
 
 https://downloads.deepzora.app/desktop/desktop-v0.0.2/mirror.json
 
-Download buttons point directly to versioned R2 objects on `downloads.deepzora.app`. macOS architectures, Windows installers and portable packages, and Linux x64 packages are explicit choices. Full inventory and GitHub release links provide alternatives. The build validates URLs, sizes, checksums, and required package names; it does not rehash large remote binaries.
+Download buttons point directly to versioned R2 objects on `downloads.deepzora.app`. macOS architectures, Windows x64/ARM64 installers, and Linux x64 packages are explicit choices. Windows portable links are hidden, including when rendering older release inventories. From v0.0.8 the legacy ZIP names remain only as small text notices for strict older updater manifests; they contain no application. Full inventory and GitHub release links provide verification files. The build validates URLs, sizes, checksums, and required package names; it does not rehash large remote binaries.
 
 Production builds (`CF_PAGES=1`, `CF_PAGES_BRANCH=main`) instead fetch `https://downloads.deepzora.app/website/latest.json`, then fetch its immutable `mirror.json`. They validate the inventory's size, SHA-256, source commit, stable version, canonical URLs, and complete website package matrix before rendering. Missing or invalid remote metadata fails the build; production never falls back to a stale snapshot. Both languages and public `/release.json` are generated from the same inventory.
 

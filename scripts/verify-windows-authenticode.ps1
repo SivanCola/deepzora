@@ -14,6 +14,9 @@ param(
 
     [string]$ReleaseVersion,
 
+    [ValidateSet("amd64", "arm64")]
+    [string]$Architecture,
+
     [ValidateSet("canonical")]
     [string]$PortableLayout = "canonical"
 )
@@ -96,6 +99,18 @@ foreach ($entry in $signingFiles) {
     Assert-AuthenticodeSignature -Path (Join-Path $PayloadDirectory ($entry -replace '/', [System.IO.Path]::DirectorySeparatorChar))
 }
 Assert-AuthenticodeSignature -Path $InstallerPath
+
+if ($ReleaseVersion) {
+    $mode = & node (Join-Path $PSScriptRoot 'windows-distribution.mjs') mode $ReleaseVersion
+    if ($LASTEXITCODE -ne 0) { throw 'Cannot determine Windows distribution policy' }
+    if ($mode -eq 'installer-only') {
+        if (-not $Architecture) { throw 'Windows compatibility archive architecture is required' }
+        & node (Join-Path $PSScriptRoot 'windows-distribution.mjs') verify $ReleaseVersion $Architecture $PortableArchivePath
+        if ($LASTEXITCODE -ne 0) { throw 'Invalid Windows installer migration archive' }
+        Write-Host 'Windows Authenticode payload/installer and text-only compatibility archive verified.'
+        exit 0
+    }
+}
 
 $extractRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("deepzora-authenticode-" + [guid]::NewGuid().ToString("N"))
 try {

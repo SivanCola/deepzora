@@ -22,13 +22,21 @@ record, checks its provenance and bytes, and requires one `release` approval
 before creating the three tags and publishing. `recover` reuses the same sealed
 files; it must not rebuild or sign them.
 
-Final Windows installers and portable ZIPs each undergo startup, second-launch
-and normal-exit acceptance on native x64 and ARM64 runners. Installer acceptance
-also checks uninstall and user-data retention. Windows schema 2 receipts bind
-the SHA-256 of both the installer and portable ZIP; new Authenticode-signed
-candidates require passing evidence for both files. An installer pass cannot
-stand in for a portable pass. Schema 1 receipts for historical unsigned
-exceptions remain verifiable.
+Starting with v0.0.8, Windows ships installers only. Each final x64 and ARM64
+installer undergoes native startup, second-launch, normal-exit, uninstall and
+user-data retention acceptance. Schema 3 receipts bind its SHA-256 and the hash
+of an exact text-only migration ZIP, independently checked again when sealing.
+
+v0.0.7 and older updaters validate all eleven downloads, including the two
+`*-Portable.zip` names, before updating any platform. Their Windows update route
+already selects `*-Setup.exe`, including for existing portable installations.
+Keep those unused ZIP entries and their real, Minisign-signed files: from
+v0.0.8 they contain only `WINDOWS-INSTALLER-ONLY.txt`, with the version/architecture
+matched installer URL, and no program. Do not remove entries, point ZIP URLs at
+EXEs, fabricate digests, or relax manifest validation. The website and download
+navigation show only Windows installers. Historical release files stay intact.
+v0.0.7 retains schema 2 native installer and portable acceptance; unsigned
+historical exceptions retain schema 1.
 
 Rendering the notes credits people: each `refs` number that is a pull request
 gains `by @author`; an issue gains `fixed in #M by @author` for each merged pull

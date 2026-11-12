@@ -8,7 +8,7 @@
 # scripts/desktop-downloads.mjs finalizes internal build names before signing;
 # internal/releaseassets/desktop.json defines names and updater channels.
 #   macOS:   Deepzora-VERSION-macOS-ARCH.zip (updater), .dmg (installer)
-#   Windows: Deepzora-VERSION-Windows-ARCH-Setup.exe or -Portable.zip
+#   Windows: Deepzora-VERSION-Windows-ARCH-Setup.exe (ZIP is legacy metadata compatibility)
 #   Linux:   Deepzora-VERSION-Linux-x64.tar.gz or .deb
 #
 # Usage: scripts/desktop-build.sh <os/arch> <version> [channel]
@@ -349,7 +349,12 @@ windows)
 		mkdir -p "$ROOT/dist"
 	else
 		VERSION="$VERSION" "$ROOT/scripts/package-windows-desktop.sh" "$arch" "$payload_dir"
-		node "$ROOT/desktop/packaging/verify.mjs" "$ROOT/dist/${APPNAME}-windows-${arch}.zip" --kind windows-portable-zip
+		distribution="$(node "$ROOT/scripts/windows-distribution.mjs" mode "$VERSION")"
+		if [ "$distribution" = installer-only ]; then
+			node "$ROOT/scripts/windows-distribution.mjs" verify "$VERSION" "$arch" "$ROOT/dist/${APPNAME}-windows-${arch}.zip"
+		else
+			node "$ROOT/desktop/packaging/verify.mjs" "$ROOT/dist/${APPNAME}-windows-${arch}.zip" --kind windows-portable-zip
+		fi
 	fi
 	;;
 linux)
