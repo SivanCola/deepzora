@@ -1,15 +1,42 @@
 # Read only control roles; never read field values or capture authentication UI.
 function Get-CertumWindowObservation {
     param([IntPtr]$Handle)
-    Add-Type -AssemblyName UIAutomationClient
-    Add-Type -AssemblyName UIAutomationTypes
+    if (-not ('CertumControlRoles' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class CertumControlRoles {
+    public sealed class Control { public IntPtr Handle; public string ClassName; public string ButtonName; }
+    private delegate bool EnumProc(IntPtr handle, IntPtr parameter);
+    [DllImport("user32.dll")] private static extern bool EnumChildWindows(IntPtr parent, EnumProc callback, IntPtr parameter);
+    [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern int GetClassName(IntPtr handle, StringBuilder text, int count);
+    [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern int GetWindowText(IntPtr handle, StringBuilder text, int count);
+    public static Control[] Read(IntPtr parent) {
+        var controls = new List<Control>();
+        EnumChildWindows(parent, (handle, parameter) => {
+            var name = new StringBuilder(256);
+            GetClassName(handle, name, name.Capacity);
+            var control = new Control { Handle = handle, ClassName = name.ToString() };
+            // Never read edit text. Only acknowledgement button labels matter.
+            if (control.ClassName == "Button") {
+                var label = new StringBuilder(128);
+                GetWindowText(handle, label, label.Capacity);
+                control.ButtonName = label.ToString();
+            }
+            controls.Add(control);
+            return true;
+        }, IntPtr.Zero);
+        return controls.ToArray();
+    }
+}
+'@
+    }
     try {
-        $root = [System.Windows.Automation.AutomationElement]::FromHandle($Handle)
-        $scope = [System.Windows.Automation.TreeScope]::Descendants
-        $property = [System.Windows.Automation.AutomationElement]::ControlTypeProperty
-        $edits = $root.FindAll($scope, [System.Windows.Automation.PropertyCondition]::new($property, [System.Windows.Automation.ControlType]::Edit))
-        $buttons = $root.FindAll($scope, [System.Windows.Automation.PropertyCondition]::new($property, [System.Windows.Automation.ControlType]::Button))
-        $names = @($buttons | ForEach-Object { ($_.Current.Name -replace '&', '').Trim() } |
+        $controls = @([CertumControlRoles]::Read($Handle))
+        $edits = @($controls | Where-Object { $_.ClassName -eq 'Edit' })
+        $names = @($controls | Where-Object { $_.ClassName -eq 'Button' } | ForEach-Object { ($_.ButtonName -replace '&', '').Trim() } |
             Where-Object { $_ -in @('OK', 'No', 'Cancel') })
         return [pscustomobject]@{ Handle = $Handle; EditCount = $edits.Count; Buttons = $names }
     } catch {
