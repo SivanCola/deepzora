@@ -7,6 +7,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { windowsSigningMode } from "./release-windows-policy.mjs";
+import { windowsInstallerOnly, windowsCompatibilityArchive } from "./windows-distribution.mjs";
+const compatibility = (version, platform) => windowsCompatibilityArchive(version, platform.slice("windows-".length));
 import {
   artifactNamespace,
   candidateId,
@@ -27,7 +29,7 @@ function fixture(t, version = "1.2.3") {
     const files = windows
       ? [
         { name: `${platform}-Setup.exe`, content: `${platform}:installer` },
-        { name: `${platform}-Portable.zip`, content: `${platform}:portable` },
+        { name: `${platform}-Portable.zip`, content: windowsInstallerOnly(version) ? compatibility(version, platform) : `${platform}:portable` },
       ] : [{ name: `${platform}.zip`, content: platform }];
     for (const file of files) writeFileSync(path.join(dir, file.name), file.content);
     writeFileSync(path.join(root, "desktop", platform, "identity.json"), JSON.stringify({
@@ -59,12 +61,14 @@ function fixture(t, version = "1.2.3") {
     const windows = platform.startsWith("windows-");
     const signed = windows && windowsSigningMode(version, 'stable') === 'certum';
     writeFileSync(path.join(evidence, `${kind}.json`), JSON.stringify({
-      schema: signed ? 2 : 1,
+      schema: signed ? (windowsInstallerOnly(version) ? 3 : 2) : 1,
       kind,
       status: "passed",
       version: `v${version}`,
       sha256: createHash("sha256").update(windows ? `${platform}:installer` : platform).digest("hex"),
-      ...(signed ? { portableStatus: 'passed', portableSha256: createHash("sha256").update(`${platform}:portable`).digest("hex") } : {}),
+      ...(signed ? (windowsInstallerOnly(version)
+        ? { compatibilityStatus: 'passed', compatibilitySha256: createHash('sha256').update(compatibility(version, platform)).digest('hex') }
+        : { portableStatus: 'passed', portableSha256: createHash('sha256').update(`${platform}:portable`).digest('hex') }) : {}),
     }));
   }
   writeFileSync(path.join(evidence, "release-notes.md"), sealedNotes);
@@ -182,29 +186,43 @@ test("rejects acceptance evidence that names bytes outside the sealed platform b
   assert.throws(() => sealCandidate(root, metadata), /does not name a sealed file/);
 });
 
-for (const mutation of ['missing', 'failed', 'foreign', 'installer-as-portable', 'legacy-schema']) {
-  test(`signed Windows candidates reject ${mutation} portable acceptance`, t => {
+for (const mutation of ['missing', 'failed', 'foreign', 'installer-as-archive', 'legacy-schema']) {
+  test(`installer-only Windows candidates reject ${mutation} compatibility acceptance`, t => {
     const root = fixture(t);
     const receipt = path.join(root, 'evidence', 'windows-amd64.json');
     const value = JSON.parse(readFileSync(receipt, 'utf8'));
-    if (mutation === 'missing') delete value.portableSha256;
-    if (mutation === 'failed') value.portableStatus = 'failed';
-    if (mutation === 'foreign') value.portableSha256 = createHash('sha256').update('windows-arm64:portable').digest('hex');
-    if (mutation === 'installer-as-portable') value.portableSha256 = value.sha256;
-    if (mutation === 'legacy-schema') value.schema = 1;
+    if (mutation === 'missing') delete value.compatibilitySha256;
+    if (mutation === 'failed') value.compatibilityStatus = 'failed';
+    if (mutation === 'foreign') value.compatibilitySha256 = createHash('sha256').update(compatibility(metadata.version, 'windows-arm64')).digest('hex');
+    if (mutation === 'installer-as-archive') value.compatibilitySha256 = value.sha256;
+    if (mutation === 'legacy-schema') value.schema = 2;
     writeFileSync(receipt, JSON.stringify(value));
-    assert.throws(() => sealCandidate(root, metadata), /portable|Windows package acceptance/);
+    assert.throws(() => sealCandidate(root, metadata), /compatibility|installer-only/);
   });
 }
 
-test('sealed Windows acceptance binds both installer and portable archive hashes', t => {
+test('sealed Windows acceptance binds installer and exact text-only compatibility hashes', t => {
   const root = fixture(t);
   const record = sealCandidate(root, metadata);
   const item = record.acceptance.find(item => item.kind === 'windows-amd64');
   assert.equal(item.artifactSha256, createHash('sha256').update('windows-amd64:installer').digest('hex'));
-  assert.equal(item.portableArtifactSha256, createHash('sha256').update('windows-amd64:portable').digest('hex'));
-  item.portableArtifactSha256 = 'f'.repeat(64);
-  assert.throws(() => verifyCandidate(root, record, new Date('2026-01-02T00:00:00Z')), /portable acceptance artifact mismatch/);
+  assert.equal(item.compatibilityArtifactSha256, createHash('sha256').update(compatibility(metadata.version, 'windows-amd64')).digest('hex'));
+  item.compatibilityArtifactSha256 = 'f'.repeat(64);
+  assert.throws(() => verifyCandidate(root, record, new Date('2026-01-02T00:00:00Z')), /compatibility acceptance artifact mismatch/);
+});
+
+test('historical signed v0.0.7 still requires both native installer and portable acceptance', t => {
+  const root = fixture(t, '0.0.7');
+  const id = candidateId('0.0.7', metadata.sourceSHA, metadata.catalogSha256);
+  const previous = { ...metadata, version: '0.0.7', payloadArtifactName: `release-candidate-payload-${id}`, evidenceArtifactName: `release-candidate-evidence-${id}` };
+  const record = sealCandidate(root, previous);
+  assert.ok(record.acceptance[0].portableArtifactSha256);
+  assert.doesNotThrow(() => verifyCandidate(root, record, new Date('2026-01-02T00:00:00Z')));
+  const receipt = path.join(root, 'evidence', 'windows-amd64.json');
+  const value = JSON.parse(readFileSync(receipt, 'utf8'));
+  delete value.portableSha256;
+  writeFileSync(receipt, JSON.stringify(value));
+  assert.throws(() => sealCandidate(root, previous), /Windows package acceptance/);
 });
 
 test("candidate id command accepts the catalog digest as its third argument", () => {

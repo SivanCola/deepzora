@@ -856,11 +856,20 @@ jobs:
           -InstallerPath $installer[0].FullName `
           -ExpectedVersion "${{ needs.resolve.outputs.version }}" `
           -EvidenceDirectory "$env:RUNNER_TEMP/deepzora-installer-acceptance"
-    - name: Smoke-test the exact signed Windows portable archive
+    - name: Verify legacy Windows compatibility archive or historical portable application
+      id: distribution
       shell: pwsh
       run: |
         $portable = @(Get-ChildItem -LiteralPath "$env:RUNNER_TEMP/windows-bundle/files" -Filter '*-Portable.zip' -File)
         if ($portable.Count -ne 1) { throw "Expected one signed portable archive, found $($portable.Count)" }
+        $mode = node ./release-control/scripts/windows-distribution.mjs mode "${{ needs.resolve.outputs.version }}"
+        if ($LASTEXITCODE -ne 0) { throw 'Invalid Windows distribution policy' }
+        "mode=$mode" >> $env:GITHUB_OUTPUT
+        if ($mode -eq 'installer-only') {
+          node ./release-control/scripts/windows-distribution.mjs verify "${{ needs.resolve.outputs.version }}" "${{ matrix.arch }}" $portable[0].FullName
+          if ($LASTEXITCODE -ne 0) { throw 'Invalid Windows compatibility archive' }
+          return
+        }
         ./release-control/scripts/test-windows-startup-recovery.ps1 `
           -PortableZip $portable[0].FullName `
           -ExpectedVersion "${{ needs.resolve.outputs.version }}" `
@@ -891,7 +900,18 @@ jobs:
         if ($installer.Count -ne 1) { throw "Expected one signed installer, found $($installer.Count)" }
         $portable = @(Get-ChildItem -LiteralPath $bundle -Filter '*-Portable.zip' -File)
         if ($portable.Count -ne 1) { throw "Expected one signed portable archive, found $($portable.Count)" }
-        @{ schema = 2; kind = "windows-${{ matrix.arch }}"; status = 'passed'; version = "${{ needs.resolve.outputs.version }}"; sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $installer[0].FullName).Hash.ToLowerInvariant(); portableStatus = 'passed'; portableSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $portable[0].FullName).Hash.ToLowerInvariant() } |
+        $receipt = @{ kind = "windows-${{ matrix.arch }}"; status = 'passed'; version = "${{ needs.resolve.outputs.version }}"; sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $installer[0].FullName).Hash.ToLowerInvariant() }
+        $archiveHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $portable[0].FullName).Hash.ToLowerInvariant()
+        if ("${{ steps.distribution.outputs.mode }}" -eq 'installer-only') {
+          $receipt.schema = 3
+          $receipt.compatibilityStatus = 'passed'
+          $receipt.compatibilitySha256 = $archiveHash
+        } else {
+          $receipt.schema = 2
+          $receipt.portableStatus = 'passed'
+          $receipt.portableSha256 = $archiveHash
+        }
+        $receipt |
           ConvertTo-Json | Set-Content -LiteralPath "$env:RUNNER_TEMP/windows-${{ matrix.arch }}.json" -Encoding utf8
     - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
       with:

@@ -458,6 +458,9 @@ func (t *installSourceTool) applyInstallPluginPackage(ctx context.Context, req r
 	if pkg.Manifest.Name != act.Name && strings.TrimSpace(req.Name) == "" {
 		return newErr(ErrInvalidManifest, "planned plugin name %q but source now reports %q", act.Name, pkg.Manifest.Name)
 	}
+	if act.Catalog != nil {
+		return t.commitCatalogInstall(req, act, pkg, sourceRoot, target, commit)
+	}
 	if act.Mode == "link" {
 		if !isLinkTargetSafe(sourceRoot, t.home, t.root) {
 			return newErr(ErrUnsafeLinkTarget, "plugin source %s is outside %s and %s", sourceRoot, t.root, t.home)
@@ -514,6 +517,18 @@ func (t *installSourceTool) preparePluginSource(ctx context.Context, source, mod
 			return "", "", func() {}, err
 		}
 		cloneURL := fmt.Sprintf("https://github.com/%s/%s.git", src.Owner, src.Repo)
+		if fullCommit.MatchString(src.Branch) {
+			if err := fetchSnapshot(ctx, tmp, cloneURL, src.Branch); err != nil {
+				os.RemoveAll(tmp)
+				return "", "", func() {}, err
+			}
+			root, err := pluginRootFromClone(tmp, src.Path)
+			if err != nil {
+				os.RemoveAll(tmp)
+				return "", "", func() {}, err
+			}
+			return root, src.Branch, func() { _ = os.RemoveAll(tmp) }, nil
+		}
 		args := []string{"clone", "--depth=1"}
 		if src.Branch != "" {
 			args = append(args, "--branch", src.Branch)

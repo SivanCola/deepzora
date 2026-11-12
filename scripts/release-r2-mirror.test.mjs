@@ -6,12 +6,12 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { desktopAssets, desktopName } from "./desktop-downloads.mjs";
-import { buildMirrorPlan, checkExistingObject, indexShouldAdvance, stableVersion } from "./release-r2-mirror.mjs";
+import { buildMirrorPlan, checkExistingObject, indexShouldAdvance, stableVersion, renderIndex } from "./release-r2-mirror.mjs";
 
 const hash = value => createHash("sha256").update(value).digest("hex");
 const repo = "https://github.com/SivanCola/deepzora/releases/download/";
-function fixture() {
-  const version = "0.0.2", tag = `desktop-v${version}`;
+function fixture(version = "0.0.2") {
+  const tag = `desktop-v${version}`;
   const payloads = {};
   const desktop = { tag_name: tag, draft: false, prerelease: false, assets: [] };
   const cli = { tag_name: `v${version}`, draft: false, prerelease: false, assets: [] };
@@ -59,6 +59,21 @@ test("only complete public stable releases with matching official URLs and check
     assert.throws(() => buildMirrorPlan(copy.version, copy.desktop, copy.cli, copy.manifest, copy.checksums));
   }
   for (const bad of [undefined, "0.0.2-rc.1", "../../bad", "01.0.0"]) assert.throws(() => stableVersion(bad));
+});
+
+test("historical immutable indexes keep their exact bytes; new indexes offer Windows installers only", () => {
+  // Golden output from the pre-retirement renderer at main 943bdd50a.
+  for (const [version, digest] of [
+    ["0.0.2", "9c2b4667f09f5a46963475383757e65504b36f916248b8dcda8b29838e9393fc"],
+    ["0.0.7", "282012ed93489db19a5460b1b734e00d71784bfc5835ed625d3dcace51a39ab9"],
+  ]) {
+    const f = fixture(version);
+    assert.equal(hash(renderIndex(buildMirrorPlan(f.version, f.desktop, f.cli, f.manifest, f.checksums))), digest);
+  }
+  const f = fixture("0.0.8");
+  const html = renderIndex(buildMirrorPlan(f.version, f.desktop, f.cli, f.manifest, f.checksums));
+  assert.doesNotMatch(html, /-Portable\.zip|免安装压缩包/);
+  assert.equal([...html.matchAll(/-Setup\.exe/g)].length, 4, "both architectures retain R2 and GitHub installer links");
 });
 
 test("immutable conflicts fail and an older recovery cannot roll back the download index", () => {

@@ -11,6 +11,7 @@ allowed_build_definitions:
   - .github/workflows/release-desktop.yml
 fingerprint_files:
   - scripts/release-windows-policy.mjs
+  - scripts/windows-distribution.mjs
   - scripts/desktop-release-artifacts.mjs
   - scripts/release-candidate.mjs
   - .github/workflows/certum-signing-smoke.yml

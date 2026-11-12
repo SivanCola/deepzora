@@ -12,6 +12,7 @@ import (
 	"deepzora/internal/config"
 	"deepzora/internal/hook"
 	"deepzora/internal/installsource"
+	"deepzora/internal/plugincatalog"
 	"deepzora/internal/pluginpkg"
 	"deepzora/internal/secrets"
 )
@@ -22,6 +23,17 @@ func pluginCommand(args []string) int {
 		return 0
 	}
 	switch args[0] {
+	case "recover":
+		if len(args) != 1 {
+			return 2
+		}
+		if err := installsource.RecoverCatalog(context.Background(), config.DeepzoraHomeDir()); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+		return 0
+	case "search", "info", "updates", "update":
+		return pluginMarketCommand(args)
 	case "install":
 		return pluginInstallCommand(args[1:])
 	case "list":
@@ -46,9 +58,80 @@ func pluginCommand(args []string) int {
 	}
 }
 
+func pluginMarketCommand(args []string) int {
+	home := config.DeepzoraHomeDir()
+	ctx := context.Background()
+	var data any
+	var err error
+	switch args[0] {
+	case "search":
+		var q []string
+		all := false
+		for _, s := range args[1:] {
+			if s == "--all" {
+				all = true
+			} else {
+				q = append(q, s)
+			}
+		}
+		data, err = plugincatalog.Search(ctx, home, strings.Join(q, " "), all)
+	case "info":
+		if len(args) != 2 || !plugincatalog.IsSpec(args[1]) {
+			pluginUsage()
+			return 2
+		}
+		data, err = plugincatalog.Resolve(ctx, home, args[1])
+	case "updates":
+		var st pluginpkg.State
+		st, err = pluginpkg.LoadState(home)
+		rows := []map[string]string{}
+		if err == nil {
+			for _, p := range st.Plugins {
+				if p.CatalogID == "" {
+					continue
+				}
+				r, e := plugincatalog.Resolve(ctx, home, p.CatalogID)
+				row := map[string]string{"name": p.Name, "installed": p.Version}
+				if e != nil {
+					row["error"] = e.Error()
+				} else if r.Commit != p.Commit {
+					row["available"] = r.Version
+				} else {
+					continue
+				}
+				rows = append(rows, row)
+			}
+		}
+		data = rows
+	case "update":
+		if len(args) < 2 {
+			pluginUsage()
+			return 2
+		}
+		p, ok, e := findInstalledPlugin(args[1])
+		if e != nil || !ok || p.CatalogID == "" {
+			fmt.Fprintln(os.Stderr, "no catalog installation named", args[1])
+			return 1
+		}
+		return pluginInstallCommand(append([]string{p.CatalogID, "--replace", "--name", p.Name}, args[2:]...))
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	if err = json.NewEncoder(os.Stdout).Encode(data); err != nil {
+		return 1
+	}
+	return 0
+}
+
 func pluginUsage() {
 	fmt.Fprintln(os.Stderr, `usage:
-  deepzora plugin install <source> [--yes] [--dry-run] [--link] [--replace]
+  deepzora plugin search [query] [--all]
+  deepzora plugin info catalog:<id>[@version]
+  deepzora plugin updates
+  deepzora plugin update <name> --dry-run | --yes --plan-id <id>
+  deepzora plugin install <source> [--yes] [--plan-id <id>] [--dry-run] [--link] [--replace]
   deepzora plugin list
   deepzora plugin show <name>
   deepzora plugin enable <name>
@@ -73,6 +156,7 @@ func pluginInstallCommand(args []string) int {
 	}
 	body := map[string]any{
 		"source":  source,
+		"planId":  opts.planID,
 		"kind":    "plugin",
 		"apply":   !opts.dryRun,
 		"mode":    mode,
@@ -85,6 +169,7 @@ func pluginInstallCommand(args []string) int {
 }
 
 type parsedPluginInstallArgs struct {
+	planID  string
 	yes     bool
 	dryRun  bool
 	link    bool
@@ -100,6 +185,12 @@ func parsePluginInstallArgs(args []string) (parsedPluginInstallArgs, string, err
 		switch {
 		case arg == "--yes":
 			opts.yes = true
+		case arg == "--plan-id":
+			i++
+			if i >= len(args) || strings.HasPrefix(args[i], "-") {
+				return opts, "", fmt.Errorf("--plan-id requires a value")
+			}
+			opts.planID = args[i]
 		case arg == "--dry-run":
 			opts.dryRun = true
 		case arg == "--link":
@@ -203,8 +294,22 @@ func redactInstallSourceJSON(raw string) (string, error) {
 	// planId is an engine-generated approval identity, not free-form output.
 	// Scrubbing its digest would make the preview impossible to approve.
 	var planID string
+	type verifiedCommit struct {
+		row map[string]any
+		sha string
+	}
+	var commits []verifiedCommit
 	if object, ok := value.(map[string]any); ok {
 		planID, _ = object["planId"].(string)
+		// Only restore Git object IDs from catalog actions verified against a fetched commit.
+		rows, _ := object["actions"].([]any)
+		for _, v := range rows {
+			a, _ := v.(map[string]any)
+			s, _ := a["commit"].(string)
+			if a["catalog"] != nil && len(s) == 40 && strings.Trim(s, "0123456789abcdef") == "" {
+				commits = append(commits, verifiedCommit{a, s})
+			}
+		}
 	}
 	var redact func(any) any
 	redact = func(v any) any {
@@ -227,6 +332,9 @@ func redactInstallSourceJSON(raw string) (string, error) {
 		return v
 	}
 	redacted := redact(value)
+	for _, v := range commits {
+		v.row["commit"] = v.sha
+	}
 	if object, ok := redacted.(map[string]any); ok && planID != "" {
 		object["planId"] = planID
 	}

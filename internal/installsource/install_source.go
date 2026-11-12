@@ -180,6 +180,11 @@ func (t *installSourceTool) Execute(ctx context.Context, raw json.RawMessage) (s
 		return t.executeUninstall(req), nil
 	}
 
+	unlock, err := t.beginCatalogApply(ctx, req)
+	if err != nil {
+		return "", err
+	}
+	defer unlock()
 	actions, warnings, err := t.plan(ctx, req)
 	if err != nil {
 		if errors.Is(err, ErrNoCompatibleCapabilities) {

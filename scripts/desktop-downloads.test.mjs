@@ -18,6 +18,14 @@ test("v0.0.1 navigation uses versioned URLs and explains architectures and auxil
   assert.doesNotMatch(text, /Deepzora-darwin-/);
 });
 
+test("new release navigation hides compatibility ZIPs while retaining historical output", () => {
+  assert.match(renderDesktopDownloads("0.0.7"), /Windows-x64-Portable\.zip/);
+  const text = renderDesktopDownloads("0.0.8");
+  assert.doesNotMatch(text, /Portable\.zip|免安装压缩包/);
+  assert.equal([...text.matchAll(/\]\(https:/g)].length, 7);
+  for (const arch of ["x64", "arm64"]) assert.ok(text.includes(`Windows-${arch}-Setup.exe`));
+});
+
 test("build outputs become one versioned artifact each with idempotent retries", () => {
  for (const version of ["0.0.1", "0.0.2"]) {
   const dir=mkdtempSync(path.join(tmpdir(),"deepzora-downloads-"));

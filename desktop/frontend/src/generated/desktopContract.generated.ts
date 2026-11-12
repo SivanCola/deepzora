@@ -3,7 +3,7 @@
 
 export const DESKTOP_PROTOCOL_VERSION = 11;
 
-export const DESKTOP_CONTRACT_DIGEST = "sha256:7eccf12fe33ad5456f2c9f55f1867291a2c46935d4a484273c806df83b3a3e68";
+export const DESKTOP_CONTRACT_DIGEST = "sha256:741361958d4562006951b91e64b8b87117359cedd028a3155d073f0076a672b7";
 
 export const DESKTOP_COMMANDS = [
   "AIRenameSessionTarget",
@@ -428,6 +428,7 @@ export const DESKTOP_COMMANDS = [
   "SearchFileRefsForTab",
   "SearchFileRefsForTarget",
   "SearchHistoryContent",
+  "SearchPluginCatalog",
   "SearchSessionHistoryForTab",
   "SearchSessionHistoryForTarget",
   "SearchSessionHistoryRead",
@@ -2792,6 +2793,7 @@ export interface PluginHookView {
 }
 
 export interface PluginInstallOptions {
+  planId?: string;
   dryRun?: boolean;
   link?: boolean;
   replace?: boolean;
@@ -2817,6 +2819,8 @@ export interface PluginSkillView {
 }
 
 export interface PluginView {
+  catalogId?: string;
+  commit?: string;
   name: string;
   version?: string;
   description?: string;
@@ -5653,6 +5657,7 @@ export interface GeneratedDesktopCommands {
   SearchFileRefsForTab(arg0: string, arg1: string): Promise<DirEntry[]>;
   SearchFileRefsForTarget(arg0: ComposerTarget, arg1: string): Promise<DirEntry[]>;
   SearchHistoryContent(arg0: HistorySearchRequest): Promise<HistorySearchPage>;
+  SearchPluginCatalog(arg0: string, arg1: boolean): Promise<string>;
   SearchSessionHistoryForTab(arg0: string, arg1: string, arg2: string, arg3: number): Promise<SearchHistoryPage>;
   SearchSessionHistoryForTarget(arg0: SessionSelector, arg1: string, arg2: string, arg3: number): Promise<SearchHistoryPage>;
   SearchSessionHistoryRead(arg0: string, arg1: string, arg2: string, arg3: number): Promise<SearchHistoryPage>;

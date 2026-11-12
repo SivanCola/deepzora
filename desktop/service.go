@@ -12,6 +12,7 @@ import (
 
 	"deepzora/desktop/internal/hostrpc"
 	"deepzora/internal/plugin"
+	"deepzora/internal/plugincatalog"
 	"deepzora/internal/weboptions"
 )
 
@@ -159,4 +160,5 @@ func ConfigureBuildIdentity(buildVersion, buildChannel, selfUpdate string) {
 	version, channel, macSelfUpdate = buildVersion, buildChannel, selfUpdate
 	// Package init runs before an entry point can pass its linked version.
 	plugin.SetMCPClientVersion(version)
+	plugincatalog.HostVersion = version
 }

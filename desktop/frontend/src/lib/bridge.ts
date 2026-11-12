@@ -388,6 +388,7 @@ export interface AppBindings extends AttachmentBindings, SessionExportBindings, 
   RetryAuthenticationForTab(tabId: string): Promise<NonNullable<TabMeta["authentication"]>>;
   RuntimeDoctor(): Promise<RuntimeDoctorReport>;
   Plugins(): Promise<PluginView[]>;
+  SearchPluginCatalog(query: string, topics: boolean): Promise<string>;
   PlanPluginInstall(source: string, options: PluginInstallOptions): Promise<string>;
   InstallPlugin(source: string, options: PluginInstallOptions): Promise<string>;
   RemovePlugin(name: string): Promise<void>;
@@ -3250,16 +3251,21 @@ function makeMockApp(): MockAppBindings {
     async Plugins() {
       return capPlugins.map((p) => ({ ...p }));
     },
+    async SearchPluginCatalog() {
+      return JSON.stringify({ entries: [{ id:"community/review-checklist",spec:"catalog:community/review-checklist@1.0.0",name:"Review Checklist",repo:"SivanCola/deepzora-plugins",path:"packages/review-checklist",commit:"762d58f80167bdc0059eacb230afb88c32e42df3",version:"1.0.0",channel:"community",summary:{en:"Review changes and test coverage.",zh:"审阅改动与测试覆盖。"},capabilities:["Skills"] }] });
+    },
     async PlanPluginInstall(source: string, options: PluginInstallOptions) {
       const name = options.name || source.split("/").filter(Boolean).pop()?.replace(/\.git$/, "") || "plugin";
       return JSON.stringify({
         ok: true,
         status: "planned",
         kind: "plugin",
+        planId: "mock-market-plan",
         actions: [{ kind: "plugin", action: "install_plugin_package", name, source, status: "planned" }],
       });
     },
     async InstallPlugin(source: string, options: PluginInstallOptions) {
+      if (/^(catalog|topic):/.test(source) && options.planId !== "mock-market-plan") throw new Error("Missing catalog approval");
       const name = options.name || source.split("/").filter(Boolean).pop()?.replace(/\.git$/, "") || "plugin";
       const existing = capPlugins.findIndex((p) => p.name === name);
       const view: PluginView = {

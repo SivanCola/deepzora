@@ -6020,6 +6020,21 @@
       ]
     }
   },
+  "SearchPluginCatalog": {
+    "domain": "desktop/plugin_packages_app.go",
+    "owner": "App.SearchPluginCatalog",
+    "sources": [
+      "desktop/plugin_packages_app.go"
+    ],
+    "scope": {
+      "kind": "owner-inputs",
+      "resolver": "App.SearchPluginCatalog",
+      "inputs": [
+        "query",
+        "topics"
+      ]
+    }
+  },
   "SearchSessionHistoryForTab": {
     "domain": "desktop/session_history_service.go",
     "owner": "App.SearchSessionHistoryForTab",

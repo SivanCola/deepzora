@@ -54,6 +54,42 @@ func TestVersionedDesktopDownloads(t *testing.T) {
 	}
 }
 
+// Freeze the v0.0.7 matrix: older clients validate all downloads, even those
+// belonging to another platform. Windows updates already use Setup.exe.
+func TestInstallerOnlyReleasePreservesLegacyUpdaterMatrix(t *testing.T) {
+	m := validDesktopManifest(t, "stable", "v0.0.8")
+	for _, suffix := range []string{
+		"macOS-arm64.dmg", "macOS-x64.dmg", "macOS-universal.dmg",
+		"Windows-x64-Setup.exe", "Windows-arm64-Setup.exe", "Linux-x64.deb",
+		"Windows-x64-Portable.zip", "Windows-arm64-Portable.zip",
+		"Linux-x64.tar.gz", "macOS-arm64.zip", "macOS-x64.zip",
+	} {
+		if _, ok := m.Downloads["Deepzora-0.0.8-"+suffix]; !ok {
+			t.Fatalf("missing legacy manifest entry: %s", suffix)
+		}
+	}
+	if len(m.Downloads) != 11 {
+		t.Fatalf("legacy clients require exactly eleven downloads, got %d", len(m.Downloads))
+	}
+	for _, arch := range []string{"amd64", "arm64"} {
+		cpu := arch
+		if arch == "amd64" {
+			cpu = "x64"
+		}
+		name := "Deepzora-0.0.8-Windows-" + cpu + "-Setup.exe"
+		if m.Platforms["windows-"+arch] != m.Downloads[name] {
+			t.Fatalf("legacy Windows updater must select signed installer: %s", arch)
+		}
+		key := "Deepzora-0.0.8-Windows-" + cpu + "-Portable.zip"
+		a := m.Downloads[key]
+		a.Size = 1024
+		m.Downloads[key] = a
+	}
+	if err := validateDesktopManifest("stable", &m); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestDesktopManifestArchitectureDownloads(t *testing.T) {
 	t.Run("historical two-download manifests are rejected", func(t *testing.T) {
 		stable := validDesktopManifest(t, "stable", "v1.17.21")
