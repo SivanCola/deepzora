@@ -127,7 +127,7 @@ func pluginMarketCommand(args []string) int {
 
 func pluginUsage() {
 	fmt.Fprintln(os.Stderr, `usage:
-deepzora plugin search [query] [--all]
+  deepzora plugin search [query] [--all]
   deepzora plugin info catalog:<id>[@version]
   deepzora plugin updates
   deepzora plugin update <name> --dry-run | --yes --plan-id <id>

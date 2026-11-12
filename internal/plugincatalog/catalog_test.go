@@ -16,7 +16,7 @@ func TestDiscoveryIsNotApproval(t *testing.T) {
 	t.Setenv("DEEPZORA_PLUGIN_TAGGED", topics)
 	row := Release{ID: "community/a", Name: "Tool", Version: "1.0.0", Repo: "A/Repo", Commit: strings.Repeat("a", 40), ManifestName: "tool", ManifestKind: "deepzora", Summary: map[string]string{"en": "Tool", "zh": "工具"}}
 	put := func(p string, rows ...Release) {
-		b, _ := json.Marshal(Index{1, rows})
+		b, _ := json.Marshal(Index{SchemaVersion: 1, Releases: rows})
 		if err := os.WriteFile(p, b, 0600); err != nil {
 			t.Fatal(err)
 		}
@@ -59,5 +59,26 @@ func TestDiscoveryIsNotApproval(t *testing.T) {
 	}
 	if _, err = Resolve(t.Context(), h, e.Spec); err == nil {
 		t.Fatal("offline cache authorized installation")
+	}
+}
+
+func TestMalformedRowsDoNotHideValidReleases(t *testing.T) {
+	good := Release{ID: "a/tool", Name: "Tool", Version: "1.0.0", Repo: "a/tool", Commit: strings.Repeat("a", 40), ManifestName: "tool", ManifestKind: "deepzora", Summary: map[string]string{"en": "Tool", "zh": "工具"}}
+	badVersion, badName, squatter := good, good, good
+	badVersion.ID, badVersion.Repo, badVersion.Version = "b/tool", "b/tool", "1.0.0-a..b"
+	badName.ID, badName.Repo, badName.ManifestName = "c/tool", "c/tool", "has space"
+	squatter.ID = "d/tool" // same repository and path as good, under another ID
+	b, _ := json.Marshal(Index{SchemaVersion: 1, Releases: []Release{good, badVersion, badName, squatter}})
+	idx, err := Parse(b)
+	if err != nil || len(idx.Releases) != 1 || idx.Releases[0].ID != "a/tool" || idx.Skipped != 3 {
+		t.Fatal(idx, err)
+	}
+	file := filepath.Join(t.TempDir(), "tagged.json")
+	if err = os.WriteFile(file, b, 0600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("DEEPZORA_PLUGIN_TAGGED", file)
+	if _, err = Resolve(t.Context(), t.TempDir(), "topic:b/tool"); err == nil {
+		t.Fatal("a dropped release must not be installable")
 	}
 }

@@ -180,19 +180,11 @@ func (t *installSourceTool) Execute(ctx context.Context, raw json.RawMessage) (s
 		return t.executeUninstall(req), nil
 	}
 
-	if catalogSpec(req.Source) && req.Apply {
-		if req.PlanID == "" {
-			return "", errors.New("catalog installation requires a preview and --plan-id")
-		}
-		unlock, err := t.lockCatalog(ctx)
-		if err != nil {
-			return "", err
-		}
-		defer unlock()
-		if err := recoverCatalog(t.deepzoraHome); err != nil {
-			return "", err
-		}
+	unlock, err := t.beginCatalogApply(ctx, req)
+	if err != nil {
+		return "", err
 	}
+	defer unlock()
 	actions, warnings, err := t.plan(ctx, req)
 	if err != nil {
 		if errors.Is(err, ErrNoCompatibleCapabilities) {

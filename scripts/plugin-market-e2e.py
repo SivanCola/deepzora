@@ -15,14 +15,16 @@ with tempfile.TemporaryDirectory(prefix="deepzora-market-") as tmp:
     env = dict(os.environ, HOME=str(t), DEEPZORA_HOME=str(t/"home"),
                GIT_CONFIG_GLOBAL=str(t/"gitconfig"), XDG_CONFIG_HOME=str(t/"config"),
                DEEPZORA_PLUGIN_CATALOG=str(t/"index.json"), DEEPZORA_PLUGIN_TAGGED=str(t/"tagged.json"))
-    def run(*args, ok=True):
+    def run(*args, ok=True, why=""):
         r = subprocess.run(args, cwd=repo, env=env, text=True, capture_output=True, timeout=60)
         assert (r.returncode == 0) == ok, (args, r.stdout, r.stderr)
+        # A refusal must be the intended one, not an unrelated failure.
+        assert why in r.stdout + r.stderr, (args, why, r.stdout, r.stderr)
         return r.stdout.strip()
     def git(*args):
         return run("git",*args)
-    def dz(*args,ok=True):
-        return run(str(cli),"plugin",*args,ok=ok)
+    def dz(*args,ok=True,why=""):
+        return run(str(cli),"plugin",*args,ok=ok,why=why)
     git("init","-q")
     git("config","user.name","Acceptance")
     git("config","user.email","test@example.invalid")
@@ -42,13 +44,15 @@ with tempfile.TemporaryDirectory(prefix="deepzora-market-") as tmp:
         (t/(channel+".json")).write_text(json.dumps(dict(schemaVersion=1,releases=rows)))
     row=release("1.0.0",sha)
     publish([row]);publish([dict(row,id="third/kit")],"tagged")
+    publish([dict(row,id="third/kit"),dict(row,id="bad/kit",repo="bad/kit",version="1.0.0-a..b")],"tagged")
     spec="catalog:test/kit"
     assert len(json.loads(dz("search","--all","review"))["entries"])==1
     plan=json.loads(dz("install",spec,"--dry-run"))
     assert plan["actions"][0]["commit"]==sha and plan["actions"][0]["skillCount"]==1
     new=commit("1.1.0")
     git("tag","-f","latest")
-    dz("install",spec,"--yes","--plan-id","wrong",ok=False)
+    dz("install",spec,"--yes",ok=False,why="requires a preview")
+    dz("install",spec,"--yes","--plan-id","wrong",ok=False,why="planId mismatch")
     dest=t/"home"/"plugins"/"kit"
     assert not dest.exists()
     dz("install",spec,"--yes","--plan-id",plan["planId"])
@@ -62,7 +66,12 @@ with tempfile.TemporaryDirectory(prefix="deepzora-market-") as tmp:
     publish([row,nextrow])
     update=json.loads(dz("update","kit","--dry-run"))
     publish([row,dict(nextrow,yanked=True)])
-    dz("update","kit","--yes","--plan-id",update["planId"],ok=False)
+    # With 1.1.0 withdrawn the catalog resolves to 1.0.0, which is not the approved plan.
+    dz("update","kit","--yes","--plan-id",update["planId"],ok=False,why="planId mismatch")
+    dz("install",spec+"@1.1.0","--replace","--name","kit","--dry-run",ok=False,why="no installable release")
+    assert state()["commit"]==sha
+    publish([row,dict(nextrow,commit=sha)])
+    dz("update","kit","--yes","--plan-id",update["planId"],ok=False,why="catalog identity does not match")
     assert state()["commit"]==sha
     publish([row,nextrow])
     dz("update","kit","--yes","--plan-id",update["planId"])
@@ -71,7 +80,7 @@ with tempfile.TemporaryDirectory(prefix="deepzora-market-") as tmp:
     other=dict(nextrow,id="someone/kit",repo="test/other")
     git("config","--global","--add","url."+repo.as_uri()+".insteadOf","https://github.com/test/other.git")
     publish([nextrow,other])
-    dz("install","catalog:someone/kit","--replace","--dry-run",ok=False)
+    dz("install","catalog:someone/kit","--replace","--dry-run",ok=False,why="belongs to another source")
     # The other supported manifest path: one mapped skill plus a skipped feature.
     compat=repo/"compat"
     (compat/".claude-plugin").mkdir(parents=True)
@@ -84,5 +93,5 @@ with tempfile.TemporaryDirectory(prefix="deepzora-market-") as tmp:
     cp=json.loads(dz("install","catalog:test/compat","--dry-run"))
     assert cp["actions"][0]["skillCount"]==1
     dz("install","catalog:test/compat","--yes","--plan-id",cp["planId"])
-    print("PASS: search, deduplication, immutable Git snapshot after tag moved, plan identity, withdrawal, upgrade, disabled state, collision and compatible package.")
+    print("PASS: search, deduplication, malformed rows ignored, pinned commit after the branch and tag moved, plan identity, re-pointed index, withdrawal, upgrade, disabled state, collision and compatible package.")
 

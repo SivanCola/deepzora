@@ -119,21 +119,44 @@ func recoverCatalog(home string) error {
 			break
 		}
 	}
-	if !staged && current != nil && *current == tx.Next {
+	return settleCatalog(d, target, current, tx, staged, moved)
+}
+
+// settleCatalog reconciles the two staged trees with the installed record,
+// which is the authority for what the target directory must contain.
+func settleCatalog(d, target string, current *pluginpkg.InstalledPlugin, tx catalogTransaction, staged, moved bool) error {
+	stage, prior := filepath.Join(d, "next"), filepath.Join(d, "previous")
+	if !staged && current != nil && sameRelease(*current, tx.Next) {
 		return os.RemoveAll(d)
 	}
-	if current != nil && (tx.Previous == nil || *current != *tx.Previous) || current == nil && tx.Previous != nil {
-		return errors.New("installed record changed during recovery; previous package retained")
-	}
-	if !staged {
-		if err = os.Rename(target, stage); err != nil && !os.IsNotExist(err) {
+	restore := moved
+	if current == nil && tx.Previous == nil || current != nil && tx.Previous != nil && sameRelease(*current, *tx.Previous) {
+		if !staged {
+			if err := os.Rename(target, stage); err != nil && !os.IsNotExist(err) {
+				return err
+			}
+		}
+	} else if restore = restore && current != nil; restore {
+		// Another operation rewrote the record after the interruption and owns
+		// the target; refusing would block every later catalog write. Restore
+		// the previous tree only when that record's tree is gone.
+		present, err := exists(target)
+		if err != nil {
 			return err
 		}
+		restore = !present
 	}
-	if moved {
-		if err = os.Rename(prior, target); err != nil {
+	if restore {
+		if err := os.Rename(prior, target); err != nil {
 			return err
 		}
 	}
 	return os.RemoveAll(d)
+}
+
+// sameRelease compares installed records ignoring the enabled switch, which a
+// user may toggle between an interruption and its recovery.
+func sameRelease(a, b pluginpkg.InstalledPlugin) bool {
+	a.Enabled = b.Enabled
+	return a == b
 }

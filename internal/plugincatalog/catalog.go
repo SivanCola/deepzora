@@ -51,6 +51,8 @@ type Release struct {
 type Index struct {
 	SchemaVersion int       `json:"schemaVersion"`
 	Releases      []Release `json:"releases"`
+	// Skipped counts malformed or conflicting rows Parse dropped.
+	Skipped int `json:"-"`
 }
 type Candidate struct {
 	Spec    string `json:"spec"`
@@ -83,6 +85,11 @@ func (r Release) Compatible() bool {
 	}
 	return slices.Contains(r.Platforms, runtime.GOOS)
 }
+
+// Parse keeps every well-formed release and drops the rest. The unreviewed
+// index is assembled from repositories anyone can tag, so one malformed row
+// must not hide the others; a dropped row cannot be resolved, so installation
+// still fails closed for it.
 func Parse(b []byte) (Index, error) {
 	var idx Index
 	if err := json.Unmarshal(b, &idx); err != nil {
@@ -94,37 +101,19 @@ func Parse(b []byte) (Index, error) {
 	seen := map[string]bool{}
 	sources := map[string]string{}
 	ids := map[string]string{}
+	kept := make([]Release, 0, len(idx.Releases))
 	for _, r := range idx.Releases {
-		if !pair.MatchString(r.ID) || strings.ToLower(r.ID) != r.ID || !pair.MatchString(r.Repo) || !sha.MatchString(r.Commit) || !segment.MatchString(r.ManifestName) || strings.TrimSpace(r.Name) == "" || !semver.IsValid("v"+r.Version) || semver.Canonical("v"+r.Version) != "v"+r.Version {
-			return idx, fmt.Errorf("invalid release %q @ %q", r.ID, r.Version)
-		}
-		if strings.TrimSpace(r.Summary["en"]) == "" || strings.TrimSpace(r.Summary["zh"]) == "" {
-			return idx, fmt.Errorf("missing localized summary for %s", r.ID)
-		}
-		if r.ManifestKind != "deepzora" && r.ManifestKind != "codex" && r.ManifestKind != "claude" {
-			return idx, fmt.Errorf("unsupported manifest kind %s", r.ManifestKind)
-		}
-		if r.Path != "" {
-			if path.Clean(r.Path) != r.Path {
-				return idx, errors.New("invalid package path")
-			}
-			for s := range strings.SplitSeq(r.Path, "/") {
-				if !segment.MatchString(s) {
-					return idx, errors.New("invalid package path")
-				}
-			}
-		}
-		if r.MinDeepzora != "" && !semver.IsValid("v"+r.MinDeepzora) {
-			return idx, fmt.Errorf("invalid minDeepzora for %s", r.ID)
-		}
 		key := r.ID + "@" + r.Version
-		if seen[key] || sources[r.origin()] != "" && sources[r.origin()] != r.ID || ids[r.ID] != "" && ids[r.ID] != r.origin() {
-			return idx, fmt.Errorf("conflicting catalog entry %s", key)
+		if validRelease(r) != nil || seen[key] || sources[r.origin()] != "" && sources[r.origin()] != r.ID || ids[r.ID] != "" && ids[r.ID] != r.origin() {
+			idx.Skipped++
+			continue
 		}
 		seen[key] = true
 		sources[r.origin()] = r.ID
 		ids[r.ID] = r.origin()
+		kept = append(kept, r)
 	}
+	idx.Releases = kept
 	sort.Slice(idx.Releases, func(i, j int) bool {
 		a, b := idx.Releases[i], idx.Releases[j]
 		if a.ID == b.ID {
@@ -133,6 +122,32 @@ func Parse(b []byte) (Index, error) {
 		return a.ID < b.ID
 	})
 	return idx, nil
+}
+
+func validRelease(r Release) error {
+	if !pair.MatchString(r.ID) || strings.ToLower(r.ID) != r.ID || !pair.MatchString(r.Repo) || !sha.MatchString(r.Commit) || !segment.MatchString(r.ManifestName) || strings.TrimSpace(r.Name) == "" || !semver.IsValid("v"+r.Version) || semver.Canonical("v"+r.Version) != "v"+r.Version {
+		return fmt.Errorf("invalid release %q @ %q", r.ID, r.Version)
+	}
+	if strings.TrimSpace(r.Summary["en"]) == "" || strings.TrimSpace(r.Summary["zh"]) == "" {
+		return fmt.Errorf("missing localized summary for %s", r.ID)
+	}
+	if r.ManifestKind != "deepzora" && r.ManifestKind != "codex" && r.ManifestKind != "claude" {
+		return fmt.Errorf("unsupported manifest kind %s", r.ManifestKind)
+	}
+	if r.Path != "" {
+		if path.Clean(r.Path) != r.Path {
+			return errors.New("invalid package path")
+		}
+		for s := range strings.SplitSeq(r.Path, "/") {
+			if !segment.MatchString(s) {
+				return errors.New("invalid package path")
+			}
+		}
+	}
+	if r.MinDeepzora != "" && !semver.IsValid("v"+r.MinDeepzora) {
+		return fmt.Errorf("invalid minDeepzora for %s", r.ID)
+	}
+	return nil
 }
 func location(topic bool) (string, string) {
 	key, file, channel := "DEEPZORA_PLUGIN_CATALOG", "index-v1.json", "community"
@@ -249,6 +264,8 @@ func Search(ctx context.Context, home, q string, topics bool) (Result, error) {
 		}
 		if w != "" {
 			out.Warning = w
+		} else if idx.Skipped > 0 {
+			out.Warning = fmt.Sprintf("%d malformed catalog entries were ignored", idx.Skipped)
 		}
 		for _, r := range idx.Releases {
 			if r.Yanked || !r.Compatible() || semver.Prerelease("v"+r.Version) != "" {

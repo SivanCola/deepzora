@@ -3259,7 +3259,7 @@ function makeMockApp(): MockAppBindings {
       return JSON.stringify({
         ok: true,
         status: "planned",
-kind: "plugin",
+        kind: "plugin",
         planId: "mock-market-plan",
         actions: [{ kind: "plugin", action: "install_plugin_package", name, source, status: "planned" }],
       });

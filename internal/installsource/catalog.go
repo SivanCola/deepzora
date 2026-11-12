@@ -55,6 +55,28 @@ func (t *installSourceTool) lockCatalog(ctx context.Context) (func(), error) {
 	defer cancel()
 	return filelock.Acquire(c, filepath.Join(t.deepzoraHome, ".plugin-market.lock"))
 }
+
+// beginCatalogApply serializes catalog writes and settles any interrupted
+// transaction before planning, so the plan is computed against settled state.
+// Previews and non-catalog sources take no lock.
+func (t *installSourceTool) beginCatalogApply(ctx context.Context, req request) (func(), error) {
+	if !catalogSpec(req.Source) || !req.Apply {
+		return func() {}, nil
+	}
+	if req.PlanID == "" {
+		return nil, errors.New("catalog installation requires a preview and --plan-id")
+	}
+	unlock, err := t.lockCatalog(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := recoverCatalog(t.deepzoraHome); err != nil {
+		unlock()
+		return nil, err
+	}
+	return unlock, nil
+}
+
 func fetchSnapshot(ctx context.Context, tmp, url, sha string) error {
 	for _, args := range [][]string{{"init", "--quiet", tmp}, {"-C", tmp, "fetch", "--no-tags", "--depth=1", url, sha}, {"-C", tmp, "checkout", "--quiet", "--detach", "FETCH_HEAD"}} {
 		if out, err := pluginGitCommand(ctx, args...).CombinedOutput(); err != nil {
