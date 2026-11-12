@@ -17,6 +17,9 @@ fingerprint_files:
   - .github/actions/setup-certum/action.yml
   - scripts/sign-certum.ps1
   - scripts/validate-certum-configuration.mjs
+  - scripts/certum/Install-SimplySign.ps1
+  - scripts/certum/Connect-SimplySign.ps1
+  - scripts/certum-login-ui.ps1
   - scripts/install-nsis.ps1
   - .github/workflows/release-candidate.yml
   - .github/workflows/release-promote.yml
