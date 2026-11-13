@@ -88,6 +88,33 @@ foreach ($mode in @('installed','portable')) {
     if (-not $oldShell.WaitForExit(15000) -or -not $oldService.WaitForExit(1000)) { throw 'Old client did not exit normally for automatic update' }
     if (-not $helper.WaitForExit(240000)) { throw 'Published old helper did not finish the automatic update' }
     if ($helper.ExitCode -ne 0) { throw "Published old helper failed automatic update: $($helper.ExitCode)" }
+    # The old helper verifies the ready shell but does not join the stable
+    # launcher it started. Await that exact child's exit before testing another
+    # launch; otherwise the immutable old launcher's teardown can overlap our
+    # next process snapshot. Keep the helper handle alive so its PID cannot be
+    # reused, and never skip a still-present child that cannot be inspected.
+    $launchDeadline = [DateTime]::UtcNow.AddSeconds(40)
+    while ($true) {
+      $children = @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $($helper.Id) AND Name = 'Deepzora.exe'")
+      if ($children.Count -eq 0) { break }
+      $remaining = [int]($launchDeadline - [DateTime]::UtcNow).TotalMilliseconds
+      if ($remaining -le 0) { throw 'Old helper relauncher did not finish; child evidence remains unverified' }
+      foreach ($child in $children) {
+        $relaunchProcess = $null
+        try {
+          $relaunchProcess = Get-Process -Id $child.ProcessId -ErrorAction Stop
+          $null = $relaunchProcess.Handle
+        } catch {
+          if ($null -ne $relaunchProcess) { $relaunchProcess.Dispose() }
+          continue
+        }
+        try {
+          if (-not $relaunchProcess.WaitForExit($remaining)) { throw 'Old helper relauncher remained alive' }
+          if ($relaunchProcess.ExitCode -ne 0) { throw "Old helper relauncher failed: $($relaunchProcess.ExitCode)" }
+        } finally { $relaunchProcess.Dispose() }
+      }
+      Start-Sleep -Milliseconds 100
+    }
     & (Join-Path $PSScriptRoot 'test-windows-startup-recovery.ps1') -InstallRoot $install -ExpectedVersion $ExpectedVersion `
       -DataHome $homePath -EvidenceDirectory (Join-Path $root 'after') -ArtifactPath $installer | Out-Host
     if (-not $?) { throw 'Updated client failed startup, repeat launch or normal exit' }
