@@ -31,4 +31,7 @@ fingerprint_files:
   - scripts/verify-windows-authenticode.ps1
   - scripts/test-windows-installer-startup.ps1
   - scripts/test-windows-startup-recovery.ps1
+  - scripts/test-windows-legacy-update.ps1
+  - scripts/legacy-windows-update.gotest
+  - .github/workflows/verify-windows-auto-update.yml
   - cmd/release-signing-contract/main.go

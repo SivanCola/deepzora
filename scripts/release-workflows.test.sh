@@ -39,7 +39,10 @@ fi
 for arch in x64 arm64; do
   grep -Fq "\"suffix\": \"Windows-$arch-Setup.exe\"" internal/releaseassets/desktop.json
 done
-[ "$(grep -Fc -e "-Filter '*-Setup.exe' -File" .github/workflows/release-desktop.yml)" = 2 ]
+[ "$(grep -Fc -e "-Filter '*-Setup.exe' -File" .github/workflows/release-desktop.yml)" = 3 ]
+grep -Fq 'test-windows-legacy-update.ps1 -InstallerPath $installer[0].FullName' .github/workflows/release-desktop.yml
+grep -Fq '$receipt.legacyUpgrade = $upgrade' .github/workflows/release-desktop.yml
+grep -Fq 'needs: [preflight, mirror]' .github/workflows/release-promote.yml
 # Historical releases require portable startup; installer-only releases verify
 # the exact compatibility notice. Both bind the final archive in their receipt.
 [ "$(grep -Fc -e "-Filter '*-Portable.zip' -File" .github/workflows/release-desktop.yml)" = 2 ]

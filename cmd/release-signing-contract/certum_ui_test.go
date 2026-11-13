@@ -21,9 +21,17 @@ func TestPowerShellCertumWindowReadiness(t *testing.T) {
 		}
 		found = true
 		t.Run(name, func(t *testing.T) {
-			command := exec.Command(binary, "-NoLogo", "-NoProfile", "-NonInteractive", "-File", script)
-			if output, err := command.CombinedOutput(); err != nil {
-				t.Fatalf("Certum UI regression: %v\n%s", err, output)
+			scripts := []string{script}
+			if runtime.GOOS == "windows" {
+				for _, name := range []string{"test-windows-installer-startup.test.ps1", "test-windows-upgrade-startup.test.ps1"} {
+					scripts = append(scripts, filepath.Join(filepath.Dir(script), name))
+				}
+			}
+			for _, file := range scripts {
+				command := exec.Command(binary, "-NoLogo", "-NoProfile", "-NonInteractive", "-File", file)
+				if output, err := command.CombinedOutput(); err != nil {
+					t.Fatalf("Windows signing/acceptance regression %s: %v\n%s", file, err, output)
+				}
 			}
 		})
 	}

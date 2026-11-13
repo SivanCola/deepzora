@@ -158,11 +158,17 @@ function requireAcceptanceReceipt(payloadRoot, files, metadata, item) {
         || receipt.compatibilityStatus !== "passed" || !/^[0-9a-f]{64}$/.test(receipt.compatibilitySha256 ?? "")) {
       throw new Error(`installer-only Windows acceptance requires a verified compatibility notice: ${item.kind}`);
     }
+    const upgrade = receipt.legacyUpgrade;
+    if (upgrade?.sourceVersion !== "v0.0.7" || upgrade.targetVersion !== receipt.version
+        || upgrade.targetSHA256 !== receipt.sha256 || upgrade.installed !== "passed" || upgrade.portable !== "passed"
+        || upgrade.architecture !== platform.slice("windows-".length)) {
+      throw new Error(`legacy Windows automatic handoff did not qualify this installer: ${item.kind}`);
+    }
     const compatibility = identity.files.find(file => file.sha256 === receipt.compatibilitySha256 && file.name.endsWith("-Portable.zip"));
     if (!compatibility) throw new Error(`candidate compatibility acceptance does not name a sealed archive: ${item.kind}`);
     verifyWindowsCompatibilityArchive(readFileSync(path.join(payloadRoot, "desktop", platform, "files", compatibility.name)),
       metadata.version, platform.slice("windows-".length));
-    return { ...item, evidenceSha256: evidence.sha256, artifactSha256: receipt.sha256, compatibilityArtifactSha256: receipt.compatibilitySha256 };
+    return { ...item, evidenceSha256: evidence.sha256, artifactSha256: receipt.sha256, compatibilityArtifactSha256: receipt.compatibilitySha256, legacyUpgradeFrom: upgrade.sourceVersion };
   }
   if (receipt.schema === 3) throw new Error("installer-only acceptance is invalid for this release");
   if (windows && windowsSigningMode(metadata.version, "stable") === "certum" && receipt.schema !== 2) {
@@ -292,6 +298,9 @@ export function verifyCandidate(payloadRoot, record, now = new Date(), purpose =
     }, item);
     if (validated.artifactSha256 !== item.artifactSha256) {
       throw new Error(`candidate acceptance artifact mismatch: ${item.kind}`);
+    }
+    if (validated.legacyUpgradeFrom !== item.legacyUpgradeFrom) {
+      throw new Error(`candidate legacy upgrade source mismatch: ${item.kind}`);
     }
     if (validated.compatibilityArtifactSha256 !== item.compatibilityArtifactSha256) {
       throw new Error(`candidate compatibility acceptance artifact mismatch: ${item.kind}`);

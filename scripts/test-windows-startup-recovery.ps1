@@ -7,6 +7,7 @@ param(
   [string]$DataHome = '',
   [string]$ExpectedVisibleText = '',
   [switch]$PrepareHistoricalSession,
+  [switch]$KeepRunning,
   [string]$EvidenceDirectory = (Join-Path $env:TEMP ('deepzora-recovery-' + [guid]::NewGuid().ToString('N')))
 )
 $ErrorActionPreference = 'Stop'
@@ -105,10 +106,12 @@ try {
   if ($ExpectedVisibleText) {
     Assert-VisibleContentAndCapture $first.Shell $ExpectedVisibleText (Join-Path $EvidenceDirectory 'upgraded-history.png')
   }
-  Start-Process $shellPath -ArgumentList '--deepzora-lifecycle-request=quit' | Out-Null
-  if (-not $first.Shell.WaitForExit(15000) -or -not $first.Service.WaitForExit(1000)) { throw 'Normal exit left a shell or service alive' }
-  $shellLog = Get-Content (Join-Path $dataHome 'desktop-shell\logs\shell.log') -Raw
-  if ($shellLog -match 'exit deadline exceeded|killing it|termination failed') { throw 'Forced cleanup is not a normal-exit pass' }
+  if (-not $KeepRunning) {
+    Start-Process $shellPath -ArgumentList '--deepzora-lifecycle-request=quit' | Out-Null
+    if (-not $first.Shell.WaitForExit(15000) -or -not $first.Service.WaitForExit(1000)) { throw 'Normal exit left a shell or service alive' }
+    $shellLog = Get-Content (Join-Path $dataHome 'desktop-shell\logs\shell.log') -Raw
+    if ($shellLog -match 'exit deadline exceeded|killing it|termination failed') { throw 'Forced cleanup is not a normal-exit pass' }
+  }
   $artifactHash = if ($ArtifactPath) { (Get-FileHash -Algorithm SHA256 $ArtifactPath).Hash } elseif ($PortableZip) { (Get-FileHash -Algorithm SHA256 $PortableZip).Hash } else { '' }
   $report = @{
     artifact=$artifactHash
@@ -117,7 +120,7 @@ try {
     architecture=$env:PROCESSOR_ARCHITECTURE
     shellPID=$first.Shell.Id
     servicePID=$first.Service.Id
-    startup='passed'; secondLaunch='passed'; normalExit='passed'; visibleHistory=if ($ExpectedVisibleText) { 'passed' } else { 'not requested' }
+    startup='passed'; secondLaunch='passed'; normalExit=if ($KeepRunning) { 'not exercised' } else { 'passed' }; visibleHistory=if ($ExpectedVisibleText) { 'passed' } else { 'not requested' }
     signing='not checked'; installer=if ($PSCmdlet.ParameterSetName -eq 'Installed') { 'passed' } else { 'not exercised' }; recoveryConsent='not exercised'
   }
   $report | ConvertTo-Json | Set-Content (Join-Path $EvidenceDirectory 'result.json')

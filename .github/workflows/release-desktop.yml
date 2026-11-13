@@ -819,12 +819,73 @@ jobs:
         overwrite: true
         if-no-files-found: error
         retention-days: 30
+  windows-legacy-upgrade:
+    name: verify v0.0.7 automatic handoff (${{ matrix.arch }})
+    needs: [resolve, windows-sign]
+    if: ${{ always() && !cancelled() && needs.resolve.result == 'success' && needs.windows-sign.result == 'success' }}
+    permissions:
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - runner: windows-latest
+          arch: amd64
+        - runner: windows-11-arm
+          arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        ref: ${{ github.workflow_sha }}
+        path: release-control
+        persist-credentials: false
+    - name: Select legacy upgrade qualification
+      id: policy
+      shell: pwsh
+      run: |
+        $mode = node ./release-control/scripts/windows-distribution.mjs mode "${{ needs.resolve.outputs.version }}"
+        if ($LASTEXITCODE -ne 0) { throw 'Invalid Windows distribution policy' }
+        "required=$($mode -eq 'installer-only')" >> $env:GITHUB_OUTPUT
+    - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+      if: steps.policy.outputs.required == 'True'
+      with:
+        name: ${{ needs.resolve.outputs.artifact_prefix }}-windows-${{ matrix.arch }}
+        path: ${{ runner.temp }}/windows-bundle
+    - name: Upgrade published installed and portable clients with their own helper
+      if: steps.policy.outputs.required == 'True'
+      shell: pwsh
+      run: |
+        $installer = @(Get-ChildItem -LiteralPath "$env:RUNNER_TEMP/windows-bundle/files" -Filter '*-Setup.exe' -File)
+        if ($installer.Count -ne 1) { throw 'Expected one exact candidate installer' }
+        ./release-control/scripts/test-windows-legacy-update.ps1 -InstallerPath $installer[0].FullName -Architecture "${{ matrix.arch }}" -ExpectedVersion "${{ needs.resolve.outputs.version }}" -EvidenceDirectory "$env:RUNNER_TEMP/deepzora-legacy-update"
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      if: always() && steps.policy.outputs.required == 'True'
+      with:
+        name: windows-legacy-update-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.arch }}
+        path: |
+          ${{ runner.temp }}/deepzora-legacy-update/**/*.json
+          ${{ runner.temp }}/deepzora-legacy-update/**/*.log
+          !${{ runner.temp }}/deepzora-legacy-update/*/installed/**
+          !${{ runner.temp }}/deepzora-legacy-update/**/cache/**
+        if-no-files-found: ignore
+        retention-days: 90
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      if: steps.policy.outputs.required == 'True'
+      with:
+        name: ${{ needs.resolve.outputs.artifact_prefix }}-legacy-upgrade-${{ matrix.arch }}
+        path: ${{ runner.temp }}/deepzora-legacy-update/legacy-update.json
+        if-no-files-found: error
+        retention-days: 90
   windows-runtime-acceptance:
     name: verify Windows installer (${{ matrix.arch }}, ${{ needs.resolve.outputs.windows_signing }})
     needs:
     - resolve
     - windows-sign
-    if: ${{ always() && !cancelled() && needs.resolve.result == 'success' && needs.windows-sign.result == 'success' }}
+    - windows-legacy-upgrade
+    if: ${{ always() && !cancelled() && needs.resolve.result == 'success' && needs.windows-sign.result == 'success' && needs.windows-legacy-upgrade.result == 'success' }}
     permissions:
       contents: read
       actions: read
@@ -892,6 +953,11 @@ jobs:
           !${{ runner.temp }}/deepzora-portable-acceptance/**/cache/**
         if-no-files-found: ignore
         retention-days: 90
+    - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+      if: steps.distribution.outputs.mode == 'installer-only'
+      with:
+        name: ${{ needs.resolve.outputs.artifact_prefix }}-legacy-upgrade-${{ matrix.arch }}
+        path: ${{ runner.temp }}/legacy-upgrade-receipt
     - name: Record Windows acceptance receipt
       shell: pwsh
       run: |
@@ -904,6 +970,9 @@ jobs:
         $archiveHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $portable[0].FullName).Hash.ToLowerInvariant()
         if ("${{ steps.distribution.outputs.mode }}" -eq 'installer-only') {
           $receipt.schema = 3
+          $upgrade = Get-Content -LiteralPath "$env:RUNNER_TEMP/legacy-upgrade-receipt/legacy-update.json" -Raw | ConvertFrom-Json
+          if ($upgrade.targetSHA256 -ne $receipt.sha256 -or $upgrade.targetVersion -ne $receipt.version -or $upgrade.installed -ne 'passed' -or $upgrade.portable -ne 'passed') { throw 'Legacy upgrade did not qualify this installer' }
+          $receipt.legacyUpgrade = $upgrade
           $receipt.compatibilityStatus = 'passed'
           $receipt.compatibilitySha256 = $archiveHash
         } else {

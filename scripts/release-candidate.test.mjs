@@ -67,7 +67,8 @@ function fixture(t, version = "1.2.3") {
       version: `v${version}`,
       sha256: createHash("sha256").update(windows ? `${platform}:installer` : platform).digest("hex"),
       ...(signed ? (windowsInstallerOnly(version)
-        ? { compatibilityStatus: 'passed', compatibilitySha256: createHash('sha256').update(compatibility(version, platform)).digest('hex') }
+        ? { compatibilityStatus: 'passed', compatibilitySha256: createHash('sha256').update(compatibility(version, platform)).digest('hex'),
+          legacyUpgrade: { sourceVersion: 'v0.0.7', targetVersion: `v${version}`, targetSHA256: createHash('sha256').update(`${platform}:installer`).digest('hex'), architecture: platform.slice('windows-'.length), installed: 'passed', portable: 'passed' } }
         : { portableStatus: 'passed', portableSha256: createHash('sha256').update(`${platform}:portable`).digest('hex') }) : {}),
     }));
   }
@@ -201,11 +202,29 @@ for (const mutation of ['missing', 'failed', 'foreign', 'installer-as-archive', 
   });
 }
 
+for (const mutation of ['missing', 'wrong-target', 'installed-failed', 'portable-failed']) {
+  test(`installer-only receipt rejects ${mutation} old updater qualification`, t => {
+    const root = fixture(t);
+    const file = path.join(root, 'evidence/windows-amd64.json');
+    const value = JSON.parse(readFileSync(file, 'utf8'));
+    if (mutation === 'missing') delete value.legacyUpgrade;
+    if (mutation === 'wrong-target') value.legacyUpgrade.targetSHA256 = 'f'.repeat(64);
+    if (mutation === 'installed-failed') value.legacyUpgrade.installed = 'failed';
+    if (mutation === 'portable-failed') value.legacyUpgrade.portable = 'failed';
+    writeFileSync(file, JSON.stringify(value));
+    assert.throws(() => sealCandidate(root, metadata), /automatic handoff/);
+  });
+}
+
 test('sealed Windows acceptance binds installer and exact text-only compatibility hashes', t => {
   const root = fixture(t);
   const record = sealCandidate(root, metadata);
   const item = record.acceptance.find(item => item.kind === 'windows-amd64');
   assert.equal(item.artifactSha256, createHash('sha256').update('windows-amd64:installer').digest('hex'));
+  assert.equal(item.legacyUpgradeFrom, 'v0.0.7');
+  item.legacyUpgradeFrom = 'v0.0.6';
+  assert.throws(() => verifyCandidate(root, record, new Date('2026-01-02T00:00:00Z')), /legacy upgrade source mismatch/);
+  item.legacyUpgradeFrom = 'v0.0.7';
   assert.equal(item.compatibilityArtifactSha256, createHash('sha256').update(compatibility(metadata.version, 'windows-amd64')).digest('hex'));
   item.compatibilityArtifactSha256 = 'f'.repeat(64);
   assert.throws(() => verifyCandidate(root, record, new Date('2026-01-02T00:00:00Z')), /compatibility acceptance artifact mismatch/);

@@ -1,0 +1,102 @@
+package main
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"testing"
+	"time"
+
+	"deepzora/desktop/internal/update"
+)
+
+// Copied into the immutable v0.0.7 source checkout, not the current application.
+// Exercise its real network, matrix validator, platform routing, embedded public
+// key and update cache against the public release. No replacement transport,
+// verifier, manifest, or application code is injected.
+func TestPublishedWindowsAutoUpdate(t *testing.T) {
+	if runtime.GOOS != "windows" || os.Getenv("GITHUB_ACTIONS") != "true" {
+		t.Fatal("published updater acceptance requires a disposable hosted Windows runner")
+	}
+	target := "v" + os.Getenv("PUBLISHED_UPDATE_VERSION")
+	if !stableDesktopVersionRE.MatchString(target) {
+		t.Fatal("invalid target version")
+	}
+	t.Setenv("DEEPZORA_HOME", t.TempDir())
+	previousVersion, previousChannel := version, channel
+	version, channel = "v0.0.7", "stable"
+	t.Cleanup(func() { version, channel = previousVersion, previousChannel })
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+	client, err := httpClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ipv4, err := httpClientIPv4()
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := fetchManifest(ctx, client, ipv4, "stable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	profile := installProfile{Mode: installModePortable, CanSelfUpdate: true, ArtifactKind: artifactKindTarball}
+	info := evaluateWithProfileForChannel("v0.0.7", "stable", manifest, profile)
+	if manifest.Version != target || !info.Available || info.Err != "" || !info.CanSelfUpdate {
+		t.Fatalf("old client did not offer %s: %+v", target, info)
+	}
+	asset, kind, ok := selectUpdateAsset(manifest, profile)
+	if !ok || !strings.HasSuffix(asset.URL, "-Setup.exe") {
+		t.Fatalf("old client did not choose an installer: %+v", asset)
+	}
+	data, signature, err := downloadVerifiedAsset(ctx, client, ipv4, "stable", manifest.Version, asset, nil, nil, update.Verify)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(signature) == 0 {
+		t.Fatal("empty public integrity signature")
+	}
+	cached, err := saveCachedUpdateForChannel("stable", manifest.Version, asset, data, kind, signature)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bytes, err := os.ReadFile(cached.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256(bytes)
+	if hex.EncodeToString(digest[:]) != asset.SHA256 {
+		t.Fatal("old updater cache changed installer bytes")
+	}
+	output := os.Getenv("PUBLISHED_UPDATE_EVIDENCE")
+	if output == "" {
+		t.Fatal("missing evidence directory")
+	}
+	if err := os.MkdirAll(output, 0700); err != nil {
+		t.Fatal(err)
+	}
+	// Keep the verified installer outside t.TempDir for a native Authenticode
+	// check in the following step. It is never uploaded as evidence.
+	installerPath := filepath.Join(output, "verified-installer.exe")
+	if err := os.WriteFile(installerPath, bytes, 0600); err != nil {
+		t.Fatal(err)
+	}
+	report := map[string]any{
+		"schema": 1, "clientVersion": "v0.0.7", "clientSourceSHA": "b0208b176ba43c129d228b41b770579eb050bb1f",
+		"targetVersion": target, "architecture": runtime.GOARCH, "installerSHA256": asset.SHA256,
+		"manifestValidation": "passed", "updateAvailable": "passed", "installerRoute": "passed",
+		"downloadAndMinisign": "passed", "cache": "passed", "url": asset.URL,
+	}
+	raw, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(output, "published-update.json"), raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+}
