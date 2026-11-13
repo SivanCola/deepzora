@@ -3,12 +3,14 @@
 package persistentshell
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"sync"
 	"syscall"
 
 	"github.com/creack/pty"
+	"golang.org/x/sys/unix"
 
 	"deepzora/internal/proc"
 )
@@ -30,6 +32,25 @@ func startPTY(argv []string, dir string, env []string) (ptyConn, error) {
 	if err != nil {
 		return nil, err
 	}
+	// PTY setup obtains Fd(), which can leave the master in blocking mode.
+	// Register a fresh nonblocking descriptor with Go's poller so Close can
+	// interrupt Read even when another process still holds the slave open.
+	fd, err := unix.FcntlInt(file.Fd(), unix.F_DUPFD_CLOEXEC, 0)
+	if err == nil {
+		err = unix.SetNonblock(fd, true)
+		if err != nil {
+			_ = unix.Close(fd)
+		}
+	}
+	if err != nil {
+		_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+		_ = file.Close()
+		_ = cmd.Wait()
+		return nil, fmt.Errorf("persistent shell PTY polling: %w", err)
+	}
+	pollable := os.NewFile(uintptr(fd), file.Name())
+	_ = file.Close()
+	file = pollable
 	// Reap the shell without blocking: its exit surfaces to callers as a read
 	// error on the master side, so the wait status itself carries no decision.
 	go func() { _ = cmd.Wait() }()

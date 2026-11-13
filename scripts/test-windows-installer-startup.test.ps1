@@ -1,7 +1,13 @@
-# Exercise the real acceptance orchestration with disposable files and mocked
+﻿# Exercise the real acceptance orchestration with disposable files and mocked
 # process/registry boundaries. This never installs or uninstalls an application.
 $ErrorActionPreference = 'Stop'
 if ($env:OS -ne 'Windows_NT') { throw 'Run these tests on Windows.' }
+foreach ($name in @('test-windows-legacy-update.ps1', 'test-windows-startup-recovery.ps1')) {
+  $tokens = $null
+  $parseErrors = $null
+  $null = [Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot $name), [ref]$tokens, [ref]$parseErrors)
+  if ($parseErrors.Count -ne 0) { throw ($parseErrors | Out-String) }
+}
 . (Join-Path $PSScriptRoot 'test-windows-installer-startup.ps1') -InstallerPath unused -ExpectedVersion v1.2.3
 
 $script:testRoot = [IO.Path]::GetFullPath((Join-Path $env:TEMP ('deepzora-installer-tests-' + [guid]::NewGuid().ToString('N'))))

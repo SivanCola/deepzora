@@ -31,6 +31,12 @@ func TestBotMemberRoutingUsesSharedMemberWithoutBroadcast(t *testing.T) {
 	if err != nil || member.Outcome != "applied" {
 		t.Fatalf("member creation %s %v", member.Outcome, err)
 	}
+	// This test measures channel routing, not cold member-runtime creation.
+	// Prepare the shared seat before starting the adapters' bounded ready wait;
+	// otherwise slow Windows storage turns setup into an opaque bot timeout.
+	if _, err := a.prepareBotMember(t.Context(), member.TargetID); err != nil {
+		t.Fatalf("prepare shared member runtime: %v", err)
+	}
 	inputs := []BotConnectionInput{}
 	for _, id := range []string{"wechat", "feishu"} {
 		input := BotConnectionInput{Config: botchannels.Config{ID: id, Name: id, Provider: "weixin", Mode: "member", MemberID: member.TargetID, ChatID: "peer", SenderID: "peer"}, Secret: id + "-secret", Connect: true}

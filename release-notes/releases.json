@@ -2,6 +2,191 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "0.0.8",
+      "releaseId": "0.0.8",
+      "baseVersion": "0.0.8",
+      "previousRelease": "0.0.7",
+      "date": "2026-11-13",
+      "channel": "stable",
+      "status": "reviewed",
+      "targetingVersion": 1,
+      "builds": {
+        "cli": "v0.0.8",
+        "desktop": "v0.0.8",
+        "npm": "0.0.8"
+      },
+      "title": {
+        "en": "Local Web workspace, community plugins and installer-only Windows releases",
+        "zh": "本机 Web 工作台、社区插件与 Windows 安装包发行"
+      },
+      "summary": {
+        "en": "Deepzora 0.0.8 restores the real local Web workspace with an embedded UI in the CLI, adds community plugin discovery with commit-pinned install previews, and distributes Windows applications through signed x64 and ARM64 installers. Legacy updater metadata is preserved, with native upgrade qualification from the published 0.0.7 installed and portable clients.",
+        "zh": "Deepzora 0.0.8 恢复连接真实后端的本机 Web 工作台，CLI 内置完整页面；新增社区插件发现和锁定提交的安装预览。Windows 改为仅提供已签名的 x64、ARM64 安装包，保留旧更新清单兼容，并从已发布的 0.0.7 安装版、便携版进行原生升级验收。"
+      },
+      "surfaces": [
+        "desktop",
+        "cli"
+      ],
+      "guides": [],
+      "highlights": [
+        {
+          "kind": "new",
+          "targets": [
+            "cli"
+          ],
+          "title": {
+            "en": "Run the workspace in a local browser",
+            "zh": "在本机浏览器中运行完整工作台"
+          },
+          "body": {
+            "en": "Run deepzora web from a project directory. The official CLI embeds the UI, starts a local service on a free loopback port and prints an authenticated access URL. Conversations, streaming, approvals, history and diffs use the same Go application service as Desktop. --dir, --port and --no-open control startup; Node and Electron are not required to run the official CLI package.",
+            "zh": "在项目目录运行 deepzora web 即可启动本机工作台。官方 CLI 内置页面，在回环地址的空闲端口启动服务并提供带认证的访问链接。对话、流式输出、工具审批、历史记录和差异查看复用桌面端同一套 Go 应用服务；支持 --dir、--port、--no-open，运行官方 CLI 包无需另装 Node 或 Electron。"
+          },
+          "refs": [
+            181
+          ]
+        },
+        {
+          "kind": "new",
+          "targets": [
+            "desktop",
+            "cli"
+          ],
+          "title": {
+            "en": "Discover plugins and confirm the exact commit to install",
+            "zh": "发现插件并确认将安装的准确提交"
+          },
+          "body": {
+            "en": "Settings → Plugins → Discover and deepzora plugin search show community catalog entries, with an optional channel for unreviewed GitHub plugins. Install and update previews bind the package, source, permissions and exact Git commit to a plan ID. Moved tags, withdrawn releases and conflicting local sources cannot silently replace that reviewed plan.",
+            "zh": "通过“设置 → 插件 → 发现”或 deepzora plugin search 查找社区目录中的插件，也可选择查看未经审核的 GitHub 插件。安装和更新预览以计划 ID 绑定包、来源、权限及准确 Git 提交；标签移动、版本撤回或本地同名来源冲突不会静默替换已确认的计划。"
+          },
+          "refs": [
+            182
+          ]
+        }
+      ],
+      "changes": {
+        "new": [],
+        "improved": [
+          {
+            "targets": ["desktop"],
+            "title": { "en": "Filter Magpie models by upstream provider", "zh": "按上游供应商筛选 Magpie 模型" },
+            "body": {
+              "en": "The model picker groups Magpie routes under upstream providers such as Ollama Cloud. Identical routes exposed through two Magpie connections remain separate options, retain their connection and send the original routing reference. Existing connection filters and favorites remain available.",
+              "zh": "模型选择器按 Ollama Cloud 等上游供应商组织 Magpie 路由。两条 Magpie 连接提供相同路由时，仍保留独立选项、原连接及原始路由引用；现有连接筛选与收藏保持可用。"
+            },
+            "refs": [183]
+          },
+          {
+            "targets": [
+              "desktop"
+            ],
+            "title": {
+              "en": "Windows installers replace the portable application download",
+              "zh": "Windows 统一使用安装包"
+            },
+            "body": {
+              "en": "Windows x64 and ARM64 applications ship as timestamped Certum Authenticode-signed installers. The website and new release download navigation show installers only. The two legacy Portable.zip names remain as small Minisign-signed archives containing only a migration notice and installer link, so strict older updaters can validate the unchanged eleven-entry matrix. They contain no application.",
+              "zh": "Windows x64、ARM64 应用统一通过带时间戳的 Certum Authenticode 签名安装包发行，官网和新版下载导航只展示安装包。两个旧 Portable.zip 名称保留为很小的 Minisign 签名归档，仅含迁移说明与安装包链接，不含程序；旧更新器仍能校验原有 11 项清单。"
+            },
+            "refs": [
+              180
+            ]
+          },
+          {
+            "targets": [
+              "desktop"
+            ],
+            "title": {
+              "en": "Qualify upgrades with the published old client and update helper",
+              "zh": "使用真实旧客户端和更新助手验收升级"
+            },
+            "body": {
+              "en": "Before sealing, the published 0.0.7 installed and portable applications run on native x64 and ARM64 Windows, then their own signed update helper stages, verifies, activates and restarts the exact new installer. Acceptance checks repeated launch, normal exit and retained data. After publication and mirror promotion, the original 0.0.7 updater code checks the live manifest, downloads and verifies the installer and writes its update cache.",
+              "zh": "封存前，在原生 Windows x64、ARM64 上运行已发布的 0.0.7 安装版和便携版，由它们自带的已签名更新助手验证、暂存、激活并重启本次准确安装包，再验证重复启动、正常退出与数据保留。发布和镜像推进后，还使用原始 0.0.7 更新器代码验证公开清单、安装包下载、签名校验和更新缓存。"
+            }
+          },
+          {
+            "targets": [
+              "desktop"
+            ],
+            "title": {
+              "en": "Unattended signing waits for the real login form",
+              "zh": "无人值守签名等待真实登录表单"
+            },
+            "body": {
+              "en": "SimplySign automation identifies the native credential controls before sending account information, and restricts popup handling to acknowledgement dialogs. A transient splash window can no longer be selected as the login form. Signer, trust, timestamp and session cleanup checks remain required.",
+              "zh": "SimplySign 自动化在发送账户信息前识别原生输入控件，并只对确认弹窗执行恢复操作，避免把短暂出现的启动画面误当成登录表单；发布者、证书信任、时间戳及会话清理检查保持必需。"
+            },
+            "refs": [
+              179
+            ]
+          }
+        ],
+        "fixed": [
+          {
+            "targets": ["desktop", "cli"],
+            "title": { "en": "Interrupt idle Unix terminal readers during session cleanup", "zh": "会话清理时中断 Unix 终端的空闲读取" },
+            "body": {
+              "en": "Linux and macOS persistent shells register their PTY master for cancellable I/O, so closing a session can interrupt an idle reader even if another process keeps a terminal writer open. Command output, Unicode transport and persistent working-directory state remain covered by regression checks.",
+              "zh": "Linux、macOS 持久化终端将 PTY 主端注册为可取消的 I/O，即使其他进程仍持有终端写入端，关闭会话也能中断空闲读取。命令输出、Unicode 传输及工作目录保持均继续通过回归检查。"
+            }
+          }
+        ]
+      },
+      "upgrade": [
+        {
+          "level": "info",
+          "targets": [
+            "desktop"
+          ],
+          "title": {
+            "en": "Existing Windows installations keep their automatic update route",
+            "zh": "现有 Windows 安装保持自动更新路径"
+          },
+          "body": {
+            "en": "Use the application's normal update action. Existing installed and portable layouts both select Setup.exe; do not install the small compatibility ZIP as an application. Historical 0.0.7 and earlier release files and immutable mirror indexes remain unchanged.",
+            "zh": "使用应用内正常更新入口即可。现有安装版与便携布局均选择 Setup.exe 更新；不要把纯文本兼容 ZIP 当成应用安装。0.0.7 及更早的历史发布文件和不可变镜像索引保持不变。"
+          }
+        },
+        {
+          "level": "info",
+          "targets": [
+            "cli"
+          ],
+          "title": {
+            "en": "Open the complete URL printed by deepzora web",
+            "zh": "使用 deepzora web 输出的完整访问链接"
+          },
+          "body": {
+            "en": "The Web workspace is local-only. A fresh controlling tab replaces the previous connection; closing or refreshing a tab does not cancel accepted work. Native windows, tray, the built-in Electron browser, bots and heartbeat jobs are not started by Web. Update the CLI with deepzora upgrade.",
+            "zh": "Web 工作台仅支持本机访问。新的控制标签页会替换原连接，关闭或刷新标签页不会取消已接受的任务。Web 不启动原生窗口、托盘、Electron 内置浏览器、机器人或心跳任务；通过 deepzora upgrade 更新 CLI。"
+          }
+        }
+      ],
+      "risks": [
+        {
+          "targets": [
+            "desktop"
+          ],
+          "title": {
+            "en": "Keep shutdown diagnostics if a Windows exit stalls",
+            "zh": "Windows 退出卡住时请保留诊断日志"
+          },
+          "body": {
+            "en": "Earlier Windows reports included shutdown stopping in cancelling_background. Native upgrade acceptance covers clean hosted systems and does not establish a fix for every production environment. If it recurs, preserve the named shutdown step and service.log/service.log.1 when reporting it.",
+            "zh": "此前的 Windows 报告包含退出停在 cancelling_background 的情况。原生升级验收覆盖干净的托管系统，并不代表已经修复所有生产环境中的退出问题；如再次出现，请保留报错中的退出步骤名及 service.log、service.log.1 以供定位。"
+          }
+        }
+      ],
+      "contributors": [],
+      "links": {
+        "github": "https://github.com/SivanCola/deepzora/releases/tag/v0.0.8",
+        "compare": "https://github.com/SivanCola/deepzora/compare/v0.0.7...v0.0.8",
+        "download": "https://deepzora.app/#download"
+      }
+    },
+    {
       "version": "0.0.7",
       "releaseId": "0.0.7",
       "baseVersion": "0.0.7",

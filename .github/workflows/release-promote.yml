@@ -381,6 +381,16 @@ jobs:
       R2_BUCKET: ${{ secrets.R2_BUCKET }}
       CLOUDFLARE_PAGES_DEPLOY_HOOK: ${{ secrets.CLOUDFLARE_PAGES_DEPLOY_HOOK }}
 
+  legacy-windows-client:
+    name: verify original client against public update channel
+    needs: [preflight, mirror]
+    if: ${{ needs.mirror.result == 'success' }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/verify-windows-auto-update.yml
+    with:
+      version: ${{ needs.preflight.outputs.version }}
+
   metrics:
     name: record publication timing
     needs: [preflight, authorize, activate, cli, npm, desktop, postflight]

@@ -1,4 +1,4 @@
-# The selector is deliberately scoped to the rendered transcript. Sidebar topic
+﻿# The selector is deliberately scoped to the rendered transcript. Sidebar topic
 # titles and offscreen accessibility nodes are not evidence of restored history.
 function Get-UpgradeUIDescendants($element) {
   return $element.FindAll([Windows.Automation.TreeScope]::Descendants, [Windows.Automation.Condition]::TrueCondition)

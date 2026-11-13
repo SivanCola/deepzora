@@ -26,6 +26,15 @@ Starting with v0.0.8, Windows ships installers only. Each final x64 and ARM64
 installer undergoes native startup, second-launch, normal-exit, uninstall and
 user-data retention acceptance. Schema 3 receipts bind its SHA-256 and the hash
 of an exact text-only migration ZIP, independently checked again when sealing.
+They also require native upgrades from the exact published v0.0.7 installer and
+portable packages, using that release's signed update helper. Both old clients
+must exit normally, the helper must activate and restart the new candidate,
+and the target must pass startup, repeat launch, normal exit and retained-data
+checks. After publication and R2 promotion, the immutable v0.0.7 source runs its
+original manifest, installer routing, download, Minisign verification and cache
+code against the real public channel on x64 and ARM64. This last check is part
+of the publication workflow; recovery of a superseded version does not downgrade
+the public pointer to rerun an older target.
 
 v0.0.7 and older updaters validate all eleven downloads, including the two
 `*-Portable.zip` names, before updating any platform. Their Windows update route

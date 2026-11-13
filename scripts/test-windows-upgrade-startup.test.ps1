@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'test-windows-upgrade-startup.ps1')
 . (Join-Path $PSScriptRoot 'windows-upgrade-ui-evidence.ps1')
 

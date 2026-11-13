@@ -1,0 +1,144 @@
+name: Verify published Windows automatic updates
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/test-windows-legacy-update.ps1'
+      - 'scripts/test-windows-startup-recovery.ps1'
+      - '.github/workflows/verify-windows-auto-update.yml'
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  handoff-smoke:
+    name: self-test published v0.0.7 handoff (${{ matrix.arch }})
+    if: github.repository == 'SivanCola/deepzora' && github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            arch: amd64
+          - runner: windows-11-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Exercise the handoff harness using an immutable signed repair target
+        shell: pwsh
+        run: |
+          $cpu = if ('${{ matrix.arch }}' -eq 'amd64') { 'x64' } else { 'arm64' }
+          $expected = if ($cpu -eq 'x64') { 'b19176ec83b500975235e554ce4935207dbefb3c987ba58dcf735a4120c7ad25' } else { '6c253aee4082c157334511593350b0be84b33a5e111e8356fdfd651fd42b18b6' }
+          $installer = Join-Path $env:RUNNER_TEMP 'repair-target.exe'
+          Invoke-WebRequest "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.7/Deepzora-0.0.7-Windows-$cpu-Setup.exe" -OutFile $installer -TimeoutSec 180
+          if ((Get-FileHash -Algorithm SHA256 -LiteralPath $installer).Hash.ToLowerInvariant() -ne $expected) { throw 'Repair target differs from the sealed v0.0.7 installer' }
+          # No candidate is available on a PR. Repairing with the original signed
+          # version exercises the exact same native driver without publishing,
+          # credentials, model calls or claiming v0.0.8 upgrade qualification.
+          ./scripts/test-windows-legacy-update.ps1 -InstallerPath $installer -ExpectedVersion v0.0.7 -Architecture '${{ matrix.arch }}' -EvidenceDirectory "$env:RUNNER_TEMP/legacy-handoff-smoke"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: legacy-handoff-smoke-${{ matrix.arch }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/legacy-handoff-smoke/**/*.json
+            ${{ runner.temp }}/legacy-handoff-smoke/**/*.log
+            !${{ runner.temp }}/legacy-handoff-smoke/*/installed/**
+            !${{ runner.temp }}/legacy-handoff-smoke/**/cache/**
+          if-no-files-found: ignore
+          retention-days: 7
+  policy:
+    if: github.repository == 'SivanCola/deepzora' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.ref_protected
+    runs-on: ubuntu-latest
+    outputs:
+      required: ${{ steps.policy.outputs.required }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - id: policy
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          node --input-type=module <<'JS'
+          import { appendFileSync } from 'node:fs';
+          import { windowsInstallerOnly } from './scripts/windows-distribution.mjs';
+          import { shouldAdvance } from './scripts/publish-github-update-pointer.mjs';
+          const response = await fetch('https://downloads.deepzora.app/desktop/latest.json', {redirect:'error',signal:AbortSignal.timeout(30000)});
+          if (!response.ok) throw new Error('Published App update pointer is unavailable');
+          const latest = await response.json();
+          const required = windowsInstallerOnly(process.env.VERSION) && shouldAdvance(process.env.VERSION, latest.version);
+          appendFileSync(process.env.GITHUB_OUTPUT, `required=${required}\n`);
+          if (!required) console.log('Historical recovery does not move the public update channel backwards.');
+          JS
+  verify:
+    needs: policy
+    if: needs.policy.outputs.required == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            arch: amd64
+          - runner: windows-11-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: release-control
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: b0208b176ba43c129d228b41b770579eb050bb1f
+          path: legacy-client
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: legacy-client/desktop/go.mod
+          architecture: ${{ matrix.arch == 'amd64' && 'x64' || 'arm64' }}
+          cache: false
+      - name: Run the original client's public update path
+        shell: pwsh
+        env:
+          PUBLISHED_UPDATE_VERSION: ${{ inputs.version }}
+          PUBLISHED_UPDATE_EVIDENCE: ${{ runner.temp }}/published-update
+        run: |
+          if ((git -C legacy-client rev-parse HEAD) -ne 'b0208b176ba43c129d228b41b770579eb050bb1f') { throw 'Old client source drifted' }
+          Copy-Item release-control/scripts/legacy-windows-update.gotest legacy-client/desktop/published_update_acceptance_test.go
+          Push-Location legacy-client/desktop
+          go test . -run '^TestPublishedWindowsAutoUpdate$' -count=1 -v -timeout=15m
+          if ($LASTEXITCODE -ne 0) { throw 'The real old client public update path failed' }
+          Pop-Location
+          $file = Join-Path $env:PUBLISHED_UPDATE_EVIDENCE 'verified-installer.exe'
+          $signature = Get-AuthenticodeSignature -LiteralPath $file
+          if ($signature.Status -ne 'Valid' -or -not $signature.TimeStamperCertificate) { throw 'Old client did not download a trusted timestamped installer' }
+          $report = Get-Content (Join-Path $env:PUBLISHED_UPDATE_EVIDENCE 'published-update.json') -Raw | ConvertFrom-Json
+          if ($report.architecture -ne '${{ matrix.arch }}') { throw 'Native updater acceptance architecture mismatch' }
+          $report | Add-Member -NotePropertyName authenticode -NotePropertyValue 'passed'
+          $report | ConvertTo-Json | Set-Content (Join-Path $env:PUBLISHED_UPDATE_EVIDENCE 'published-update.json') -Encoding utf8
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: published-windows-update-${{ inputs.version }}-${{ matrix.arch }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/published-update/*.json
+          if-no-files-found: error
+          retention-days: 90

@@ -9,11 +9,13 @@ required=(
 	.github/workflows/release-promote.yml
 	.github/workflows/release-mirror.yml
 	.github/workflows/release-desktop.yml
+	.github/workflows/verify-windows-auto-update.yml
 	.github/release-signing.yml
 	npm/publish-candidate.mjs
 	scripts/build-release-cli-candidate.mjs
 	scripts/desktop-release-artifacts.mjs
 	scripts/desktop-downloads.mjs
+	scripts/windows-distribution.mjs
 	internal/releaseassets/desktop.json
 	scripts/finalize-windows-signed-candidate.sh
 	scripts/install-nsis.ps1
@@ -34,6 +36,8 @@ required=(
 	scripts/resolve-release-candidate.mjs
 	scripts/sign-certum.ps1
 	scripts/test-windows-installer-startup.ps1
+	scripts/test-windows-legacy-update.ps1
+	scripts/legacy-windows-update.gotest
 	scripts/test-windows-startup-recovery.ps1
 	scripts/test-windows-upgrade-startup.ps1
 	scripts/verify-windows-authenticode.ps1
