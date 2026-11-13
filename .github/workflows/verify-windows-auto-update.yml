@@ -68,6 +68,7 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version-file: legacy-client/desktop/go.mod
+          architecture: ${{ matrix.arch == 'amd64' && 'x64' || 'arm64' }}
           cache: false
       - name: Run the original client's public update path
         shell: pwsh
