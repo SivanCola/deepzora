@@ -877,6 +877,7 @@ jobs:
       with:
         name: ${{ needs.resolve.outputs.artifact_prefix }}-legacy-upgrade-${{ matrix.arch }}
         path: ${{ runner.temp }}/deepzora-legacy-update/legacy-update.json
+        overwrite: true
         if-no-files-found: error
         retention-days: 90
   windows-runtime-acceptance:

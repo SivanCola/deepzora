@@ -1,4 +1,4 @@
-# Exercise the real acceptance orchestration with disposable files and mocked
+﻿# Exercise the real acceptance orchestration with disposable files and mocked
 # process/registry boundaries. This never installs or uninstalls an application.
 $ErrorActionPreference = 'Stop'
 if ($env:OS -ne 'Windows_NT') { throw 'Run these tests on Windows.' }
