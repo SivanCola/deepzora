@@ -1,6 +1,11 @@
 name: Verify published Windows automatic updates
 
 on:
+  pull_request:
+    paths:
+      - 'scripts/test-windows-legacy-update.ps1'
+      - 'scripts/test-windows-startup-recovery.ps1'
+      - '.github/workflows/verify-windows-auto-update.yml'
   workflow_call:
     inputs:
       version:
@@ -16,8 +21,49 @@ permissions:
   contents: read
 
 jobs:
+  handoff-smoke:
+    name: self-test published v0.0.7 handoff (${{ matrix.arch }})
+    if: github.repository == 'SivanCola/deepzora' && github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            arch: amd64
+          - runner: windows-11-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Exercise the handoff harness using an immutable signed repair target
+        shell: pwsh
+        run: |
+          $cpu = if ('${{ matrix.arch }}' -eq 'amd64') { 'x64' } else { 'arm64' }
+          $expected = if ($cpu -eq 'x64') { 'b19176ec83b500975235e554ce4935207dbefb3c987ba58dcf735a4120c7ad25' } else { '6c253aee4082c157334511593350b0be84b33a5e111e8356fdfd651fd42b18b6' }
+          $installer = Join-Path $env:RUNNER_TEMP 'repair-target.exe'
+          Invoke-WebRequest "https://github.com/SivanCola/deepzora/releases/download/desktop-v0.0.7/Deepzora-0.0.7-Windows-$cpu-Setup.exe" -OutFile $installer -TimeoutSec 180
+          if ((Get-FileHash -Algorithm SHA256 -LiteralPath $installer).Hash.ToLowerInvariant() -ne $expected) { throw 'Repair target differs from the sealed v0.0.7 installer' }
+          # No candidate is available on a PR. Repairing with the original signed
+          # version exercises the exact same native driver without publishing,
+          # credentials, model calls or claiming v0.0.8 upgrade qualification.
+          ./scripts/test-windows-legacy-update.ps1 -InstallerPath $installer -ExpectedVersion v0.0.7 -Architecture '${{ matrix.arch }}' -EvidenceDirectory "$env:RUNNER_TEMP/legacy-handoff-smoke"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: legacy-handoff-smoke-${{ matrix.arch }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/legacy-handoff-smoke/**/*.json
+            ${{ runner.temp }}/legacy-handoff-smoke/**/*.log
+            !${{ runner.temp }}/legacy-handoff-smoke/*/installed/**
+            !${{ runner.temp }}/legacy-handoff-smoke/**/cache/**
+          if-no-files-found: ignore
+          retention-days: 7
   policy:
-    if: github.repository == 'SivanCola/deepzora' && github.ref == 'refs/heads/main' && github.ref_protected
+    if: github.repository == 'SivanCola/deepzora' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.ref_protected
     runs-on: ubuntu-latest
     outputs:
       required: ${{ steps.policy.outputs.required }}

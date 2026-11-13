@@ -15,8 +15,8 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | persistence | 16 | 0 | 0 | 16 |
 | shell-file | 1 | 24 | 0 | 25 |
 | artifact | 11 | 0 | 0 | 11 |
-| ci-job | 20 | 0 | 0 | 20 |
-| **all** | | | | **658** |
+| ci-job | 21 | 0 | 0 | 21 |
+| **all** | | | | **659** |
 
 ## Desktop commands (Go `App` methods bound to the UI)
 
@@ -723,5 +723,6 @@ Every entry carries one class: `keep-business` is implemented in Go and exposed 
 | `release-desktop.yml/resolve` |  | .github/workflows/release-desktop.yml | keep-business (保留业务实现) | version/channel resolution unchanged |
 | `release-desktop.yml/signing-contract` |  | .github/workflows/release-desktop.yml | keep-business (保留业务实现) | payload list covers the Electron executables and native modules |
 | `release-desktop.yml/windows-build` |  | .github/workflows/release-desktop.yml | keep-business (保留业务实现) | builds and smoke-tests unsigned x64 and ARM64 packages on native Windows runners before signing |
+| `release-desktop.yml/windows-legacy-upgrade` |  | .github/workflows/release-desktop.yml | keep-business (保留业务实现) | qualifies published v0.0.7 installed and portable clients upgrading through their original signed helper |
 | `release-desktop.yml/windows-runtime-acceptance` |  | .github/workflows/release-desktop.yml | keep-business (保留业务实现) | installs and starts the exact signed x64 and ARM64 installers on native runners |
 | `release-desktop.yml/windows-sign` |  | .github/workflows/release-desktop.yml | keep-business (保留业务实现) | Certum signs native-tested x64 and ARM64 payloads and rebuilt installers on x64 |

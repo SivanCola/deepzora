@@ -36,6 +36,7 @@ var ciJobs = map[string]struct {
 	"release-desktop.yml/windows-build":              {classKeepBusiness, "builds and smoke-tests unsigned x64 and ARM64 packages on native Windows runners before signing"},
 	"release-desktop.yml/windows-sign":               {classKeepBusiness, "Certum signs native-tested x64 and ARM64 payloads and rebuilt installers on x64"},
 	"release-desktop.yml/windows-runtime-acceptance": {classKeepBusiness, "installs and starts the exact signed x64 and ARM64 installers on native runners"},
+	"release-desktop.yml/windows-legacy-upgrade":     {classKeepBusiness, "qualifies published v0.0.7 installed and portable clients upgrading through their original signed helper"},
 	"release-desktop.yml/mac-universal-intel":        {classKeepBusiness, "validates the exact universal DMG from the build matrix on an Intel runner"},
 	"release-desktop.yml/publish":                    {classKeepBusiness, "manifest, minisign and mirror unchanged"},
 	"release-desktop.yml/attest-signing-contract":    {classKeepBusiness, "attests the extended payload list"},
