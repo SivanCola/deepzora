@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"bytes"
@@ -21,10 +21,10 @@ func TestHostContractGeneratedFilesAreCurrent(t *testing.T) {
 		}
 		got, err := os.ReadFile(filepath.Join(generatedContractDir, name))
 		if err != nil {
-			t.Fatalf("%v\nregenerate with: cd desktop && go run . -emit-contract %s", err, generatedContractDir)
+			t.Fatalf("%v\nregenerate with: cd desktop && go run ./cmd/desktop -emit-contract %s", err, generatedContractDir)
 		}
 		if !bytes.Equal(got, want) {
-			t.Fatalf("%s/%s is stale; regenerate with: cd desktop && go run . -emit-contract %s", generatedContractDir, name, generatedContractDir)
+			t.Fatalf("%s/%s is stale; regenerate with: cd desktop && go run ./cmd/desktop -emit-contract %s", generatedContractDir, name, generatedContractDir)
 		}
 	}
 }

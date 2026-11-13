@@ -10,6 +10,35 @@ This reference covers interactive sessions, one-shot automation, session
 resume, permission flags, and the most useful in-session commands. For provider
 configuration, plugins, and sandbox policy, see the [Guide](./GUIDE.md).
 
+## Local Web workspace
+
+```sh
+deepzora web
+deepzora web --dir /path/to/project --port 8080
+deepzora web --no-open
+```
+
+Starts on a free port at `127.0.0.1` and opens your browser. `--port` selects a
+port, `--dir` selects the initial project, and `--no-open` only prints the URL.
+Open the complete printed URL to authenticate. Closing the page leaves tasks
+running; reload to reconstruct the view. A new tab or browser needs the complete
+printed URL again. Ctrl-C shuts down the service. One page
+controls a service at a time; a new connection disconnects the previous page.
+
+Web shares the desktop UI and Go application service for real conversations,
+streaming, tool approvals, session recovery and change inspection. Model settings
+and credentials use your current Deepzora home. Web layout state lives in its
+`web-ui/` subdirectory; canonical session writer leases are unchanged. Sessions
+owned by another process cannot be taken over. The project picker accepts an
+absolute local directory path.
+
+This first stage supports local access only. Native windows, the tray and the
+Electron browser are unavailable; bot integrations and scheduled heartbeats do
+not start automatically. Run `deepzora upgrade` in the terminal to update.
+Official CLI packages embed the UI and need no Node, pnpm or Electron at runtime.
+From source, use `make build` (Node 24+ and pnpm 10 required at build time).
+A plain Go build from a clean checkout has no built UI and reports how to rebuild.
+
 ## Start a session
 
 ```sh

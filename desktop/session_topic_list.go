@@ -1,4 +1,4 @@
-package main
+package service
 
 // ListProjectTopics reads current registered sessions.
 func (a *App) ListProjectTopics(req ProjectTopicPageRequest) (ProjectTopicPage, error) {

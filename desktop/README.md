@@ -41,11 +41,18 @@ stdio), the shell owns the window, tray, menu and renderer lifecycle. See
 
 ## Why a nested module
 
-`desktop/` is its own Go module (`module deepzora/desktop`, `replace deepzora =>
-../`). That keeps the CGO desktop build entirely separate from the CLI's
-`CGO_ENABLED=0` single-static-binary guarantee: the parent module's `go build /
-vet / test ./...` skip this directory, while the import path stays under
-`deepzora/` so it can still import the `deepzora/internal/*` kernel.
+`desktop/` is an importable Go module (`deepzora/desktop`, package `service`).
+Its historical directory also holds the shared React UI and Electron shell.
+`Service` owns sessions, approvals, history, settings and file operations;
+`internal/boot` and `internal/control` own the execution engine shared with the
+CLI and ACP. `cmd/desktop` is the thin native executable entry; `deepzora web`
+imports the service directly and embeds the built UI in the CLI binary.
+Both executables support `CGO_ENABLED=0`. Root tests compile this dependency
+but do not execute the nested module's tests; run both modules' test suites.
+
+For the real local Web workspace, run `make build` from the repository root,
+then `./bin/deepzora web`. It uses the real backend; the browser-only development
+preview below continues to use mock data.
 
 ## Prerequisites
 
@@ -80,7 +87,7 @@ the equivalent manual sequence remains:
 cd desktop
 pnpm install                                   # one workspace: frontend + electron
 pnpm --dir frontend build:electron             # rewrites drag regions for Chromium
-go build -o build/bin/deepzora-desktop-service . # embeds the completed renderer build
+go build -o build/bin/deepzora-desktop-service ./cmd/desktop # embeds the completed renderer build
 pnpm --dir electron start                      # launches the shell against the service
 ```
 
@@ -101,7 +108,7 @@ diff seam can all be built without rebuilding Go.
 pnpm --dir electron smoke                      # real-service end-to-end check
 ```
 
-`go run . -emit-contract frontend/src/generated` regenerates the TypeScript
+`go run ./cmd/desktop -emit-contract frontend/src/generated` regenerates the TypeScript
 contract; `go test -run HostContract .` fails when it drifts.
 
 ## Test
@@ -129,7 +136,7 @@ Build the renderer before the Go service so its embedded assets are current:
 ```sh
 cd desktop
 pnpm --dir frontend build:electron
-go build -o build/bin/deepzora-desktop-service .
+go build -o build/bin/deepzora-desktop-service ./cmd/desktop
 pnpm --dir electron build
 pnpm --dir electron test:agent-presets
 ```

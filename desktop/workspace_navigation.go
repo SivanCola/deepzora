@@ -1,4 +1,4 @@
-package main
+package service
 
 // workspaceEntryConversation selects an existing conversation without changing
 // its identity or allocating a new one. Runtime selection remains in the normal

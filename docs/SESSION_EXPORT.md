@@ -157,7 +157,7 @@ Relevant commands:
 go test ./...
 (cd desktop && go test ./...)
 go test -race ./internal/session ./internal/control -run 'Test(FlushThrough|ExportSnapshot|StreamExportCommits|ToolObservation|SessionLifecycle|MCPAttribution|SessionDiagnostics|.*GoalDiagnostic|.*CancelSession)'
-(cd desktop && go run . -emit-contract frontend/src/generated)
+(cd desktop && go run ./cmd/desktop -emit-contract frontend/src/generated)
 go run ./tools/desktopinventory
 pnpm --dir desktop/frontend test:typecheck
 pnpm --dir desktop/frontend test:transcript

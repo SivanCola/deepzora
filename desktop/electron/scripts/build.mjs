@@ -49,7 +49,7 @@ if (existsSync(contractSource)) {
   const tsSource = resolve(generated, "desktopContract.generated.ts");
   const emitted = existsSync(tsSource) ? /DESKTOP_CONTRACT_DIGEST = "([^"]+)"/.exec(readFileSync(tsSource, "utf8"))?.[1] : undefined;
   if (emitted && emitted !== digest) {
-    console.error(`contract digest mismatch: computed ${digest}, generator emitted ${emitted}\nre-run: cd desktop && go run . -emit-contract frontend/src/generated`);
+    console.error(`contract digest mismatch: computed ${digest}, generator emitted ${emitted}\nre-run: cd desktop && go run ./cmd/desktop -emit-contract frontend/src/generated`);
     process.exit(1);
   }
   writeFileSync(contractTarget, JSON.stringify({ ...contract, digest }) + "\n");
@@ -58,6 +58,6 @@ if (existsSync(contractSource)) {
   rmSync(contractTarget, { force: true });
   console.warn(`contract missing at ${contractSource}; continuing without one (DEEPZORA_ELECTRON_ALLOW_MISSING_CONTRACT=1)`);
 } else {
-  console.error(`contract missing at ${contractSource}\nrun: cd desktop && go run . -emit-contract frontend/src/generated`);
+  console.error(`contract missing at ${contractSource}\nrun: cd desktop && go run ./cmd/desktop -emit-contract frontend/src/generated`);
   process.exit(1);
 }

@@ -13,7 +13,7 @@ if (!env.DEEPZORA_DESKTOP_SERVICE) {
   env.DEEPZORA_DESKTOP_SERVICE = resolve(root, "../build/bin", process.platform === "win32" ? "deepzora-desktop-service.exe" : "deepzora-desktop-service");
 }
 if (!existsSync(env.DEEPZORA_DESKTOP_SERVICE)) {
-  console.error("desktop service binary not found; check DEEPZORA_DESKTOP_SERVICE or build it with: cd desktop && go build -o build/bin/deepzora-desktop-service .");
+  console.error("desktop service binary not found; check DEEPZORA_DESKTOP_SERVICE or build it with: cd desktop && go build -o build/bin/deepzora-desktop-service ./cmd/desktop");
   process.exit(1);
 }
 if (dev) {

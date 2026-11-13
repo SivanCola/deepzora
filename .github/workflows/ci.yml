@@ -405,7 +405,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Verify generated host contract
         run: |
-          go run . -emit-contract frontend/src/generated
+          go run ./cmd/desktop -emit-contract frontend/src/generated
           git diff --exit-code -- frontend/src/generated
       - name: Build frontend once
         run: pnpm --dir frontend build:electron
@@ -504,6 +504,27 @@ jobs:
           xvfb-run -a pnpm --dir frontend test:motion-browser
           xvfb-run -a pnpm --dir frontend test:transcript-browser
           xvfb-run -a pnpm --dir frontend test:team-browser
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Check the packaged CLI Web workspace with the real service
+        working-directory: .
+        run: |
+          CGO_ENABLED=0 go build -o "$RUNNER_TEMP/deepzora" ./cmd/deepzora
+          python3 -m venv "$RUNNER_TEMP/web-playwright"
+          # Match the frontend's Playwright so both drive the Chromium build
+          # installed above; older releases cannot provision this runner image.
+          export PLAYWRIGHT_BROWSERS_PATH="$GITHUB_WORKSPACE/desktop/.pw-browsers"
+          "$RUNNER_TEMP/web-playwright/bin/pip" install playwright==1.64.0
+          "$RUNNER_TEMP/web-playwright/bin/python" -m playwright install --with-deps chromium
+          "$RUNNER_TEMP/web-playwright/bin/python" scripts/test-web-workspace.py "$RUNNER_TEMP/deepzora" --evidence "$RUNNER_TEMP/web-workspace-evidence"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: web-workspace-${{ github.run_id }}
+          path: ${{ runner.temp }}/web-workspace-evidence
+          if-no-files-found: ignore
 
   desktop-go:
     name: desktop-go (${{ matrix.os }})

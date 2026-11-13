@@ -622,6 +622,7 @@ Usage:
   deepzora run --events-jsonl [--model NAME] <task>      emit redacted structured events as JSONL
   deepzora review [--base BRANCH] [--commit SHA] [--model NAME]  AI-powered code review on local diffs
   deepzora acp [--model NAME]                           serve Agent Client Protocol over stdio (also: deepzora --acp)
+  deepzora web [--port PORT] [--no-open] [--dir PATH]    open the local Web workspace
   deepzora setup [path]                                 interactive config wizard; writes deepzora.toml (+ .env)
   deepzora config reasoning-language [auto|zh|en]        configure visible reasoning language
   deepzora config compact-ratio [--local] [30..85]       configure automatic compaction threshold

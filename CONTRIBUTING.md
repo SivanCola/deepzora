@@ -15,7 +15,7 @@ everything you need to get started.
 ```bash
 git clone https://github.com/SivanCola/deepzora.git
 cd deepzora
-go build ./cmd/deepzora    # builds the CLI binary
+make build                # builds the shared Web UI and complete CLI binary
 go test ./...              # runs the full test suite
 ```
 
@@ -55,7 +55,7 @@ Parents never import children.
 ### Building
 
 ```bash
-make build          # go build ./...
+make build          # build shared Web UI, CLI and example plugin
 make test           # go test ./...
 make vet            # go vet ./...
 make fmt            # gofmt -w .

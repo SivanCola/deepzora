@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"context"
@@ -382,5 +382,5 @@ func (a *App) emitInboxChanged(tabID string) {
 	if a == nil || a.ctx == nil {
 		return
 	}
-	runtimeEventsEmitFallback(a.ctx, "InboxChanged", map[string]string{"tabId": tabID})
+	a.runtimeEvents.Emit(a.ctx, "InboxChanged", map[string]string{"tabId": tabID})
 }

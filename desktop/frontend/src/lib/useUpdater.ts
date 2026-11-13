@@ -1,6 +1,7 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { app, onUpdaterProgress } from "./bridge";
 import type { UpdateInfo } from "./types";
+import { desktopHost } from "./desktopHost";
 
 // useUpdater drives the auto-update state machine shared by the top banner and the
 // Settings panel. It uses a single "update and restart" action that downloads,
@@ -256,6 +257,10 @@ function useUpdaterInternal(): Updater {
   }, []);
 
   const runCheck = useCallback(async (trigger: "manual" | "automatic") => {
+    if (desktopHost().kind === "web") {
+      if (trigger === "manual") setStatus(updateError("Web 版请在终端运行 deepzora upgrade / Run deepzora upgrade in the terminal."));
+      return;
+    }
     // A newer check may supersede an in-flight check (and historically may
     // interrupt apply). Discard owns exclusive recovery work and must not be
     // epoch-stolen by Check/Retry while AbandonPendingUpdate is outstanding.

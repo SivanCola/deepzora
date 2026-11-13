@@ -56,6 +56,7 @@ Checkpoints cover supported file-edit tools; shell-command side effects are outs
 | Interface | Best for | Entry point |
 | --- | --- | --- |
 | **Desktop** | A visual workspace for conversations, files, changes and tools | [Download the Electron app](#desktop-downloads) |
+| **Web** | The shared workspace and real backend in a local browser | `deepzora web` · [Web usage](docs/CLI.md#local-web-workspace) |
 | **Terminal** | Interactive coding and scripted tasks | `deepzora` · `deepzora run "task"` |
 | **Editor** | Connecting an ACP-compatible editor to the agent | `deepzora acp` · [ACP guide](docs/ACP.md) |
 
@@ -121,6 +122,10 @@ go build -o deepzora ./cmd/deepzora
 ./deepzora setup
 ./deepzora
 ```
+
+For the complete CLI with the embedded Web UI, run `make build` from the
+repository root, then `./bin/deepzora web`. Node and Electron are not needed
+at runtime.
 
 For desktop development, install the pnpm version declared by the workspace, install dependencies and start the app:
 

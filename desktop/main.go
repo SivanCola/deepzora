@@ -1,19 +1,12 @@
-// Command deepzora-desktop is the Deepzora desktop service: the Go-side
-// control.Controller and platform integrations, driven by the Electron shell
-// over the desktop host protocol (--host-rpc on stdin/stdout). A plain launch
-// bootstraps the Electron shell installed beside this binary (app/) and exits;
-// the shell then restarts this binary as its --host-rpc service. It lives in a
-// nested module (deepzora/desktop) so the desktop build never touches the
-// CLI's CGO_ENABLED=0 single-static-binary guarantee, while still importing
-// the same internal/* kernel.
-package main
+// The native executable in cmd/desktop delegates here. The importable service
+// also backs deepzora web; both use the same internal/boot and control engine.
+package service
 
 import (
 	"fmt"
 	"os"
 	"strings"
 
-	"deepzora/internal/plugincatalog"
 	"deepzora/internal/skill/skillwatch"
 
 	// Blank imports wire compile-time built-ins into their registries, exactly as
@@ -24,10 +17,7 @@ import (
 	_ "deepzora/internal/tool/builtin"
 )
 
-// version is injected at build time via `-ldflags "-X main.version=..."`,
-// mirroring cmd/deepzora/main.go. The auto-updater reads it (App.Version) to compare
-// against the published manifest; an un-injected dev build stays "dev" and never
-// prompts to update.
+// Executable entry points pass their linked identity through ConfigureBuildIdentity.
 var version = "dev"
 
 // channel records the build's release line, injected via
@@ -47,8 +37,10 @@ func macSelfUpdateAllowed() bool {
 	}
 }
 
-func main() {
-	plugincatalog.HostVersion = version
+// RunDesktop is the Electron host entry. Web and Desktop share this package's
+// application service; only their transports and native capabilities differ.
+func RunDesktop() {
+	applyDesktopProcessIdentity()
 	// Contract generation is a build-time operation. Dispatch it before crash
 	// capture so packaging cannot create files in the operator's Deepzora home.
 	if dir, ok := emitContractDir(os.Args[1:]); ok {

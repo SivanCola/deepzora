@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"context"
@@ -1110,8 +1110,19 @@ func (s *tabEventSink) emitRuntimeEvent(name string, payload ...any) {
 	if s == nil {
 		return
 	}
-	ctx := s.context()
+	s.mu.RLock()
+	ctx, app := s.ctx, s.app
+	s.mu.RUnlock()
 	if ctx == nil {
+		return
+	}
+	// A service instance owns its session events as well as its application
+	// events. Per-sink overrides remain available for isolated controller tests.
+	s.runtimeEvents.mu.Lock()
+	hasOverride := s.runtimeEvents.emit != nil
+	s.runtimeEvents.mu.Unlock()
+	if !hasOverride && app != nil {
+		app.runtimeEvents.Emit(ctx, name, payload...)
 		return
 	}
 	s.runtimeEvents.Emit(ctx, name, payload...)
@@ -3026,8 +3037,14 @@ const desktopGlobalOrderToken = "__global__"
 
 var desktopProjectsFileMu sync.Mutex
 
+// desktopStateSubdir is set once by RunWeb, before its service is created, and
+// is process-wide: one process hosts one transport. Web keeps its tabs, project
+// list, session presets, and global workspace apart from the desktop app's,
+// which may be running against the same home; sessions stay shared.
+var desktopStateSubdir string
+
 func desktopConfigDir() string {
-	return config.DeepzoraHomeDir()
+	return filepath.Join(config.DeepzoraHomeDir(), desktopStateSubdir)
 }
 
 func (a *App) saveTabsLocked() {

@@ -113,7 +113,7 @@ numver="${VERSION#v}"; numver="${numver%%-*}"
 echo "==> desktop host contract drift check"
 contract_snapshot=$(mktemp -d)
 cp -R frontend/src/generated "$contract_snapshot/generated"
-go run . -emit-contract frontend/src/generated
+go run ./cmd/desktop -emit-contract frontend/src/generated
 if ! diff -qr "$contract_snapshot/generated" frontend/src/generated; then
 	rm -rf "$contract_snapshot"
 	echo "desktop contract is stale - review the regenerated frontend/src/generated files" >&2
@@ -128,6 +128,10 @@ if [ ! -d "$ROOT/desktop/node_modules/@electron/packager" ] || [ ! -d "$ROOT/des
 	echo "==> pnpm install desktop workspace"
 	pnpm --dir "$ROOT/desktop" install --frozen-lockfile
 fi
+
+# Build the browser-safe UI before either Go executable embeds it. Electron
+# packaging subsequently builds its renderer with native drag regions.
+node "$ROOT/scripts/build-web-ui.mjs"
 
 # Service ldflags carry version + channel; the shell reads the same identity
 # from resources/build.json written by package.mjs. macOS Developer ID builds
@@ -154,16 +158,16 @@ build_service() {
 	mkdir -p "$(dirname "$service_out")"
 	if [ "$arch" = universal ]; then
 		service_tmp=$(mktemp -d)
-		GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags="-s -w $service_ldflags" -o "$service_tmp/amd64" .
-		GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w $service_ldflags" -o "$service_tmp/arm64" .
+		GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags="-s -w $service_ldflags" -o "$service_tmp/amd64" ./cmd/desktop
+		GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w $service_ldflags" -o "$service_tmp/arm64" ./cmd/desktop
 		lipo -create "$service_tmp/amd64" "$service_tmp/arm64" -output "$service_out"
 		rm -rf "$service_tmp"
 	elif [ "$os" = linux ]; then
 		# cgo would bind the service to the runner's glibc; nothing on Linux needs it
 		# and verify.mjs refuses a dynamically linked Go member.
-		GOOS=linux GOARCH="$arch" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w $service_ldflags" -o "$service_out" .
+		GOOS=linux GOARCH="$arch" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w $service_ldflags" -o "$service_out" ./cmd/desktop
 	else
-		GOOS="$os" GOARCH="$arch" go build -trimpath -ldflags="-s -w $service_ldflags" -o "$service_out" .
+		GOOS="$os" GOARCH="$arch" go build -trimpath -ldflags="-s -w $service_ldflags" -o "$service_out" ./cmd/desktop
 	fi
 	if [ "$os" = windows ]; then
 		node "$ROOT/scripts/verify-windows-gui-subsystem.mjs" "$service_out"

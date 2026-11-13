@@ -69,7 +69,7 @@ type Registry struct {
 // could not call fails the whole registry so the surface never drifts
 // silently; skip excludes methods by name before that check.
 func NewRegistry(target any, skip Skip) (*Registry, error) {
-	return newRegistry(target, skip, nil)
+	return newRegistry(target, skip, nil, "")
 }
 
 // NewRegistryWithOwners requires source-derived ownership for every bound
@@ -78,10 +78,23 @@ func NewRegistryWithOwners(target any, skip Skip, owners map[string]CommandOwner
 	if owners == nil {
 		return nil, errors.New("hostrpc: ownership metadata is required")
 	}
-	return newRegistry(target, skip, owners)
+	return newRegistry(target, skip, owners, "")
 }
 
-func newRegistry(target any, skip Skip, owners map[string]CommandOwnership) (*Registry, error) {
+// NewWireRegistry is NewRegistryWithOwners for a target whose Go package name
+// is not its wire name: DTOs declared beside the target are published as
+// wirePackage.Name, so relocating the target package keeps the contract digest.
+func NewWireRegistry(target any, skip Skip, owners map[string]CommandOwnership, wirePackage string) (*Registry, error) {
+	if owners == nil {
+		return nil, errors.New("hostrpc: ownership metadata is required")
+	}
+	if wirePackage == "" {
+		return nil, errors.New("hostrpc: wire package is required")
+	}
+	return newRegistry(target, skip, owners, wirePackage)
+}
+
+func newRegistry(target any, skip Skip, owners map[string]CommandOwnership, wirePackage string) (*Registry, error) {
 	if target == nil {
 		return nil, errors.New("hostrpc: nil target")
 	}
@@ -90,6 +103,7 @@ func newRegistry(target any, skip Skip, owners map[string]CommandOwnership) (*Re
 		return nil, fmt.Errorf("hostrpc: target must be a pointer to a struct, got %s", rt)
 	}
 	collector := newTypeCollector()
+	collector.targetPackage, collector.wirePackage = rt.Elem().PkgPath(), wirePackage
 	r := &Registry{
 		target:   reflect.ValueOf(target),
 		commands: []Command{},
@@ -185,6 +199,8 @@ func describeResult(c *typeCollector, owner, method string, t reflect.Type, cmd 
 
 // Commands lists the accepted methods sorted by name; never nil.
 func (r *Registry) Commands() []Command { return slices.Clone(r.commands) }
+
+func (r *Registry) HasCommand(name string) bool { _, ok := r.methods[name]; return ok }
 
 // Invoke decodes args into the method's parameters, calls it, and returns
 // its result (nil for void) or its error. Missing trailing arguments decode

@@ -1,4 +1,4 @@
-package main
+package service
 
 // Boundary regressions qualify the masking implementation. A candidate with
 // this gate enabled must pass native acceptance before entering the feature PR.

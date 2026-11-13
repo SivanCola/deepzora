@@ -1,4 +1,4 @@
-package main
+package service
 
 // removeTabOrderLocked drops the tab from the visible order and releases the
 // browser grant that was scoped to it. Caller holds App.mu.

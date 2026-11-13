@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"bytes"
@@ -101,6 +101,7 @@ type PromptHistoryResult struct {
 // flow the other way: each tab's controller emits to a tabEventSink that
 // forwards events tagged with tabId to the frontend as host events.
 type App struct {
+	localWeb        bool // Web reuses session execution without starting desktop background integrations.
 	botChannels     botChannelState
 	sessionExportMu sync.Mutex
 	sessionExports  map[string]*sessionExportJob
@@ -447,24 +448,30 @@ func (a *App) startup(ctx context.Context) {
 	a.mu.Unlock()
 	a.startDesktopSessionRecovery(ctx)
 
-	if cfg, err := config.Load(); err == nil && cfg.DesktopMetrics() && version != "dev" {
+	if cfg, err := config.Load(); err == nil && cfg.DesktopMetrics() && version != "dev" && !a.localWeb {
 		a.metrics.Store(newMetricsAggregator(config.MemoryUserDir()))
 		a.recordSettingsMetricsSnapshot(cfg)
 	}
 	a.recordPreviousRunDiagnostics()
 
 	a.heartbeat = newHeartbeatEngine(a)
-	a.heartbeat.Start()
+	if !a.localWeb {
+		a.heartbeat.Start()
+	}
 
 	go a.restoreOrBuildTabs()
-	a.startTeamHost()
-	a.goSafe("restoreBotChannels", a.restoreEnabledBotChannels)
+	if !a.localWeb {
+		a.startTeamHost()
+		a.goSafe("restoreBotChannels", a.restoreEnabledBotChannels)
+	}
 	a.startDesktopPersistenceReconciliation()
 	a.registerHistoryIndexEvents()
 	a.startSessionCatalog()
-	a.goSafe("sendStartupPing", a.sendStartupPing)
-	a.goSafe("flushMetrics", a.flushMetrics)
-	a.goSafe("flushPendingCrash", a.flushPendingCrash)
+	if !a.localWeb {
+		a.goSafe("sendStartupPing", a.sendStartupPing)
+		a.goSafe("flushMetrics", a.flushMetrics)
+		a.goSafe("flushPendingCrash", a.flushPendingCrash)
+	}
 }
 
 func (a *App) beforeClose(ctx context.Context) bool {

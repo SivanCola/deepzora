@@ -509,7 +509,7 @@ export function AppRuntimeView(props: AppRuntimeViewProps) {
         },
         setSettingsTarget: shell.setSettingsTarget,
       })} />
-      {windowsFramelessChrome && (
+      {windowsFramelessChrome && !browserPreviewChrome && (
         <WindowsWindowControls
           maximised={mainWindowMaximised}
           onMinimize={chromeCommands.minimizeMainWindow}

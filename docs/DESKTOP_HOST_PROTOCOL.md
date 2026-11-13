@@ -175,7 +175,7 @@ registry rejects anything else at build time, so the surface can never gain a
 method the shell cannot call. The shell validates `method` against the
 embedded command list before forwarding. Unknown names fail with `-32601`.
 
-The generated contract (`cd desktop && go run . -emit-contract frontend/src/generated`)
+The generated contract (`cd desktop && go run ./cmd/desktop -emit-contract frontend/src/generated`)
 is the single source of truth: it emits the JSON contract, its digest, the
 TypeScript command table and the DTO type declarations consumed by the
 renderer. A desktop Go test fails when the checked-in output drifts.

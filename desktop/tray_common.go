@@ -1,4 +1,4 @@
-package main
+package service
 
 func (a *App) trayLocale() string {
 	cfg, _, err := a.loadDesktopUserConfigForView()

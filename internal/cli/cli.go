@@ -110,6 +110,8 @@ func RunWithBuildInfo(args []string, info BuildInfo) int {
 
 	rest := args[1:]
 	switch cmd {
+	case "web":
+		return webCommand(rest, version)
 	case "run":
 		return runAgent(rest, version)
 	case "chat", "code": // "code" is the v0.x name for the interactive session

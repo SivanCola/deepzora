@@ -1,4 +1,4 @@
-package main
+package service
 
 // SessionMeta summarises one saved session for the history panel.
 type SessionMeta struct {

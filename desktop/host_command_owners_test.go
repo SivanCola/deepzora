@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"encoding/json"
@@ -18,7 +18,7 @@ func TestHostCommandOwnersMatchSource(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(got, want) {
-		t.Fatal("host command ownership drift; run go run . -emit-contract frontend/src/generated")
+		t.Fatal("host command ownership drift; run go run ./cmd/desktop -emit-contract frontend/src/generated")
 	}
 	registry, err := newDesktopRegistry((*App)(nil))
 	if err != nil {

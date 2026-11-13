@@ -4,8 +4,9 @@
 import type { AppBindings } from "./bridge";
 import type { DesktopBrowserHost } from "./browserHost";
 import type { NativePerformanceActions, ProcessDiagnosticsSnapshot } from "./processDiagnostics";
+import { localWebHost } from "./webTransport";
 
-export type DesktopHostKind = "electron" | "none";
+export type DesktopHostKind = "electron" | "web" | "none";
 export type WindowTheme = "system" | "light" | "dark";
 
 export interface WindowBounds {
@@ -269,5 +270,5 @@ export function desktopHost(): DesktopHost {
   if (typeof window === "undefined") return serverHost;
   const electron = window.deepzoraDesktop;
   if (electron) return electronHostFrom(electron);
-  return serverHost;
+  return localWebHost(serverHost) ?? serverHost;
 }

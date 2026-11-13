@@ -1,6 +1,6 @@
 //go:build darwin && cgo
 
-package main
+package service
 
 /*
 #cgo LDFLAGS: -framework CoreServices -framework CoreFoundation

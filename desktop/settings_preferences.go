@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"deepzora/internal/config"
@@ -129,7 +129,7 @@ func (a *App) SetDesktopMetrics(enabled bool) error {
 		return err
 	}
 	switch {
-	case enabled && a.metrics.Load() == nil && version != "dev":
+	case enabled && a.metrics.Load() == nil && version != "dev" && !a.localWeb:
 		a.metrics.Store(newMetricsAggregator(config.MemoryUserDir()))
 		if cfg, err := config.Load(); err == nil {
 			a.recordSettingsMetricsSnapshot(cfg)

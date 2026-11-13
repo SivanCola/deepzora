@@ -1,5 +1,5 @@
 //go:build !windows
 
-package main
+package service
 
 func startUpdateEndpoint() (func(), error) { return func() {}, nil }

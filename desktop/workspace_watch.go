@@ -1,4 +1,4 @@
-package main
+package service
 
 // Workspace change invalidation lives at the desktop boundary. Agent events
 // cover Deepzora writes; fsnotify covers IDE and external terminal edits.

@@ -66,3 +66,31 @@ func TestRegistryOwnershipRequiredAndDigested(t *testing.T) {
 		t.Fatal("missing metadata accepted")
 	}
 }
+
+func TestWireRegistryPublishesTargetPackageUnderWireName(t *testing.T) {
+	owners := map[string]CommandOwnership{"Update": {Domain: "fixture.go", Owner: "fixtureTarget.Update", Sources: []string{"fixture.go"}, Scope: CommandScope{Kind: "owner-inputs", Resolver: "fixtureTarget.Update", Inputs: []string{"item"}}}}
+	skip := Skip{}
+	for _, cmd := range mustRegistry(t, &fixtureTarget{}, nil).Commands() {
+		if cmd.Name != "Update" {
+			skip[cmd.Name] = true
+		}
+	}
+	if _, err := NewWireRegistry(&fixtureTarget{}, skip, owners, ""); err == nil {
+		t.Fatal("empty wire package accepted")
+	}
+	plain, err := NewRegistryWithOwners(&fixtureTarget{}, skip, owners)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wire, err := NewWireRegistry(&fixtureTarget{}, skip, owners, "main")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := Build(plain, nil).Types["hostrpc.fixtureItem"]; !ok {
+		t.Fatalf("plain types = %v", Build(plain, nil).Types)
+	}
+	types := Build(wire, nil).Types
+	if _, ok := types["main.fixtureItem"]; !ok || len(types) != 1 {
+		t.Fatalf("wire types = %v", types)
+	}
+}

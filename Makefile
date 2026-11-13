@@ -12,6 +12,7 @@ GOLANGCI_VERSION := $(shell cat .golangci-version)
 .PHONY: build vet fmt lint lint-go lint-install lint-cross lint-update testdup test desktop-test desktop-test-short desktop-test-times hooks cross clean
 
 build:
+	node scripts/build-web-ui.mjs
 	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o bin/deepzora$(GOEXE) ./cmd/deepzora
 	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o bin/deepzora-plugin-example$(GOEXE) ./cmd/deepzora-plugin-example
 
@@ -75,6 +76,7 @@ hooks:
 
 cross:
 	@mkdir -p dist
+	node scripts/build-web-ui.mjs
 	@for p in darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 windows/amd64 windows/arm64; do \
 		os=$${p%/*}; arch=$${p#*/}; ext=; [ $$os = windows ] && ext=.exe; \
 		echo "build $$os/$$arch"; \

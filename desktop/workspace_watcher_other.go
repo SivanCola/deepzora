@@ -1,6 +1,6 @@
 //go:build !windows && !darwin
 
-package main
+package service
 
 import "github.com/fsnotify/fsnotify"
 

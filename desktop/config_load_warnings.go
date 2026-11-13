@@ -1,4 +1,4 @@
-package main
+package service
 
 const configLoadWarningsEvent = "config:load-warnings"
 

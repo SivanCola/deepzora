@@ -13,6 +13,8 @@ const OWN_WORKFLOW_SURFACE = String.raw`website\/|supabase\/|scripts\/configure-
 const ROOT_UNRELATED = new RegExp(String.raw`^(?:docs\/|release-notes\/|desktop\/|workers\/|${OWN_WORKFLOW_SURFACE})`);
 const KNOWN_INDEPENDENT = new RegExp(String.raw`^(?:docs\/|release-notes\/|workers\/|npm\/|tools\/|${OWN_WORKFLOW_SURFACE})`);
 const ROOT_TOOLING = /^(?:Makefile|\.golangci[^/]*)$/;
+const SHARED_SERVICE_GO = /^desktop\/(?:[^/]+\.go|go\.(?:mod|sum)$|internal\/)/;
+const WEB_SURFACE = /^(?:scripts\/(?:build-web-ui\.mjs|test-web-workspace\.py)|desktop\/(?:web[^/]*\.go|service(?:_test)?\.go)|internal\/(?:weboptions\/|cli\/web\.go))/;
 const FRONTEND = /^desktop\/frontend\//;
 const DESKTOP_MANIFEST = /^(?:desktop\/(?:package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc)|desktop\/frontend\/(?:package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc|\.node-version|vite\.config\.[cm]?[jt]s|tsconfig[^/]*\.json))$/;
 const ELECTRON = /^(?:desktop\/electron\/|desktop\/(?:package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml)$)/;
@@ -56,6 +58,18 @@ export function classifyPaths(input, { full = false } = {}) {
   flags.notes_only = notesOnly;
   const unknown = [];
   for (const path of files) {
+    // The CLI now imports this module. Its source and dependency changes must
+    // exercise root consumers as well as the native/Desktop module.
+    if (SHARED_SERVICE_GO.test(path)) {
+      flags.code = true;
+      setReason(reasons, "code", path, "shared application service imported by CLI");
+    }
+    if (WEB_SURFACE.test(path)) {
+      for (const flag of ["code", "desktop", "desktop_go", "frontend", "browser"]) {
+        flags[flag] = true;
+        setReason(reasons, flag, path, "shared Web service and CLI packaging");
+      }
+    }
     const explicitDoc = ROOT_DOC.test(path) || DESKTOP_DOC.test(path);
     const releaseControl = RELEASE_CONTROL.test(path) || /^scripts\/(?:reconcile-release-publication|fetch-stable-release-manifest|check-release-public-access|test-release-control-contracts|validate-release-control-plane)[^/]*$/.test(path);
     if (releaseControl) {
@@ -91,7 +105,7 @@ export function classifyPaths(input, { full = false } = {}) {
     }
     // A focused Windows check is additional coverage for shared Go inputs,
     // not an exemption from their desktop/native ownership.
-    const ownedInfrastructure = releaseControl || CI_CONTROL.test(path) || MEMORY_CONTROL.test(path) || (path.startsWith("scripts/") && WINDOWS_BUILTIN.test(path));
+    const ownedInfrastructure = releaseControl || CI_CONTROL.test(path) || MEMORY_CONTROL.test(path) || WEB_SURFACE.test(path) || (path.startsWith("scripts/") && WINDOWS_BUILTIN.test(path));
     if (explicitDoc || ROOT_TOOLING.test(path) || ((KNOWN_INDEPENDENT.test(path) || ownedInfrastructure) && !PACKAGING.test(path))) continue;
 
     const frontend = FRONTEND.test(path) || DESKTOP_MANIFEST.test(path);

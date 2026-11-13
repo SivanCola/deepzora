@@ -143,7 +143,7 @@ JSON 序列化的参数，结果为 `()`、`(T)`、`(error)` 或 `(T, error)`。
 其他形态，因此接口面不可能出现壳无法调用的方法。壳在转发前按内嵌命令表校验
 `method`；未知名称以 `-32601` 失败。
 
-生成的契约（`cd desktop && go run . -emit-contract frontend/src/generated`）是唯一
+生成的契约（`cd desktop && go run ./cmd/desktop -emit-contract frontend/src/generated`）是唯一
 事实来源：它输出 JSON 契约、摘要、TypeScript 命令表和渲染进程使用的 DTO 类型声明。
 检入的输出漂移时桌面 Go 测试失败。
 

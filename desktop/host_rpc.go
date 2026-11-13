@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"bytes"
@@ -53,7 +53,7 @@ func exitIfHostLaunchMode(args []string) {
 		os.Exit(runEmitContract(dir))
 	}
 	if hostRPCRequested(args) {
-		os.Exit(runMaskedHostRPC(NewApp(), os.Stdin, os.Stdout))
+		os.Exit(runMaskedHostRPC(NewService(ServiceOptions{}).app, os.Stdin, os.Stdout))
 	}
 }
 
@@ -83,7 +83,7 @@ func emitHostContract(dir, ownersDir string) error {
 	if err != nil {
 		return err
 	}
-	registry, err := hostrpc.NewRegistryWithOwners((*App)(nil), nil, owners)
+	registry, err := hostrpc.NewWireRegistry((*App)(nil), nil, owners, hostWirePackage)
 	if err != nil {
 		return err
 	}
@@ -134,6 +134,7 @@ func runHostRPC(app *App, stdin io.Reader, stdout io.Writer) int {
 		slog.Error("desktop host: contract registry", "err", err)
 		return 2
 	}
+	service := &Service{app: app, registry: registry}
 	// Lifecycle evidence and the probationary-update identity are claimed
 	// before any request, before the shell connects.
 	prepareDesktopDiagnostics(app)
@@ -183,16 +184,18 @@ func runHostRPC(app *App, stdin io.Reader, stdout io.Writer) int {
 	bridge := &hostShellBridge{app: app}
 	server := hostrpc.NewServer(conn, hostrpc.ServerConfig{
 		Registry:   registry,
+		Invoke:     service.Invoke,
 		Contract:   hostrpc.Build(registry, hostEventNames),
-		Hooks:      hostRPCHooks(appCtx, app, bridge, hostrpc.Resources{Origin: origin, Token: token}),
+		Hooks:      hostRPCHooks(appCtx, service, bridge, hostrpc.Resources{Origin: origin, Token: token}),
 		Identity:   hostIdentity(),
 		Generation: "g-" + generation,
 	})
 	bridge.server = server
 	app.hostShell = bridge
 	app.setNativeHost(rpcNativeHost{server: server})
-	runtimeEventsEmitFallback = func(_ context.Context, name string, payload ...any) {
-		server.Emit(name, payload...)
+	if err := service.SetEventSink(func(_ context.Context, name string, payload ...any) { server.Emit(name, payload...) }); err != nil {
+		slog.Error("desktop host: event sink", "err", err)
+		return 2
 	}
 	if err := server.Serve(hostCtx); err != nil {
 		reason := shutdownReasonConnectionLost
@@ -249,7 +252,8 @@ func requestDetachedShutdown(app *App, request shutdownRequest, timeout time.Dur
 
 // hostRPCHooks binds the shell's lifecycle requests to the App hooks, always
 // with the service-lifetime context the App stores.
-func hostRPCHooks(ctx context.Context, app *App, bridge *hostShellBridge, resources hostrpc.Resources) hostrpc.Hooks {
+func hostRPCHooks(ctx context.Context, service *Service, bridge *hostShellBridge, resources hostrpc.Resources) hostrpc.Hooks {
+	app := service.app
 	return hostrpc.Hooks{
 		Hello: func(hostrpc.HelloParams) (hostrpc.HelloResult, error) {
 			runID := ""
@@ -262,7 +266,7 @@ func hostRPCHooks(ctx context.Context, app *App, bridge *hostShellBridge, resour
 				DiagnosticsEnabled: app.diagnosticsTelemetry,
 			}, nil
 		},
-		Start:    func(context.Context) error { app.startup(ctx); return nil },
+		Start:    func(context.Context) error { return service.Start(ctx) },
 		DOMReady: func(context.Context) error { app.domReady(ctx); return nil },
 		RendererAttached: func(context.Context, int) error {
 			app.ReportDesktopWebViewReady()

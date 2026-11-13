@@ -56,6 +56,7 @@ Agent 在本机运行；模型请求所需的上下文会发送给你配置的�
 | 入口 | 适合场景 | 如何开始 |
 | --- | --- | --- |
 | **桌面端** | 在可视化工作区中管理对话、文件、修改和工具 | [下载 Electron 桌面端](#桌面版下载) |
+| **Web** | 在本机浏览器中使用同一套工作台和真实后端 | `deepzora web` · [Web 用法](docs/CLI.zh-CN.md#本机-web-工作台) |
 | **终端** | 交互式编程与脚本任务 | `deepzora` · `deepzora run "任务"` |
 | **编辑器** | 将支持 ACP 的编辑器连接到 Agent | `deepzora acp` · [ACP 指南](docs/ACP.zh-CN.md) |
 
@@ -121,6 +122,9 @@ go build -o deepzora ./cmd/deepzora
 ./deepzora setup
 ./deepzora
 ```
+
+要构建包含 Web 页面的完整 CLI，请在仓库根目录运行 `make build`，然后运行
+`./bin/deepzora web`。页面会嵌入 CLI 单文件，运行时无需 Node 或 Electron。
 
 桌面端开发：读取工作区声明的 pnpm 版本，安装依赖后启动应用。
 

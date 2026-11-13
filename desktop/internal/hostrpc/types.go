@@ -60,6 +60,8 @@ var (
 type typeCollector struct {
 	types map[string]ObjectType
 	named map[reflect.Type]string
+	// DTOs declared in targetPackage are published as wirePackage.Name.
+	targetPackage, wirePackage string
 }
 
 func newTypeCollector() *typeCollector {
@@ -141,6 +143,9 @@ func (c *typeCollector) structRef(t reflect.Type, hint string) (TypeRef, error) 
 	name = hint
 	if t.Name() != "" {
 		name = t.String()
+		if c.wirePackage != "" && t.PkgPath() == c.targetPackage {
+			name = c.wirePackage + "." + t.Name()
+		}
 	}
 	if _, taken := c.types[name]; taken {
 		return TypeRef{}, fmt.Errorf("%s: type name %q is already used by another type", t, name)

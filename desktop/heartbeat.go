@@ -8,7 +8,7 @@
 // Design goal: minimal upstream intrusion — one file, zero changes to existing
 // Go code (App field + startup line + bindings are the only touch points).
 
-package main
+package service
 
 import (
 	"crypto/sha256"

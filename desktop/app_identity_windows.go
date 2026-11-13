@@ -1,6 +1,6 @@
 //go:build windows
 
-package main
+package service
 
 import (
 	"os"
@@ -9,7 +9,9 @@ import (
 	"deepzora/internal/installlayout"
 )
 
-func init() {
+// applyDesktopProcessIdentity runs only for the native desktop executable.
+// The package is also linked into the CLI, which must keep its own identity.
+func applyDesktopProcessIdentity() {
 	if err := appidentity.ApplyToCurrentProcess(); err != nil {
 		println("Warning: apply Windows app identity:", err.Error())
 	}

@@ -1,4 +1,4 @@
-package main
+package service
 
 // selectLocalSurfaceAfterOpen republishes the tab layout once a bound session
 // opens. It serializes with direct tab clicks, so a newer selection is never

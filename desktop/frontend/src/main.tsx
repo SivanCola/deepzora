@@ -73,7 +73,7 @@ prewarmFontFallbacks();
 // navigate away from the app. Text inputs keep their native Cut/Copy/Paste menu;
 // the terminal area is exempt so its own context menu can offer copy/paste.
 // Left alone in a plain browser (pnpm dev) so devtools stay reachable.
-if (desktopHost().kind !== "none") {
+if (desktopHost().kind === "electron") {
   window.addEventListener("contextmenu", (e) => {
     const target = e.target as HTMLElement | null;
     if (!target?.closest("input, textarea, .chat-transcript") && !target?.closest(".terminal-view")) e.preventDefault();
