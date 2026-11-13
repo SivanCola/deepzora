@@ -136,9 +136,9 @@ func TestCurrentCatalogRepairFailureCanRetryWithoutChangingSource(t *testing.T) 
 	if err := os.Remove(dir); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Rename(dir+".saved", dir); err != nil {
-		t.Fatal(err)
-	}
+	// Let repair recreate this disposable cache. Readers may already recreate
+	// the directory after the blocker is removed; renaming the saved directory
+	// back would race those legitimate reads. The source must remain untouched.
 	if err := app.RebuildSessionCatalog(); err != nil {
 		t.Fatal(err)
 	}
