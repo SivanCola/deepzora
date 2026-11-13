@@ -63,6 +63,13 @@ Requests happen before the config edit lock; settings preconditions are checked
 again before committing. Existing connections and manual model selections are
 preserved. Refresh remains available for later changes to the gateway catalog.
 
+The Magpie Agent plugin can also manage its own connection. With plugin 0.2.0,
+the Agent selection sets the default while its complete visible catalog is
+synchronized. In the desktop chat picker, select an upstream such as **Ollama
+Cloud** to see its enabled models across Magpie connections. The group headings
+identify the connection; selecting a model still uses that connection's key.
+The Magpie connection filters and favorites remain available.
+
 The UI uses the gateway's `magpie_label` (model and source), falling back to
 `display_name` or `name`, while requests and selections keep the original IDs.
 Labels live in the disposable capability cache, scoped to endpoint/protocol and

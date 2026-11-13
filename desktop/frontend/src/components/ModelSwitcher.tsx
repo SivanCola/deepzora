@@ -14,6 +14,23 @@ import { useModelApplicationStatus } from "../lib/useModelApplicationStatus";
 
 const emptyModels: ModelInfo[] = [];
 
+const magpieSourceBrands = new Map<string, [string, string]>([
+  ["ollama-cloud", ["Ollama Cloud", "ollama"]], ["codex", ["Codex", "openai"]],
+  ["opencode-go", ["OpenCode Go", "opencode"]], ["zcode", ["ZCode", ""]],
+]);
+
+// Only Magpie gives the first segment of a routed ID this meaning. Other
+// providers (e.g. OpenRouter) also serve IDs containing slashes.
+function magpieSource(model: ModelInfo) {
+  if (providerBrandID(model.provider, model.displayName ?? "", model.brandId) !== "magpie") return null;
+  const slash = model.model.indexOf("/");
+  if (slash < 1 || slash === model.model.length - 1) return null;
+  const id = model.model.slice(0, slash);
+  const fallback = magpieSourceBrands.get(id);
+  const label = model.modelDisplayName?.split(" · ").slice(1).join(" · ").trim() || fallback?.[0] || id;
+  return { id: `source:${id}`, upstream: id, label, brandId: fallback?.[1] || providerBrandID(id, label) };
+}
+
 // ModelSwitcher opens an upward popover listing configured providers. Selecting
 // one switches the active model while the current conversation continues.
 export function ModelSwitcher({
@@ -126,39 +143,52 @@ export function ModelSwitcher({
     });
   }, [models, t]);
 
+  const sourceByRef = useMemo(() => new Map(models.map(model => [model.ref, magpieSource(model)])), [models]);
+  const sources = useMemo(() => {
+    const unique = new Map<string, NonNullable<ReturnType<typeof magpieSource>>>();
+    for (const source of sourceByRef.values()) if (source && !unique.has(source.id)) unique.set(source.id, source);
+    return [...unique.values()];
+  }, [sourceByRef]);
+
   useEffect(() => {
-    if (activeFilter !== "all" && activeFilter !== "favorites" && !providers.some((provider) => provider.id === activeFilter)) {
+    if (activeFilter !== "all" && activeFilter !== "favorites" && ![...providers, ...sources].some((item) => item.id === activeFilter)) {
       setActiveFilter("all");
     }
-  }, [activeFilter, providers]);
+  }, [activeFilter, providers, sources]);
 
   const keyword = query.trim().toLowerCase();
   const filtered = useMemo(() => models.filter((model) => {
     if (activeFilter === "favorites" && !favorites.has(model.ref)) return false;
-    if (activeFilter !== "all" && activeFilter !== "favorites" && model.provider !== activeFilter) return false;
+    const source = sourceByRef.get(model.ref);
+    if (activeFilter !== "all" && activeFilter !== "favorites" && model.provider !== activeFilter && source?.id !== activeFilter) return false;
     return !keyword
       || model.model.toLowerCase().includes(keyword)
       || (model.modelDisplayName ?? "").toLowerCase().includes(keyword)
       || model.provider.toLowerCase().includes(keyword)
+      || !!source?.label.toLowerCase().includes(keyword)
       || (model.displayName ?? "").toLowerCase().includes(keyword);
-  }), [activeFilter, favorites, keyword, models]);
+  }), [activeFilter, favorites, keyword, models, sourceByRef]);
 
   // Preserve catalog/configuration order, including when the current model changes.
   const groups = useMemo(() => {
     if (activeFilter === "favorites") {
       return [{ id: "favorites", label: t("modelSwitcher.favorites"), items: filtered }];
     }
-    if (activeFilter !== "all") {
-      const provider = providers.find((item) => item.id === activeFilter);
-      return [{ id: activeFilter, label: provider?.label || activeFilter, items: filtered }];
+    const result = new Map<string, {id: string; label: string; items: ModelInfo[]}>();
+    if (activeFilter === "all") result.set("favorites", { id: "favorites", label: t("modelSwitcher.favorites"), items: [] });
+    const duplicateLabels = new Set(providers.filter((p, i) => providers.some((other, j) => i !== j && p.label === other.label)).map(p => p.label));
+    for (const model of filtered) {
+      const source = sourceByRef.get(model.ref);
+      const connection = model.displayName?.trim() || providerLabel(model.provider, t);
+      const name = duplicateLabels.has(connection) ? `${connection} (${model.provider})` : connection;
+      const favorite = activeFilter === "all" && favorites.has(model.ref);
+      const id = favorite ? "favorites" : source ? JSON.stringify([model.provider, source.id]) : activeFilter;
+      const label = source ? `${source.label} · ${name}` : activeFilter === "all" ? t("modelSwitcher.allModels") : name;
+      if (!result.has(id)) result.set(id, { id, label, items: [] });
+      result.get(id)!.items.push(model);
     }
-    const favoriteItems = filtered.filter((model) => favorites.has(model.ref));
-    const otherItems = filtered.filter((model) => !favorites.has(model.ref));
-    return [
-      { id: "favorites", label: t("modelSwitcher.favorites"), items: favoriteItems },
-      { id: "all", label: t("modelSwitcher.allModels"), items: otherItems },
-    ].filter((group) => group.items.length > 0);
-  }, [activeFilter, favorites, filtered, providers, t]);
+    return [...result.values()].filter(group => group.items.length > 0);
+  }, [activeFilter, favorites, filtered, providers, sourceByRef, t]);
 
   const currentModel = useMemo(() => models.find((m) => m.current)
     ?? models.find((m) => m.model === label || m.ref === label), [label, models]);
@@ -282,6 +312,12 @@ export function ModelSwitcher({
             {providers.map((provider) => (
               <button key={provider.id} type="button" className="modelsw__rail-item" aria-label={provider.label} title={provider.label} aria-pressed={activeFilter === provider.id} onClick={() => setActiveFilter(provider.id)}>
                 <ProviderMark provider={provider.id} label={provider.label} brandId={provider.brandId} />
+              </button>
+            ))}
+            {sources.length > 0 && <span className="modelsw__rail-divider" aria-hidden="true" />}
+            {sources.map(source => (
+              <button key={source.id} type="button" className="modelsw__rail-item" aria-label={`${source.label} · Magpie`} title={`${source.label} · Magpie`} aria-pressed={activeFilter === source.id} onClick={() => setActiveFilter(source.id)}>
+                <ProviderMark provider={source.upstream} label={source.label} brandId={source.brandId} />
               </button>
             ))}
           </nav>

@@ -509,6 +509,26 @@ if (picked.at(-1) !== "magpie-fixture/opencode-go/deepseek-v4-pro") throw new Er
 if (document.querySelector(".modelsw__label")?.textContent !== "DeepSeek V4 Pro (New) · OpenCode Go") throw new Error("selected model trigger lost its friendly name");
 if (!document.querySelector(".modelsw__trigger")?.getAttribute("aria-label")?.includes("opencode-go/deepseek-v4-pro")) throw new Error("selected model tooltip hid the routing ID");
 
+// Verify the upstream rail independently from the connection tabs. Two
+// connections can advertise the same route and still need different picks.
+currentCatalog = ["magpie-agent", "magpie-manual", "openrouter"].map(provider => ({
+  provider, model: "ollama-cloud/vendor/glm:5.3", ref: provider + "/ollama-cloud/vendor/glm:5.3",
+  displayName: provider === "openrouter" ? "OpenRouter" : "Magpie", current: false,
+}));
+currentCatalog.push({ provider: "magpie-agent", model: "codex/other", ref: "magpie-agent/codex/other", displayName: "Magpie", current: false });
+await act(async () => {
+  window.dispatchEvent(new Event("deepzora:model-catalog-changed"));
+  (document.querySelector(".modelsw__trigger") as HTMLButtonElement).click();
+});
+const ollamaRail = document.querySelector<HTMLButtonElement>('.modelsw__rail-item[aria-label="Ollama Cloud · Magpie"]');
+if (!ollamaRail?.querySelector(".modelsw__provider-icon")?.getAttribute("style")?.includes("ollama.svg")) throw new Error("missing Ollama upstream filter or icon");
+await act(async () => ollamaRail.click());
+const sourceGroups = [...document.querySelectorAll<HTMLElement>('.modelsw__catalog [role="group"]')];
+if (sourceGroups.length !== 2 || !sourceGroups.every(g => g.querySelectorAll('[role="option"]').length === 1)
+  || !sourceGroups[1].getAttribute("aria-label")?.includes("magpie-manual")) throw new Error("upstream filter mixed unrelated routes or collapsed distinct connections");
+await act(async () => sourceGroups[1].querySelector<HTMLButtonElement>('[role="option"]')!.click());
+if (picked.at(-1) !== "magpie-manual/ollama-cloud/vendor/glm:5.3") throw new Error("upstream filter changed the picked route");
+
 // Brand metadata survives renamed connections and takes precedence over vendor
 // names. Legacy catalogs still recognize Magpie aliases and exact display names.
 const brands = [
