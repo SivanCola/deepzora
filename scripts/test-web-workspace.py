@@ -40,6 +40,7 @@ def main():
     home = root / "home"
     home.mkdir()
     requests = []
+    stream_release = threading.Event()
 
     class Provider(BaseHTTPRequestHandler):
         def log_message(self, *_args):
@@ -78,7 +79,10 @@ def main():
                 emit({"content": "WEB_WRITE_DONE"}, "stop")
             else:
                 emit({"content": "WEB_STREAM_"})
-                time.sleep(1.5)
+                # Keep the real turn active until the browser has observed the
+                # first chunk and reloaded; runner speed must not decide this.
+                if not stream_release.wait(timeout=90):
+                    raise TimeoutError("Browser did not release the active stream")
                 emit({"content": "DONE"}, "stop")
             self.wfile.write(b"data: [DONE]\n\n")
             self.wfile.flush()
@@ -157,16 +161,21 @@ api_key_env = "DEEPZORA_WEB_SMOKE_KEY"
             print("PASS packaged UI, real service, authentication, token removal", flush=True)
 
             composer.fill("WEB_STREAM test the shared engine")
+            # The input is editable during cold workspace initialization, but
+            # submission intentionally waits for the runtime/controller gate.
+            expect(page.locator(".composer__btn--send")).to_be_enabled(timeout=60000)
             composer.press("Enter")
             page.get_by_text("WEB_STREAM_", exact=True).wait_for(timeout=60000)
             # Reload during the provider stream: browser lifetime cannot own execution.
             page.reload()
             page.wait_for_load_state("networkidle")
+            stream_release.set()
             page.get_by_text("WEB_STREAM_DONE", exact=True).wait_for(timeout=60000)
             page.wait_for_timeout(1500)
             print("PASS streaming and reload recovery during an active turn", flush=True)
             composer = page.locator('#composer-input')
             composer.fill("WEB_WRITE edit web-proof.txt using write_file")
+            expect(page.locator(".composer__btn--send")).to_be_enabled(timeout=60000)
             composer.press("Enter")
             page.screenshot(path=str(evidence / "write-pending.png"), full_page=True)
             # An explicit ask rule requires the same real approval flow as Desktop.
@@ -209,6 +218,7 @@ api_key_env = "DEEPZORA_WEB_SMOKE_KEY"
             print("PASS session recovery after a full service restart without replay", flush=True)
             browser.close()
     finally:
+        stream_release.set()
         if process.poll() is None:
             process.terminate()
             try:
