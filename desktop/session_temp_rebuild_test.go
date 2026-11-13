@@ -36,23 +36,12 @@ func TestDesktopHotRebuildPathsKeepSessionTemp(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			app, tab, oldAPI, _ := auditCurrentTab(t)
 			t.Cleanup(func() {
-				// The fixture closes the original controller; rebuilds install a
-				// new writer that must also finish before TempDir cleanup.
-				if current := app.controllerForTab(tab); current != nil {
-					current.Close()
-					if closed, ok := current.(interface{ Closed() <-chan struct{} }); ok {
-						<-closed.Closed()
-					}
-				}
+				// Join the retired writer as well as the replacement, then stop
+				// every desktop producer before their shared store is removed.
+				app.shuttingDown.Store(true)
 				oldAPI.Close()
 				<-oldAPI.Closed()
-				if err := app.sessionUI.Close(); err != nil {
-					t.Error(err)
-				}
-				if err := app.closeSessionServicesResult(); err != nil {
-					t.Error(err)
-				}
-				app.closeSharedSkillWatchService()
+				closeLifecycleFixture(t, app)
 			})
 			oldCtrl := oldAPI
 			if oldCtrl == nil {
