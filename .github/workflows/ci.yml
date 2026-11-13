@@ -198,6 +198,8 @@ jobs:
       - run: go mod download
       - uses: ./.github/actions/windows-root-tools
       - uses: ./.github/actions/windows-test-temp
+      - name: Verify Web UI package-manager shims on Windows
+        run: node --test scripts/build-web-ui.test.mjs
       - name: Test both Windows PowerShell runtimes
         shell: pwsh
         run: |
