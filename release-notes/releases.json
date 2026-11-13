@@ -123,7 +123,16 @@
             ]
           }
         ],
-        "fixed": []
+        "fixed": [
+          {
+            "targets": ["desktop", "cli"],
+            "title": { "en": "Interrupt idle Unix terminal readers during session cleanup", "zh": "会话清理时中断 Unix 终端的空闲读取" },
+            "body": {
+              "en": "Linux and macOS persistent shells register their PTY master for cancellable I/O, so closing a session can interrupt an idle reader even if another process keeps a terminal writer open. Command output, Unicode transport and persistent working-directory state remain covered by regression checks.",
+              "zh": "Linux、macOS 持久化终端将 PTY 主端注册为可取消的 I/O，即使其他进程仍持有终端写入端，关闭会话也能中断空闲读取。命令输出、Unicode 传输及工作目录保持均继续通过回归检查。"
+            }
+          }
+        ]
       },
       "upgrade": [
         {
