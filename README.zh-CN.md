@@ -99,7 +99,7 @@ deepzora -p "概述这个仓库的结构" --output-format json
 
 ## 文档导航
 
-维护者发版请按[中文发布手册](docs/RELEASE_HANDBOOK.zh-CN.md)操作，覆盖发版前检查、候选构建、正式审批、R2/官网自动更新及失败恢复。
+维护者发版请按[中文发布手册](docs/RELEASE_HANDBOOK.zh-CN.md)操作，覆盖无人值守 Windows 签名与 Apple 公证、候选验收、正式审批、R2/官网更新、人工维护及失败恢复。
 
 | 开始使用 | 配置与集成 | 开发与贡献 |
 | --- | --- | --- |

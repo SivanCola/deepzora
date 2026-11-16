@@ -2,7 +2,7 @@
 
 [中文](CODE_SIGNING_POLICY.zh-CN.md) · [Privacy policy](PRIVACY.md) · [SignPath review materials](docs/SIGNPATH_REVIEW.md)
 
-Last updated: 2026-11-04.
+Last updated: 2026-11-16.
 
 ## Project and authorization
 
@@ -38,13 +38,13 @@ protects signed bytes; it does not guarantee that software is defect-free.
 | --- | --- | --- |
 | Committer / author | Prepare source changes and candidate builds | [SivanCola](https://github.com/SivanCola) |
 | Reviewer | Review contributions, dependencies, provenance and release contents | SivanCola |
-| Signing approver | Manually approve each eligible production signing request | SivanCola |
+| Release approver | Review the sealed candidate and approve public publication in the `release` environment | SivanCola |
 
 One maintainer currently performs these duties. This is not a claim of independent
 two-person review. External contributions must be reviewed before release.
 GitHub and SignPath accounts participating in signing must have multi-factor
 authentication enabled; membership, permissions and MFA must be checked before
-activating the service. New maintainers and signing approvers must be documented
+activating the service. New maintainers and release approvers must be documented
 here before receiving production access.
 
 ## Signing and publication
@@ -56,17 +56,21 @@ here before receiving production access.
    itself prove human review. Record the review and release approval separately.
 3. Use GitHub-hosted runners for all artifact-producing jobs, upload artifacts to
    GitHub Actions, and submit them with verified repository, workflow, commit and
-   branch provenance. Require manual approval of every production signing request.
+   branch provenance. Candidate preparation performs Certum authentication,
+   Windows signing, macOS signing and Apple notarization unattended. Public
+   publication requires approval of the sealed candidate in the `release`
+   environment; a phone code or Apple web login is not required for each release.
 4. Sign only approved Deepzora artifacts whose product name, version and build
    source match the candidate. Eligible project code includes the launchers,
    service, CLI and update helper, and the final Windows installer and eligible
    project-generated uninstaller. Configure the exact artifact paths and product
-   metadata with SignPath before first use.
+   metadata with SignPath before any future use of that service.
 5. Preserve upstream signatures on unmodified third-party binaries, including
    Electron runtime files. Do not sign those binaries as Deepzora's own code.
    Unsigned dependencies may be bundled in the installer subject to the approved
    artifact configuration. Modified upstream code requires provenance, licensing
-   and Foundation review; it is not automatically authorized by this policy.
+   and, for any future SignPath use, Foundation review; this policy does not
+   automatically authorize such use.
 6. Package the returned, verified signed payload bytes into the final installer,
    then sign the installer in a separate request. Verify signatures, timestamps,
    hashes and native installation/update behavior before publication. Never
@@ -74,6 +78,13 @@ here before receiving production access.
 7. Retain source SHA, workflow run, artifact digests, signing request IDs, approval
    evidence, verification results and the sealed release candidate record. Publish
    only the approved candidate through the [release process](docs/RELEASE_CANDIDATES.md).
+
+Follow the [release handbook](docs/RELEASE_HANDBOOK.md) for routine commands,
+acceptance gates, maintenance and recovery. Account holders must handle expired
+certificates/membership, invalidated credentials or phone enrollment, and pending
+Apple legal agreements when they occur. These are maintenance events; Actions
+does not renew certificates, rebind phones or accept legal agreements. After
+maintenance, require live signing/notarization and current candidate evidence.
 
 Failures in authorization, source verification, signing or acceptance block
 publication as a signed release. Test certificates and development builds must

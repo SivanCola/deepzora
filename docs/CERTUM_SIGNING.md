@@ -9,6 +9,13 @@ needed to authenticate signing, so access to these secrets is signing authority.
 Windows 发布使用 Certum SimplySign。配置以上三个 Secret；不要提交二维码或 TOTP
 配置。证书私钥保留在云端，但 CI 凭据能授权签名，应按签名权限保护。
 
+For each release, follow the [release handbook](RELEASE_HANDBOOK.md), including
+Apple notarization, publication approval, native upgrades, public-channel checks,
+and the manual-maintenance/recovery table. This page details the Windows provider.
+
+每次发版按[中文发布手册](RELEASE_HANDBOOK.zh-CN.md)执行，包含 Apple 公证、正式审批、
+原生升级、公开更新通道验收及人工维护／恢复表。本页补充 Windows 签名服务细节。
+
 ## Unattended GitHub Actions signing / GitHub Actions 无人值守签名
 
 The existing release workflow performs login, payload signing, installer signing
