@@ -111,7 +111,7 @@ jobs:
           ref: b0208b176ba43c129d228b41b770579eb050bb1f
           path: legacy-client
           persist-credentials: false
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5
         with:
           go-version-file: legacy-client/desktop/go.mod
           architecture: ${{ matrix.arch == 'amd64' && 'x64' || 'arm64' }}
