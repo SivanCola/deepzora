@@ -151,7 +151,6 @@ func New(cfg provider.Config) (provider.Provider, error) {
 		authHeader:       authHeader,
 		defaultMaxTokens: maxOutputTokens,
 		http:             httpClient, // no overall timeout; lifecycle is ctx-driven
-		idleTimeout:      provider.DefaultStreamIdleTimeout,
 	}, nil
 }
 
@@ -191,8 +190,10 @@ type client struct {
 	authHeader       bool // send Authorization: Bearer instead of Anthropic's x-api-key header
 	defaultMaxTokens int
 	http             *http.Client
-	idleTimeout      time.Duration // SSE stall watchdog window; provider.DefaultStreamIdleTimeout unless a test overrides
-	authed           atomic.Bool   // a request has succeeded — gate transient-401 retry
+	// streamWatch holds the SSE stall deadlines; zero fields take the provider
+	// defaults (tests override).
+	streamWatch provider.StreamWatchConfig
+	authed      atomic.Bool // a request has succeeded — gate transient-401 retry
 }
 
 func (c *client) Name() string { return c.name }
@@ -416,43 +417,11 @@ func (c *client) readStream(ctx context.Context, resp *http.Response, out chan<-
 	defer resp.Body.Close()
 	defer close(out)
 
-	// Close the body if the stream stalls past c.idleTimeout so scanner.Scan()
-	// unblocks instead of hanging on a half-open connection. The watchdog owns the
-	// timer; the read loop only pings the buffered activity channel (no Timer.Reset
-	// race). A context cancel already unblocks the scan via the transport.
-	idleTimeout := c.idleTimeout
-	if idleTimeout <= 0 { // zero-value client (constructed without New)
-		idleTimeout = provider.DefaultStreamIdleTimeout
-	}
-	done := make(chan struct{})
-	defer close(done)
-	activity := make(chan struct{}, 1)
-	var stalled atomic.Bool
-	go func() {
-		idle := time.NewTimer(idleTimeout)
-		defer idle.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				resp.Body.Close()
-				return
-			case <-idle.C:
-				stalled.Store(true)
-				resp.Body.Close()
-				return
-			case <-activity:
-				if !idle.Stop() {
-					select {
-					case <-idle.C:
-					default:
-					}
-				}
-				idle.Reset(idleTimeout)
-			case <-done:
-				return
-			}
-		}
-	}()
+	// The watchdog closes the body on context cancel, on a silent half-open
+	// connection, and on a connection kept alive by pings without model output,
+	// so scanner.Scan() unblocks instead of hanging.
+	watch := provider.WatchStream(ctx, resp.Body, c.streamWatch)
+	defer watch.Stop()
 
 	send := func(chunk provider.Chunk) bool {
 		return sendChunk(ctx, out, chunk)
@@ -484,10 +453,7 @@ func (c *client) readStream(ctx context.Context, resp *http.Response, out chan<-
 	scanner := provider.NewStreamScanner(resp.Body, 1024*1024)
 
 	for scanner.Scan() {
-		select { // ping the idle watchdog; non-blocking so a full buffer is fine
-		case activity <- struct{}{}:
-		default:
-		}
+		watch.Activity()
 		line := strings.TrimSpace(scanner.Text())
 		// SSE carries `event:` and `data:` lines; the data JSON's own `type` field
 		// is authoritative, so we only need the data payloads.
@@ -507,6 +473,17 @@ func (c *client) readStream(ctx context.Context, resp *http.Response, out chan<-
 
 		if !updateThinkingStream(thinking, ev, send) {
 			return
+		}
+		// An open thinking block may be redacted or summarized in sparse bursts,
+		// so it gets the long window; other deltas are output. `ping` events
+		// prove nothing in either phase, and neither does block scaffolding
+		// outside a thinking block.
+		switch {
+		case ev.Type == "ping":
+		case len(thinking) > 0:
+			watch.Thinking()
+		case ev.Type == "content_block_delta":
+			watch.Output()
 		}
 		switch ev.Type {
 		case "message_start":
@@ -588,7 +565,7 @@ func (c *client) readStream(ctx context.Context, resp *http.Response, out chan<-
 	if ctx.Err() != nil {
 		return
 	}
-	if err := streamScanEndError(c.name, idleTimeout, stalled.Load(), scanner.Err(), stopReason); err != nil {
+	if err := streamScanEndError(c.name, watch.Stalled(), watch.StallWindow(), scanner.Err(), stopReason); err != nil {
 		send(provider.Chunk{Type: provider.ChunkError, Err: err})
 		return
 	}

@@ -94,7 +94,7 @@ type client struct {
 	vision                             bool // model accepts image input; embed Images as input_image parts
 	modelInfo                          provider.ModelInfo
 	http                               *http.Client
-	idleTimeout                        time.Duration
+	streamWatch                        provider.StreamWatchConfig // SSE stall deadlines; zero fields take the provider defaults
 	authed                             atomic.Bool
 
 	mu                   sync.Mutex
@@ -174,7 +174,7 @@ func New(cfg Config) provider.Provider {
 		vendor: vendor, caps: cap, mode: cfg.mode(), sessionCache: sessionCache, search: provider.SearchPolicy{NativeEnabled: cfg.WebSearch, ClientEnabled: clientWebSearch}, maxOutputTokens: maxOutputTokens,
 		vision:    vision,
 		modelInfo: modelInfo,
-		http:      httpClient, idleTimeout: provider.DefaultStreamIdleTimeout,
+		http:      httpClient,
 	}
 }
 
@@ -416,40 +416,11 @@ func (c *client) readStream(ctx context.Context, resp *http.Response, out chan<-
 
 	scanner := bufio.NewScanner(resp.Body)
 	scanner.Buffer(make([]byte, 64*1024), 4*1024*1024)
-	idle := c.idleTimeout
-	if idle <= 0 {
-		idle = provider.DefaultStreamIdleTimeout
-	}
-	watchDone := make(chan struct{})
-	activity := make(chan struct{}, 1)
 	var reasoningSnapshots responseReasoningSnapshots
-	var stalled atomic.Bool
-	go func() {
-		timer := time.NewTimer(idle)
-		defer timer.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				_ = resp.Body.Close()
-				return
-			case <-watchDone:
-				return
-			case <-activity:
-				if !timer.Stop() {
-					select {
-					case <-timer.C:
-					default:
-					}
-				}
-				timer.Reset(idle)
-			case <-timer.C:
-				stalled.Store(true)
-				_ = resp.Body.Close()
-				return
-			}
-		}
-	}()
-	defer close(watchDone)
+	// The watchdog closes the body on context cancel, on a silent half-open
+	// connection, and on a connection kept alive without model output.
+	watch := provider.WatchStream(ctx, resp.Body, c.streamWatch)
+	defer watch.Stop()
 
 	calls := make(map[string]*streamedCall)
 	callOrder := make([]string, 0)
@@ -474,10 +445,7 @@ func (c *client) readStream(ctx context.Context, resp *http.Response, out chan<-
 	completedResponseID := ""
 
 	for scanner.Scan() {
-		select {
-		case activity <- struct{}{}:
-		default:
-		}
+		watch.Activity()
 		line := scanner.Text()
 		if !strings.HasPrefix(line, "data:") {
 			continue
@@ -496,6 +464,7 @@ func (c *client) readStream(ctx context.Context, resp *http.Response, out chan<-
 		}
 		key := fmt.Sprintf("%s:%d", event.ItemID, event.ContentIndex)
 		reasoningSnapshots.capture(event)
+		watchResponsesEvent(watch, event)
 		switch event.Type {
 		case "response.output_text.delta":
 			textDeltas[key] = true
@@ -610,10 +579,14 @@ func (c *client) readStream(ctx context.Context, resp *http.Response, out chan<-
 	}
 	if err := scanner.Err(); err != nil {
 		var reason string
-		if stalled.Load() {
-			err = fmt.Errorf("responses: stream idle timeout after %s", idle)
+		switch watch.Stalled() {
+		case provider.StreamStallIdle:
+			err = fmt.Errorf("responses: stream idle timeout after %s", watch.StallWindow())
 			reason = provider.StreamInterruptIdleTimeout
-		} else {
+		case provider.StreamStallNoOutput:
+			err = fmt.Errorf("responses: stream stalled — connection alive but no model output for %s", watch.StallWindow())
+			reason = provider.StreamInterruptIdleTimeout
+		default:
 			reason = provider.ClassifyStreamInterrupt(err)
 		}
 		_ = sendChunk(ctx, out, provider.Chunk{Type: provider.ChunkError, Err: provider.StreamInterrupt(err, reason)})

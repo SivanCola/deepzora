@@ -36,7 +36,7 @@ func TestStreamStallTimesOut(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	p.(*client).idleTimeout = 150 * time.Millisecond
+	p.(*client).streamWatch.Idle = 150 * time.Millisecond
 	ch, err := p.Stream(context.Background(), provider.Request{
 		Messages:  []provider.Message{{Role: provider.RoleUser, Content: "hi"}},
 		MaxTokens: 16,
