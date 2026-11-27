@@ -75,7 +75,7 @@ func TestStreamStallTimesOutHTTP2(t *testing.T) {
 
 	p := New(Config{Name: "responses", BaseURL: srv.URL, Model: "model", APIKey: "k"}).(*client)
 	p.http = httpClient
-	p.idleTimeout = 150 * time.Millisecond
+	p.streamWatch.Idle = 150 * time.Millisecond
 
 	ch, err := p.Stream(context.Background(), provider.Request{
 		Messages: []provider.Message{{Role: provider.RoleUser, Content: "hi"}},
@@ -122,7 +122,7 @@ func TestMissingTerminalEventSurfacesPrematureEOF(t *testing.T) {
 	defer srv.Close()
 
 	p := New(Config{Name: "responses", BaseURL: srv.URL, Model: "model", APIKey: "k"}).(*client)
-	p.idleTimeout = time.Second
+	p.streamWatch.Idle = time.Second
 
 	ch, err := p.Stream(context.Background(), provider.Request{
 		Messages: []provider.Message{{Role: provider.RoleUser, Content: "hi"}},
@@ -195,7 +195,7 @@ func TestReadStreamContextCancelClosesBody(t *testing.T) {
 	out := make(chan provider.Chunk, 4)
 	done := make(chan struct{})
 	go func() {
-		(&client{idleTimeout: time.Minute}).readStream(ctx, resp, out, nil)
+		(&client{streamWatch: provider.StreamWatchConfig{Idle: time.Minute}}).readStream(ctx, resp, out, nil)
 		close(done)
 	}()
 

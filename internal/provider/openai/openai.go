@@ -252,7 +252,6 @@ func New(cfg provider.Config) (provider.Provider, error) {
 		maxOutputTokens: maxOutputTokens,
 		effort:          effort,
 		http:            httpClient,
-		idleTimeout:     provider.DefaultStreamIdleTimeout,
 	}, nil
 }
 
@@ -293,11 +292,13 @@ type client struct {
 	thinkingType    string // explicit `thinking` config override (enabled|disabled); "" = no override
 	vision          bool   // model accepts image input — embed attached images as image_url parts
 	modelInfo       provider.ModelInfo
-	visionDetail    string        // image_url detail hint (low|high); "" = auto/omit
-	maxOutputTokens int           // resolved total output budget; <=0 omits the optional field
-	effort          string        // reasoning_effort for OpenAI; thinking.type for MiniMax; "" = auto/provider default
-	idleTimeout     time.Duration // SSE stall watchdog window; provider.DefaultStreamIdleTimeout unless a test overrides
-	authed          atomic.Bool   // a request has succeeded — gate transient-401 retry
+	visionDetail    string // image_url detail hint (low|high); "" = auto/omit
+	maxOutputTokens int    // resolved total output budget; <=0 omits the optional field
+	effort          string // reasoning_effort for OpenAI; thinking.type for MiniMax; "" = auto/provider default
+	// streamWatch holds the SSE stall deadlines; zero fields take the provider
+	// defaults (tests override).
+	streamWatch provider.StreamWatchConfig
+	authed      atomic.Bool // a request has succeeded — gate transient-401 retry
 }
 
 func (c *client) Name() string { return c.name }
@@ -818,45 +819,11 @@ func (c *client) buildPrefixRequest(req provider.Request, content, reasoning str
 func (c *client) readStream(ctx context.Context, resp *http.Response, out chan<- provider.Chunk) (emitted bool, _ error) {
 	defer resp.Body.Close()
 
-	// Close the response body when the context is canceled (user interrupt) or the
-	// stream stalls past c.idleTimeout, so scanner.Scan() unblocks instead of
-	// hanging on a half-open connection. done lets the watchdog exit on a normal
-	// return — otherwise it outlives the call and blocks forever on a non-cancellable
-	// context whose Done() is nil. The watchdog owns the timer; the read loop only
-	// pings the buffered activity channel, so there's no Timer.Reset race.
-	idleTimeout := c.idleTimeout
-	if idleTimeout <= 0 { // zero-value client (constructed without New)
-		idleTimeout = provider.DefaultStreamIdleTimeout
-	}
-	done := make(chan struct{})
-	defer close(done)
-	activity := make(chan struct{}, 1)
-	var stalled atomic.Bool
-	go func() {
-		idle := time.NewTimer(idleTimeout)
-		defer idle.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				resp.Body.Close()
-				return
-			case <-idle.C:
-				stalled.Store(true)
-				resp.Body.Close()
-				return
-			case <-activity:
-				if !idle.Stop() {
-					select {
-					case <-idle.C:
-					default:
-					}
-				}
-				idle.Reset(idleTimeout)
-			case <-done:
-				return
-			}
-		}
-	}()
+	// The watchdog closes the body on context cancel (user interrupt), on a
+	// silent half-open connection, and on a connection that stays alive without
+	// model output, so scanner.Scan() unblocks instead of hanging.
+	watch := provider.WatchStream(ctx, resp.Body, c.streamWatch)
+	defer watch.Stop()
 
 	acc := map[int]*provider.ToolCall{}
 	started := map[int]bool{}
@@ -870,10 +837,7 @@ func (c *client) readStream(ctx context.Context, resp *http.Response, out chan<-
 	scanner := provider.NewStreamScanner(resp.Body, 1024*1024)
 
 	for scanner.Scan() {
-		select { // ping the idle watchdog; non-blocking so a full buffer is fine
-		case activity <- struct{}{}:
-		default:
-		}
+		watch.Activity()
 		line := strings.TrimSpace(scanner.Text())
 		if !probe.dataLine(line) {
 			continue
@@ -911,10 +875,13 @@ func (c *client) readStream(ctx context.Context, resp *http.Response, out chan<-
 		}
 
 		delta := sr.Choices[0].Delta
-		if sent, err := emitChatReasoning(ctx, out, delta.ReasoningContent, delta.Reasoning); err != nil {
+		sentReasoning, err := emitChatReasoning(ctx, out, delta.ReasoningContent, delta.Reasoning)
+		if err != nil {
 			return emitted, err
-		} else {
-			emitted = emitted || sent
+		}
+		emitted = emitted || sentReasoning
+		if sentReasoning || delta.Content != "" || len(delta.ToolCalls) > 0 {
+			watch.Output()
 		}
 
 		if delta.Content != "" {
@@ -977,10 +944,13 @@ func (c *client) readStream(ctx context.Context, resp *http.Response, out chan<-
 	if err := ctx.Err(); err != nil {
 		return emitted, err
 	}
-	if stalled.Load() {
-		// Idle stall is a body-phase cut: wrap so the Agent can replay the
-		// frozen request. Providers no longer reconnect here.
-		return emitted, fmt.Errorf("%s: stream stalled — no data for %s, connection likely dropped: %w", c.name, idleTimeout, io.ErrUnexpectedEOF)
+	// A stall is a body-phase cut: wrap so the Agent can replay the frozen
+	// request. Providers no longer reconnect here.
+	switch watch.Stalled() {
+	case provider.StreamStallIdle:
+		return emitted, fmt.Errorf("%s: stream stalled — no data for %s, connection likely dropped: %w", c.name, watch.StallWindow(), io.ErrUnexpectedEOF)
+	case provider.StreamStallNoOutput:
+		return emitted, fmt.Errorf("%s: stream stalled — connection alive but no model output for %s: %w", c.name, watch.StallWindow(), io.ErrUnexpectedEOF)
 	}
 	if err := scanner.Err(); err != nil {
 		return emitted, fmt.Errorf("%s: read stream: %w", c.name, err)

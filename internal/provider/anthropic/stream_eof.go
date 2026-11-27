@@ -12,9 +12,13 @@ import (
 // after message_delta.stop_reason is a complete terminal: compatible gateways
 // often omit message_stop, the same way OpenAI-compatible gateways omit [DONE]
 // after finish_reason. A clean close with no stop_reason stays uncommitted.
-func streamScanEndError(name string, idleTimeout time.Duration, stalled bool, scanErr error, stopReason string) error {
-	if stalled {
-		err := fmt.Errorf("%s: stream stalled — no data for %s, connection likely dropped", name, idleTimeout)
+func streamScanEndError(name string, stall provider.StreamStall, window time.Duration, scanErr error, stopReason string) error {
+	switch stall {
+	case provider.StreamStallIdle:
+		err := fmt.Errorf("%s: stream stalled — no data for %s, connection likely dropped", name, window)
+		return provider.StreamInterrupt(err, provider.StreamInterruptIdleTimeout)
+	case provider.StreamStallNoOutput:
+		err := fmt.Errorf("%s: stream stalled — connection alive but no model output for %s", name, window)
 		return provider.StreamInterrupt(err, provider.StreamInterruptIdleTimeout)
 	}
 	if scanErr != nil {

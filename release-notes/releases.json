@@ -2,6 +2,115 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "0.0.9",
+      "releaseId": "0.0.9",
+      "baseVersion": "0.0.9",
+      "previousRelease": "0.0.8",
+      "date": "2026-11-26",
+      "channel": "stable",
+      "status": "reviewed",
+      "targetingVersion": 1,
+      "builds": {
+        "cli": "v0.0.9",
+        "desktop": "v0.0.9",
+        "npm": "0.0.9"
+      },
+      "title": {
+        "en": "Stalled model responses are retried",
+        "zh": "卡住的模型响应会自动重试"
+      },
+      "summary": {
+        "en": "Deepzora 0.0.9 fixes a hang where a model response stopped producing output while its connection stayed open. Such a response is now interrupted and retried.",
+        "zh": "Deepzora 0.0.9 修复模型响应停止产出但连接仍保持打开时的卡死问题：此类响应现在会被中断并重试。"
+      },
+      "surfaces": [
+        "desktop",
+        "cli"
+      ],
+      "guides": [],
+      "highlights": [
+        {
+          "kind": "fixed",
+          "targets": [
+            "desktop",
+            "cli"
+          ],
+          "title": {
+            "en": "A stalled model response is retried instead of hanging",
+            "zh": "模型响应卡住时自动重试，不再一直等待"
+          },
+          "body": {
+            "en": "A provider connection could stay open and keep sending keep-alive lines after the model had stopped producing output, which left the turn waiting with no timeout and no retry. Deepzora now tracks model output separately from connection activity: once a response has started, 120 seconds without new output interrupts it and replays the request through the existing retry path. A queued request and a model that is still reasoning keep a 10-minute allowance. This applies to OpenAI-compatible, Anthropic and Responses providers.",
+            "zh": "模型已停止产出时，供应商连接仍可能保持打开并持续发送保活行，导致本轮一直等待，既不超时也不重试。Deepzora 现在把模型产出与连接活动分开计时：响应开始后 120 秒没有新产出即中断，并通过现有重试流程重放请求；排队中的请求和仍在推理的模型保留 10 分钟宽限。适用于 OpenAI 兼容、Anthropic 和 Responses 供应商。"
+          },
+          "refs": [
+            196
+          ]
+        }
+      ],
+      "changes": {
+        "new": [],
+        "improved": [],
+        "fixed": [
+          {
+            "targets": [
+              "desktop",
+              "cli"
+            ],
+            "title": {
+              "en": "A stalled model response is retried instead of hanging",
+              "zh": "模型响应卡住时自动重试，不再一直等待"
+            },
+            "body": {
+              "en": "A provider connection could stay open and keep sending keep-alive lines after the model had stopped producing output, which left the turn waiting with no timeout and no retry. Deepzora now tracks model output separately from connection activity: once a response has started, 120 seconds without new output interrupts it and replays the request through the existing retry path. A queued request and a model that is still reasoning keep a 10-minute allowance. This applies to OpenAI-compatible, Anthropic and Responses providers.",
+              "zh": "模型已停止产出时，供应商连接仍可能保持打开并持续发送保活行，导致本轮一直等待，既不超时也不重试。Deepzora 现在把模型产出与连接活动分开计时：响应开始后 120 秒没有新产出即中断，并通过现有重试流程重放请求；排队中的请求和仍在推理的模型保留 10 分钟宽限。适用于 OpenAI 兼容、Anthropic 和 Responses 供应商。"
+            },
+            "refs": [
+              196
+            ]
+          }
+        ]
+      },
+      "upgrade": [
+        {
+          "level": "info",
+          "targets": [
+            "desktop"
+          ],
+          "title": {
+            "en": "Windows installers keep their publisher signature",
+            "zh": "Windows 安装包保持发布者签名"
+          },
+          "body": {
+            "en": "Windows x64 and ARM64 installers remain timestamped Certum Authenticode-signed, as in 0.0.8. Use the application's normal update action; no manual migration is required.",
+            "zh": "Windows x64、ARM64 安装包与 0.0.8 相同，继续采用带时间戳的 Certum Authenticode 签名。使用应用内的正常更新操作即可，无需手动迁移。"
+          }
+        }
+      ],
+      "risks": [
+        {
+          "targets": [
+            "desktop",
+            "cli"
+          ],
+          "title": {
+            "en": "A long silent pause mid-response can be retried",
+            "zh": "响应中途长时间静默可能触发重试"
+          },
+          "body": {
+            "en": "If a gateway hides a model's reasoning without marking a reasoning phase, a pause longer than 120 seconds after output has started is treated as a stall and the request is replayed. Report the provider and model if a response is retried while it was still working.",
+            "zh": "如果网关隐藏了模型推理且未标记推理阶段，产出开始后超过 120 秒的停顿会被视为卡住并重放请求。若响应仍在正常工作时被重试，请反馈所用供应商和模型。"
+          }
+        }
+      ],
+      "contributors": [],
+      "links": {
+        "github": "https://github.com/SivanCola/deepzora/releases/tag/v0.0.9",
+        "compare": "https://github.com/SivanCola/deepzora/compare/v0.0.8...v0.0.9",
+        "download": "https://deepzora.app/#download"
+      }
+    },
+    {
       "version": "0.0.8",
       "releaseId": "0.0.8",
       "baseVersion": "0.0.8",

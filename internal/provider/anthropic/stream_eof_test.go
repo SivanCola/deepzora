@@ -104,17 +104,17 @@ data: {"type":"message_delta","delta":{"stop_reason":"tool_use"},"usage":{"outpu
 }
 
 func TestStreamScanEndErrorClassifiesTerminal(t *testing.T) {
-	if err := streamScanEndError("cc", time.Second, false, nil, "end_turn"); err != nil {
+	if err := streamScanEndError("cc", provider.StreamStallNone, 0, nil, "end_turn"); err != nil {
 		t.Fatalf("stop_reason must commit: %v", err)
 	}
-	err := streamScanEndError("cc", time.Second, false, nil, "")
+	err := streamScanEndError("cc", provider.StreamStallNone, 0, nil, "")
 	if !provider.IsStreamInterrupted(err) {
 		t.Fatalf("empty stop_reason = %v, want interrupt", err)
 	}
 	if !strings.Contains(err.Error(), "stream ended before message_stop") {
 		t.Fatalf("interrupt = %v", err)
 	}
-	if err := streamScanEndError("cc", time.Second, true, nil, ""); !provider.IsStreamInterrupted(err) ||
+	if err := streamScanEndError("cc", provider.StreamStallIdle, time.Second, nil, ""); !provider.IsStreamInterrupted(err) ||
 		provider.StreamInterruptReason(err) != provider.StreamInterruptIdleTimeout {
 		t.Fatalf("stall = %v", err)
 	}
