@@ -71,7 +71,22 @@
           }
         ]
       },
-      "upgrade": [],
+      "upgrade": [
+        {
+          "level": "info",
+          "targets": [
+            "desktop"
+          ],
+          "title": {
+            "en": "Windows installers keep their publisher signature",
+            "zh": "Windows 安装包保持发布者签名"
+          },
+          "body": {
+            "en": "Windows x64 and ARM64 installers remain timestamped Certum Authenticode-signed, as in 0.0.8. Use the application's normal update action; no manual migration is required.",
+            "zh": "Windows x64、ARM64 安装包与 0.0.8 相同，继续采用带时间戳的 Certum Authenticode 签名。使用应用内的正常更新操作即可，无需手动迁移。"
+          }
+        }
+      ],
       "risks": [
         {
           "targets": [
